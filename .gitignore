@@ -5,3 +5,10 @@ build/
 dist/
 .next/
 out/
+playwright-report/
+test-results/
+coverage/
+.vercel/
+models/
+*.tsbuildinfo
+next-env.d.ts
