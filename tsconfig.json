@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "lib": ["ES2020", "DOM"]
+  },
+  "include": ["docs/code/fera_types_v2.ts"],
+  "exclude": ["node_modules", "build", "dist", ".next", "out"]
+}

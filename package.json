@@ -1,0 +1,24 @@
+{
+  "name": "fera-ai",
+  "private": true,
+  "scripts": {
+    "dev": "node -e \"console.error('dev: not implemented'); process.exit(1)\"",
+    "build": "node -e \"console.error('build: not implemented'); process.exit(1)\"",
+    "start": "node -e \"console.error('start: not implemented'); process.exit(1)\"",
+    "lint": "node -e \"console.error('lint: not implemented'); process.exit(1)\"",
+    "typecheck": "node -e \"console.error('typecheck: not implemented'); process.exit(1)\"",
+    "test": "node -e \"console.error('test: not implemented'); process.exit(1)\"",
+    "model:fetch": "node -e \"console.error('model:fetch: not implemented'); process.exit(1)\"",
+    "seed": "node -e \"console.error('seed: not implemented'); process.exit(1)\"",
+    "reembed": "node -e \"console.error('reembed: not implemented'); process.exit(1)\"",
+    "spend": "node -e \"console.error('spend: not implemented'); process.exit(1)\"",
+    "smoke": "node -e \"console.error('smoke: not implemented'); process.exit(1)\"",
+    "eval:all": "node -e \"console.error('eval:all: not implemented'); process.exit(1)\"",
+    "eval:extract": "node -e \"console.error('eval:extract: not implemented'); process.exit(1)\"",
+    "eval:match": "node -e \"console.error('eval:match: not implemented'); process.exit(1)\"",
+    "eval:dedupe": "node -e \"console.error('eval:dedupe: not implemented'); process.exit(1)\"",
+    "eval:wer": "node -e \"console.error('eval:wer: not implemented'); process.exit(1)\"",
+    "eval:time": "node -e \"console.error('eval:time: not implemented'); process.exit(1)\"",
+    "eval:audit": "node -e \"console.error('eval:audit: not implemented'); process.exit(1)\""
+  }
+}
