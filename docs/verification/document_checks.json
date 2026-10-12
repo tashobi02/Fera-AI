@@ -1,0 +1,83 @@
+{
+  "scope": "Specification/companion validation; actual application progress UNVERIFIED",
+  "companions": {
+    "schema_v2.sql": {
+      "exact_embedded_match": true,
+      "sha256": "3fe345b1e7658657ff0c1de1afd76456e3dcd55159326bb23e3c1d94d913bf67"
+    },
+    "fera_types_v2.ts": {
+      "exact_embedded_match": true,
+      "sha256": "3d2f58591f773dfcf128a1b755938ed40c3ccdaf411bd44bd07862e48756733b"
+    },
+    "tokens_v2.css": {
+      "exact_embedded_match": true,
+      "sha256": "440a20abbd4ff3dd70eac6c3275bf71742b8134300ba3ec72e77c747280bb9b3"
+    }
+  },
+  "registry": {
+    "rows": 537,
+    "unique": 537,
+    "counts": {
+      "GOAL": 9,
+      "PERSONA": 5,
+      "STORY": 23,
+      "FR": 37,
+      "NFR": 17,
+      "BR": 26,
+      "A": 40,
+      "DEP": 11,
+      "RISK": 17,
+      "OQ": 26,
+      "SCREEN": 16,
+      "COMP": 50,
+      "API": 23,
+      "ENTITY": 17,
+      "DECISION": 17,
+      "E": 24,
+      "TC": 66,
+      "ACT": 33,
+      "D": 16,
+      "TASK": 64
+    }
+  },
+  "workload": {
+    "all_tasks": 64,
+    "all_hours": 222.0,
+    "round2_tasks": 52,
+    "round2_hours": 184.0,
+    "owner_hours": {
+      "S": 67.0,
+      "O": 54.0,
+      "M": 63.0
+    },
+    "longest_dependency_hours": 58.0,
+    "longest_dependency_path": [
+      "TASK-001",
+      "TASK-061",
+      "TASK-062",
+      "TASK-015",
+      "TASK-017",
+      "TASK-027",
+      "TASK-028",
+      "TASK-029",
+      "TASK-030",
+      "TASK-038",
+      "TASK-042",
+      "TASK-060",
+      "TASK-043",
+      "TASK-044",
+      "TASK-046"
+    ],
+    "graph_acyclic": true,
+    "known_completed_work": "UNVERIFIED"
+  },
+  "table_errors": [],
+  "orphan_table_rows": [],
+  "missing_authors": [],
+  "typescript": {
+    "version": "5.4.5",
+    "command": "tsc --strict --noEmit --target ES2020 --lib ES2020,DOM code/fera_types_v2.ts",
+    "result": "passed",
+    "scope": "Standalone shared types only"
+  }
+}

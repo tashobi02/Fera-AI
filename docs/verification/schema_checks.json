@@ -1,0 +1,467 @@
+{
+  "scope": "Companion schema only; not deployed application/API verification",
+  "engine": "PostgreSQL 18.3 (PGlite 0.5.8) on wasm32-unknown-emscripten, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit",
+  "extension": "0.8.1",
+  "targetEngine": "PostgreSQL 16 + pgvector >=0.8.1: CI not yet run",
+  "checks": [
+    {
+      "name": "Positive complete synthetic seed, unknown found age and shared-phone siblings",
+      "expected": "accepted",
+      "actual": "accepted",
+      "pass": true,
+      "error": null
+    },
+    {
+      "name": "Missing required report fields",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "new row for relation \"cases\" violates check constraint \"cases_check10\""
+      }
+    },
+    {
+      "name": "Invalid initial confirmed status",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "invalid initial case status"
+      }
+    },
+    {
+      "name": "Incomplete age range",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "new row for relation \"cases\" violates check constraint \"cases_check\""
+      }
+    },
+    {
+      "name": "Inconsistent exact age",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "new row for relation \"cases\" violates check constraint \"cases_check2\""
+      }
+    },
+    {
+      "name": "Future exact event",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "event interval starts in future"
+      }
+    },
+    {
+      "name": "Wrong case kind state",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "illegal transition matched_pending_review>closed for found case"
+      }
+    },
+    {
+      "name": "Case kind mutation",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "case kind is immutable"
+      }
+    },
+    {
+      "name": "Non-synthetic flag rejected",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "new row for relation \"cases\" violates check constraint \"cases_synthetic_release_only\""
+      }
+    },
+    {
+      "name": "Swapped candidate endpoint kinds",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "candidate endpoint kinds are invalid"
+      }
+    },
+    {
+      "name": "Stale pending candidate after report edit",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "case update leaves an ineligible or stale pending candidate"
+      }
+    },
+    {
+      "name": "Pending-review status without candidate",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "pending-review case requires a pending candidate"
+      }
+    },
+    {
+      "name": "Verified rejection with NULL reason",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "new row for relation \"review_decisions\" violates check constraint \"review_decisions_check\""
+      }
+    },
+    {
+      "name": "Unverified decision author",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "42501",
+        "message": "decision author must be an active verified officer"
+      }
+    },
+    {
+      "name": "Staff decision author",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "42501",
+        "message": "decision author must be an active verified officer"
+      }
+    },
+    {
+      "name": "Confirmed case without decision/referral",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "case update leaves an ineligible or stale pending candidate"
+      }
+    },
+    {
+      "name": "Referral endpoints unrelated to candidate",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "referral must describe its confirmed candidate and author"
+      }
+    },
+    {
+      "name": "Decision without matching audit event",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "review decision requires matching officer audit event"
+      }
+    },
+    {
+      "name": "Positive atomic pair confirmation with audit and simulated referral",
+      "expected": "accepted",
+      "actual": "accepted",
+      "pass": true,
+      "error": null
+    },
+    {
+      "name": "Positive rejection, reason, audit and reopen both cases",
+      "expected": "accepted",
+      "actual": "accepted",
+      "pass": true,
+      "error": null
+    },
+    {
+      "name": "Terminal report detail edit",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "terminal report fields are locked"
+      }
+    },
+    {
+      "name": "Confirmed candidate score rewrite",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "confirmed pair history is locked except payload redaction"
+      }
+    },
+    {
+      "name": "Confirmed candidate deletion",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "confirmed pair history is locked except payload redaction"
+      }
+    },
+    {
+      "name": "Referral history deletion",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "42501",
+        "message": "referral history is immutable except note redaction"
+      }
+    },
+    {
+      "name": "Referral author rewrite",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "42501",
+        "message": "referral history is immutable except note redaction"
+      }
+    },
+    {
+      "name": "Review decision history deletion",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "42501",
+        "message": "decision history is immutable; use an audited correction workflow before a pilot"
+      }
+    },
+    {
+      "name": "Found evidence redaction before linked missing closure",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "P0001",
+        "message": "retain found evidence until linked missing report is closed"
+      }
+    },
+    {
+      "name": "Positive full related-payload redaction after closure",
+      "expected": "accepted",
+      "actual": "accepted",
+      "pass": true,
+      "error": null
+    },
+    {
+      "name": "Audit update",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "42501",
+        "message": "audit_log is append-only"
+      }
+    },
+    {
+      "name": "Audit delete",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "42501",
+        "message": "audit_log is append-only"
+      }
+    },
+    {
+      "name": "Audit truncate even for schema owner",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "42501",
+        "message": "audit_log is append-only"
+      }
+    },
+    {
+      "name": "Unknown resource denial logged without foreign-key leak",
+      "expected": "accepted",
+      "actual": "accepted",
+      "pass": true,
+      "error": null
+    },
+    {
+      "name": "Parent submission UUID uniqueness",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23505",
+        "message": "duplicate key value violates unique constraint \"cases_reporter_session_id_client_submission_id_key\""
+      }
+    },
+    {
+      "name": "Staff submission UUID uniqueness",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23505",
+        "message": "duplicate key value violates unique constraint \"cases_created_by_user_id_client_submission_id_key\""
+      }
+    },
+    {
+      "name": "Staff submission missing UUID/hash",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "new row for relation \"cases\" violates check constraint \"cases_check9\""
+      }
+    },
+    {
+      "name": "Phone-only duplicate cannot confirm same child",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "new row for relation \"duplicate_links\" violates check constraint \"duplicate_links_check1\""
+      }
+    },
+    {
+      "name": "Positive profile duplicate resolution",
+      "expected": "accepted",
+      "actual": "accepted",
+      "pass": true,
+      "error": null
+    },
+    {
+      "name": "Duplicate resolution requires reason",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "new row for relation \"duplicate_links\" violates check constraint \"duplicate_links_check4\""
+      }
+    },
+    {
+      "name": "Opposite-kind duplicate",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "duplicate reports must have same kind"
+      }
+    },
+    {
+      "name": "Embedding dimensions",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "22000",
+        "message": "expected 384 dimensions, not 3"
+      }
+    },
+    {
+      "name": "Embedding must identify its vector space",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "new row for relation \"cases\" violates check constraint \"cases_check7\""
+      }
+    },
+    {
+      "name": "Positive six paid calls and idempotent settlement",
+      "expected": "accepted",
+      "actual": "accepted",
+      "pass": true,
+      "error": null
+    },
+    {
+      "name": "Seventh paid call",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "draft expired or six-call limit reached"
+      }
+    },
+    {
+      "name": "Global cost cap",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "AI budget exhausted"
+      }
+    },
+    {
+      "name": "Expired draft reservation",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "23514",
+        "message": "draft expired or six-call limit reached"
+      }
+    },
+    {
+      "name": "Settlement cannot exceed reservation",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "P0001",
+        "message": "actual cost exceeds reserved upper bound"
+      }
+    },
+    {
+      "name": "Conflicting repeat settlement including NULL",
+      "expected": "rejected",
+      "actual": "rejected",
+      "pass": true,
+      "error": {
+        "code": "P0001",
+        "message": "settlement conflicts with prior result"
+      }
+    },
+    {
+      "name": "Positive standalone outside-Fera closure after candidate invalidation",
+      "expected": "accepted",
+      "actual": "accepted",
+      "pass": true,
+      "error": null
+    }
+  ],
+  "total": 48,
+  "passed": 48,
+  "allPassed": true
+}

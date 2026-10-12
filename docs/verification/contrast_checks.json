@@ -1,0 +1,44 @@
+[
+  {
+    "mode": "light",
+    "token": "border",
+    "surface": "#FFFFFF",
+    "ratio": 4.307,
+    "pass_nontext_AA": true
+  },
+  {
+    "mode": "light",
+    "token": "border",
+    "surface": "#FAFAF7",
+    "ratio": 4.1188,
+    "pass_nontext_AA": true
+  },
+  {
+    "mode": "light",
+    "token": "border",
+    "surface": "#F1F3F2",
+    "ratio": 3.8646,
+    "pass_nontext_AA": true
+  },
+  {
+    "mode": "dark",
+    "token": "border",
+    "surface": "#18211E",
+    "ratio": 5.094,
+    "pass_nontext_AA": true
+  },
+  {
+    "mode": "dark",
+    "token": "border",
+    "surface": "#111816",
+    "ratio": 5.5704,
+    "pass_nontext_AA": true
+  },
+  {
+    "mode": "dark",
+    "token": "border",
+    "surface": "#212C28",
+    "ratio": 4.4625,
+    "pass_nontext_AA": true
+  }
+]

@@ -1,0 +1,170 @@
+{
+  "project": "Fera AI",
+  "edition": "2.0",
+  "issued": "2026-10-11",
+  "timezone": "Asia/Dhaka",
+  "authors": [
+    "Sadman Shaharier",
+    "Obidit Islam"
+  ],
+  "scope": "Revised specification handover; synthetic prototype only; application implementation UNVERIFIED",
+  "file_count_including_manifest": 32,
+  "hash_policy": "SHA-256 of every package file except MANIFEST.json itself. Outer ZIP is separate.",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 2075,
+      "sha256": "4a3b3437b7725a8ac6d1cac37f95db58e06454d76d2ad61a4da6b1db262e4a8b"
+    },
+    {
+      "path": "code/fera_types_v2.ts",
+      "bytes": 17350,
+      "sha256": "3d2f58591f773dfcf128a1b755938ed40c3ccdaf411bd44bd07862e48756733b"
+    },
+    {
+      "path": "code/schema_v2.sql",
+      "bytes": 33972,
+      "sha256": "3fe345b1e7658657ff0c1de1afd76456e3dcd55159326bb23e3c1d94d913bf67"
+    },
+    {
+      "path": "code/tokens_v2.css",
+      "bytes": 3650,
+      "sha256": "440a20abbd4ff3dd70eac6c3275bf71742b8134300ba3ec72e77c747280bb9b3"
+    },
+    {
+      "path": "markdown/00_Gap_Check_and_Registry_V2.md",
+      "bytes": 16219,
+      "sha256": "2a664b171b89471ef71035b96662dcc1bd1796ae4bc7e9ca1dfa788e9dfc7037"
+    },
+    {
+      "path": "markdown/D1_PRD_V2.md",
+      "bytes": 59907,
+      "sha256": "5cda0e034214e4f838d6147336ed7e76064f88359ca20063171e460995c3c438"
+    },
+    {
+      "path": "markdown/D2_TRD_PartA_V2.md",
+      "bytes": 87023,
+      "sha256": "e158121acb2e83760c387f82262e1ea88fa8777ed11172f833252fde2c592fba"
+    },
+    {
+      "path": "markdown/D2_TRD_PartB_V2.md",
+      "bytes": 32952,
+      "sha256": "7d62f6ce623e6bd9260e21f3bdc29df967bd6358f7b3ab84d4d0025a11deba6d"
+    },
+    {
+      "path": "markdown/D3_App_Flow_V2.md",
+      "bytes": 31759,
+      "sha256": "0d27d051f7e727752df9d8e400dc5d4bf2d3f242b6a1675f958c7e7ed43fd46b"
+    },
+    {
+      "path": "markdown/D4_Design_Brief_V2.md",
+      "bytes": 31028,
+      "sha256": "d0b67c23c332c3f44c3920fc0dc7ed5ae058edfb5dcbbcaad3fa1201865d5578"
+    },
+    {
+      "path": "markdown/D5_Background_Schema_V2.md",
+      "bytes": 84790,
+      "sha256": "de513012d92a28a8854a0294da53c81b90c13153d2dd35404792e4f0e2e7871d"
+    },
+    {
+      "path": "markdown/D6_Implementation_Plan_V2.md",
+      "bytes": 38520,
+      "sha256": "d0f1d3569131303aac27a730bdc45d5f297655063dbadf157f6d23563c5ca8f1"
+    },
+    {
+      "path": "markdown/D7_Closing_Pack_V2.md",
+      "bytes": 12458,
+      "sha256": "c25fbf2ef05b632747a5e2e9adc164c8b7bc0fa6cd1ce4febdc0365076398d71"
+    },
+    {
+      "path": "markdown/TEAM_HANDOVER_V2.md",
+      "bytes": 25997,
+      "sha256": "a88c15b81a4d7ebdc5f712c3031c52b1fd34544c5199d60b72f1eb8ed8925b37"
+    },
+    {
+      "path": "pdf/00_Gap_Check_and_Registry_V2.pdf",
+      "bytes": 99538,
+      "sha256": "981a37684d865921d4aa5491d290e4181d66b960407fcf4e2b7aed40e1d1ce65"
+    },
+    {
+      "path": "pdf/D1_PRD_V2.pdf",
+      "bytes": 314941,
+      "sha256": "e51485a40f166a34354bf8deb884cc05bd50cac86348d339eb13fe04814e7a73"
+    },
+    {
+      "path": "pdf/D2_TRD_PartA_V2.pdf",
+      "bytes": 375394,
+      "sha256": "2c7e1a8a874f1bfc0e2852c1ce5ffd5f528ad4dddaa5a7d71114acdd9d40fa7a"
+    },
+    {
+      "path": "pdf/D2_TRD_PartB_V2.pdf",
+      "bytes": 185810,
+      "sha256": "75dd74f5e9d7e7a503b3286a7fcbd7a1b8ada9281c54b1737597d6e2088e5634"
+    },
+    {
+      "path": "pdf/D3_App_Flow_V2.pdf",
+      "bytes": 250811,
+      "sha256": "e3ff6dff512260589100485b2a7d112fe749377864515b7ea0ca214d2d87001d"
+    },
+    {
+      "path": "pdf/D4_Design_Brief_V2.pdf",
+      "bytes": 172313,
+      "sha256": "7a76cac61984cfa4721df33f83b9bb2584bad8b357e0801205cda51bdd6c8b9a"
+    },
+    {
+      "path": "pdf/D5_Background_Schema_V2.pdf",
+      "bytes": 458897,
+      "sha256": "2f0136f559cd6a6180b60a24742bdfe888f55bf22be3a4afcc2a3e1d9e11e969"
+    },
+    {
+      "path": "pdf/D6_Implementation_Plan_V2.pdf",
+      "bytes": 268790,
+      "sha256": "fe94bf581e71ece1a5b4ed5eacfd38c3871217384840e499f18819108d649a69"
+    },
+    {
+      "path": "pdf/D7_Closing_Pack_V2.pdf",
+      "bytes": 81751,
+      "sha256": "f9da66a05769e5e83641d2dd4e3f882d50c9c2b2b4b583c597ac67f4b648c542"
+    },
+    {
+      "path": "pdf/Fera_AI_Complete_Team_Handbook_V2.pdf",
+      "bytes": 8152850,
+      "sha256": "b08445869fa684316132ba200b31d0410a378436c274be99faa2e7f1677c986e"
+    },
+    {
+      "path": "pdf/TEAM_HANDOVER_V2.pdf",
+      "bytes": 524881,
+      "sha256": "aa338346509e6b75bcbcf58283167995821594a7fd42145b8dc794ad82b456c5"
+    },
+    {
+      "path": "verification/README.md",
+      "bytes": 1962,
+      "sha256": "d272f96b4e180b04fea245a413f8ff462d9abbb2af15a7dce99bfab5fe7be599"
+    },
+    {
+      "path": "verification/contrast_checks.json",
+      "bytes": 766,
+      "sha256": "e5798f6ffe122c90453bc7ab584ec91edde45c3dfdd5632ad2668b2c982d5555"
+    },
+    {
+      "path": "verification/document_checks.json",
+      "bytes": 1885,
+      "sha256": "baf3e1165ee96bb8a48a0268f94edf65deb91ddda4f1b1ab145a5918399e70ed"
+    },
+    {
+      "path": "verification/pdf_checks.json",
+      "bytes": 7275,
+      "sha256": "f5a48034fb035ca7fde42ebca851ed0ca661cc34de74bb8b3ec2b2316e693dce"
+    },
+    {
+      "path": "verification/schema_checks.json",
+      "bytes": 12572,
+      "sha256": "81d1f029c0ef82d6386f3503e4bbbf5fd55d09e9f1b78fd5ab55d73ada18ce2b"
+    },
+    {
+      "path": "verification/schema_checks.mjs",
+      "bytes": 14898,
+      "sha256": "5a185beaa187be9bad42406882fa0c6ead26bdddbdc186c51831bcf96f137a2c"
+    }
+  ]
+}
