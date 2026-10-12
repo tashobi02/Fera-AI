@@ -38,7 +38,7 @@ Create `docs/gates/G<n>-<YYYY-MM-DD-HHMM>.md`:
 | Exit item | Result (PASS/FAIL/UNVERIFIED) | Evidence (command + result, URL, file) |
 |---|---|---|
 Open items: <ID — owner — next step — new date>
-Remaining hours (D6 estimates of non-done rows): S <h> · O <h> · M <h>
+Remaining hours (D6 estimates of non-done rows): Obidit <h> · Masnun <h> · Mahim <h>
 ```
 The gate is PASS only if every item is PASS; UNVERIFIED counts as FAIL. Then link the report in the tracker's "Gate report" line and tick only the checklist boxes that are PASS. Add a log line.
 

@@ -2,7 +2,8 @@
 
 **Window:** Tue 13 Oct 2026, 08:00 → 23:00 (Asia/Dhaka) · **Gate:** G2 · **Plan:** [EXECUTION_PLAN.md](EXECUTION_PLAN.md#phase-2--must-core-build-tue-13-oct-0800--2300--gate-g2) · **Prev:** [Phase 1](PHASE_1_SPECS_CONTRACTS.md) · **Next:** [Phase 3](PHASE_3_FULL_SCOPE_QUALITY.md)
 **Phase status:** `todo`
-**Last updated:** 2026-10-12 19:15 · by Claude Code (file created)
+**Last updated:** 2026-10-13 · tasks distributed among Obidit, Masnun and Mahim; lead = Obidit
+**Team:** **Obidit** — lead; intake, AI, outputs · **Masnun** — data, matching, officer workflow, dashboard, evaluation · **Mahim** — platform, integration, release (named "Sadman" in AGENTS.md and the spec pack; D6 owner code S). Tasks follow [EXECUTION_PLAN.md](EXECUTION_PLAN.md). The lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`.
 
 ---
 
@@ -15,9 +16,9 @@ This is a living tracker. Every agent working on a task in this phase updates it
 3. Work in a lane worktree (`scripts/agents/new-lane.sh <feature> <lane>`) and stay inside the owner's paths ([ownership map](../../AGENTS.md#repo-layout-and-ownership)).
 4. When you open the PR, set the row to `review` with the PR link. After the merge, set it to `done` and fill in **Evidence**: the command and its result, a URL or a file path. A task without evidence is not done.
 5. If you are stuck, set the row to `blocked`, say what blocks it in Evidence, and add a log line.
-6. Edit only **your own rows** and **your owner's log section**, so parallel lanes don't conflict. Never tick a gate box yourself. Gate boxes are ticked from the `fera-gate` report in [docs/gates/](../gates/).
+6. Edit only the rows in **your own person table** and **your log section**, so parallel lanes don't conflict. Never tick a gate box yourself. Gate boxes are ticked from the `fera-gate` report in [docs/gates/](../gates/).
 
-**Status values:** `todo` · `doing` · `review` · `done` · `blocked` · `cut`. Use `cut` only with the lead's approval and in the [D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommendation) cut order. Never cut review-before-submit, officer confirm, referral, audit or redaction.
+**Status values:** `todo` · `doing` · `review` · `done` · `blocked` · `cut`. Use `cut` only with approval from the lead (Obidit) and in the [D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommendation) cut order. Never cut review-before-submit, officer confirm, referral, audit or redaction.
 
 | Action | Claude Code | Codex | Antigravity / any other agent |
 |---|---|---|---|
@@ -34,7 +35,7 @@ contracts → **TASK-015** case service → **TASK-017** matcher → **TASK-028*
 
 | Checkpoint | Due | Status | If late |
 |---|---|---|---|
-| TASK-015 case service API merged | **13 Oct 12:00** | `todo` | Sadman drops Lane C until it lands; other lanes code against `src/contracts` types with typed fakes |
+| TASK-015 case service API merged | **13 Oct 12:00** | `todo` | Mahim drops Lane C until it lands; other lanes code against `src/contracts` types with typed fakes |
 | TASK-017 matcher merged | after TASK-015 | `todo` | Masnun Lane B builds S-009/S-010 against typed fake candidates |
 | TASK-028 → 029 → 030 merged | before G2, 13 Oct 23:00 | `todo` | Report at the 23:00 stand-up with remaining hours |
 
@@ -46,24 +47,44 @@ On D6 estimates, the serial chains don't fit before G2 (23:00):
 Rule for all lanes: **UI and integration lanes do not wait for backend tasks.** They start at 08:00 against the `src/contracts` DTO examples as typed fakes, and swap to the real API when the backend row is `done`:
 - Obidit Lane C builds S-001/S-002/S-003 against API-001/002/003 fakes. Run TASK-023 first, as soon as TASK-015 lands.
 - Masnun Lane B builds S-007/S-009/S-010/S-011 against API-007/008/009/010/012 fakes.
-- Sadman Lane B builds S-012 against API-011/013 fakes.
+- Mahim Lane B builds S-012 against API-011/013 fakes.
 
-A fake-backed screen counts as `review`, not `done`. It becomes `done` only once its TC passes against the real service. Report the remaining chain hours at every stand-up. If the 18:00 stand-up shows G2 can't be met, the lead applies the D6 §11 cut order or moves the item, with a log line.
+A fake-backed screen counts as `review`, not `done`. It becomes `done` only once its TC passes against the real service. Report the remaining chain hours at every stand-up. If the 18:00 stand-up shows G2 can't be met, the lead (Obidit) applies the D6 §11 cut order or moves the item, with a log line.
 
-## Tasks — Sadman
-| ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
-|---|---|---|---|---|---|---|---|---|
-| TASK-007 | API layer: error envelope E-001–E-024, Zod helpers, request ID, rate limiter (COMP-021) | A · Codex | TASK-001 | 4 | Unit tests for envelope and limiter | `todo` | | |
-| TASK-062 | Schema invariants, restricted runtime role, full related-payload redaction | A · Codex | TASK-002, TASK-061 | 4 | Negative and positive lifecycle/redaction checks | `todo` | | |
-| TASK-015 | Case service, state guard, audit, versions (COMP-014/015) — **by 12:00** | A · Codex + `database-reviewer` | TASK-007, 061, 062 | 6 | TC-032 and TC-016 pass | `todo` | | |
-| TASK-006 | Auth.js credentials, parent cookie, `requireRole`, seeded users | B · Claude Code + `security-reviewer` | TASK-002 | 5 | TC-023 passes | `todo` | | |
-| TASK-031 | S-008 sign-in + S-016 not-found | B · Claude Code | TASK-006 | 2 | TC-022 passes | `todo` | | |
-| TASK-029 | S-012 case detail, close, audit + API-011/013 | B · Claude Code | TASK-028 | 5 | TC-010 full passes | `todo` | | |
-| TASK-024 | S-004 outputs + poster PNG (COMP-030/031) | C · Claude Code + `impeccable` | TASK-023 | 3 | TC-006 passes | `todo` | | |
-| TASK-025 | S-005 manual form fallback (COMP-032) | C · Claude Code + `impeccable` | TASK-022 | 2 | TC-017 passes | `todo` | | |
-| TASK-032 | S-013 admin: redact payloads + verify [MOCK] + API-016/017 | C · Claude Code | TASK-015 | 3 | TC-015 passes | `todo` | | |
+## Who does what
 
-## Tasks — Obidit
+| Person | Lane A (Codex) | Lane B (Claude Code) | Lane C | D6 hours |
+|---|---|---|---|---|
+| **Obidit** (lead) | TASK-012 normaliser → 013 LLM adapter → 063 counters → 059 spend | TASK-014 speech → 020 orchestrator → 033 demo cache | TASK-023 templates first, then 021 S-001/S-002 → 022 S-003 + submit (impeccable) · evening TASK-040 clip recording | 41 |
+| **Masnun** | TASK-016 embeddings → 017 matcher → 018 duplicates → 019 seed | TASK-026 S-007 → 027 S-009 → 028 S-010 confirm/reject → 030 S-011 map (impeccable) | TASK-011 50 labelled reports (Obidit reviews) · TASK-039 eval scaffold | 37 |
+| **Mahim** | TASK-007 API layer → 062 invariants → 015 case service (**by 12:00**) | TASK-006 auth → 031 S-008/S-016 → 029 S-012 close + audit | TASK-024 S-004 + poster → 025 S-005 → 032 S-013 admin (impeccable) | 34 |
+
+Lane C for Obidit starts with TASK-023 as soon as TASK-015 lands, because S-001–S-003 wait on the long intake chain (see Schedule reality).
+
+### Cross-person handoffs (the merge that unblocks someone else)
+| When this merges | Owner | It unblocks |
+|---|---|---|
+| TASK-007 API layer | Mahim | Obidit TASK-014 |
+| TASK-062 invariants | Mahim | Obidit TASK-063 |
+| TASK-015 case service (**12:00**) | Mahim | Obidit TASK-022/023 · Masnun TASK-017/026 |
+| TASK-008 shell (Phase 1) | Mahim | Obidit TASK-021 |
+| TASK-020 orchestrator | Obidit | Masnun TASK-026 |
+| TASK-019 seed | Masnun | Obidit TASK-033 |
+| TASK-022 S-003 | Obidit | Mahim TASK-025 |
+| TASK-023 templates | Obidit | Mahim TASK-024 |
+| TASK-028 S-010 confirm | Masnun | Mahim TASK-029 |
+| TASK-029 S-012 close | Mahim | Masnun TASK-030 |
+
+When one of these merges, tell the waiting person straight away; they rebase and swaps their typed fake for the real call.
+
+### Lead duties — Obidit
+- Chair the 09:00, 13:00, 18:00 and 23:00 stand-ups and fill the table below with `fera-gate G2 standup`.
+- At **12:00**, check that TASK-015 is merged; if it isn't, confirm Mahim's Lane C pause and the typed-fake fallback.
+- At **18:00**, decide on cuts or moves (D6 §11 / AMD-PLAN-4) if G2 can't be met, and log the decision.
+- Record mentor and organiser answers (DEP-010, OQ-003/OQ-010) in the mentor-fix table below.
+- Run `fera-gate G2` at 23:00 and link the report.
+
+## Tasks — Obidit (lead)
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | TASK-012 | Normaliser: Bangla digits, time words, phone, district aliases, romaniser (COMP-008) | A · Codex + `bengali-reviewer` | TASK-009 | 5 | ≥30 unit tests pass | `todo` | | |
@@ -73,9 +94,9 @@ A fake-backed screen counts as `review`, not `done`. It becomes `done` only once
 | TASK-014 | Speech adapter + API-001 (COMP-006) | B · Claude Code | TASK-005, 007 | 3 | TC-001 steps 1–3 pass | `todo` | | |
 | TASK-020 | Intake orchestrator + API-002 + question templates (COMP-009) | B · Claude Code | TASK-013 | 4 | TC-003 passes | `todo` | | |
 | TASK-033 | Demo-safe cache + fixtures for 3 cases + cached badge (COMP-017/048) | B · Claude Code | TASK-020, 019 | 3 | TC-021 passes on laptop | `todo` | | |
+| TASK-023 | Output templates GD/poster + wording guard + API-006 (COMP-010/016) | C · Claude Code | TASK-015 | 4 | TC-005, TC-024 pass | `todo` | | |
 | TASK-021 | S-001/S-002 intake chat + recorder (COMP-024–027) | C · Claude Code + `impeccable` | TASK-008, 014, 020 | 7 | Voice and text paths work on phone | `todo` | | |
 | TASK-022 | S-003 review + API-003 + draft persistence (review-before-submit) | C · Claude Code + `impeccable` | TASK-015, 021 | 5 | TC-004, TC-031 pass | `todo` | | |
-| TASK-023 | Output templates GD/poster + wording guard + API-006 (COMP-010/016) | C · Claude Code | TASK-015 | 4 | TC-005, TC-024 pass | `todo` | | |
 | TASK-040 (record) | 60 WER clips recorded, 19:00–22:00, with 2–3 friends | human | TASK-014 | — | 60 clips stored with consent note; run happens in Phase 3 | `todo` | | |
 
 ## Tasks — Masnun
@@ -89,13 +110,26 @@ A fake-backed screen counts as `review`, not `done`. It becomes `done` only once
 | TASK-027 | S-009 queue + API-008 (COMP-035/036) | B · Claude Code + `impeccable` | TASK-017 | 3 | Queue lists seeded candidates | `todo` | | |
 | TASK-028 | S-010 match review + API-009/010, one-transaction confirm, reject with reason | B · Claude Code + `database-reviewer` | TASK-017, 027 | 6 | TC-010 (confirm part), TC-011 pass | `todo` | | |
 | TASK-030 | S-011 map + table + API-012 (COMP-040/041) | B · Claude Code + `impeccable` | TASK-009, 029 | 5 | TC-012 passes | `todo` | | |
-| TASK-011 | 50 hand-labelled reports (Obidit reviews) | C · human | — | 5 | `eval/data/labelled.jsonl` reviewed by O | `todo` | | |
+| TASK-011 | 50 hand-labelled reports (reviewed by Obidit) | C · human | — | 5 | `eval/data/labelled.jsonl` reviewed by Obidit | `todo` | | |
 | TASK-039 (scaffold) | Eval harness scaffold; dev split only | C · Codex + `mle-reviewer` | TASK-011, 017, 018, 064 | — | Smoke run prints metrics with denominators | `todo` | | |
+
+## Tasks — Mahim
+| ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
+|---|---|---|---|---|---|---|---|---|
+| TASK-007 | API layer: error envelope E-001–E-024, Zod helpers, request ID, rate limiter (COMP-021) | A · Codex | TASK-001 | 4 | Unit tests for envelope and limiter | `todo` | | |
+| TASK-062 | Schema invariants, restricted runtime role, full related-payload redaction | A · Codex | TASK-002, TASK-061 | 4 | Negative and positive lifecycle/redaction checks | `todo` | | |
+| TASK-015 | Case service, state guard, audit, versions (COMP-014/015) — **by 12:00** | A · Codex + `database-reviewer` | TASK-007, 061, 062 | 6 | TC-032 and TC-016 pass | `todo` | | |
+| TASK-006 | Auth.js credentials, parent cookie, `requireRole`, seeded users | B · Claude Code + `security-reviewer` | TASK-002 | 5 | TC-023 passes | `todo` | | |
+| TASK-031 | S-008 sign-in + S-016 not-found | B · Claude Code | TASK-006 | 2 | TC-022 passes | `todo` | | |
+| TASK-029 | S-012 case detail, close, audit + API-011/013 | B · Claude Code | TASK-028 | 5 | TC-010 full passes | `todo` | | |
+| TASK-024 | S-004 outputs + poster PNG (COMP-030/031) | C · Claude Code + `impeccable` | TASK-023 | 3 | TC-006 passes | `todo` | | |
+| TASK-025 | S-005 manual form fallback (COMP-032) | C · Claude Code + `impeccable` | TASK-022 | 2 | TC-017 passes | `todo` | | |
+| TASK-032 | S-013 admin: redact payloads + verify [MOCK] + API-016/017 | C · Claude Code | TASK-015 | 3 | TC-015 passes | `todo` | | |
 
 **Reviewer focus today:** `database-reviewer` + `fera-safeguarding-reviewer` on every case-service and confirm PR; `bengali-reviewer` on the normaliser and intake copy; `silent-failure-hunter` on the AI adapter and fallbacks; Codex second-opinion review on Claude-written confirm, permission and extraction PRs.
 
 ## Stand-ups (15 min, then merge window)
-| Time | Gate status | Merged since last | Blockers | Remaining h S / O / M |
+| Time | Gate status | Merged since last | Blockers | Remaining h Obidit / Masnun / Mahim |
 |---|---|---|---|---|
 | 09:00 | | | | |
 | 13:00 | | | | |
@@ -103,9 +137,11 @@ A fake-backed screen counts as `review`, not `done`. It becomes `done` only once
 | 23:00 | | | | |
 
 ## Mentor session 2 fixes (feed TASK-056, executed in Phase 3)
-| # | Fix | Area owner | Status |
+| # | Fix | Area owner (Obidit / Masnun / Mahim) | Status |
 |---|---|---|---|
 | | | | |
+
+Obidit (lead) fills this table from the mentor session; each fix goes to the owner of the area it touches.
 
 ## G2 exit checklist
 Tick only from the gate report (`fera-gate`), with evidence linked. Run on the **preview deploy** with `npm run seed -- --set demo`.
@@ -128,9 +164,9 @@ Tick only from the gate report (`fera-gate`), with evidence linked. Run on the *
 ## Log
 Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
-### Sadman
-### Obidit
+### Obidit (lead)
 ### Masnun
+### Mahim
 
 ## Audit amendments (2026-10-12)
 
@@ -148,12 +184,12 @@ Record each applicable service/integration run; a companion check or typed fake 
 
 ### AMD-2-2 — Offline core, dependency order and late work
 **Gap:** TASK-033 claims TC-021 while the local whole-journey setup appears only in Phase 5.
-**Change:** P2 TASK-033 coordinates cache/fixtures (Obidit), local app/DB/auth (Sadman) and model/seed/map assets (Masnun) using the P0 local DB so FR-027/STORY-023 can pass by G2; P3 TASK-038 repeats the integrated offline test before G4. P5 TASK-053 hardens/packages that baseline and must not absorb this implementation. If offline proof is missing, keep G2/G4 blocked and disclose the omission.
+**Change:** P2 TASK-033 coordinates cache/fixtures (Obidit), local app/DB/auth (Mahim) and model/seed/map assets (Masnun) using the P0 local DB so FR-027/STORY-023 can pass by G2; P3 TASK-038 repeats the integrated offline test before G4. P5 TASK-053 hardens/packages that baseline and must not absorb this implementation. If offline proof is missing, keep G2/G4 blocked and disclose the omission.
 The full decision chain includes TASK-027 between matcher and review. Fake-backed UI can begin early, but all row dependencies must pass before completion. Add the P1 manifest freeze as an explicit prerequisite of matcher tuning; no new cyclic dependency is introduced.
 Late tasks retain their original phase, owner and estimate; Phase 5 may link them, never relocate or close them. Cuts follow AMD-PLAN-4 and remain recorded FR/TC omissions.
 **Source:** D1 FR-027/STORY-023; D6 TASK-033/038/053, §§9.4,11; handover §§6,8.
 
 ### AMD-2-3 — External dependencies and recordings
 **Gap:** DEP-010 and volunteer availability were assumed.
-**Change:** Sadman records mentor/organiser answers for OQ-003/OQ-010 (DEP-010 source due 13 Oct); mentor attendance/answers are UNKNOWN without evidence. TASK-040's 60 clips and 2–3 friends are planned, availability UNKNOWN; use invented scripts and consent, and count unique samples separately from repeated runs. Its recording and P3 run share the single D6 3 h estimate; re-estimates require evidence.
+**Change:** Obidit (lead) records mentor/organiser answers for OQ-003/OQ-010 (DEP-010 source due 13 Oct); mentor attendance/answers are UNKNOWN without evidence. TASK-040's 60 clips and 2–3 friends are planned, availability UNKNOWN; use invented scripts and consent, and count unique samples separately from repeated runs. Its recording and P3 run share the single D6 3 h estimate; re-estimates require evidence.
 **Source:** D1 §15; D6 TASK-040/056; handover §§6–8.

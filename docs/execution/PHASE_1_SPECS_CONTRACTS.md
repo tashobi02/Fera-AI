@@ -2,7 +2,8 @@
 
 **Window:** Mon 12 Oct 2026, 18:00 → 23:00 (Asia/Dhaka) · **Gate:** G1 · **Plan:** [EXECUTION_PLAN.md](EXECUTION_PLAN.md#phase-1--specs-and-frozen-contracts-mon-12-oct-1800--2300--gate-g1) · **Prev:** [Phase 0](PHASE_0_BOOTSTRAP.md) · **Next:** [Phase 2](PHASE_2_MUST_CORE.md)
 **Phase status:** `todo`
-**Last updated:** 2026-10-12 19:15 · by Claude Code (file created)
+**Last updated:** 2026-10-13 · tasks distributed among Obidit, Masnun and Mahim; lead = Obidit
+**Team:** **Obidit** — lead; intake, AI, outputs · **Masnun** — data, matching, officer workflow, dashboard, evaluation · **Mahim** — platform, integration, release (named "Sadman" in AGENTS.md and the spec pack; D6 owner code S). Tasks follow [EXECUTION_PLAN.md](EXECUTION_PLAN.md). The lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`.
 
 ---
 
@@ -15,9 +16,9 @@ This is a living tracker. Every agent working on a task in this phase updates it
 3. Work in a lane worktree (`scripts/agents/new-lane.sh <feature> <lane>`) and stay inside the owner's paths ([ownership map](../../AGENTS.md#repo-layout-and-ownership)).
 4. When you open the PR, set the row to `review` with the PR link. After the merge, set it to `done` and fill in **Evidence**: the command and its result, a URL or a file path. A task without evidence is not done.
 5. If you are stuck, set the row to `blocked`, say what blocks it in Evidence, and add a log line.
-6. Edit only **your own rows** and **your owner's log section**, so parallel lanes don't conflict. Never tick a gate box yourself. Gate boxes are ticked from the `fera-gate` report in [docs/gates/](../gates/).
+6. Edit only the rows in **your own person table** and **your log section**, so parallel lanes don't conflict. Never tick a gate box yourself. Gate boxes are ticked from the `fera-gate` report in [docs/gates/](../gates/).
 
-**Status values:** `todo` · `doing` · `review` · `done` · `blocked` · `cut`. Use `cut` only with the lead's approval and in the [D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommendation) cut order. Never cut review-before-submit, officer confirm, referral, audit or redaction.
+**Status values:** `todo` · `doing` · `review` · `done` · `blocked` · `cut`. Use `cut` only with approval from the lead (Obidit) and in the [D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommendation) cut order. Never cut review-before-submit, officer confirm, referral, audit or redaction.
 
 | Action | Claude Code | Codex | Antigravity / any other agent |
 |---|---|---|---|
@@ -30,29 +31,53 @@ This is a living tracker. Every agent working on a task in this phase updates it
 ## Spec-kit boards
 Exact briefs: [docs/agents/SPECKIT_PROMPTS.md](../agents/SPECKIT_PROMPTS.md). Pin the directory with `SPECIFY_FEATURE_DIRECTORY=specs/NNN-…`. Do **not** re-run `constitution`. Stop for a 5-minute human skim between `specify` → `plan` → `tasks`. Max 3 `[NEEDS CLARIFICATION]`; cite FR/BR/TC/TASK/SCREEN IDs, don't invent requirements.
 
-Mark each stage cell `todo` / `done` / `blocked`. After `tasks`, every task line carries owner and lane, e.g. `- [ ] T012 [P] [O·lane-A] … (TASK-012)`.
+Mark each stage cell `todo` / `done` / `blocked`. After `tasks`, every task line carries owner and lane, e.g. `- [ ] T012 [P] [Obidit·lane-A] … (TASK-012)`. Use the person's name; D6's S/O/M codes map to Mahim/Obidit/Masnun.
 
 | Feature | Owner | specify | clarify | plan | tasks (owner+lane on every line) | analyze | Notes |
 |---|---|---|---|---|---|---|---|
-| `001-platform-foundation` | S | `todo` | `todo` | `todo` | `todo` | `todo` | |
-| `002-intake-ai` | O | `todo` | `todo` | `todo` | `todo` | `todo` | |
-| `003-parent-outputs` | O (S-004/S-005: S) | `todo` | `todo` | `todo` | `todo` | `todo` | |
-| `004-matching-data` | M | `todo` | `todo` | `todo` | `todo` | `todo` | |
-| `005-officer-workflow` | M (S-012: S) | `todo` | `todo` | `todo` | `todo` | `todo` | |
-| `006-dashboard-admin` | M (S-013: S) | `todo` | `todo` | `todo` | `todo` | `todo` | |
-| `007-quality-release` | S (shared) | `todo` | `todo` | `todo` | `todo` | `todo` | |
-| Cross-feature `/speckit-analyze` at **22:30** | S | — | — | — | — | `todo` | No critical issues allowed |
+| `001-platform-foundation` | Mahim | `todo` | `todo` | `todo` | `todo` | `todo` | |
+| `002-intake-ai` | Obidit | `todo` | `todo` | `todo` | `todo` | `todo` | |
+| `003-parent-outputs` | Obidit (S-004/S-005 tasks: Mahim) | `todo` | `todo` | `todo` | `todo` | `todo` | |
+| `004-matching-data` | Masnun | `todo` | `todo` | `todo` | `todo` | `todo` | |
+| `005-officer-workflow` | Masnun (S-012 tasks: Mahim) | `todo` | `todo` | `todo` | `todo` | `todo` | |
+| `006-dashboard-admin` | Masnun (S-013 tasks: Mahim) | `todo` | `todo` | `todo` | `todo` | `todo` | |
+| `007-quality-release` | Mahim (shared; each task keeps its D6 owner) | `todo` | `todo` | `todo` | `todo` | `todo` | |
+| Cross-feature `/speckit-analyze` at **22:30** | Mahim (findings go to Obidit as lead) | — | — | — | — | `todo` | No critical issues allowed |
 
-## Tasks
-| ID | Task | Owner · lane | Tool (suggested) | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
-|---|---|---|---|---|---|---|---|---|---|
-| TASK-061 | Contracts in `src/contracts/`: DTOs, Zod, state enums, error envelope E-001–E-024, role projections, idempotency tokens, referral/count semantics | S | Claude Code + `code-architect`, `typescript-reviewer` | TASK-001 | 3 | Runtime schemas/examples and role projections agree; FV-01–05/10 closed; tag `contracts-v1`. Include one valid example per API DTO, usable as typed fakes by the Phase 2 UI lanes (see Phase 2 "Schedule reality") | `todo` | | |
-| TASK-008 | Layout shell, tokens from `DESIGN.md` incl. its "Fera overrides" (they win over `tokens_v2.css`, see AGENTS.md), self-hosted Inter + JetBrains Mono + Noto Sans Bengali, language toggle (COMP-022, FR-033) | S | Claude Code + `impeccable` | TASK-001 | 3 | Bangla renders on 1 Android phone | `todo` | | |
-| TASK-012 (start) | Normaliser tests first: Bangla digits, time words, phone, district aliases, romaniser | O | Codex + `tdd_guide` | TASK-009 | — | Failing test suite committed (≥30 cases planned); implementation in Phase 2 | `todo` | | |
-| TASK-010 | Synthetic set generator: ~200 records, ground truth, duplicates, decoys, no-match | M | Codex | TASK-009 | 6 | Ground-truth file hashed and committed | `todo` | | |
-| TASK-064 | Identity-grouped manifest, frozen split, hashes — **before any matcher code** | M | Codex + `mle-reviewer` | TASK-010 | 3 | Manifest counts/split/hash asserted; hash committed | `todo` | | |
+## Who does what
 
-**Freeze at G1:** `src/contracts/` and `db/schema_v2.sql`. Changing either one after G1 needs a small PR reviewed by all three owners. Record any such PR in the log below.
+| Person | Specs (boards above) | Build tasks this phase | D6 hours |
+|---|---|---|---|
+| **Obidit** (lead) | 002 intake-ai, 003 parent-outputs | TASK-012 normaliser tests first (counted in Phase 2's 5 h) · lead duties below | 0 (+ spec writing, not in D6) |
+| **Masnun** | 004 matching-data, 005 officer-workflow, 006 dashboard-admin | TASK-010 generator → TASK-064 manifest, frozen and hashed **before any matcher code** | 9 |
+| **Mahim** | 001 platform-foundation, 007 quality-release, cross-feature analyze at 22:30 | TASK-061 contracts → tag `contracts-v1` · TASK-008 shell | 6 |
+
+### Lead duties — Obidit
+- Skim each owner's spec between `specify` → `plan` → `tasks` (5 minutes, not 30) and check that every task line names its owner and lane.
+- Decide on any finding from Mahim's 22:30 cross-feature analyze that needs a scope or ownership call.
+- Approve any change to frozen contracts or schema after G1, together with the other two owners.
+- Run `fera-gate G1` and link the report.
+
+## Tasks — Obidit (lead)
+| ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
+|---|---|---|---|---|---|---|---|---|
+| TASK-012 (start) | Normaliser tests first: Bangla digits, time words, phone, district aliases, romaniser | A · Codex + `tdd_guide` | TASK-009 (Masnun) | — | Failing test suite committed (≥30 cases planned); implementation in Phase 2 | `todo` | | |
+
+## Tasks — Masnun
+| ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
+|---|---|---|---|---|---|---|---|---|
+| TASK-010 | Synthetic set generator: ~200 records, ground truth, duplicates, decoys, no-match | A · Codex | TASK-009 | 6 | Ground-truth file hashed and committed | `todo` | | |
+| TASK-064 | Identity-grouped manifest, frozen split, hashes — **before any matcher code** | A · Codex + `mle-reviewer` | TASK-010 | 3 | Manifest counts/split/hash asserted; hash committed | `todo` | | |
+
+## Tasks — Mahim
+| ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
+|---|---|---|---|---|---|---|---|---|
+| TASK-061 | Contracts in `src/contracts/`: DTOs, Zod, state enums, error envelope E-001–E-024, role projections, idempotency tokens, referral/count semantics | A · Claude Code + `code-architect`, `typescript-reviewer` | TASK-001 | 3 | Runtime schemas/examples and role projections agree; FV-01–05/10 closed; tag `contracts-v1`. Include one valid example per API DTO, usable as typed fakes by the Phase 2 UI lanes (see Phase 2 "Schedule reality") | `todo` | | |
+| TASK-008 | Layout shell, tokens from `DESIGN.md` incl. its "Fera overrides" (they win over `tokens_v2.css`, see AGENTS.md), self-hosted Inter + JetBrains Mono + Noto Sans Bengali, language toggle (COMP-022, FR-033) | B · Claude Code + `impeccable` | TASK-001 | 3 | Bangla renders on 1 Android phone | `todo` | | |
+
+Cross-person handoffs: Obidit's and Masnun's Phase 2 UI lanes depend on Mahim's TASK-061 DTO examples; Obidit's TASK-012 tests depend on Masnun's district aliases (TASK-009).
+
+**Freeze at G1:** `src/contracts/` and `db/schema_v2.sql`. Changing either one after G1 needs a small PR reviewed by all three owners (Obidit, Masnun, Mahim). Record any such PR in the log below.
 
 ## G1 exit checklist
 Tick only from the gate report (`fera-gate`), with evidence linked.
@@ -67,9 +92,9 @@ Tick only from the gate report (`fera-gate`), with evidence linked.
 ## Log
 Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
-### Sadman
-### Obidit
+### Obidit (lead)
 ### Masnun
+### Mahim
 
 ## Audit amendments (2026-10-12)
 

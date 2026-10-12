@@ -2,7 +2,8 @@
 
 **Window:** Wed 14 Oct 2026, 07:00 → 16:00 (Asia/Dhaka) · **Gates:** G3 (13:00), G4 (16:00) · **Plan:** [EXECUTION_PLAN.md](EXECUTION_PLAN.md#phase-3--full-scope-and-quality-wed-14-oct-0700--1600--gates-g3-g4) · **Prev:** [Phase 2](PHASE_2_MUST_CORE.md) · **Next:** [Phase 4](PHASE_4_SUBMISSION.md)
 **Phase status:** `todo`
-**Last updated:** 2026-10-12 19:15 · by Claude Code (file created)
+**Last updated:** 2026-10-13 · tasks distributed among Obidit, Masnun and Mahim; lead = Obidit
+**Team:** **Obidit** — lead; intake, AI, outputs · **Masnun** — data, matching, officer workflow, dashboard, evaluation · **Mahim** — platform, integration, release (named "Sadman" in AGENTS.md and the spec pack; D6 owner code S). Tasks follow [EXECUTION_PLAN.md](EXECUTION_PLAN.md). The lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`.
 
 ---
 
@@ -15,9 +16,9 @@ This is a living tracker. Every agent working on a task in this phase updates it
 3. Work in a lane worktree (`scripts/agents/new-lane.sh <feature> <lane>`) and stay inside the owner's paths ([ownership map](../../AGENTS.md#repo-layout-and-ownership)).
 4. When you open the PR, set the row to `review` with the PR link. After the merge, set it to `done` and fill in **Evidence**: the command and its result, a URL or a file path. A task without evidence is not done.
 5. If you are stuck, set the row to `blocked`, say what blocks it in Evidence, and add a log line.
-6. Edit only **your own rows** and **your owner's log section**, so parallel lanes don't conflict. Never tick a gate box yourself. Gate boxes are ticked from the `fera-gate` report in [docs/gates/](../gates/).
+6. Edit only the rows in **your own person table** and **your log section**, so parallel lanes don't conflict. Never tick a gate box yourself. Gate boxes are ticked from the `fera-gate` report in [docs/gates/](../gates/).
 
-**Status values:** `todo` · `doing` · `review` · `done` · `blocked` · `cut`. Use `cut` only with the lead's approval and in the [D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommendation) cut order. Never cut review-before-submit, officer confirm, referral, audit or redaction.
+**Status values:** `todo` · `doing` · `review` · `done` · `blocked` · `cut`. Use `cut` only with approval from the lead (Obidit) and in the [D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommendation) cut order. Never cut review-before-submit, officer confirm, referral, audit or redaction.
 
 | Action | Claude Code | Codex | Antigravity / any other agent |
 |---|---|---|---|
@@ -40,37 +41,64 @@ This is a living tracker. Every agent working on a task in this phase updates it
 
 Cut order if short ([D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommendation)): FR-036 disaster screen → FR-010 13219 summary → FR-024 import → FR-029 edit after submit → live voice (keep labelled cached note) → poster PNG (keep poster text).
 
-## Features (Should/Could) and mentor fixes
-| ID | Task | Owner · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
-|---|---|---|---|---|---|---|---|---|
-| TASK-047 | 13219 summary ≤ 80 words (FR-010) | O · Codex | TASK-023 | 1 | TC-007 passes | `todo` | | |
-| TASK-049 | Edit after submit + API-005 + S-006 (FR-029, BR-025) | O · Claude Code + `impeccable` | TASK-022 | 4 | TC-018 passes | `todo` | | |
-| TASK-050 | Parent status API-018 (FR-030) | O · Codex | TASK-049 | 1 | TC-019 passes | `todo` | | |
-| TASK-048 | Synthetic fixture import + API-015 (FR-024) | M · Codex + `security-reviewer` | TASK-020 | 3 | TC-014 passes (injection yields schema fields only; no URL fetch) | `todo` | | |
-| TASK-051 | S-014 duplicate review (FR-023) | M · Claude Code + `impeccable` | TASK-018 | 3 | Mark same/different works | `todo` | | |
-| TASK-052 | S-015 disaster mode, labelled as planned (FR-036) | M · Claude Code | TASK-026 | 2 | TC-035 passes | `todo` | | |
-| TASK-056 | Mentor session 2 fixes (list in [Phase 2](PHASE_2_MUST_CORE.md#mentor-session-2-fixes-feed-task-056-executed-in-phase-3)), each owner their own areas | S, O, M · any | — | 5 | Agreed fixes merged by 14 Oct 18:00 | `todo` | | |
+## Who does what
 
-## Quality and release
-| ID | Task | Owner · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
+| Person | Features (Should/Could) | Quality and release | Hard times | D6 hours |
+|---|---|---|---|---|
+| **Obidit** (lead) | TASK-047 13219 summary · TASK-049 edit after submit + S-006 → TASK-050 status API | TASK-035 Bangla copy for every state · TASK-040 WER run · video shots | Freeze **12:30**, G3 **13:00**, G4 **16:00** (lead calls) | 12 |
+| **Masnun** | TASK-048 fixture import · TASK-051 S-014 duplicate review · TASK-052 S-015 disaster mode | TASK-036 two Android phones · TASK-039 eval dev → held-out · TASK-060 perf · TASK-043 final frozen evaluation | TASK-043 **by 15:45** | 19 |
+| **Mahim** | — | TASK-034 a11y · TASK-037 ≥60 unit tests · TASK-038 Playwright · TASK-041 timing study · TASK-042 prod deploy + smoke | TASK-041 **10:00–12:00**, TASK-042 **by 15:00** | 17 |
+| All three | TASK-056 mentor fixes, each in their own areas | — | merged and verified before G3 | 5 shared |
+
+### Lead duties — Obidit
+- Announce the **12:30** feature freeze; after it, approve only fixes for failing TCs.
+- Run `fera-gate G3` at 13:00 and `fera-gate G4` at 16:00, and link both reports.
+- Apply the cut order below if a Should/Could item can't pass by 12:30, and record each cut as an omission against its FR/TC.
+- Own the evidence-backed reschedule in AMD-3-2 once remaining effort and the organiser extension are known.
+
+## Tasks — Obidit (lead)
+| ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| TASK-034 | A11y: axe + keyboard + 320 px reflow, 200 % text, 400 % zoom | S · Claude Code + `a11y-architect` | TASK-030 | 3 | TC-033: 0 serious/critical, light and dark | `todo` | | |
-| TASK-037 | Unit tests: normaliser, matcher, state guard, wording guard | S · Codex + `tdd-guide` | TASK-017 | 4 | ≥ 60 tests, CI green | `todo` | | |
-| TASK-038 | Playwright essential journey + safeguarding TCs (tag `@gate-G2` / `@gate-G4`) | S · Claude Code + `e2e-runner` | TASK-030, 032, 059 | 5 | TC-001–066 app/service checks where applicable; companion-only results kept separate | `todo` | | |
-| TASK-041 | Timing study, ≥5 testers, assistant vs manual form | S · human | TASK-025 | 3 | `eval/data/timing.csv`; median in report | `todo` | | |
-| TASK-042 | Production deploy + managed DB seed + smoke — **by 15:00** | S · Claude Code | TASK-038 | 2 | `npm run smoke` passes on prod; tag `r2-freeze` | `todo` | | |
-| TASK-035 | Bangla copy review; every empty/error/loading state | O · Claude Code + `bengali-reviewer` | TASK-030 | 3 | Every E-xxx shows bn + en text | `todo` | | |
-| TASK-040 | WER run on the 60 clips | O · Codex | TASK-014 | 3 | WER in report | `todo` | | |
-| VIDEO-PREP | Capture video shots for TASK-045 (D7 §3.1) | O · human | TASK-042 | — | Raw shots stored | `todo` | | |
-| TASK-036 | Test on 2 Android phones: Bangla, mic, 360 px | M · human | TASK-030 | 2 | Checklist signed in `docs/device-test.md` | `todo` | | |
-| TASK-039 | Eval harness: dev run → held-out run after manifest/model freeze | M · Codex + `mle-reviewer` | TASK-011, 017, 018, 064 | 5 | TC-020 passes; report committed | `todo` | | |
-| TASK-060 | Performance check vs D2 Part B §12.1 | M · Codex | TASK-042 | 2 | TC-034 results in report (met or reported as missed) | `todo` | | |
-| TASK-043 | Final frozen evaluation on the prod build — **by 15:45** | M · Codex + `mle-reviewer` | TASK-042, 039, 040, 041, 060 | 2 | Cache-disabled report: all metrics, denominators, failures, commit/model/manifest hashes | `todo` | | |
+| TASK-047 | 13219 summary ≤ 80 words (FR-010) | Codex | TASK-023 | 1 | TC-007 passes | `todo` | | |
+| TASK-049 | Edit after submit + API-005 + S-006 (FR-029, BR-025) | Claude Code + `impeccable` | TASK-022 | 4 | TC-018 passes | `todo` | | |
+| TASK-050 | Parent status API-018 (FR-030) | Codex | TASK-049 | 1 | TC-019 passes | `todo` | | |
+| TASK-035 | Bangla copy review; every empty/error/loading state | Claude Code + `bengali-reviewer` | TASK-030 | 3 | Every E-xxx shows bn + en text | `todo` | | |
+| TASK-040 | WER run on the 60 clips | Codex | TASK-014 | 3 | WER in report | `todo` | | |
+| VIDEO-PREP | Capture video shots for TASK-045 (D7 §3.1) | human | TASK-042 | — | Raw shots stored | `todo` | | |
+
+## Tasks — Masnun
+| ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
+|---|---|---|---|---|---|---|---|---|
+| TASK-048 | Synthetic fixture import + API-015 (FR-024) | Codex + `security-reviewer` | TASK-020 | 3 | TC-014 passes (injection yields schema fields only; no URL fetch) | `todo` | | |
+| TASK-051 | S-014 duplicate review (FR-023) | Claude Code + `impeccable` | TASK-018 | 3 | Mark same/different works | `todo` | | |
+| TASK-052 | S-015 disaster mode, labelled as planned (FR-036) | Claude Code | TASK-026 | 2 | TC-035 passes | `todo` | | |
+| TASK-036 | Test on 2 Android phones: Bangla, mic, 360 px | human | TASK-030 | 2 | Checklist signed in `docs/device-test.md` | `todo` | | |
+| TASK-039 | Eval harness: dev run → held-out run after manifest/model freeze | Codex + `mle-reviewer` | TASK-011, 017, 018, 064 | 5 | TC-020 passes; report committed | `todo` | | |
+| TASK-060 | Performance check vs D2 Part B §12.1 | Codex | TASK-042 | 2 | TC-034 results in report (met or reported as missed) | `todo` | | |
+| TASK-043 | Final frozen evaluation on the prod build — **by 15:45** | Codex + `mle-reviewer` | TASK-042, 039, 040, 041, 060 | 2 | Cache-disabled report: all metrics, denominators, failures, commit/model/manifest hashes | `todo` | | |
+
+## Tasks — Mahim
+| ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
+|---|---|---|---|---|---|---|---|---|
+| TASK-034 | A11y: axe + keyboard + 320 px reflow, 200 % text, 400 % zoom | Claude Code + `a11y-architect` | TASK-030 | 3 | TC-033: 0 serious/critical, light and dark | `todo` | | |
+| TASK-037 | Unit tests: normaliser, matcher, state guard, wording guard | Codex + `tdd-guide` | TASK-017 | 4 | ≥ 60 tests, CI green | `todo` | | |
+| TASK-038 | Playwright essential journey + safeguarding TCs (tag `@gate-G2` / `@gate-G4`) | Claude Code + `e2e-runner` | TASK-030, 032, 059 | 5 | TC-001–066 app/service checks where applicable; companion-only results kept separate | `todo` | | |
+| TASK-041 | Timing study, ≥5 testers, assistant vs manual form | human | TASK-025 | 3 | `eval/data/timing.csv`; median in report | `todo` | | |
+| TASK-042 | Production deploy + managed DB seed + smoke — **by 15:00** | Claude Code | TASK-038 | 2 | `npm run smoke` passes on prod; tag `r2-freeze` | `todo` | | |
+
+## Shared
+| ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
+|---|---|---|---|---|---|---|---|---|
+| TASK-056 | Mentor session 2 fixes (list in [Phase 2](PHASE_2_MUST_CORE.md#mentor-session-2-fixes-feed-task-056-executed-in-phase-3)), each owner their own areas | any | — | 5 | Agreed fixes merged by 14 Oct 18:00 | `todo` | | |
+
+Split TASK-056 by area: add one line per fix to the Phase 2 mentor table with its owner, and record each owner's merged fixes in their log section. The 5 h estimate is shared, not 5 h each.
+
+Cross-person handoffs: Mahim's TASK-042 prod deploy unblocks Masnun's TASK-060 and TASK-043 and Obidit's video shots; Mahim's TASK-041 and Obidit's TASK-040 feed Masnun's TASK-043.
 
 Evaluation rules: thresholds are calibrated on the dev split only; no threshold PR after the held-out run without `mle-reviewer`; caches and fixtures are off; every number has a denominator, or says "not measured".
 
 ## Stand-ups (15 min, then merge window)
-| Time | Gate status | Merged since last | Blockers | Remaining h S / O / M |
+| Time | Gate status | Merged since last | Blockers | Remaining h Obidit / Masnun / Mahim |
 |---|---|---|---|---|
 | 09:00 | | | | |
 | 13:00 | | | | |
@@ -96,9 +124,9 @@ Tick only from the gate report (`fera-gate`), with evidence linked.
 ## Log
 Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
-### Sadman
-### Obidit
+### Obidit (lead)
 ### Masnun
+### Mahim
 
 ## Audit amendments (2026-10-12)
 
@@ -109,7 +137,7 @@ Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
 ### AMD-3-2 — Timing and ownership constraints
 **Gap:** TASK-056 allows 18:00 although G3 is 13:00; deploy at 15:00 leaves only 45 minutes for sequential TASK-060 (2 h) and TASK-043 (2 h).
-**Change:** existing times remain internal targets, not a feasible computed schedule. Mentor fixes needed by G3 must be merged and verified before G3; otherwise record failure/rebaseline. D6's deploy→performance→final-evaluation dependencies cannot be bypassed to meet 15:45. Sadman coordinates an evidence-backed reschedule once remaining effort/availability and organiser extension are known (**UNKNOWN** now). P2/P3 owners retain late scope; P5 receives links only.
+**Change:** existing times remain internal targets, not a feasible computed schedule. Mentor fixes needed by G3 must be merged and verified before G3; otherwise record failure/rebaseline. D6's deploy→performance→final-evaluation dependencies cannot be bypassed to meet 15:45. Obidit (lead) coordinates an evidence-backed reschedule once remaining effort/availability and organiser extension are known (**UNKNOWN** now). P2/P3 owners retain late scope; P5 receives links only.
 **Source:** D6 TASK-042/043/056/060; handover §6; AMD-PLAN-1/4.
 
 ### AMD-3-3 — Held-out integrity and fallback

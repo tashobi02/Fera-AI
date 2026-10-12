@@ -2,7 +2,8 @@
 
 **Window:** Wed 14 Oct 2026, 16:00 → 21:00 (Asia/Dhaka). Working cutoff baseline **22:00**; organiser extension date/time UNKNOWN · **Gate:** G5 · **Plan:** [EXECUTION_PLAN.md](EXECUTION_PLAN.md#phase-4--submission-wed-14-oct-1600--2100--gate-g5) · **Prev:** [Phase 3](PHASE_3_FULL_SCOPE_QUALITY.md) · **Next:** [Phase 5–6](PHASE_5_BUFFER_FINALE.md)
 **Phase status:** `todo`
-**Last updated:** 2026-10-12 19:15 · by Claude Code (file created)
+**Last updated:** 2026-10-13 · tasks distributed among Obidit, Masnun and Mahim; lead = Obidit
+**Team:** **Obidit** — lead; intake, AI, outputs · **Masnun** — data, matching, officer workflow, dashboard, evaluation · **Mahim** — platform, integration, release (named "Sadman" in AGENTS.md and the spec pack; D6 owner code S). Tasks follow [EXECUTION_PLAN.md](EXECUTION_PLAN.md). The lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`.
 
 ---
 
@@ -15,7 +16,7 @@ This is a living tracker. Every agent working on a task in this phase updates it
 3. Work in a lane worktree (`scripts/agents/new-lane.sh <feature> <lane>`) and stay inside the owner's paths ([ownership map](../../AGENTS.md#repo-layout-and-ownership)).
 4. When you open the PR, set the row to `review` with the PR link. After the merge, set it to `done` and fill in **Evidence**: the command and its result, a URL or a file path. A task without evidence is not done.
 5. If you are stuck, set the row to `blocked`, say what blocks it in Evidence, and add a log line.
-6. Edit only **your own rows** and **your owner's log section**, so parallel lanes don't conflict. Never tick a gate box yourself. Gate boxes are ticked from the `fera-gate` report in [docs/gates/](../gates/).
+6. Edit only the rows in **your own person table** and **your log section**, so parallel lanes don't conflict. Never tick a gate box yourself. Gate boxes are ticked from the `fera-gate` report in [docs/gates/](../gates/).
 
 **Status values:** `todo` · `doing` · `review` · `done` · `blocked` · `cut`. Nothing in this phase may be cut.
 
@@ -32,15 +33,39 @@ This is a living tracker. Every agent working on a task in this phase updates it
 - Synthetic data, `[MOCK]` officer verification, cached outputs and time compression are labelled on screen and in narration.
 - Run the wording guard and `fera-safeguarding-reviewer` over the deck text, video script and README before anything is uploaded (TC-025, TC-037, TC-066).
 
-## Tasks
-| ID | Task | Owner · tool | Deps | h | Done when (D6) | Status | PR / link | Evidence |
+## Who does what
+
+| Person | Tasks this phase | D6 hours |
+|---|---|---|
+| **Obidit** (lead) | TASK-045 1–2 min video · lead duties below | 4 |
+| **Masnun** | METRIC-FIGS for the deck · README-EVAL section · LINK-CHECK before and after sending | — (not estimated in D6) |
+| **Mahim** | TASK-044 deck, 5–8 slides → TASK-046 README, Drive folder and the selection-email reply | 5 |
+
+### Lead duties — Obidit
+- Before anything is sent, confirm the organiser's cutoff, channel and formats (AMD-4-1) and record the source; until then they're UNKNOWN.
+- Approve the final deck text and video script after the wording guard and `fera-safeguarding-reviewer` pass.
+- Give Mahim the go-ahead to send only after Masnun's pre-send LINK-CHECK passes.
+- Run `fera-gate G5` and link the report.
+
+## Tasks — Obidit (lead)
+| ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / link | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| TASK-044 | Round 2 deck, 5–8 slides, incl. metrics slide and [MOCK] items marked | S · any + `fera-safeguarding-reviewer` | TASK-043 | 4 | Working 5–8-slide deck; honest measured/pending labels | `todo` | | |
-| TASK-045 | Round 2 video, 1–2 min, per [D7 §3.1](../spec/D7_Closing_Pack_V2.md#31-round-2-video-proposed-145); English captions over Bangla UI | O · human | TASK-042 | 4 | Working 1–2 min MP4; compressed/cached timings labelled | `todo` | | |
-| METRIC-FIGS | Metric figures + failure examples for the deck, from the frozen report | M · Codex | TASK-043 | — | Figures in deck, each with denominator and source | `todo` | | |
-| README-EVAL | README evaluation section | M · Claude Code + `doc-updater` | TASK-043 | — | Section merged; numbers match the frozen report | `todo` | | |
-| TASK-046 | README, Drive folder (links TXT, deck, video), **reply to the selection email by 21:00** | S · human (+ `doc-updater` for README) | TASK-044, 045 | 1 | Email sent with Drive link before 21:00; links accessible | `todo` | | |
-| LINK-CHECK | Repo, deck, video and every link open logged-out, in a private window | M · human | TASK-046 | — | Checked list with timestamps | `todo` | | |
+| TASK-045 | Round 2 video, 1–2 min, per [D7 §3.1](../spec/D7_Closing_Pack_V2.md#31-round-2-video-proposed-145); English captions over Bangla UI | human | TASK-042 | 4 | Working 1–2 min MP4; compressed/cached timings labelled | `todo` | | |
+
+## Tasks — Masnun
+| ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / link | Evidence |
+|---|---|---|---|---|---|---|---|---|
+| METRIC-FIGS | Metric figures + failure examples for the deck, from the frozen report | Codex | TASK-043 | — | Figures in deck, each with denominator and source | `todo` | | |
+| README-EVAL | README evaluation section | Claude Code + `doc-updater` | TASK-043 | — | Section merged; numbers match the frozen report | `todo` | | |
+| LINK-CHECK | Repo, deck, video and every link open logged-out, in a private window | human | TASK-046 | — | Checked list with timestamps | `todo` | | |
+
+## Tasks — Mahim
+| ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / link | Evidence |
+|---|---|---|---|---|---|---|---|---|
+| TASK-044 | Round 2 deck, 5–8 slides, incl. metrics slide and [MOCK] items marked | any + `fera-safeguarding-reviewer` | TASK-043 | 4 | Working 5–8-slide deck; honest measured/pending labels | `todo` | | |
+| TASK-046 | README, Drive folder (links TXT, deck, video), **reply to the selection email by 21:00** | human (+ `doc-updater` for README) | TASK-044, 045 | 1 | Email sent with Drive link before 21:00; links accessible | `todo` | | |
+
+Order: Masnun's METRIC-FIGS → Mahim's TASK-044 deck; Obidit's TASK-045 video + Mahim's deck → Mahim's TASK-046; Masnun's LINK-CHECK runs once before sending and again after.
 
 ## Submission checklist ([D6 §10](../spec/D6_Implementation_Plan_V2.md#10-hackathon-checklist))
 - [ ] GitHub repo link (public or shared as required)
@@ -60,15 +85,15 @@ Tick only from the gate report (`fera-gate`), with evidence linked.
 ## Log
 Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
-### Sadman
-### Obidit
+### Obidit (lead)
 ### Masnun
+### Mahim
 
 ## Audit amendments (2026-10-12)
 
 ### AMD-4-1 — Cutoff, entry and receipt
 **Gap:** “Official cutoff **22:00**” was not supported by the handover.
-**Change:** entry requires G4's measured/explicitly missing evidence report and an identified frozen build; failed Must items remain disclosed blockers. 21:00 is the internal send target and 14 Oct 22:00 the working baseline. The user reports an organiser extension; its new cutoff/date, email and exact formats are **UNKNOWN** until Sadman records organiser evidence. TEAM_HANDOVER_V2 §10 leaves exact time/channel/formats pending selection email. Do not invent a recipient or mark the email sent.
+**Change:** entry requires G4's measured/explicitly missing evidence report and an identified frozen build; failed Must items remain disclosed blockers. 21:00 is the internal send target and 14 Oct 22:00 the working baseline. The user reports an organiser extension; its new cutoff/date, email and exact formats are **UNKNOWN** until Obidit (lead) records organiser evidence. TEAM_HANDOVER_V2 §10 leaves exact time/channel/formats pending selection email. Do not invent a recipient or mark the email sent.
 G5 exit requires TASK-044/045 deliverables and TC-025/037/066 wording review, TASK-046 actual submission/receipt evidence against the confirmed channel/cutoff, frozen commit identification, and logged-out access checks. Prepare LINK-CHECK before sending; repeat afterward to verify the delivered links. The current table's dependency on TASK-046 is the final recheck, not permission to send unchecked links.
 **Old text corrected:** “Official cutoff **22:00**”.
 **Source:** TEAM_HANDOVER_V2 §§7,10; D6 TASK-044–046, §10; user update 12 Oct.
