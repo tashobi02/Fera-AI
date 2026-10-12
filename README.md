@@ -6,13 +6,13 @@ Fera AI is a planned Bangla-first web app for missing-child case coordination in
 >
 > Prototype · Synthetic data only · Implementation not verified · Metrics not measured
 >
-> This repository contains the V2 specification package, an existing clickable HTML demo, and minimal root skeleton files. The application has not been built. Provider accounts, partner approval and live referral delivery are absent.
+> This repository contains the V2 specification package, an existing clickable HTML demo, and minimal root skeleton files. No application source, dependencies or lockfile are present in this checkout. External implementation/deployment, provider accounts, interviews and partner approval are **UNKNOWN** without evidence. Live referral delivery is outside this synthetic prototype.
 
 ## Safeguarding rules
 
 - AI retrieves and ranks only. A verified officer confirms every match. Officer verification is simulated and labelled in this prototype.
 - No alerts issued or broadcast. No photos, face search, or identity documents. No "runaway" labels. No physical return action.
-- No legal compliance claims. The Personal Data Protection Act (2026) has not been reviewed.
+- No legal compliance claims. Qualified legal-review status is **UNKNOWN**; the specification contains legal references, not a compliance conclusion.
 - Invented synthetic data only. Similarity is not identity probability. `referred` means referral recorded in a simulation; `closed` records a coordination outcome.
 
 ## What the project does not do
@@ -45,49 +45,24 @@ Only existing project files are shown; Git metadata and workspace control direct
 ```text
 .
 ├── README.md
-├── package.json
-├── tsconfig.json
-├── .gitignore
-├── .env.example
+├── AGENTS.md · CLAUDE.md · CODEX.md     # agent instructions (shared · Claude Code · Codex)
+├── DESIGN.md · PRODUCT.md               # visual system and product brief (impeccable skill)
+├── THIRD_PARTY_NOTICES.md
+├── package.json · tsconfig.json · .gitignore · .env.example
 ├── demo/
 │   └── Fera — clickable prototype and blueprint.html
+├── scripts/agents/                      # bootstrap.sh, new-lane.sh
+├── third_party/                         # licences for vendored agent tooling
 └── docs/
-    ├── README.md
-    ├── MANIFEST.json
-    ├── code/
-    │   ├── schema_v2.sql
-    │   ├── fera_types_v2.ts
-    │   └── tokens_v2.css
-    ├── markdown/
-    │   ├── 00_Gap_Check_and_Registry_V2.md
-    │   ├── TEAM_HANDOVER_V2.md
-    │   ├── D1_PRD_V2.md
-    │   ├── D2_TRD_PartA_V2.md
-    │   ├── D2_TRD_PartB_V2.md
-    │   ├── D3_App_Flow_V2.md
-    │   ├── D4_Design_Brief_V2.md
-    │   ├── D5_Background_Schema_V2.md
-    │   ├── D6_Implementation_Plan_V2.md
-    │   └── D7_Closing_Pack_V2.md
-    ├── pdf/
-    │   ├── 00_Gap_Check_and_Registry_V2.pdf
-    │   ├── TEAM_HANDOVER_V2.pdf
-    │   ├── Fera_AI_Complete_Team_Handbook_V2.pdf
-    │   ├── D1_PRD_V2.pdf
-    │   ├── D2_TRD_PartA_V2.pdf
-    │   ├── D2_TRD_PartB_V2.pdf
-    │   ├── D3_App_Flow_V2.pdf
-    │   ├── D4_Design_Brief_V2.pdf
-    │   ├── D5_Background_Schema_V2.pdf
-    │   ├── D6_Implementation_Plan_V2.pdf
-    │   └── D7_Closing_Pack_V2.pdf
-    └── verification/
-        ├── README.md
-        ├── schema_checks.mjs
-        ├── schema_checks.json
-        ├── document_checks.json
-        ├── contrast_checks.json
-        └── pdf_checks.json
+    ├── README.md · MANIFEST.json
+    ├── code/                            # schema_v2.sql, fera_types_v2.ts, tokens_v2.css
+    ├── markdown/                        # V2 spec pack (hashed in MANIFEST.json)
+    ├── spec/                            # working copy of markdown/ used by agents
+    ├── pdf/                             # V2 spec pack PDFs + team handbook
+    ├── verification/                    # companion checks (not application acceptance)
+    ├── agents/                          # agent roster, spec-kit prompts
+    ├── execution/                       # execution plan + live per-phase trackers
+    └── gates/                           # gate reports (fera-gate)
 ```
 
 ## Setup commands
@@ -98,7 +73,7 @@ There is no runnable application yet. No Node engine range is specified in the t
 cp .env.example .env.local
 ```
 
-This creates an empty local configuration template, not working credentials. The names come from D2B §15.1: `OPENAI_API_KEY` is also the key implied by D2A's Whisper API choice and registry OQ-004. `AI_SPEND_CAP_USD` is the documented spend-cap setting. D2 specifies 10 AI actions/minute/principal and 30/minute/network but gives no environment-variable names for those rate limits; names await a team decision. This intentionally limited template is not the complete future deployment configuration.
+This creates a local configuration template with every variable name from D2B §15.1 and empty values (except documented defaults `AI_SPEND_CAP_USD=25`, `DEMO_ONLY=true`, `DEMO_MODE=0`); it is not working credentials. D2 specifies 10 AI actions/minute/principal and 30/minute/network but gives no environment-variable names for those rate limits; names await a team decision.
 
 ```sh
 npm run dev
@@ -142,3 +117,9 @@ Keep the three files in `docs/code/` byte-identical to their embedded document v
 ## Authors
 
 Sadman Shaharier, Obidit Islam.
+
+## Audit amendments (2026-10-12)
+
+- **AMD-README-1 — Gap:** unsupported negative evidence. **Change:** old “The application has not been built. Provider accounts, partner approval and live referral delivery are absent” now separates missing local implementation from UNKNOWN external account/approval status; no actual delivery is implemented by this prototype. Old “The Personal Data Protection Act (2026) has not been reviewed” now records UNKNOWN review status and no compliance claim. **Source:** handover §§5,7,10.
+- **AMD-README-2 — Gap:** package identity and execution references were ambiguous. **Change:** this is the earlier root application-skeleton README, with team edits adding orchestration paths; the package README is `docs/README.md` and remains unchanged. Use [execution plan](docs/execution/EXECUTION_PLAN.md) and its phase amendments for the 184 h Round 2 baseline, 222 h overall estimate and gate evidence. 14 Oct 22:00 is a working cutoff baseline, 21:00 internal target; the user reports organiser extension flexibility, replacement date/time **UNKNOWN**. Kit due 23 Oct; finale 24 Oct. All app commands remain **planned**, failing stubs, with no installs/deployment/evaluation claimed. **Source:** HEAD diff; handover §§6,10; D1 DEP-009.
+- **AMD-README-3 — Gap:** spend default not visible in skeleton. **Change:** `.env.example` now carries documented `AI_SPEND_CAP_USD=25` alongside synthetic/demo flags; actual keys/models/accounts/prices remain blank/UNKNOWN. `test:e2e` and `db:reset` join the existing fail-fast planned script interfaces, without executing a test or resetting a DB. `tsconfig.json` remains a strict standalone companion config; Next bundler/app configuration belongs to TASK-001. **Source:** D2B §§12,15; G0 TASK-001; AGENTS planned commands.

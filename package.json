@@ -19,6 +19,8 @@
     "eval:dedupe": "node -e \"console.error('eval:dedupe: not implemented'); process.exit(1)\"",
     "eval:wer": "node -e \"console.error('eval:wer: not implemented'); process.exit(1)\"",
     "eval:time": "node -e \"console.error('eval:time: not implemented'); process.exit(1)\"",
-    "eval:audit": "node -e \"console.error('eval:audit: not implemented'); process.exit(1)\""
+    "eval:audit": "node -e \"console.error('eval:audit: not implemented'); process.exit(1)\"",
+    "test:e2e": "node -e \"console.error('test:e2e: not implemented'); process.exit(1)\"",
+    "db:reset": "node -e \"console.error('db:reset: not implemented'); process.exit(1)\""
   }
 }
