@@ -1,0 +1,85 @@
+# Phase 1 — Specs and frozen contracts · Gate G1
+
+**Window:** Mon 12 Oct 2026, 18:00 → 23:00 (Asia/Dhaka) · **Gate:** G1 · **Plan:** [EXECUTION_PLAN.md](EXECUTION_PLAN.md#phase-1--specs-and-frozen-contracts-mon-12-oct-1800--2300--gate-g1) · **Prev:** [Phase 0](PHASE_0_BOOTSTRAP.md) · **Next:** [Phase 2](PHASE_2_MUST_CORE.md)
+**Phase status:** `todo`
+**Last updated:** 2026-10-12 19:15 · by Claude Code (file created)
+
+---
+
+## How to work this file (Claude Code · Codex · Antigravity)
+
+This is a living tracker. Every agent working on a task in this phase updates it **in the same branch as the work**.
+
+1. Read [AGENTS.md](../../AGENTS.md), then this file, then the spec-pack sections named in your row. All times are Asia/Dhaka.
+2. Pick a `todo` row in your owner's lane whose dependencies are `done`. Set it to `doing` and fill in the lane and tool.
+3. Work in a lane worktree (`scripts/agents/new-lane.sh <feature> <lane>`) and stay inside the owner's paths ([ownership map](../../AGENTS.md#repo-layout-and-ownership)).
+4. When you open the PR, set the row to `review` with the PR link. After the merge, set it to `done` and fill in **Evidence**: the command and its result, a URL or a file path. A task without evidence is not done.
+5. If you are stuck, set the row to `blocked`, say what blocks it in Evidence, and add a log line.
+6. Edit only **your own rows** and **your owner's log section**, so parallel lanes don't conflict. Never tick a gate box yourself. Gate boxes are ticked from the `fera-gate` report in [docs/gates/](../gates/).
+
+**Status values:** `todo` · `doing` · `review` · `done` · `blocked` · `cut`. Use `cut` only with the lead's approval and in the [D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommendation) cut order. Never cut review-before-submit, officer confirm, referral, audit or redaction.
+
+| Action | Claude Code | Codex | Antigravity / any other agent |
+|---|---|---|---|
+| Spec-kit stage | `/speckit-<stage>` | `$speckit-<stage>` | Open `.agents/skills/speckit-<stage>/SKILL.md` and follow it step by step |
+| Skill (`fera-review`, `fera-gate`, `verification-loop`, `impeccable`, …) | `/<skill>` | `$<skill>` | Read `.agents/skills/<skill>/SKILL.md` and follow it |
+| Reviewer (`fera-safeguarding-reviewer`, `database-reviewer`, …) | Subagent from `.claude/agents/<name>.md` | Role from `.codex/agents/<name>.toml` | Start a separate read-only agent and give it `.claude/agents/<name>.md` as its brief |
+
+---
+
+## Spec-kit boards
+Exact briefs: [docs/agents/SPECKIT_PROMPTS.md](../agents/SPECKIT_PROMPTS.md). Pin the directory with `SPECIFY_FEATURE_DIRECTORY=specs/NNN-…`. Do **not** re-run `constitution`. Stop for a 5-minute human skim between `specify` → `plan` → `tasks`. Max 3 `[NEEDS CLARIFICATION]`; cite FR/BR/TC/TASK/SCREEN IDs, don't invent requirements.
+
+Mark each stage cell `todo` / `done` / `blocked`. After `tasks`, every task line carries owner and lane, e.g. `- [ ] T012 [P] [O·lane-A] … (TASK-012)`.
+
+| Feature | Owner | specify | clarify | plan | tasks (owner+lane on every line) | analyze | Notes |
+|---|---|---|---|---|---|---|---|
+| `001-platform-foundation` | S | `todo` | `todo` | `todo` | `todo` | `todo` | |
+| `002-intake-ai` | O | `todo` | `todo` | `todo` | `todo` | `todo` | |
+| `003-parent-outputs` | O (S-004/S-005: S) | `todo` | `todo` | `todo` | `todo` | `todo` | |
+| `004-matching-data` | M | `todo` | `todo` | `todo` | `todo` | `todo` | |
+| `005-officer-workflow` | M (S-012: S) | `todo` | `todo` | `todo` | `todo` | `todo` | |
+| `006-dashboard-admin` | M (S-013: S) | `todo` | `todo` | `todo` | `todo` | `todo` | |
+| `007-quality-release` | S (shared) | `todo` | `todo` | `todo` | `todo` | `todo` | |
+| Cross-feature `/speckit-analyze` at **22:30** | S | — | — | — | — | `todo` | No critical issues allowed |
+
+## Tasks
+| ID | Task | Owner · lane | Tool (suggested) | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
+|---|---|---|---|---|---|---|---|---|---|
+| TASK-061 | Contracts in `src/contracts/`: DTOs, Zod, state enums, error envelope E-001–E-024, role projections, idempotency tokens, referral/count semantics | S | Claude Code + `code-architect`, `typescript-reviewer` | TASK-001 | 3 | Runtime schemas/examples and role projections agree; FV-01–05/10 closed; tag `contracts-v1`. Include one valid example per API DTO, usable as typed fakes by the Phase 2 UI lanes (see Phase 2 "Schedule reality") | `todo` | | |
+| TASK-008 | Layout shell, tokens from `DESIGN.md` incl. its "Fera overrides" (they win over `tokens_v2.css`, see AGENTS.md), self-hosted Inter + JetBrains Mono + Noto Sans Bengali, language toggle (COMP-022, FR-033) | S | Claude Code + `impeccable` | TASK-001 | 3 | Bangla renders on 1 Android phone | `todo` | | |
+| TASK-012 (start) | Normaliser tests first: Bangla digits, time words, phone, district aliases, romaniser | O | Codex + `tdd_guide` | TASK-009 | — | Failing test suite committed (≥30 cases planned); implementation in Phase 2 | `todo` | | |
+| TASK-010 | Synthetic set generator: ~200 records, ground truth, duplicates, decoys, no-match | M | Codex | TASK-009 | 6 | Ground-truth file hashed and committed | `todo` | | |
+| TASK-064 | Identity-grouped manifest, frozen split, hashes — **before any matcher code** | M | Codex + `mle-reviewer` | TASK-010 | 3 | Manifest counts/split/hash asserted; hash committed | `todo` | | |
+
+**Freeze at G1:** `src/contracts/` and `db/schema_v2.sql`. Changing either one after G1 needs a small PR reviewed by all three owners. Record any such PR in the log below.
+
+## G1 exit checklist
+Tick only from the gate report (`fera-gate`), with evidence linked.
+- [ ] Seven `specs/NNN-*/tasks.md` exist, with owner and lane on every task
+- [ ] `/speckit-analyze` (per feature + cross-feature) clean of critical issues
+- [ ] `src/contracts/` merged and tagged `contracts-v1`
+- [ ] Ground-truth file and manifest hash committed
+- [ ] Shell with Bangla rendering merged
+
+**Gate report:** _(link `docs/gates/G1-*.md`)_ · **Result:** _pending_
+
+## Log
+Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
+
+### Sadman
+### Obidit
+### Masnun
+
+## Audit amendments (2026-10-12)
+
+### AMD-1-1 — Entry, freeze and exit evidence
+**Gap:** no explicit entry gate or complete acceptance links; schema freeze precedes TASK-062.
+**Change:** entry requires G0 evidence, particularly district data for TASK-010/012 and local/host PG16 for the schema. Preparatory writing may run earlier but cannot be marked complete without its dependencies. G1 exits require seven task boards with traceable TASK/FR/BR/TC IDs and zero critical analysis findings; contract examples/projections validated against BR-004/015/016/020/023/024 and TC-030/042–046/060; synthetic manifest evidence for TC-064 (DEP-005); Bangla shell checks for FR-033/NFR-011. This is a contract gate, not a claim that service acceptance tests have run.
+Freeze the exact supplied schema; P2 TASK-062 applies/tests runtime privileges, lifecycle and redaction. Schema changes still require the existing all-owner review and companion update process; never alter protected companions in this audit.
+**Source:** D6 TASK-008/010/061/062/064; handover §§4,8–9; AGENTS ownership.
+
+### AMD-1-2 — Estimate and handoff accounting
+**Gap:** the TASK-012 “start” row could double-count hours or imply completion from failing tests.
+**Change:** it is part of P2 TASK-012's single 5 h estimate. Transfer test artifacts and DTO examples by path/commit and record outstanding work; G1's API fakes are preparatory evidence only. Actual remaining hours and owner availability are UNKNOWN until reported. The G1 target is internal and does not establish schedule feasibility.
+**Source:** D6 §5; TEAM_HANDOVER_V2 §6.
