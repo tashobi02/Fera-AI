@@ -1,0 +1,76 @@
+#:schema https://developers.openai.com/codex/config-schema.json
+
+# Fera project config for Codex. Trust the project once so Codex loads it.
+# Roles inherit your default model. Reviewers are read-only; builders get workspace-write.
+# Shared rules live in AGENTS.md; skills load from .agents/skills/.
+
+[features]
+multi_agent = true
+
+[agents]
+max_threads = 6
+max_depth = 1
+
+[agents.code_architect]
+description = "Designs feature architectures by analyzing existing codebase patterns and conventions, then providing implementation blueprints with concrete files, interfaces, data flow, and build order."
+config_file = "agents/code_architect.toml"
+
+[agents.tdd_guide]
+description = "Test-Driven Development specialist enforcing write-tests-first methodology. Use PROACTIVELY when writing new features, fixing bugs, or refactoring code. Ensures 80%+ test coverage."
+config_file = "agents/tdd_guide.toml"
+
+[agents.typescript_reviewer]
+description = "Expert TypeScript/JavaScript code reviewer specializing in type safety, async correctness, Node/web security, and idiomatic patterns. Use for all TypeScript and JavaScript code changes. MUST BE…"
+config_file = "agents/typescript_reviewer.toml"
+
+[agents.react_reviewer]
+description = "Expert React/JSX code reviewer specializing in hook correctness, render performance, server/client component boundaries, accessibility, and React-specific security. Use for any change touching…"
+config_file = "agents/react_reviewer.toml"
+
+[agents.react_build_resolver]
+description = "Diagnose and fix React build failures across Vite, webpack, Next.js, CRA, Parcel, esbuild, and Bun. Handles JSX/TSX compile errors, hydration mismatches, server/client component boundary failures,…"
+config_file = "agents/react_build_resolver.toml"
+
+[agents.database_reviewer]
+description = "PostgreSQL database specialist for query optimization, schema design, security, and performance. Use PROACTIVELY when writing SQL, creating migrations, designing schemas, or troubleshooting…"
+config_file = "agents/database_reviewer.toml"
+
+[agents.security_reviewer]
+description = "Security vulnerability detection and remediation specialist. Use PROACTIVELY after writing code that handles user input, authentication, API endpoints, or sensitive data. Flags secrets, SSRF,…"
+config_file = "agents/security_reviewer.toml"
+
+[agents.bengali_reviewer]
+description = "Reviews code handling Bengali (Bangla) text for Unicode correctness, proper normalization, script-aware processing, and internationalization best practices. Use when code processes, displays, or…"
+config_file = "agents/bengali_reviewer.toml"
+
+[agents.a11y_architect]
+description = "Accessibility Architect specializing in WCAG 2.2 compliance for Web and Native platforms. Use PROACTIVELY when designing UI components, establishing design systems, or auditing code for inclusive…"
+config_file = "agents/a11y_architect.toml"
+
+[agents.silent_failure_hunter]
+description = "Review code for silent failures, swallowed errors, bad fallbacks, and missing error propagation."
+config_file = "agents/silent_failure_hunter.toml"
+
+[agents.mle_reviewer]
+description = "Production machine-learning engineering reviewer for data contracts, feature pipelines, training reproducibility, offline/online evaluation, model serving, monitoring, and rollback. Use when ML,…"
+config_file = "agents/mle_reviewer.toml"
+
+[agents.e2e_runner]
+description = "End-to-end testing specialist using Vercel Agent Browser (preferred) with Playwright fallback. Use PROACTIVELY for generating, maintaining, and running E2E tests. Manages test journeys,…"
+config_file = "agents/e2e_runner.toml"
+
+[agents.doc_updater]
+description = "Documentation and codemap specialist. Use PROACTIVELY for updating codemaps and documentation. Generates docs/CODEMAPS/*, updates READMEs and guides. Backs the /update-codemaps and /update-docs…"
+config_file = "agents/doc_updater.toml"
+
+[agents.fera_safeguarding_reviewer]
+description = "Release gate for every Fera PR. Checks a diff against the Fera constitution and business rules BR-001–BR-026 (review-before-submit, AI boundaries, role-scoped DTOs, lifecycle and confirm…"
+config_file = "agents/fera_safeguarding_reviewer.toml"
+
+[agents.impeccable_finish_reviewer]
+description = "Reviews a finished Impeccable build against its direction contract, the approved comp, and the chosen world's quality bar, returning an ordered list of material fixes."
+config_file = "agents/impeccable_finish_reviewer.toml"
+
+[agents.impeccable_documenter]
+description = "Records DESIGN.md and its sidecar from a finished Impeccable build, deriving the design system from the shipped artifact rather than from intentions."
+config_file = "agents/impeccable_documenter.toml"
