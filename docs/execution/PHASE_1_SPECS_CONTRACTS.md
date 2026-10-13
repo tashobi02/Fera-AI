@@ -35,7 +35,7 @@ Mark each stage cell `todo` / `done` / `blocked`. After `tasks`, every task line
 
 | Feature | Owner | specify | clarify | plan | tasks (owner+lane on every line) | analyze | Notes |
 |---|---|---|---|---|---|---|---|
-| `001-platform-foundation` | Mahim | `todo` | `todo` | `todo` | `todo` | `todo` | |
+| `001-platform-foundation` | Mahim | `done` | `done` | `todo` | `todo` | `todo` | [spec](../../specs/001-platform-foundation/spec.md), [clarify evidence](../../specs/001-platform-foundation/clarification-review.md), checklist 15/16 (outcomes unverified); Pause A |
 | `002-intake-ai` | Obidit | `todo` | `todo` | `todo` | `todo` | `todo` | |
 | `003-parent-outputs` | Obidit (S-004/S-005 tasks: Mahim) | `todo` | `todo` | `todo` | `todo` | `todo` | |
 | `004-matching-data` | Masnun | `todo` | `todo` | `todo` | `todo` | `todo` | |
@@ -61,19 +61,19 @@ Mark each stage cell `todo` / `done` / `blocked`. After `tasks`, every task line
 ## Tasks — Obidit (lead)
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| TASK-012 (start) | Normaliser tests first: Bangla digits, time words, phone, district aliases, romaniser | A · Codex + `tdd_guide` | TASK-009 (Masnun) | — | Failing test suite committed (≥30 cases planned); implementation in Phase 2 | `todo` | | |
+| TASK-012 (start) | Normaliser tests first: Bangla digits, time words, phone, district aliases, romaniser | A · Codex + `tdd_guide` | TASK-009 (Masnun) | — | Failing test suite committed (≥30 cases planned); implementation in Phase 2 | `blocked` | | Phase 0 TASK-009 is `todo`; 64 district aliases are not loaded. No tests started. |
 
 ## Tasks — Masnun
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| TASK-010 | Synthetic set generator: ~200 records, ground truth, duplicates, decoys, no-match | A · Codex | TASK-009 | 6 | Ground-truth file hashed and committed | `todo` | | |
-| TASK-064 | Identity-grouped manifest, frozen split, hashes — **before any matcher code** | A · Codex + `mle-reviewer` | TASK-010 | 3 | Manifest counts/split/hash asserted; hash committed | `todo` | | |
+| TASK-010 | Synthetic set generator: ~200 records, ground truth, duplicates, decoys, no-match | A · Codex | TASK-009 | 6 | Ground-truth file hashed and committed | `blocked` | | Phase 0 TASK-009 is `todo`; `npm run seed` is a fail-fast stub. No ground-truth file started. |
+| TASK-064 | Identity-grouped manifest, frozen split, hashes — **before any matcher code** | A · Codex + `mle-reviewer` | TASK-010 | 3 | Manifest counts/split/hash asserted; hash committed | `blocked` | | TASK-010 is blocked by TASK-009; no frozen source set or manifest exists. |
 
 ## Tasks — Mahim
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| TASK-061 | Contracts in `src/contracts/`: DTOs, Zod, state enums, error envelope E-001–E-024, role projections, idempotency tokens, referral/count semantics | A · Claude Code + `code-architect`, `typescript-reviewer` | TASK-001 | 3 | Runtime schemas/examples and role projections agree; FV-01–05/10 closed; tag `contracts-v1`. Include one valid example per API DTO, usable as typed fakes by the Phase 2 UI lanes (see Phase 2 "Schedule reality") | `todo` | | |
-| TASK-008 | Layout shell, tokens from `DESIGN.md` incl. its "Fera overrides" (they win over `tokens_v2.css`, see AGENTS.md), self-hosted Inter + JetBrains Mono + Noto Sans Bengali, language toggle (COMP-022, FR-033) | B · Claude Code + `impeccable` | TASK-001 | 3 | Bangla renders on 1 Android phone | `todo` | | |
+| TASK-061 | Contracts in `src/contracts/`: DTOs, Zod, state enums, error envelope E-001–E-024, role projections, idempotency tokens, referral/count semantics | A · Codex + `code_architect`, `typescript_reviewer` | TASK-001 | 3 | Runtime schemas/examples and role projections agree; FV-01–05/10 closed; tag `contracts-v1`. Include one valid example per API DTO, usable as typed fakes by the Phase 2 UI lanes (see Phase 2 "Schedule reality") | `blocked` | | Phase 0 TASK-001 is `todo`; CI green on main is unverified. No contracts created or frozen. |
+| TASK-008 | Layout shell, tokens from `DESIGN.md` incl. its "Fera overrides" (they win over `tokens_v2.css`, see AGENTS.md), self-hosted Inter + JetBrains Mono + Noto Sans Bengali, language toggle (COMP-022, FR-033) | B · Codex + `impeccable` | TASK-001 | 3 | Bangla renders on 1 Android phone | `blocked` | | Phase 0 TASK-001 is `todo`; no app shell exists. Android phone check remains pending. |
 
 Cross-person handoffs: Obidit's and Masnun's Phase 2 UI lanes depend on Mahim's TASK-061 DTO examples; Obidit's TASK-012 tests depend on Masnun's district aliases (TASK-009).
 
@@ -93,8 +93,15 @@ Tick only from the gate report (`fera-gate`), with evidence linked.
 Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
 ### Obidit (lead)
+- 2026-10-13 11:51 · Codex · Obidit · TASK-012 (start) `todo` → `blocked`; TASK-009 district load has no completion evidence.
 ### Masnun
+- 2026-10-13 11:51 · Codex · Masnun · TASK-010 `todo` → `blocked`; TASK-009 is not done.
+- 2026-10-13 11:51 · Codex · Masnun · TASK-064 `todo` → `blocked`; TASK-010 cannot start.
 ### Mahim
+- 2026-10-13 11:51 · Codex · Mahim · TASK-061 `todo` → `blocked`; TASK-001 CI on main is unverified.
+- 2026-10-13 11:51 · Codex · Mahim · TASK-008 `todo` → `blocked`; TASK-001 app scaffold is absent.
+- 2026-10-13 11:51 · Codex · Mahim · 001 specify `todo` → `done`; spec and 15/16 quality checklist written for human skim.
+- 2026-10-13 11:51 · Codex · Mahim · 001 clarify `todo` → `done`; 0 formal questions, OQ-021 deferred, Pause A reached.
 
 ## Audit amendments (2026-10-12)
 
