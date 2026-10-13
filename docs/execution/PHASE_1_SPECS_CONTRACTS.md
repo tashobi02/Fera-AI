@@ -35,7 +35,7 @@ Mark each stage cell `todo` / `done` / `blocked`. After `tasks`, every task line
 
 | Feature | Owner | specify | clarify | plan | tasks (owner+lane on every line) | analyze | Notes |
 |---|---|---|---|---|---|---|---|
-| `001-platform-foundation` | Mahim | `done` | `done` | `todo` | `todo` | `todo` | [spec](../../specs/001-platform-foundation/spec.md), [clarify evidence](../../specs/001-platform-foundation/clarification-review.md), checklist 15/16 (outcomes unverified); Pause A |
+| `001-platform-foundation` | Mahim | `done` | `done` | `done` | `todo` | `todo` | [spec](../../specs/001-platform-foundation/spec.md), [clarify evidence](../../specs/001-platform-foundation/clarification-review.md), [plan](../../specs/001-platform-foundation/plan.md), [research](../../specs/001-platform-foundation/research.md), [data model](../../specs/001-platform-foundation/data-model.md), [interface contract](../../specs/001-platform-foundation/contracts/platform-contract.md), [validation guide](../../specs/001-platform-foundation/quickstart.md); 0 clarification markers, checklist 15/16 (outcomes unverified); Pause B |
 | `002-intake-ai` | Obidit | `todo` | `todo` | `todo` | `todo` | `todo` | |
 | `003-parent-outputs` | Obidit (S-004/S-005 tasks: Mahim) | `todo` | `todo` | `todo` | `todo` | `todo` | |
 | `004-matching-data` | Masnun | `todo` | `todo` | `todo` | `todo` | `todo` | |
@@ -102,6 +102,7 @@ Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 - 2026-10-13 11:51 · Codex · Mahim · TASK-008 `todo` → `blocked`; TASK-001 app scaffold is absent.
 - 2026-10-13 11:51 · Codex · Mahim · 001 specify `todo` → `done`; spec and 15/16 quality checklist written for human skim.
 - 2026-10-13 11:51 · Codex · Mahim · 001 clarify `todo` → `done`; 0 formal questions, OQ-021 deferred, Pause A reached.
+- 2026-10-13 11:58 · Codex · Mahim · 001 plan `todo` → `done`; source-backed plan and design artifacts written, OQ-021 remains UNKNOWN, Pause B reached.
 
 ## Audit amendments (2026-10-12)
 
