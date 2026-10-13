@@ -136,7 +136,7 @@ Feature 001 owns the shared foundation mapped to TASK-001, TASK-002, TASK-006, T
 
 - Only invented fixtures are authorised: no real child/parent data, scraped public page or public-child import. (FR-024; BR-026; DEP-007 as corrected in AUDIT F11)
 - The exact supplied V2 schema is the planned runtime copy. Schema and contracts freeze only after evidence-backed review and merge; TASK-062 retains later runtime-privilege and invariant checks. (TASK-002, TASK-061, TASK-062; AMD-1-1)
-- TASK-001 is not done. TASK-002, TASK-006, TASK-008 and TASK-061 depend on it; TASK-007 also depends on TASK-001. TASK-062 depends on TASK-002 and TASK-061; TASK-015 on TASK-007, TASK-061 and TASK-062; TASK-031 on TASK-006. These are D6 planning dependencies, not completion claims. (D6 §5)
+- TASK-001 is not done. TASK-002, TASK-007, TASK-008 and TASK-061 depend on it; TASK-006 depends on TASK-002. TASK-062 depends on TASK-002 and TASK-061; TASK-015 on TASK-007, TASK-061 and TASK-062; TASK-031 on TASK-006. These are D6 planning dependencies, not completion claims. (D6 §5)
 - Managed database host choice OQ-021 is UNKNOWN. CI, local/host schema application, contract merge/tag and Android phone rendering have no evidence in this specs-only lane. (TASK-001, TASK-002, TASK-008, TASK-061)
 - FV-01–FV-05 and FV-10 list V2 corrections but still require the runtime evidence in TEAM_HANDOVER_V2 §3; this specification does not close them.
 - The constitution remains a draft awaiting all-owner ratification; its safeguards still govern this specification. (`.specify/memory/constitution.md`)
