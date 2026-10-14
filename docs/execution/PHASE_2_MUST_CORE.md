@@ -116,7 +116,7 @@ When one of these merges, tell the waiting person straight away; they rebase and
 ## Tasks — Mahim
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| TASK-007 | API layer: error envelope E-001–E-024, Zod helpers, request ID, rate limiter (COMP-021) | A · Claude Code | TASK-001 | 4 | Unit tests for envelope and limiter | `review` | branch `phase2--mahim-api`, `a33d9af` (no PR yet) | `src/app/api/_shared/` + `/api/health`; `tests/api/` 92 cases (envelope for 21 server IDs, E-022/E-024 never sent, 64 KiB body cap, E-001 without echoed input, request ID, E-002/E-003, same-origin, DTO fail-closed, no-store, limiter window/reset/E-007 seconds, log redaction); lint/typecheck/test (372 pass, 1 skipped)/build exit 0. In-memory limiter only: Postgres `rate_limits` store and principal resolver (TASK-006) pending. fera-review not yet run. |
+| TASK-007 | API layer: error envelope E-001–E-024, Zod helpers, request ID, rate limiter (COMP-021) | A · Claude Code | TASK-001 | 4 | Unit tests for envelope and limiter | `review` | branch `phase2--mahim-api`, HEAD `a054767` on contracts `edb6a4d` (no PR yet) | `src/app/api/_shared/` + `/api/health`; `tests/api/` 179 cases (envelope + fallback, E-022/E-024 never sent, E-001 field paths, body/multipart caps, abort → E-001, server request ID, E-002/E-003, record-route E-004 + access.denied audit, audit failure → E-021, per-role strict DTOs, cookie seam, same-origin incl. scheme, limiter window/reset/E-007/E-013/bounded store, address trust, log redaction); lint/typecheck/test (479 pass, 1 skipped)/build exit 0. fera-review round 1 BLOCK fixed; re-review pending. **Gate:** no paid route ships on the memory limiter store (API-OD-1). Open decisions API-OD-1–7 in `specs/001-platform-foundation/contract-notes.md`; resolver waits for TASK-006, audit hook for TASK-015. |
 | TASK-062 | Schema invariants, restricted runtime role, full related-payload redaction | A · Codex | TASK-002, TASK-061 | 4 | Negative and positive lifecycle/redaction checks | `todo` | | |
 | TASK-015 | Case service, state guard, audit, versions (COMP-014/015) — **by 12:00** | A · Codex + `database-reviewer` | TASK-007, 061, 062 | 6 | TC-032 and TC-016 pass | `todo` | | |
 | TASK-006 | Auth.js credentials, parent cookie, `requireRole`, seeded users | B · Claude Code + `security-reviewer` | TASK-002 | 5 | TC-023 passes | `todo` | | |
@@ -168,6 +168,7 @@ Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 ### Masnun
 ### Mahim
 - 2026-10-14 17:35 · Claude Code · mahim-api · TASK-007 `todo` → `review`; shared API layer and 92 tests at `a33d9af`; in-memory limiter, real principal resolver waits for TASK-006.
+- 2026-10-14 18:40 · Claude Code · mahim-api · TASK-007 stays `review`; fera-review BLOCK (record-route E-004 + denial audit) and WARNs fixed at `a054767`, 179 API tests; re-review pending.
 
 ## Audit amendments (2026-10-12)
 

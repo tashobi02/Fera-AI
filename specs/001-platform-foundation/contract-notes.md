@@ -184,3 +184,15 @@ These shapes were derived from D2A §5.5 prose. The owning lane should confirm o
 - FV-01–FV-05 and FV-10 are **not closed** by contracts alone. The handover still requires transaction, HTTP, DB, concurrency, provider-dispatch and count-lifecycle evidence from TASK-015, TASK-062 and the owning lanes.
 - `contracts-v1` is tagged only after human review and merge (T003).
 - Token signing and verification are server work (TASK-063).
+
+## API layer open decisions (TASK-007)
+
+These come from the shared route layer in `src/app/api/_shared/`, after fera-review on 2026-10-14. None of them changes the contracts.
+
+- **API-OD-1 Shared limiter store**: only `MemoryRateLimitStore` exists. Each instance counts on its own, so limits do not hold across Vercel instances. COMP-021 plans Postgres `rate_limits` (`INSERT … ON CONFLICT … RETURNING count`) together with a configured HMAC key secret. The in-memory keyer uses a random secret per process. Owner: Mahim, TASK-062/015. **Gate**: no paid route (API-001/002) ships on the memory store. In production the layer logs `ratelimit.memory_store` at error level.
+- **API-OD-2 Laptop finale addresses**: `x-forwarded-for` is trusted only when `TRUST_PROXY=1` or on Vercel. Without a proxy every client shares one network bucket, so all demo devices share the 30/min AI network limit and the 300/min pre-auth limit. That is acceptable for a few devices; set `TRUST_PROXY=1` only behind a proxy that overwrites the header.
+- **API-OD-3 Unknown request keys**: request bodies strip unknown keys (D2A §9.3, "client authority ignored"), while D2B §10.1 says "reject unknown keys". A spec decision is needed before strict request schemas.
+- **API-OD-4 AGENTS chain wording**: the layer runs the coarse role guard before Zod (unauthenticated callers never see validation behaviour), then Zod, then `authorize`. AGENTS.md says "Zod input → role guard". This needs a docs PR.
+- **API-OD-5 Next-generated responses**: Next's own 404 (unknown path) and 405 (unexported method) are not enveloped and carry no `x-request-id`.
+- **API-OD-6 Paid limiter fallback**: when the limiter is down, a paid route answers E-013 (manual form, BR-023), and other fail-closed rules answer E-021. COMP-021's fail-open applies only to the sign-in and pre-auth rules.
+- **API-OD-7 Denial audit**: the layer writes `access.denied` through the injected `auditDenied` for every signed-in E-003/E-004 denial. Handlers throw `ApiError("E-004", { caseId })` and must not write the row themselves. Until TASK-015 provides the hook, a signed-in denial is E-021.
