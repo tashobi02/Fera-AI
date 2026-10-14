@@ -8,4 +8,35 @@ Agent tooling vendored on 2026-10-12 at the commits below. To refresh, re-copy f
 | affaan-m/ecc | b92f181b3b74 | MIT (third_party/ecc.LICENSE) | 13 agents from `agents/` into `.claude/agents/` (`code-architect` set to `model: opus`), converted to `.codex/agents/*.toml`; 15 skills from `skills/` into both skill dirs |
 | pbakaus/impeccable | 919dbeba520d (plugin 4.5.2) | Apache-2.0 (third_party/impeccable.LICENSE, third_party/impeccable.NOTICE.md) | `plugin/skills/impeccable` into both skill dirs; 4 agents from `plugin/agents/` into `.claude/agents/`. The plugin hooks were not copied (`bootstrap.sh` installs them) |
 
+## App assets (TASK-008, 2026-10-14)
+
+Self-hosted fonts and icon geometry shipped in the app. Licence texts sit next to the files.
+
+| Asset | Source | Licence | What we ship |
+|---|---|---|---|
+| Inter 4.1 | `rsms/inter` GitHub release `v4.1`, file `InterVariable.ttf` | OFL-1.1 (`src/app/fonts/Inter-OFL.txt`) | `src/app/fonts/inter-latin-wght.woff2` (48,120 B): `opsz` pinned at 14 with `fonttools varLib.instancer`, then `pyftsubset` to the Latin range with `ss03`, `tnum` and `case` kept (the Google Fonts/Fontsource subset drops `ss03`) |
+| JetBrains Mono | npm `@fontsource-variable/jetbrains-mono@5.3.0` (Google Fonts v24), unmodified | OFL-1.1 (`src/app/fonts/JetBrainsMono-OFL.txt`) | `src/app/fonts/jetbrains-mono-latin-wght.woff2` (40,404 B), Latin subset, wght 100–800 |
+| Noto Sans Bengali | npm `@fontsource-variable/noto-sans-bengali@5.3.0` (Google Fonts v33, from `notofonts/bengali`), unmodified | OFL-1.1 (`src/app/fonts/NotoSansBengali-OFL.txt`) | `src/app/fonts/noto-sans-bengali-bengali-wght.woff2` (107,720 B), Bengali subset, wght 100–900 |
+| Lucide `info` icon | npm `lucide-static@1.57.0` | ISC; Feather-derived icon, MIT (`third_party/lucide.LICENSE`) | SVG path data inlined in `src/app/components/app-header.tsx` |
+
+Upstream integrity (as downloaded on 2026-10-14):
+
+| Upstream artifact | Hash |
+|---|---|
+| `Inter-4.1.zip` (github.com/rsms/inter/releases/download/v4.1) | sha256 `9883fdd4a49d4fb66bd8177ba6625ef9a64aa45899767dde3d36aa425756b11e` |
+| `InterVariable.ttf` inside that zip | sha256 `4989b125924991b90d05b2d16e0e388c48f7d5bb8b30539bbf9c755278d0ccaf` |
+| `@fontsource-variable/jetbrains-mono@5.3.0` tarball | npm integrity `sha512-F32xpS2NsGYoQi2ADSkKTgpJj7ozajsGgDJ8woTnqjmIB+dxDIqImjl4pXZVEExu8UFZ2ndhmX18EBS/hdz3Lw==`; sha256 `996fe6368a480c9ce15d4de22a2682b7c40b403718fee2b15e7272f244fd993f` |
+| `@fontsource-variable/noto-sans-bengali@5.3.0` tarball | npm integrity `sha512-035m0mzOcsVC1GHFH1ioeXjIFqVhuflGvnn8Xvr6esaZlGErNe1d+Jx2sEN/2WGPhjrT+5wwKPPSO8rbBeQo3w==`; sha256 `c5811f21f12e6ecfb076898a438f808ccbb56b64deaab0311952863d18e80558` |
+| `lucide-static@1.57.0` tarball | npm integrity `sha512-nuf4YoaKt3Pq9scXVQ71SLr0Q1/UZiTcfBBivFsCVL6biAzPplTikVWXLetBmK3oFEJS6f2L1rzgEsoJN/Ce0Q==`; sha256 `afc8602c5231ce64ee227286f93772d0438eddd3b947b645bc14bfd1e49da518` |
+
+Shipped files (sha256):
+
+| File | sha256 |
+|---|---|
+| `src/app/fonts/inter-latin-wght.woff2` | `d2f59ae33efdce6ae6b7687dd3af7a48d7451f160ab99a764931a60eabc49945` |
+| `src/app/fonts/jetbrains-mono-latin-wght.woff2` | `18be452724bfdc236c074ca94a249a7f41a86752c7d04ab258ce9ed5651f6a7e` (identical to the file in the npm tarball) |
+| `src/app/fonts/noto-sans-bengali-bengali-wght.woff2` | `4ccdc6269af7581727fc3eea491831bda1962c1baaca7f2c0dec054bfddde478` (identical to the file in the npm tarball) |
+
+None of the font licences declares a Reserved Font Name, so the subset files keep their family names. No npm package was added to the app for these assets.
+
 Fera-specific files are the team's own: `.specify/memory/constitution.md`, `.claude/agents/fera-safeguarding-reviewer.md`, the `fera-review` and `fera-gate` skills, `.claude/settings.json`, `.codex/config.toml`, `.gemini/GEMINI.md`, `AGENTS.md`, `CLAUDE.md`, `CODEX.md` and the plans under `docs/`.
