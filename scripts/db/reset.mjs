@@ -1,12 +1,15 @@
-// npm run db:reset — fresh local database with db/schema_v2.sql (TASK-002).
+// npm run db:reset — fresh local database with db/schema_v2.sql (TASK-002), then the
+// runtime roles and grants in db/roles.sql (TASK-062).
 // Admin connection: FERA_DB_ADMIN_URL (never the app's DATABASE_URL), default = local fera-db.
 // Target database: FERA_DB_NAME (default `fera`; must match ^fera[a-z0-9_]*$).
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { DEFAULT_DATABASE_URL, assertDatabaseName, assertLocalDatabaseUrl, maskUrl, scrubbedEnv, withDatabase } from "./guard.mjs";
+import { rolePasswordEnv } from "./roles.mjs";
 
 const SCHEMA = "db/schema_v2.sql";
+const ROLES = "db/roles.sql";
 const COMPANION = "docs/code/schema_v2.sql";
 const EXPECTED_HNSW = "cases_embedding_hnsw_idx";
 
@@ -15,11 +18,12 @@ function connection(url) {
   const bare = new URL(url.href);
   const password = decodeURIComponent(bare.password);
   bare.password = "";
-  return { href: bare.href, env: { ...scrubbedEnv(), ...(password ? { PGPASSWORD: password } : {}) } };
+  return { href: bare.href, env: { ...scrubbedEnv(), PGCONNECT_TIMEOUT: "10", ...(password ? { PGPASSWORD: password } : {}) } };
 }
 
-function psql(url, args) {
-  const { href, env } = connection(url);
+function psql(url, args, extraEnv = {}) {
+  const { href, env: baseEnv } = connection(url);
+  const env = { ...baseEnv, ...extraEnv };
   try {
     return execFileSync("psql", [href, "-v", "ON_ERROR_STOP=1", "-X", "-q", ...args], {
       encoding: "utf8",
@@ -58,6 +62,7 @@ try {
   psql(server, ["-c", `DROP DATABASE IF EXISTS ${dbName} WITH (FORCE)`]);
   psql(server, ["-c", `CREATE DATABASE ${dbName}`]);
   psql(target, ["-f", SCHEMA]);
+  psql(target, ["-f", ROLES], rolePasswordEnv());
 
   const vector = query(target, "SELECT extversion FROM pg_extension WHERE extname = 'vector'");
   const hnsw = query(
@@ -65,9 +70,11 @@ try {
     `SELECT i.indisvalid FROM pg_index i JOIN pg_class c ON c.oid = i.indexrelid JOIN pg_am a ON a.oid = c.relam
      WHERE c.relname = '${EXPECTED_HNSW}' AND a.amname = 'hnsw'`,
   );
+  const roles = query(target, "SELECT string_agg(rolname, ',' ORDER BY rolname) FROM pg_roles WHERE rolname IN ('fera_app','fera_owner','fera_redactor') AND NOT rolsuper AND NOT rolbypassrls AND NOT rolcreaterole AND NOT rolcreatedb AND NOT rolreplication");
   const tables = Number(query(target, "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'"));
-  console.log(JSON.stringify({ database: dbName, server_version: version, pgvector: vector, hnsw_index: EXPECTED_HNSW, hnsw_valid: hnsw === "t", public_tables: tables, schema_sha256: schemaHash }));
+  console.log(JSON.stringify({ database: dbName, server_version: version, pgvector: vector, hnsw_index: EXPECTED_HNSW, hnsw_valid: hnsw === "t", public_tables: tables, roles: roles.split(","), schema_sha256: schemaHash }));
   if (!versionAtLeast(vector, "0.8.1")) throw new Error(`pgvector ${vector} < 0.8.1`);
+  if (roles !== "fera_app,fera_owner,fera_redactor") throw new Error(`unexpected runtime roles: ${roles}`);
   if (hnsw !== "t") throw new Error(`HNSW index ${EXPECTED_HNSW} missing or invalid`);
 } catch (err) {
   console.error(`db:reset failed: ${err instanceof Error ? err.message : String(err)}`);
