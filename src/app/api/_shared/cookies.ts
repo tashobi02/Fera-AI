@@ -12,10 +12,29 @@ export type CookieOptions = {
   secure?: boolean;
 };
 
+// Production is Vercel or NODE_ENV=production. DEMO_MODE=1 is the offline finale laptop
+// over plain HTTP, where Secure cookies would be dropped, so it turns Secure (and the
+// __Host- names) off there — but never on Vercel, which is always HTTPS: a hosted
+// deploy keeps Secure cookies even with DEMO_MODE=1. The route layer logs
+// `auth.insecure_cookies` at error once when a production server runs without Secure.
+export function isProductionEnv(env: Record<string, string | undefined> = process.env): boolean {
+  return Boolean(env.VERCEL) || env.NODE_ENV === "production";
+}
+
+export function secureCookiesFor(production: boolean, env: Record<string, string | undefined> = process.env): boolean {
+  if (env.VERCEL) return true;
+  return production && env.DEMO_MODE !== "1";
+}
+
 export class CookieJar {
   private readonly lines: string[] = [];
 
   constructor(private readonly secureDefault: boolean) {}
+
+  // Whether cookies default to Secure; auth uses it to pick `__Host-` names.
+  get secure(): boolean {
+    return this.secureDefault;
+  }
 
   set(name: string, value: string, opts: CookieOptions = {}): void {
     if (!NAME.test(name) || !VALUE.test(value)) throw new Error("invalid cookie name or value");

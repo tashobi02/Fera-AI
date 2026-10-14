@@ -15,6 +15,7 @@ import {
 export const ERROR_REASONS = [
   "content_type", "too_large", "json", "utf8", "schema", "query_dup", "params", "multipart",
   "origin", "role", "authorize", "abort", "ratelimit", "resolver", "response", "audit",
+  "credentials", // API-020: every sign-in failure, whatever the cause (one reason, no enumeration in logs)
 ] as const;
 export type ErrorReason = (typeof ERROR_REASONS)[number];
 

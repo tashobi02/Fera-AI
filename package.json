@@ -27,9 +27,11 @@
     "eval:audit": "node -e \"console.error('eval:audit: not implemented'); process.exit(1)\"",
     "test:e2e": "node -e \"console.error('test:e2e: not implemented'); process.exit(1)\"",
     "db:up": "bash scripts/db/up.sh",
-    "db:reset": "node scripts/db/reset.mjs"
+    "db:reset": "node scripts/db/reset.mjs",
+    "seed:users": "node scripts/db/seed-users.mjs"
   },
   "dependencies": {
+    "@node-rs/argon2": "2.2.1",
     "next": "16.4.0",
     "pg": "8.23.1",
     "react": "19.3.0",

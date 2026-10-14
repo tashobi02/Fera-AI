@@ -10,7 +10,7 @@
 import type { z } from "zod";
 import { LIMITS } from "@/contracts";
 import { API_ACCESS, canCall, effectiveRole, type ApiId, type EffectiveRole, type Principal } from "@/contracts/server";
-import { CookieJar } from "./cookies";
+import { CookieJar, isProductionEnv, secureCookiesFor } from "./cookies";
 import { ApiError, PROTECTED_HEADERS, errorResponse, jsonResponse, type ErrorReason, type ErrorResult } from "./envelope";
 import { MemoryRateLimitStore, RATE_LIMITS, RateLimiter, createKeyer, hasPaidLimits, type Keyer, type RateLimitRule } from "./limit";
 import { createLogger, describeError, issueTokens, levelFor, type LogStage, type Logger } from "./log";
@@ -161,10 +161,10 @@ export function createRouteFactory(deps: RouteDeps) {
   const auditDenied = deps.auditDenied ?? auditUnavailable;
   const trustProxy = deps.trustProxy ?? trustProxyFromEnv();
   const preAuthLimit = deps.preAuthLimit === undefined ? RATE_LIMITS.preAuthNetwork : deps.preAuthLimit;
-  const production = deps.production ?? (Boolean(process.env.VERCEL) || process.env.NODE_ENV === "production");
-  // DEMO_MODE=1 is the offline finale laptop over plain HTTP, where Secure cookies would be dropped.
-  const secureCookies = deps.secureCookies ?? (production && process.env.DEMO_MODE !== "1");
+  const production = deps.production ?? isProductionEnv();
+  const secureCookies = deps.secureCookies ?? secureCookiesFor(production);
   let memoryStoreWarned = false;
+  let insecureWarned = false;
   let noProxyWarned = false;
 
   return function defineRoute<
@@ -195,6 +195,10 @@ export function createRouteFactory(deps: RouteDeps) {
       let reason: ErrorReason | undefined;
       let response: Response;
 
+      if (production && !secureCookies && !insecureWarned) {
+        insecureWarned = true;
+        logger.error({ event: "auth.insecure_cookies" });
+      }
       if (production && limiter.usesMemoryStore && !memoryStoreWarned) {
         memoryStoreWarned = true;
         logger.error({ event: "ratelimit.memory_store" });
