@@ -43,7 +43,10 @@ export type LogEntry = {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const has = (list: readonly string[]) => (v: unknown) => (typeof v === "string" && list.includes(v) ? v : undefined);
-const matches = (re: RegExp) => (v: unknown) => (typeof v === "string" && re.test(v) ? v : undefined);
+// A phone-shaped digit run (BR-016, ASCII or Bangla digits) is never logged, whatever the key.
+const PHONE_LIKE = /(?:0|০)(?:1|১)[0-9০-৯]{9}/;
+const matches = (re: RegExp) => (v: unknown) =>
+  typeof v === "string" && re.test(v) && !PHONE_LIKE.test(v) ? v : undefined;
 const ISSUE_CODE = /^[a-z_]{1,40}$/;
 const ISSUE_PATH = /^[A-Za-z0-9_.]{0,200}$/;
 
@@ -69,7 +72,15 @@ const CHECKS: { [K in keyof LogEntry]-?: (v: unknown) => unknown } = {
     if (!Array.isArray(v)) return undefined;
     const kept = v
       .slice(0, 5)
-      .filter((i) => i && typeof i.code === "string" && ISSUE_CODE.test(i.code) && typeof i.path === "string" && ISSUE_PATH.test(i.path))
+      .filter(
+        (i) =>
+          i &&
+          typeof i.code === "string" &&
+          ISSUE_CODE.test(i.code) &&
+          typeof i.path === "string" &&
+          ISSUE_PATH.test(i.path) &&
+          !PHONE_LIKE.test(i.path),
+      )
       .map((i: LogIssue) => ({ code: i.code, path: i.path }));
     return kept.length > 0 ? kept : undefined;
   },

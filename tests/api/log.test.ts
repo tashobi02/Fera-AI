@@ -113,6 +113,22 @@ describe("allowlist logger", () => {
   });
 });
 
+describe("phone-shaped values", () => {
+  it("are dropped from every pattern-checked key, in ASCII or Bangla digits", () => {
+    const { lines, log } = capture();
+    log.error({
+      event: "handler.threw",
+      err_code: "01712345678",
+      err_name: "০১৭১২৩৪৫৬৭৮",
+      issues: [{ code: "invalid_type", path: "items.01712345678" }],
+    } as unknown as LogEntry);
+    const line = lines.join("\n");
+    expect(line).not.toContain("01712345678");
+    expect(line).not.toContain("০১৭১২৩৪৫৬৭৮");
+    expect(JSON.parse(lines[0]!).dropped).toEqual(expect.arrayContaining(["err_code", "err_name"]));
+  });
+});
+
 describe("describeError", () => {
   it("returns name, code token and the top real frame, skipping frames faked in the message", () => {
     const err = Object.assign(new Error(`bad ${PHONE}\n    at evil (${PHONE}:1:1)`), { code: "ECONNREFUSED" });

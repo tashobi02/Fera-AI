@@ -162,7 +162,8 @@ export function createRouteFactory(deps: RouteDeps) {
   const trustProxy = deps.trustProxy ?? trustProxyFromEnv();
   const preAuthLimit = deps.preAuthLimit === undefined ? RATE_LIMITS.preAuthNetwork : deps.preAuthLimit;
   const production = deps.production ?? (Boolean(process.env.VERCEL) || process.env.NODE_ENV === "production");
-  const secureCookies = deps.secureCookies ?? production;
+  // DEMO_MODE=1 is the offline finale laptop over plain HTTP, where Secure cookies would be dropped.
+  const secureCookies = deps.secureCookies ?? (production && process.env.DEMO_MODE !== "1");
   let memoryStoreWarned = false;
   let noProxyWarned = false;
 
