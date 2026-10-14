@@ -25,7 +25,8 @@
     "eval:time": "node -e \"console.error('eval:time: not implemented'); process.exit(1)\"",
     "eval:audit": "node -e \"console.error('eval:audit: not implemented'); process.exit(1)\"",
     "test:e2e": "node -e \"console.error('test:e2e: not implemented'); process.exit(1)\"",
-    "db:reset": "node -e \"console.error('db:reset: not implemented'); process.exit(1)\""
+    "db:up": "bash scripts/db/up.sh",
+    "db:reset": "node scripts/db/reset.mjs"
   },
   "dependencies": {
     "next": "16.4.0",
@@ -39,6 +40,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
+    "supabase": "2.120.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^5.0.4"
