@@ -41,7 +41,7 @@ Mark each stage cell `todo` / `done` / `blocked`. After `tasks`, every task line
 | `004-matching-data` | Masnun | `todo` | `todo` | `todo` | `todo` | `todo` | |
 | `005-officer-workflow` | Masnun (S-012 tasks: Mahim) | `todo` | `todo` | `todo` | `todo` | `todo` | |
 | `006-dashboard-admin` | Masnun (S-013 tasks: Mahim) | `todo` | `todo` | `todo` | `todo` | `todo` | |
-| `007-quality-release` | Mahim (shared; each task keeps its D6 owner) | `todo` | `todo` | `todo` | `todo` | `todo` | |
+| `007-quality-release` | Mahim (shared; each task keeps its D6 owner) | `done` | `todo` | `todo` | `todo` | `todo` | [spec](../../specs/007-quality-release/spec.md), [quality checklist](../../specs/007-quality-release/checklists/requirements.md); no extension hooks; 0 clarification markers, checklist 15/16 (outcomes unverified); 20/20 D6 tasks mapped with original S/O/M owners; organiser cutoff/channel/formats, OQ-019, mentor fixes, devices and volunteers UNKNOWN (OD-1–OD-8); all tasks blocked by upstream evidence |
 | Cross-feature `/speckit-analyze` at **22:30** | Mahim (findings go to Obidit as lead) | — | — | — | — | `todo` | No critical issues allowed |
 
 ## Who does what
@@ -110,6 +110,7 @@ Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 - 2026-10-13 12:06 · Codex · Mahim · 001 tasks `todo` → `done`; 23 unchecked steps, 23/23 owner+lane, all nine mapped D6 tasks and blockers recorded.
 - 2026-10-13 12:06 · Codex · Mahim · 001 analyze `todo` → `done`; no-persist prerequisite passed, 12/12 requirement groups and 7/7 success criteria covered, 0 critical/high/medium/low findings; Pause C reached.
 - 2026-10-13 12:07 · Codex · Mahim · 001 PR pending; automatic approval review rejected push to `github.com/tashobi02/Fera-AI.git` because destination authorization was not explicit enough after the earlier rejection. No remote branch or PR was created.
+- 2026-10-14 16:45 · Claude Code · mahim-spec007 · 007 specify `todo` → `done`; source-backed quality/release spec and 15/16 quality checklist written for human skim; 0 clarification markers, open decisions OD-1–OD-8 UNKNOWN.
 
 ## Audit amendments (2026-10-12)
 
