@@ -8,4 +8,17 @@ Agent tooling vendored on 2026-10-12 at the commits below. To refresh, re-copy f
 | affaan-m/ecc | b92f181b3b74 | MIT (third_party/ecc.LICENSE) | 13 agents from `agents/` into `.claude/agents/` (`code-architect` set to `model: opus`), converted to `.codex/agents/*.toml`; 15 skills from `skills/` into both skill dirs |
 | pbakaus/impeccable | 919dbeba520d (plugin 4.5.2) | Apache-2.0 (third_party/impeccable.LICENSE, third_party/impeccable.NOTICE.md) | `plugin/skills/impeccable` into both skill dirs; 4 agents from `plugin/agents/` into `.claude/agents/`. The plugin hooks were not copied (`bootstrap.sh` installs them) |
 
+## App assets (TASK-008, 2026-10-14)
+
+Self-hosted fonts and icon geometry shipped in the app. Licence texts sit next to the files.
+
+| Asset | Source | Licence | What we ship |
+|---|---|---|---|
+| Inter 4.1 | `rsms/inter` GitHub release `v4.1` (`Inter-4.1.zip`, sha256 `9883fdd4…6b11e`), file `InterVariable.ttf` | OFL-1.1 (`src/app/fonts/Inter-OFL.txt`) | `src/app/fonts/inter-latin-wght.woff2` (48,120 B): `opsz` pinned at 14 with `fonttools varLib.instancer`, then `pyftsubset` to the Latin range with `ss03`, `tnum` and `case` kept (the Google Fonts/Fontsource subset drops `ss03`) |
+| JetBrains Mono | npm `@fontsource-variable/jetbrains-mono@5.3.0` (Google Fonts v24), unmodified | OFL-1.1 (`src/app/fonts/JetBrainsMono-OFL.txt`) | `src/app/fonts/jetbrains-mono-latin-wght.woff2` (40,404 B), Latin subset, wght 100–800 |
+| Noto Sans Bengali | npm `@fontsource-variable/noto-sans-bengali@5.3.0` (Google Fonts v33, from `notofonts/bengali`), unmodified | OFL-1.1 (`src/app/fonts/NotoSansBengali-OFL.txt`) | `src/app/fonts/noto-sans-bengali-bengali-wght.woff2` (107,720 B), Bengali subset, wght 100–900 |
+| Lucide `info` icon | npm `lucide-static@1.57.0` | ISC; Feather-derived icon, MIT (`third_party/lucide.LICENSE`) | SVG path data inlined in `src/app/components/app-header.tsx` |
+
+None of the font licences declares a Reserved Font Name, so the subset files keep their family names. No npm package was added to the app for these assets.
+
 Fera-specific files are the team's own: `.specify/memory/constitution.md`, `.claude/agents/fera-safeguarding-reviewer.md`, the `fera-review` and `fera-gate` skills, `.claude/settings.json`, `.codex/config.toml`, `.gemini/GEMINI.md`, `AGENTS.md`, `CLAUDE.md`, `CODEX.md` and the plans under `docs/`.
