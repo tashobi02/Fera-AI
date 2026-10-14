@@ -1,10 +1,10 @@
 // TASK-062 / T007: eligible terminal payload redaction through redact_case() and
 // src/server/admin/redact.ts, run as the restricted fera_redactor role on PostgreSQL 16
-// (BR-009/010/025; TC-015/050/051/052). Redaction is pseudonymisation of retained
+// (BR-009/010/025; TC-015/050/051, DB level only). Redaction is pseudonymisation of retained
 // metadata, not anonymisation. Synthetic data only; runs under `npm run test:db`.
 import type { Client, Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { RedactionForbiddenError, redactCases } from "@/server/admin/redact";
+import { RedactionDbError, RedactionForbiddenError, redactCases } from "@/server/admin/redact";
 import { testUser } from "../support/principals";
 import {
   addCandidate, closeMissing, closedPair, confirmPair, connect, createActors, dbTestsEnabled, expectPgError,
@@ -27,7 +27,7 @@ describe.skipIf(!dbTestsEnabled)("payload redaction (TASK-062 / T007)", () => {
     redactor = await connect("redactor");
     redactorPool = pool("redactor");
     await seedReference(admin);
-    actors = await createActors(app);
+    actors = await createActors(admin);
   });
 
   afterAll(async () => {
@@ -226,42 +226,93 @@ describe.skipIf(!dbTestsEnabled)("payload redaction (TASK-062 / T007)", () => {
         .toEqual({ redacted: 1, skipped_not_eligible: 0, ...PSEUDONYMISATION });
     });
 
-    it("refuses a non-admin principal before touching the database", async () => {
+    it("refuses a non-admin principal without any database call", async () => {
+      const untouchable = {
+        connect: () => Promise.reject(new Error("pool must not be used")),
+        query: () => Promise.reject(new Error("pool must not be used")),
+      } as unknown as Pool;
       for (const p of [testUser(actors.staff, "staff"), testUser(actors.officer, "officer", { verified: true }), testUser(actors.admin, "admin", { isActive: false }), null]) {
-        await expect(redactCases(redactorPool, p, { all_eligible: true, confirmation: "বেনামী" })).rejects.toBeInstanceOf(RedactionForbiddenError);
+        await expect(redactCases(untouchable, p, { all_eligible: true, confirmation: "বেনামী" })).rejects.toBeInstanceOf(RedactionForbiddenError);
       }
     });
 
-    it("lets the database refuse an admin who is no longer active, and propagates it", async () => {
+    it("rejects a request that fails the API-016 schema before any database call", async () => {
+      const untouchable = { connect: () => Promise.reject(new Error("unused")), query: () => Promise.reject(new Error("unused")) } as unknown as Pool;
+      const bad = { case_ids: ["x"], all_eligible: true, confirmation: "বেনামী" } as unknown as Parameters<typeof redactCases>[2];
+      await expect(redactCases(untouchable, asAdmin(), bad)).rejects.toMatchObject({ name: "ZodError" });
+    });
+
+    it("fails closed when the pool is not the restricted redaction role", async () => {
+      const appPool = pool("app");
+      try {
+        await expect(redactCases(appPool, asAdmin(), { all_eligible: true, confirmation: "বেনামী" })).rejects.toEqual(new RedactionDbError(null, 0));
+      } finally {
+        await appPool.end();
+      }
+    });
+
+    it("lets the database refuse an admin who is no longer active, surfacing only the SQLSTATE", async () => {
       const { missing } = await closedPair(app, actors);
-      const formerAdmin = (await one<{ id: string }>(app, "INSERT INTO users (username, display_name, password_hash, role) VALUES ('former.admin.' || substr(md5(random()::text), 1, 6), '[MOCK] Former admin', 'synthetic-not-a-hash', 'admin') RETURNING id")).id;
-      await app.query("UPDATE users SET is_active = false WHERE id = $1", [formerAdmin]);
-      await expect(redactCases(redactorPool, testUser(formerAdmin, "admin"), { case_ids: [missing.id], confirmation: "বেনামী" }))
-        .rejects.toMatchObject({ code: "42501" });
+      const formerAdmin = (await one<{ id: string }>(admin, "INSERT INTO users (username, display_name, password_hash, role, is_active) VALUES ('former.admin.' || substr(md5(random()::text), 1, 6), '[MOCK] Former admin', 'synthetic-not-a-hash', 'admin', false) RETURNING id")).id;
+      const err = await redactCases(redactorPool, testUser(formerAdmin, "admin"), { case_ids: [missing.id], confirmation: "বেনামী" }).catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(RedactionDbError);
+      expect(err).toMatchObject({ sqlstate: "42501", redacted: 0, message: "payload redaction failed (SQLSTATE 42501)" });
+      expect(Object.keys(err as object)).toEqual(["sqlstate", "redacted"]);
       await expectPgError(redactor.query("SELECT redact_case($1, $2)", [missing.id, actors.staff]), "42501", /requires active admin/);
       expect((await one(app, "SELECT anonymised_at FROM cases WHERE id = $1", [missing.id])).anonymised_at).toBeNull();
     });
+
+    it("fails closed if redact_case() is called without immediate constraints: the deferred checks run as fera_redactor at COMMIT", async () => {
+      const { missing } = await closedPair(app, actors);
+      await expectPgError(redactor.query("SELECT redact_case($1, $2)", [missing.id, actors.admin]), "42501", /permission denied/);
+      expect((await one(app, "SELECT anonymised_at, child_name FROM cases WHERE id = $1", [missing.id]))).toEqual({ anonymised_at: null, child_name: missing.name });
+      expect(await redactCases(redactorPool, asAdmin(), { case_ids: [missing.id], confirmation: "বেনামী" }))
+        .toEqual({ redacted: 1, skipped_not_eligible: 0, ...PSEUDONYMISATION });
+    });
   });
 
-  describe("recorded gaps (reported, schema unchanged)", () => {
-    it("redact_case runs as the caller, so fera_redactor's column grants also allow a direct identifying-field write", async () => {
-      const open = await insertMissing(app);
-      await redactor.query("UPDATE cases SET gd_number = NULL WHERE id = $1", [open.id]);
-      expect((await one(app, "SELECT gd_number FROM cases WHERE id = $1", [open.id])).gd_number).toBeNull();
-    });
+  // Creates a closed missing report whose redaction is refused: it shares a duplicate link
+  // resolved by an officer who was deactivated afterwards (schema gap 2).
+  async function blockedByDeactivatedResolver(): Promise<CaseRef> {
+    const closed = await insertMissing(app);
+    await openMissing(app, closed.id);
+    await closeMissing(app, closed.id, "resolved_outside_fera");
+    const twin = await insertMissing(app);
+    const officer = (await one<{ id: string }>(admin, "INSERT INTO users (username, display_name, password_hash, role, verified) VALUES ('leaving.officer.' || substr(md5(random()::text), 1, 6), '[MOCK] Leaving officer', 'synthetic-not-a-hash', 'officer', true) RETURNING id")).id;
+    const [a, b] = closed.id < twin.id ? [closed.id, twin.id] : [twin.id, closed.id];
+    await app.query(
+      "INSERT INTO duplicate_links (case_a, case_b, score, rule, status, resolved_by, resolved_at, reason) VALUES ($1, $2, 80, 'profile', 'dismissed', $3, now(), '[MOCK] different')",
+      [a, b, officer],
+    );
+    await admin.query("UPDATE users SET is_active = false WHERE id = $1", [officer]);
+    return closed;
+  }
 
+  describe("batch failure (OD-062-4: current behaviour, owner decision pending)", () => {
+    it("aborts at the first failing case; earlier cases stay redacted and later ones are not attempted", async () => {
+      const first = (await closedPair(app, actors)).missing;
+      const blocked = await blockedByDeactivatedResolver();
+      const last = (await closedPair(app, actors)).missing;
+      const err = await redactCases(redactorPool, asAdmin(), { case_ids: [first.id, blocked.id, last.id], confirmation: "বেনামী" }).catch((e: unknown) => e);
+      expect(err).toMatchObject({ sqlstate: "42501", redacted: 1 });
+      expect(await anonymised([first.id, blocked.id, last.id])).toEqual({ [first.id]: true, [blocked.id]: false, [last.id]: false });
+    });
+  });
+
+  describe("bypass checks after OD-062-2 (SECURITY DEFINER in the operator layer)", () => {
+    it("gives fera_redactor no direct write: it cannot null identifying fields or set anonymised_at", async () => {
+      const open = await insertMissing(app);
+      await expectPgError(redactor.query("UPDATE cases SET gd_number = NULL WHERE id = $1", [open.id]), "42501");
+      await expectPgError(redactor.query("UPDATE cases SET anonymised_at = now() WHERE id = $1", [open.id]), "42501");
+      await expectPgError(redactor.query("UPDATE match_candidates SET reason_en = '[REDACTED]' WHERE false"), "42501");
+      await expectPgError(redactor.query("DELETE FROM generated_outputs WHERE false"), "42501");
+      expect((await one(app, "SELECT gd_number FROM cases WHERE id = $1", [open.id])).gd_number).toBe(`GD-${open.ref}`);
+    });
+  });
+
+  describe("recorded schema gap (reported, schema unchanged)", () => {
     it("a duplicate link resolved by an officer who was later deactivated blocks redaction", async () => {
-      const closed = await insertMissing(app);
-      await openMissing(app, closed.id);
-      await closeMissing(app, closed.id, "resolved_outside_fera");
-      const twin = await insertMissing(app);
-      const officer = (await one<{ id: string }>(app, "INSERT INTO users (username, display_name, password_hash, role, verified) VALUES ('leaving.officer.' || substr(md5(random()::text), 1, 6), '[MOCK] Leaving officer', 'synthetic-not-a-hash', 'officer', true) RETURNING id")).id;
-      const [a, b] = closed.id < twin.id ? [closed.id, twin.id] : [twin.id, closed.id];
-      await app.query(
-        "INSERT INTO duplicate_links (case_a, case_b, score, rule, status, resolved_by, resolved_at, reason) VALUES ($1, $2, 80, 'profile', 'dismissed', $3, now(), '[MOCK] different')",
-        [a, b, officer],
-      );
-      await app.query("UPDATE users SET is_active = false WHERE id = $1", [officer]);
+      const closed = await blockedByDeactivatedResolver();
       await expectPgError(redactor.query("SELECT redact_case($1, $2)", [closed.id, actors.admin]), "42501", /duplicate resolution requires verified officer/);
     });
   });
