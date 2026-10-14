@@ -8,6 +8,14 @@
   A desk surface anywhere on the page switches the document, header included,
   to Cockpit; data-theme="light" on <html> or a subtree keeps Paper available
   on desks, and data-theme="dark" forces Cockpit on a subtree.
+
+  No red by default (D4 §2.4): --danger* and the signal gradient exist only inside
+  a desk surface. Anywhere else, including the header and any parent screen that
+  forgets its marker, they resolve to nothing.
+
+  Contrast (D4 §13 wins over DESIGN.md hex values; see the evidence doc):
+  Paper --link and --info-text #0075de -> #005bab, Paper --text-faint
+  #a39e98 -> #6f6a66, Cockpit --text-faint #6a6b6c -> #8a8b8c.
 */
 
 :root,
@@ -17,7 +25,7 @@
   --action-bg: #0075de;
   --action-bg-pressed: #005bab;
   --action-fg: #ffffff;
-  --link: #0075de;
+  --link: #005bab;
   --focus-ring: #0075de;
 
   --bg-canvas: #f6f5f4;
@@ -37,21 +45,21 @@
   --text-strong: #000000;
   --text-body: #31302e;
   --text-muted: #615d59;
-  --text-faint: #a39e98;
+  --text-faint: #6f6a66;
   --text-disabled: #a39e98;
 
   --info: #0075de;
   --info-soft: rgba(0, 117, 222, 0.1);
-  --info-text: #0075de;
+  --info-text: #005bab;
   --success: #1aae39;
   --success-soft: rgba(26, 174, 57, 0.12);
   --success-text: oklch(50% 0.15 145);
   --warning: #dd5b00;
   --warning-soft: rgba(221, 91, 0, 0.1);
   --warning-text: oklch(52% 0.15 50);
-  --danger: oklch(58% 0.2 25);
-  --danger-soft: rgba(214, 48, 49, 0.1);
-  --danger-text: oklch(52% 0.2 25);
+  --tone-danger: oklch(58% 0.2 25);
+  --tone-danger-soft: rgba(214, 48, 49, 0.1);
+  --tone-danger-text: oklch(52% 0.2 25);
 
   --keycap-start: #ffffff;
   --keycap-end: #f6f5f4;
@@ -89,7 +97,7 @@
   --text-strong: #f4f4f6;
   --text-body: #cdcdcd;
   --text-muted: #9c9c9d;
-  --text-faint: #6a6b6c;
+  --text-faint: #8a8b8c;
   --text-disabled: #434345;
 
   --info: #57c1ff;
@@ -101,9 +109,9 @@
   --warning: #ffc533;
   --warning-soft: rgba(255, 197, 51, 0.15);
   --warning-text: #ffc533;
-  --danger: #ff6161;
-  --danger-soft: rgba(255, 97, 97, 0.15);
-  --danger-text: #ff6161;
+  --tone-danger: #ff6161;
+  --tone-danger-soft: rgba(255, 97, 97, 0.15);
+  --tone-danger-text: #ff6161;
 
   --keycap-start: #121212;
   --keycap-end: #0d0d0d;
@@ -113,13 +121,15 @@
   --elevation-2: 0 0 #0000;
 }
 
-/* No red on parent screens (D4 §2.4): danger and the signal gradient resolve to nothing. */
-[data-surface="parent"] {
-  --danger: initial;
-  --danger-soft: initial;
-  --danger-text: initial;
-  --signal-start: initial;
-  --signal-end: initial;
+/* Desk only. Re-resolved on themed subtrees so a Paper panel inside a Cockpit
+   desk gets Paper danger values. */
+[data-surface="desk"],
+[data-surface="desk"] [data-theme] {
+  --danger: var(--tone-danger);
+  --danger-soft: var(--tone-danger-soft);
+  --danger-text: var(--tone-danger-text);
+  --signal-start: #ff5757;
+  --signal-end: #a1131a;
 }
 
 :root {
@@ -132,8 +142,6 @@
   --sticker-teal: #2a9d99;
   --sticker-green: #1aae39;
   --sticker-brown: #523410;
-  --signal-start: #ff5757;
-  --signal-end: #a1131a;
 
   --duration-fast: 120ms;
   --duration-base: 200ms;
@@ -143,7 +151,36 @@
   --font-stack-bn: var(--font-noto-bengali), var(--font-inter), system-ui, sans-serif;
   --font-stack-en: var(--font-inter), var(--font-noto-bengali), -apple-system, system-ui, "Segoe UI",
     Helvetica, Arial, sans-serif;
-  --font-stack-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-stack-mono: var(--font-jetbrains-mono), var(--font-noto-bengali), ui-monospace, SFMono-Regular,
+    Menlo, monospace;
+}
+
+/* Line heights per script. Bangla conjuncts and matras need more room, so
+   headings open up to 1.45 and small text never drops below 1.6. */
+[lang|="en"] {
+  --lh-caption-sm: 1.5;
+  --lh-caption-md: 1.4;
+  --lh-body-sm: 1.6;
+  --lh-body-md: 1.6;
+  --lh-body-lg: 1.6;
+  --lh-heading-sm: 1.4;
+  --lh-title: 1.4;
+  --lh-heading-3: 1.27;
+  --lh-heading-2: 1.23;
+  --lh-heading-1: 1.1;
+}
+
+[lang|="bn"] {
+  --lh-caption-sm: 1.6;
+  --lh-caption-md: 1.6;
+  --lh-body-sm: 1.7;
+  --lh-body-md: 1.7;
+  --lh-body-lg: 1.7;
+  --lh-heading-sm: 1.5;
+  --lh-title: 1.5;
+  --lh-heading-3: 1.45;
+  --lh-heading-2: 1.45;
+  --lh-heading-1: 1.45;
 }
 
 /* Only DESIGN.md tokens exist as utilities: Tailwind's default palette (red-500 and
@@ -210,25 +247,25 @@
   /* rem so text follows 200 % browser text zoom (D4 §13). */
   --text-*: initial;
   --text-caption-sm: 0.75rem;
-  --text-caption-sm--line-height: 1.5;
+  --text-caption-sm--line-height: var(--lh-caption-sm, 1.5);
   --text-caption-md: 0.8125rem;
-  --text-caption-md--line-height: 1.4;
+  --text-caption-md--line-height: var(--lh-caption-md, 1.4);
   --text-body-sm: 0.875rem;
-  --text-body-sm--line-height: 1.6;
+  --text-body-sm--line-height: var(--lh-body-sm, 1.6);
   --text-body-md: 1rem;
-  --text-body-md--line-height: 1.6;
+  --text-body-md--line-height: var(--lh-body-md, 1.6);
   --text-body-lg: 1.125rem;
-  --text-body-lg--line-height: 1.6;
+  --text-body-lg--line-height: var(--lh-body-lg, 1.6);
   --text-heading-sm: 1.125rem;
-  --text-heading-sm--line-height: 1.4;
+  --text-heading-sm--line-height: var(--lh-heading-sm, 1.4);
   --text-title: 1.25rem;
-  --text-title--line-height: 1.4;
+  --text-title--line-height: var(--lh-title, 1.4);
   --text-heading-3: 1.375rem;
-  --text-heading-3--line-height: 1.27;
+  --text-heading-3--line-height: var(--lh-heading-3, 1.27);
   --text-heading-2: 1.625rem;
-  --text-heading-2--line-height: 1.23;
+  --text-heading-2--line-height: var(--lh-heading-2, 1.23);
   --text-heading-1: 2.5rem;
-  --text-heading-1--line-height: 1.1;
+  --text-heading-1--line-height: var(--lh-heading-1, 1.1);
 
   --radius-*: initial;
   --radius-xs: 4px;
@@ -254,6 +291,8 @@
     caret-color: var(--action-bg);
     accent-color: var(--action-bg);
     scrollbar-color: var(--border-strong) transparent;
+    /* Future sticky bars set these so focused elements are never hidden (2.4.11). */
+    scroll-padding-block: var(--sticky-top, 0px) var(--sticky-bottom, 0px);
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
@@ -261,10 +300,13 @@
   /* Per-element lang (D4 §13) picks the stack; children without lang inherit it. */
   [lang|="bn"] {
     font-family: var(--font-stack-bn);
+    font-feature-settings: normal;
   }
 
+  /* ss03 is an Inter feature, so it applies to English runs only. */
   [lang|="en"] {
     font-family: var(--font-stack-en);
+    font-feature-settings: "calt", "kern", "liga", "ss03";
   }
 
   /* Parent body: 18 px, 1.7 for Bangla conjuncts; Inter keeps 1.6. */
@@ -274,7 +316,6 @@
     flex-direction: column;
     font-size: 1.125rem;
     line-height: 1.7;
-    font-feature-settings: "calt", "kern", "liga", "ss03";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }

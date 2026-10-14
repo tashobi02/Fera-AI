@@ -42,7 +42,7 @@ const jetbrainsMono = localFont({
 export async function generateMetadata(): Promise<Metadata> {
   const t = locales[await getLocale()];
   return {
-    title: t.appName,
+    title: { default: t.appName, template: `%s · ${t.appName}` },
     description: t.metaDescription,
     // Synthetic prototype: keep it out of search so it is never mistaken for a live service.
     robots: { index: false, follow: false },
@@ -55,11 +55,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang={locale} className={`${inter.variable} ${notoBengali.variable} ${jetbrainsMono.variable}`}>
       <body>
-        <a
-          href="#main"
-          className="sr-only rounded-md bg-surface px-4 py-2 text-body-md text-ink focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50"
-        >
-          {t.skipToContent}
+        {/* In flow when focused, so it pushes the header down instead of covering it. */}
+        <a href="#main" className="sr-only self-start focus:not-sr-only focus:m-2">
+          <span className="inline-flex min-h-11 items-center rounded-md border border-hairline-strong bg-surface px-4 py-2 text-body-md text-ink shadow-1">
+            {t.skipToContent}
+          </span>
         </a>
         <AppHeader locale={locale} />
         {/* The shell owns <main>; screens render inside it and set data-surface. */}

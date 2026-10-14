@@ -1,16 +1,13 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE, resolveLocale } from "@/lib/locale";
+import { isLocale, LOCALE_COOKIE, localeCookieOptions } from "@/lib/locale";
 
-// ACT-030. A UI preference, not identity: no `secure` flag, because the finale
-// laptop stack may be reached over plain HTTP on the local network.
+// ACT-030. Writes nothing unless the input is a FormData carrying a supported
+// locale. Validation uses isLocale until zod is a declared dependency.
 export async function setLocale(formData: FormData): Promise<void> {
-  const locale = resolveLocale(formData.get("locale"));
-  (await cookies()).set(LOCALE_COOKIE, locale, {
-    path: "/",
-    maxAge: LOCALE_COOKIE_MAX_AGE,
-    sameSite: "lax",
-    httpOnly: true,
-  });
+  if (!(formData instanceof FormData)) return;
+  const value = formData.get("locale");
+  if (!isLocale(value)) return;
+  (await cookies()).set(LOCALE_COOKIE, value, localeCookieOptions());
 }

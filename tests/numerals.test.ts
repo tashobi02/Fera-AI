@@ -49,3 +49,29 @@ describe("dualNumerals", () => {
     expect(dualNumerals("—")).toBe("—");
   });
 });
+
+describe("edge cases", () => {
+  it("handles zero and the empty string", () => {
+    expect(toBanglaDigits(0)).toBe("০");
+    expect(localizeDigits("", "bn")).toBe("");
+    expect(dualNumerals(0)).toBe("০ / 0");
+  });
+
+  it("refuses non-finite numbers instead of printing them", () => {
+    for (const value of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+      expect(() => toBanglaDigits(value)).toThrow(RangeError);
+      expect(() => localizeDigits(value, "en")).toThrow(RangeError);
+      expect(() => dualNumerals(value)).toThrow(RangeError);
+    }
+  });
+
+  it("converts only digits in mixed Bangla and Latin text", () => {
+    expect(localizeDigits("মামলা M-12, বয়স ৭", "bn")).toBe("মামলা M-১২, বয়স ৭");
+    expect(localizeDigits("মামলা M-12, বয়স ৭", "en")).toBe("মামলা M-12, বয়স 7");
+  });
+
+  it("leaves Bengali letters outside the digit block untouched (U+09F0)", () => {
+    expect(toLatinDigits("ৰৱ")).toBe("ৰৱ");
+    expect(toBanglaDigits("ৰ")).toBe("ৰ");
+  });
+});

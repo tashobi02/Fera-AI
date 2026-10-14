@@ -3,7 +3,8 @@ import { LanguageToggle } from "@/app/components/language-toggle";
 import { locales, type Locale } from "@/locales";
 
 // COMP-022 header plus the D4 §15.1 demo banner. The banner is a persistent,
-// static label (no live region) with the dashed "not real yet" edge.
+// static label (never a live region) with the dashed "not real yet" edge; it is a
+// named region so screen-reader users can still reach it after "skip to content".
 export function AppHeader({ locale }: { locale: Locale }) {
   const t = locales[locale];
   return (
@@ -19,7 +20,10 @@ export function AppHeader({ locale }: { locale: Locale }) {
         </Link>
         <LanguageToggle locale={locale} />
       </div>
-      <p className="flex items-start gap-2 border-b border-dashed border-hairline-strong bg-canvas px-4 py-2 text-body-sm text-mute">
+      <section
+        aria-label={t.demoBannerRegion}
+        className="flex items-start gap-2 border-b border-dashed border-hairline-strong bg-canvas px-4 py-2 text-body-sm text-mute"
+      >
         <svg
           aria-hidden="true"
           viewBox="0 0 24 24"
@@ -35,8 +39,8 @@ export function AppHeader({ locale }: { locale: Locale }) {
           <path d="M12 16v-4" />
           <path d="M12 8h.01" />
         </svg>
-        <span>{t.demoBanner}</span>
-      </p>
+        <p>{t.demoBanner}</p>
+      </section>
     </header>
   );
 }
