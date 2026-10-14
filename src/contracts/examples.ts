@@ -1,11 +1,26 @@
 // One valid typed example per API DTO, for tests and UI lanes as typed fakes.
-// Synthetic only: invented names, fake 01X00000000 numbers, [MOCK] district labels.
+// Not exported from either barrel; ESLint allows importing it only from tests/ and
+// fakes. Synthetic only: invented names, [MOCK] district labels, and phone numbers
+// from the placeholder scheme 01X0000000N (X = 7 parent, 8 staff). They pass the
+// BR-016 format check but are not real subscriber numbers.
 import type { z } from "zod";
 import type { CaseDraft, EvidenceSpan } from "./draft";
 import { errorEnvelope, errorEnvelopeSchema } from "./errors";
 import { toBanglaDigits } from "./primitives";
-import { projectAuditFor, toAdminCaseView, toOfficerCaseView, toRematchResponse, type AuditRow, type CaseRow } from "./roles";
 import * as s from "./schemas";
+import {
+  intakeDraftMetadataSchema,
+  projectAuditFor,
+  projectCandidateFor,
+  projectCaseFor,
+  projectCaseListFor,
+  projectQueueFor,
+  toRematchResponse,
+  type AuditRow,
+  type CaseRow,
+  type IntakeDraftMetadata,
+  type Principal,
+} from "./server";
 import { COUNTING_BASIS } from "./states";
 
 export const IDS = {
@@ -77,10 +92,13 @@ export const exampleMissingDraft = {
     "event.place_text": span(missingSource, "বাস টার্মিনালের কাছে", "direct"),
     "reporter.phone": span(missingSource, "০১৭০০০০০০০১", "digits"),
   },
-} satisfies CaseDraft & z.input<typeof s.createMissingRequestSchema>["draft"];
+} satisfies CaseDraft & s.CreateMissingRequestInput["draft"];
 
-const foundSource = "বাস টার্মিনালের কাছে একটি মেয়েকে একা পাওয়া গেছে। বয়স আনুমানিক ৬ থেকে ৮ বছর, লাল জামা পরা।";
+const foundSource =
+  "রেলস্টেশনের প্ল্যাটফর্মে একটি মেয়েকে একা বসে থাকতে দেখা গেছে। বয়স আনুমানিক ৬ থেকে ৮ বছর, নীল ফ্রক পরা।";
 
+// Deliberately shares no identifying value with the missing draft, so leak tests can
+// look for every value of the other party.
 export const exampleFoundDraft = {
   kind: "found",
   source_text: foundSource,
@@ -92,7 +110,7 @@ export const exampleFoundDraft = {
     age_max: 8,
     sex: "female",
     height_cm: null,
-    clothing: "লাল জামা",
+    clothing: "নীল ফ্রক",
     marks: null,
   },
   event: {
@@ -100,22 +118,22 @@ export const exampleFoundDraft = {
     at_approx: false,
     at_lower: "2026-10-12T19:30:00+06:00",
     at_upper: "2026-10-12T19:30:00+06:00",
-    place_text: "বাস টার্মিনালের কাছে",
+    place_text: "রেলস্টেশনের প্ল্যাটফর্মে",
     district_text: null,
     district_code: DISTRICT,
     thana: null,
-    circumstances: "একা পাওয়া গেছে",
+    circumstances: "একা বসে থাকতে দেখা গেছে",
   },
   reporter: { relation: null, phone: "01800000002" }, // staff contact
   evidence: {
     "child.age_min": span(foundSource, "৬", "digits"),
     "child.age_max": span(foundSource, "৮", "digits"),
     "child.sex": span(foundSource, "মেয়ে", "direct"),
-    "child.clothing": span(foundSource, "লাল জামা", "direct"),
-    "event.place_text": span(foundSource, "বাস টার্মিনালের কাছে", "direct"),
-    "event.circumstances": span(foundSource, "একা পাওয়া গেছে", "direct"),
+    "child.clothing": span(foundSource, "নীল ফ্রক", "direct"),
+    "event.place_text": span(foundSource, "রেলস্টেশনের প্ল্যাটফর্মে", "direct"),
+    "event.circumstances": span(foundSource, "একা বসে থাকতে দেখা গেছে", "direct"),
   },
-} satisfies CaseDraft & z.input<typeof s.createFoundRequestSchema>["draft"];
+} satisfies CaseDraft & s.CreateFoundRequestInput["draft"];
 
 /* ---------- Server rows (typed fakes for case-service tests; never responses) ---------- */
 
@@ -190,9 +208,23 @@ export const exampleFoundRow: CaseRow = rowFrom(exampleFoundDraft, {
 
 const officerCtx = { districtNameBn: MOCK_DISTRICT_BN, duplicateOf: [] };
 
+export const PRINCIPALS = {
+  parent: { kind: "parent", sessionId: IDS.parentSession },
+  otherParent: { kind: "parent", sessionId: IDS.otherParentSession },
+  staff: { kind: "user", userId: IDS.staffUser, role: "staff", verified: false, isActive: true },
+  officer: { kind: "user", userId: IDS.officerUser, role: "officer", verified: true, isActive: true },
+  admin: { kind: "user", userId: IDS.adminUser, role: "admin", verified: false, isActive: true },
+} as const satisfies Record<string, Principal>;
+
+function officerDetail(row: CaseRow): s.OfficerCaseView {
+  const view = projectCaseFor(PRINCIPALS.officer, row, officerCtx);
+  if (view?.view !== "officer") throw new Error("example officer projection failed");
+  return view.data;
+}
+
 /* ---------- API-001 / API-002 ---------- */
 
-export const exampleTranscribeFields: z.input<typeof s.transcribeFieldsSchema> = { kind: "missing", duration_s: 42 };
+export const exampleTranscribeFields: s.TranscribeFieldsInput = { kind: "missing", duration_s: "42" };
 
 export const exampleTranscribeResponse: s.TranscribeResponse = {
   draft_token: DRAFT_TOKEN,
@@ -204,13 +236,13 @@ export const exampleTranscribeResponse: s.TranscribeResponse = {
   cached: false,
 };
 
-export const exampleExtractRequest: z.input<typeof s.extractRequestSchema> = {
+export const exampleExtractRequest: s.ExtractRequestInput = {
   kind: "missing",
   text: missingSource,
   draft_token: DRAFT_TOKEN,
 };
 
-export const exampleExtractFollowUpRequest: z.input<typeof s.extractRequestSchema> = {
+export const exampleExtractFollowUpRequest: s.ExtractRequestInput = {
   kind: "missing",
   answer: "জেলা ২৬", // synthetic answer to the district question
   draft: { ...exampleMissingDraft, event: { ...exampleMissingDraft.event, district_code: null } },
@@ -236,7 +268,7 @@ export const exampleExtractResponse: s.ExtractResponse = {
 
 /* ---------- API-003 / API-004 / API-005 / API-007 ---------- */
 
-export const exampleCreateMissingRequest: s.CreateMissingRequest = {
+export const exampleCreateMissingRequest: s.CreateMissingRequestInput = {
   draft: exampleMissingDraft,
   confirmed: true,
   client_submission_id: IDS.missingSubmission,
@@ -264,13 +296,13 @@ export const exampleCreateMissingResponse: s.CreateMissingResponse = {
   outputs_available: ["gd", "poster", "helpline"],
 };
 
-export const exampleUpdateCaseRequest: s.UpdateCaseRequest = {
+export const exampleUpdateCaseRequest: s.UpdateCaseRequestInput = {
   draft: { ...exampleMissingDraft, child: { ...exampleMissingDraft.child, marks: "বাঁ হাতে ছোট দাগ" } },
   confirmed: true,
   expected_version: 1,
 };
 
-export const exampleCreateFoundRequest: s.CreateFoundRequest = {
+export const exampleCreateFoundRequest: s.CreateFoundRequestInput = {
   draft: exampleFoundDraft,
   confirmed: true,
   client_submission_id: IDS.foundSubmission,
@@ -290,9 +322,11 @@ export const exampleStaffOwnCaseView: s.StaffOwnCaseView = {
 
 export const exampleCreateFoundResponse: s.CreateFoundResponse = { ...exampleStaffOwnCaseView, replayed: false };
 
-export const exampleOfficerMissingView: s.OfficerCaseView = toOfficerCaseView(exampleMissingRow, officerCtx);
-export const exampleOfficerFoundView: s.OfficerCaseView = toOfficerCaseView(exampleFoundRow, officerCtx);
-export const exampleAdminCaseView: s.AdminCaseView = toAdminCaseView(exampleMissingRow);
+export const exampleOfficerMissingView: s.OfficerCaseView = officerDetail(exampleMissingRow);
+export const exampleOfficerFoundView: s.OfficerCaseView = officerDetail(exampleFoundRow);
+const adminView = projectCaseFor(PRINCIPALS.admin, exampleMissingRow, officerCtx);
+if (adminView?.view !== "admin") throw new Error("example admin projection failed");
+export const exampleAdminCaseView: s.AdminCaseView = adminView.data;
 
 /* ---------- API-006 ---------- */
 
@@ -303,50 +337,55 @@ export const exampleOutputResponse: s.OutputResponse = {
   type: "gd",
   text_bn: gdText,
   label_bn: s.OUTPUT_DRAFT_LABEL_BN,
-  word_count: gdText.split(/\s+/).length,
+  word_count: s.countWords(gdText),
   generated_at: "2026-10-12T20:10:00+06:00",
 };
 
 /* ---------- API-008 / API-009 / API-010 / API-011 ---------- */
 
-export const exampleReviewQueueQuery: z.input<typeof s.reviewQueueQuerySchema> = { district: "26", limit: "20" };
+export const exampleReviewQueueQuery: s.ReviewQueueQueryInput = { district: "26", limit: "20" };
 
 const components = { cosine: 0.82, name: null, clothing: 1, district: 1, age: 1 };
 
-export const exampleReviewQueueResponse: s.ReviewQueueResponse = {
-  items: [
+const queue = projectQueueFor(
+  PRINCIPALS.officer,
+  [
     {
-      case: exampleOfficerMissingView,
+      row: exampleMissingRow,
+      ctx: officerCtx,
       candidates: [
         {
-          candidate_id: IDS.candidate,
+          candidateId: IDS.candidate,
           rank: 1,
           score: 87,
-          reason_bn: "একই জায়গা, কাছাকাছি সময়, লাল জামা",
-          reason_en: "Same place, nearby time, red dress",
+          reasonBn: "একই জেলা, কাছাকাছি সময়, বয়স মেলে",
+          reasonEn: "Same district, nearby time, age fits",
           components,
-          counterpart: exampleOfficerFoundView,
           qualified: true,
-          identity_probability: false,
+          counterpart: exampleFoundRow,
+          counterpartCtx: officerCtx,
         },
       ],
     },
   ],
-  next_cursor: null,
-};
+  null,
+);
+if (!queue) throw new Error("example queue projection failed");
+export const exampleReviewQueueResponse: s.ReviewQueueResponse = queue;
 
-export const exampleCandidateDecisionView: s.CandidateDecisionView = {
-  candidate_id: IDS.candidate,
-  missing: exampleOfficerMissingView,
-  found: exampleOfficerFoundView,
+const candidate = projectCandidateFor(PRINCIPALS.officer, {
+  candidateId: IDS.candidate,
+  missing: { row: exampleMissingRow, ctx: officerCtx },
+  found: { row: exampleFoundRow, ctx: officerCtx },
   score: 87,
   components,
-  explanation_version: "v1",
+  explanationVersion: "v1",
   qualified: true,
-  identity_probability: false,
-};
+});
+if (!candidate) throw new Error("example candidate projection failed");
+export const exampleCandidateDecisionView: s.CandidateDecisionView = candidate;
 
-export const exampleConfirmDecisionRequest: s.DecisionRequest = {
+export const exampleConfirmDecisionRequest: s.DecisionRequestInput = {
   decision: "confirm",
   expected_missing_version: 1,
   expected_found_version: 1,
@@ -358,7 +397,7 @@ export const exampleConfirmDecisionRequest: s.DecisionRequest = {
   },
 };
 
-export const exampleRejectDecisionRequest: s.DecisionRequest = {
+export const exampleRejectDecisionRequest: s.DecisionRequestInput = {
   decision: "reject",
   reason: "বয়সের পার্থক্য অনেক বেশি",
   expected_missing_version: 1,
@@ -367,8 +406,8 @@ export const exampleRejectDecisionRequest: s.DecisionRequest = {
 
 export const exampleConfirmDecisionResponse: s.DecisionResponse = {
   candidate_status: "confirmed",
-  missing: { ref_code: REFS.missing, status: "confirmed" },
-  found: { ref_code: REFS.found, status: "referred" },
+  missing: { ref_code: REFS.missing, status: "confirmed", version: 2 },
+  found: { ref_code: REFS.found, status: "referred", version: 2 },
   referral_id: IDS.referral,
   referral_state: "recorded",
   referral_is_simulated: true,
@@ -376,14 +415,14 @@ export const exampleConfirmDecisionResponse: s.DecisionResponse = {
 
 export const exampleRejectDecisionResponse: s.DecisionResponse = {
   candidate_status: "rejected",
-  missing: { ref_code: REFS.missing, status: "open" },
-  found: { ref_code: REFS.found, status: "open" },
+  missing: { ref_code: REFS.missing, status: "open", version: 2 },
+  found: { ref_code: REFS.found, status: "open", version: 2 },
   referral_id: null,
   referral_state: null,
   referral_is_simulated: true,
 };
 
-export const exampleCloseCaseRequest: s.CloseCaseRequest = {
+export const exampleCloseCaseRequest: s.CloseCaseRequestInput = {
   outcome: "coordination_recorded",
   note: "সিনথেটিক সমন্বয় নথিভুক্ত",
   expected_version: 2,
@@ -469,17 +508,18 @@ export const exampleAuditRows: AuditRow[] = [
   },
 ];
 
-const officerPrincipal = { kind: "user", userId: IDS.officerUser, role: "officer", verified: true, isActive: true } as const;
-const adminPrincipal = { kind: "user", userId: IDS.adminUser, role: "admin", verified: false, isActive: true } as const;
-
-export const exampleOfficerAuditResponse = projectAuditFor(officerPrincipal, exampleAuditRows) as s.OfficerAuditResponse;
-export const exampleAdminAuditResponse = projectAuditFor(adminPrincipal, exampleAuditRows) as s.AdminAuditResponse;
+const auditedCase = { id: IDS.missingCase, ref_code: REFS.missing };
+const officerAudit = projectAuditFor(PRINCIPALS.officer, auditedCase, exampleAuditRows);
+const adminAudit = projectAuditFor(PRINCIPALS.admin, auditedCase, exampleAuditRows);
+if (officerAudit?.view !== "officer" || adminAudit?.view !== "admin") throw new Error("example audit projection failed");
+export const exampleOfficerAuditResponse: s.OfficerAuditResponse = officerAudit;
+export const exampleAdminAuditResponse: s.AdminAuditResponse = adminAudit;
 
 export const exampleRematchResponse: s.RematchResponse = toRematchResponse(exampleMissingRow);
 
 /* ---------- API-015 – API-020 ---------- */
 
-export const exampleImportRequest: s.ImportRequest = {
+export const exampleImportRequest: s.ImportRequestInput = {
   kind: "found",
   fixture_intake_at: "2026-10-12T12:00:00+06:00",
   items: [
@@ -493,7 +533,7 @@ export const exampleImportRequest: s.ImportRequest = {
 
 export const exampleImportResponse: s.ImportResponse = { imported: 1, skipped: 0, duplicates_flagged: 0 };
 
-export const exampleAnonymiseRequest: s.AnonymiseRequest = { case_ids: [IDS.missingCase], confirmation: "বেনামী" };
+export const exampleAnonymiseRequest: s.AnonymiseRequestInput = { case_ids: [IDS.missingCase], confirmation: "বেনামী" };
 
 export const exampleAnonymiseResponse: s.AnonymiseResponse = {
   redacted: 1,
@@ -502,7 +542,7 @@ export const exampleAnonymiseResponse: s.AnonymiseResponse = {
   external_copies_removed: false,
 };
 
-export const exampleVerifyUserRequest: s.VerifyUserRequest = { verified: true };
+export const exampleVerifyUserRequest: s.VerifyUserRequestInput = { verified: true };
 export const exampleVerifyUserResponse: s.VerifyUserResponse = { id: IDS.officerUser, role: "officer", verified: true };
 
 export const exampleMyCaseResponse: s.MyCaseResponse = {
@@ -510,6 +550,7 @@ export const exampleMyCaseResponse: s.MyCaseResponse = {
     {
       id: IDS.missingCase,
       ref_code: REFS.missing,
+      kind: "missing",
       status: "open",
       status_group: "open",
       updated_at: "2026-10-12T20:05:00+06:00",
@@ -526,7 +567,7 @@ export const exampleHealthResponse: s.HealthResponse = {
   demo_mode: false,
 };
 
-export const exampleSignInRequest: s.SignInRequest = { username: "officer.demo", password: "not-a-real-password" };
+export const exampleSignInRequest: s.SignInRequestInput = { username: "officer.demo", password: "not-a-real-password" };
 
 export const exampleSessionView: s.SessionView = {
   user_id: IDS.officerUser,
@@ -538,7 +579,7 @@ export const exampleSessionView: s.SessionView = {
 
 /* ---------- API-021 – API-023 ---------- */
 
-export const examplePageQuery: z.input<typeof s.pageQuerySchema> = { limit: "20" };
+export const examplePageQuery: s.PageQueryInput = { limit: "20" };
 
 export const exampleAdminUsersResponse: s.AdminUsersResponse = {
   users: [
@@ -548,11 +589,13 @@ export const exampleAdminUsersResponse: s.AdminUsersResponse = {
   next_cursor: null,
 };
 
-export const exampleCaseListQuery: z.input<typeof s.caseListQuerySchema> = { district: "26", kind: "missing", status_group: "matched" };
+export const exampleCaseListQuery: s.CaseListQueryInput = { district: "26", kind: "missing", status_group: "matched" };
 
-export const exampleCaseListResponse: s.CaseListResponse = { cases: [exampleOfficerMissingView], next_cursor: null };
+const caseList = projectCaseListFor(PRINCIPALS.officer, [{ row: exampleMissingRow, ctx: officerCtx }], null);
+if (!caseList) throw new Error("example case list projection failed");
+export const exampleCaseListResponse: s.CaseListResponse = caseList;
 
-export const exampleDuplicateDecisionRequest: s.DuplicateDecisionRequest = {
+export const exampleDuplicateDecisionRequest: s.DuplicateDecisionRequestInput = {
   status: "dismissed",
   reason: "একই ফোন নম্বর, কিন্তু আলাদা শিশুর বিবরণ",
   profile_evidence_reviewed: true,
@@ -568,7 +611,7 @@ export const exampleDuplicateDecisionResponse: s.DuplicateDecisionResponse = {
 
 export const exampleErrorEnvelope = errorEnvelope("E-001");
 
-export const exampleIntakeDraftMetadata: s.IntakeDraftMetadata = {
+export const exampleIntakeDraftMetadata: IntakeDraftMetadata = {
   id: IDS.draft,
   session_id: IDS.parentSession,
   user_id: null,
@@ -631,5 +674,5 @@ export const EXAMPLES: readonly { api: string; name: string; schema: z.ZodType; 
   { api: "API-023", name: "DuplicateDecisionRequest", schema: s.duplicateDecisionRequestSchema, value: exampleDuplicateDecisionRequest },
   { api: "API-023", name: "DuplicateDecisionResponse", schema: s.duplicateDecisionResponseSchema, value: exampleDuplicateDecisionResponse },
   { api: "*", name: "ErrorEnvelope", schema: errorEnvelopeSchema, value: exampleErrorEnvelope },
-  { api: "-", name: "IntakeDraftMetadata", schema: s.intakeDraftMetadataSchema, value: exampleIntakeDraftMetadata },
+  { api: "-", name: "IntakeDraftMetadata (server-only)", schema: intakeDraftMetadataSchema, value: exampleIntakeDraftMetadata },
 ];

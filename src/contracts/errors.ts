@@ -74,13 +74,15 @@ export type ServerErrorId = Exclude<ErrorId, ClientOnlyErrorId>;
 export const ERROR_IDS = Object.keys(ERROR_CATALOGUE) as ErrorId[];
 export const CLIENT_ONLY_ERROR_IDS: readonly ClientOnlyErrorId[] = ["E-022", "E-024"];
 
+const noPlaceholder = (v: string) => !v.includes("{s}");
+
 export const errorEnvelopeSchema = z.strictObject({
   error: z
     .strictObject({
       id: z.enum(ERROR_IDS as [ErrorId, ...ErrorId[]]),
       key: z.string().min(1),
-      message_bn: z.string().min(1),
-      message_en: z.string().min(1),
+      message_bn: z.string().min(1).refine(noPlaceholder, "unfilled placeholder"),
+      message_en: z.string().min(1).refine(noPlaceholder, "unfilled placeholder"),
       retryable: z.boolean(),
       fallback: z.literal("manual_form").optional(),
     })
@@ -88,21 +90,30 @@ export const errorEnvelopeSchema = z.strictObject({
 });
 export type ErrorEnvelope = z.infer<typeof errorEnvelopeSchema>;
 
-// Bilingual envelope; {s} (E-007) is filled with Bangla numerals in message_bn.
-export function errorEnvelope(id: ErrorId, params: { seconds?: number } = {}): ErrorEnvelope {
+// Bilingual envelope. E-007 requires the retry delay in whole seconds; message_bn
+// shows it in Bangla numerals.
+export function errorEnvelope(id: "E-007", params: { seconds: number }): ErrorEnvelope;
+export function errorEnvelope(id: Exclude<ErrorId, "E-007">): ErrorEnvelope;
+export function errorEnvelope(id: ErrorId, params?: { seconds: number }): ErrorEnvelope {
   const entry: CatalogueEntry = ERROR_CATALOGUE[id];
-  const fill = (text: string, bn: boolean) =>
-    params.seconds === undefined ? text : text.replace("{s}", bn ? toBanglaDigits(params.seconds) : String(params.seconds));
-  return {
+  let fill = (text: string) => text;
+  if (id === "E-007") {
+    const seconds = params?.seconds;
+    if (seconds === undefined || !Number.isInteger(seconds) || seconds < 1) {
+      throw new Error("E-007 needs a positive whole number of seconds");
+    }
+    fill = (text: string) => text.replace("{s}", text === entry.bn ? toBanglaDigits(seconds) : String(seconds));
+  }
+  return errorEnvelopeSchema.parse({
     error: {
       id,
       key: entry.key,
-      message_bn: fill(entry.bn, true),
-      message_en: fill(entry.en, false),
+      message_bn: fill(entry.bn),
+      message_en: fill(entry.en),
       retryable: entry.retryable,
       ...(entry.fallback ? { fallback: entry.fallback } : {}),
     },
-  };
+  });
 }
 
 export function httpStatusFor(id: ServerErrorId): number {

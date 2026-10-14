@@ -54,8 +54,20 @@ describe("error envelope E-001–E-024", () => {
     expect(httpStatusFor("E-004")).toBe(404);
   });
 
-  it.each(ERROR_IDS.map((id) => [id] as const))("%s builds a valid envelope", (id: ErrorId) => {
-    expect(errorEnvelopeSchema.safeParse(errorEnvelope(id)).success).toBe(true);
+  it.each(ERROR_IDS.filter((id) => id !== "E-007").map((id) => [id] as const))("%s builds a valid envelope", (id) => {
+    expect(errorEnvelopeSchema.safeParse(errorEnvelope(id as Exclude<ErrorId, "E-007">)).success).toBe(true);
+  });
+
+  it("E-007 requires a positive whole number of seconds (C15)", () => {
+    for (const seconds of [0, -5, 1.5, NaN]) expect(() => errorEnvelope("E-007", { seconds })).toThrow();
+    // @ts-expect-error seconds are required for E-007
+    expect(() => errorEnvelope("E-007")).toThrow();
+    expect(errorEnvelopeSchema.safeParse(errorEnvelope("E-007", { seconds: 1 })).success).toBe(true);
+  });
+
+  it("rejects an unfilled {s} placeholder", () => {
+    const env = errorEnvelope("E-007", { seconds: 30 });
+    expect(errorEnvelopeSchema.safeParse({ error: { ...env.error, message_en: "Please try again in {s} seconds." } }).success).toBe(false);
   });
 
   it("fills E-007 seconds, with Bangla numerals in Bangla", () => {

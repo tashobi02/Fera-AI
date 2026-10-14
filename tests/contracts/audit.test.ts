@@ -1,12 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  ADMIN_AUDIT_DETAIL_KEYS,
-  OFFICER_AUDIT_DETAIL_KEYS,
-  adminAuditEntryViewSchema,
-  officerAuditEntryViewSchema,
-  projectAuditFor,
-  type Principal,
-} from "@/contracts";
+import { ADMIN_AUDIT_DETAIL_KEYS, OFFICER_AUDIT_DETAIL_KEYS, adminAuditEntryViewSchema, officerAuditEntryViewSchema } from "@/contracts";
+import { projectAuditFor as project, type AuditRow, type AuditWithheldHook, type Principal } from "@/contracts/server";
 import { IDS, REFS, exampleAdminAuditResponse, exampleAuditRows, exampleOfficerAuditResponse } from "@/contracts/examples";
 
 const officer: Principal = { kind: "user", userId: IDS.officerUser, role: "officer", verified: true, isActive: true };
@@ -14,6 +8,9 @@ const unverifiedOfficer: Principal = { ...officer, verified: false };
 const admin: Principal = { kind: "user", userId: IDS.adminUser, role: "admin", verified: false, isActive: true };
 const staff: Principal = { kind: "user", userId: IDS.staffUser, role: "staff", verified: false, isActive: true };
 const parent: Principal = { kind: "parent", sessionId: IDS.parentSession };
+
+const auditedCase = { id: IDS.missingCase, ref_code: REFS.missing };
+const projectAuditFor = (p: Principal | null, rows: readonly AuditRow[], hook?: AuditWithheldHook) => project(p, auditedCase, rows, hook);
 
 const officerEntry = exampleOfficerAuditResponse.entries[0];
 const adminEntry = exampleAdminAuditResponse.entries[0];
@@ -76,13 +73,43 @@ describe("API-013 safe audit views (D2A §9.2, BR-010/024)", () => {
     expect(officerAuditEntryViewSchema.safeParse({ ...officerEntry, action: "match.confirm by Karim" }).success).toBe(false);
   });
 
-  it("projection fails closed on an unsafe stored value and drops unknown keys", () => {
-    const leaked = [{ ...exampleAuditRows[1], details: { ...exampleAuditRows[1].details, ref_code: "01700000001" } }];
-    expect(() => projectAuditFor(admin, leaked)).toThrow();
-    expect(() => projectAuditFor(officer, leaked)).toThrow();
+  it("projection withholds and counts an unsafe stored row instead of failing; hook gets no values", () => {
+    const leaked = [exampleAuditRows[0], { ...exampleAuditRows[1], details: { ...exampleAuditRows[1].details, outcome: "01700000001" } }];
+    const seen: unknown[] = [];
+    for (const p of [admin, officer]) {
+      const result = projectAuditFor(p, leaked, (info) => seen.push(info));
+      expect(result?.entries).toHaveLength(1);
+      expect(result?.withheld).toBe(1);
+      expect(JSON.stringify(result)).not.toContain("01700000001");
+    }
+    expect(seen).toEqual([
+      { index: 1, errorId: "E-021" },
+      { index: 1, errorId: "E-021" },
+    ]);
+    expect(JSON.stringify(seen)).not.toContain("01700000001");
+  });
+
+  it("drops unknown keys without withholding the row", () => {
     const extra = [{ ...exampleAuditRows[1], details: { ...exampleAuditRows[1].details, note: "সিনথেটিক নোট", phone: "01700000001" } }];
-    expect(JSON.stringify(projectAuditFor(officer, extra))).not.toMatch(/নোট|01700000001/);
-    expect(JSON.stringify(projectAuditFor(admin, extra))).not.toMatch(/নোট|01700000001/);
+    for (const p of [admin, officer]) {
+      const result = projectAuditFor(p, extra);
+      expect(result?.withheld).toBe(0);
+      expect(JSON.stringify(result)).not.toMatch(/নোট|01700000001/);
+    }
+  });
+
+  it("withholds rows of another case or carrying another case's ref (B7)", () => {
+    const otherCase = { ...exampleAuditRows[1], case_id: IDS.otherMissingCase };
+    const otherRef = { ...exampleAuditRows[1], details: { ...exampleAuditRows[1].details, ref_code: REFS.otherMissing } };
+    const noCase = { ...exampleAuditRows[1], case_id: null };
+    for (const p of [admin, officer]) {
+      expect(projectAuditFor(p, [otherCase, otherRef, noCase])).toMatchObject({ entries: [], withheld: 3 });
+    }
+  });
+
+  it("a bad display name withholds only its own row", () => {
+    const rows = [exampleAuditRows[0], { ...exampleAuditRows[1], actor_display: "Officer 01700000001" }];
+    expect(projectAuditFor(officer, rows)).toMatchObject({ withheld: 1 });
   });
 
   it("parent actors never get a display name", () => {

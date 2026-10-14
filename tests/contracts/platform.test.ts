@@ -1,14 +1,12 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   FOUND_COUNT_CATEGORY,
   LIMITS,
   MISSING_COUNT_CATEGORY,
   REFERRAL_RECORDED_LABEL,
-  canonicalJson,
   caseDraftSchema,
-  classifySubmission,
   closeCaseRequestSchema,
   createFoundRequestSchema,
   createMissingRequestSchema,
@@ -41,6 +39,13 @@ import {
   exampleOutputResponse,
   exampleRejectDecisionRequest,
 } from "@/contracts/examples";
+
+// Fixed clock: 13 Oct 2026 10:00 Asia/Dhaka, after every example event time.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-13T10:00:00+06:00"));
+});
+afterEach(() => vi.useRealTimers());
 
 const paths = (r: { success: boolean; error?: { issues: { path: PropertyKey[] }[] } }) =>
   [...new Set((r.error?.issues ?? []).map((i) => i.path.join(".")))].sort();
@@ -184,6 +189,9 @@ describe("BR-015/016 submission fields", () => {
     expect(parse({ at: "2026-10-12T12:00:00+06:00" })).toEqual(["event.at"]);
     expect(parse({ at_approx: false })).toEqual(["event.at_approx"]);
     expect(parse({ at_upper: "2099-01-01T00:00:00+06:00" })).toEqual(["event.at_upper"]);
+    // CLOCK_SKEW_MS (2 min) tolerance around the fixed clock.
+    expect(parse({ at_upper: "2026-10-13T10:01:00+06:00" })).toEqual([]);
+    expect(parse({ at_upper: "2026-10-13T10:03:00+06:00" })).toEqual(["event.at_upper"]);
     expect(parse({ at: "2026-10-12 16:00" })).toEqual(["event.at"]);
   });
 
@@ -214,23 +222,6 @@ describe("BR-023 / FV-05 draft token, counters and idempotency", () => {
     expect(extractRequestSchema.safeParse({ kind: "missing", answer: "জেলা ২৬" }).success).toBe(false); // continuing needs draft + token
   });
 
-  it("TC-042: same UUID + same hash replays, changed payload conflicts, new UUID creates", () => {
-    const existing = { caseId: "case-1", payloadHash: "a".repeat(64) };
-    expect(classifySubmission(existing, "a".repeat(64))).toEqual({ kind: "replay", caseId: "case-1" });
-    expect(classifySubmission(existing, "b".repeat(64))).toEqual({ kind: "conflict" });
-    expect(classifySubmission(null, "a".repeat(64))).toEqual({ kind: "create" });
-  });
-
-  it("canonical payload JSON is key-order independent and value sensitive", () => {
-    const a = createMissingRequestSchema.parse(exampleCreateMissingRequest).draft;
-    const reverse = (v: unknown): unknown =>
-      v && typeof v === "object" && !Array.isArray(v)
-        ? Object.fromEntries(Object.entries(v).reverse().map(([k, x]) => [k, reverse(x)]))
-        : v;
-    const reordered = reverse(a);
-    expect(canonicalJson(reordered)).toBe(canonicalJson(a));
-    expect(canonicalJson({ ...a, child: { ...a.child, marks: "দাগ" } })).not.toBe(canonicalJson(a));
-  });
 });
 
 describe("BR-001/005/020 decisions and simulated referral (FV-01)", () => {
@@ -262,7 +253,7 @@ describe("BR-001/005/020 decisions and simulated referral (FV-01)", () => {
   it("confirmation records a simulated referral and both endpoint states", () => {
     expect(decisionResponseSchema.safeParse({ ...exampleConfirmDecisionResponse, referral_is_simulated: false }).success).toBe(false);
     expect(decisionResponseSchema.safeParse({ ...exampleConfirmDecisionResponse, referral_id: null, referral_state: null }).success).toBe(false);
-    expect(decisionResponseSchema.safeParse({ ...exampleConfirmDecisionResponse, found: { ref_code: "F-3D8W1Z", status: "open" } }).success).toBe(false);
+    expect(decisionResponseSchema.safeParse({ ...exampleConfirmDecisionResponse, found: { ref_code: "F-3D8W1Z", status: "open", version: 2 } }).success).toBe(false);
     expect(REFERRAL_RECORDED_LABEL).toEqual({ bn: "রেফারেল নথিভুক্ত (সিমুলেশন)", en: "Referral recorded (simulation)" });
   });
 

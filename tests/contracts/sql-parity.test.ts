@@ -1,8 +1,11 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   ACTOR_TYPES,
+  AGE,
+  AUDIT_ACTIONS,
+  AUDIT_ACTION_PATTERN,
   CANDIDATE_STATUSES,
   CASE_KINDS,
   CASE_SOURCES,
@@ -10,8 +13,12 @@ import {
   DECISION_TYPES,
   DUPLICATE_RULES,
   DUPLICATE_STATUSES,
+  EDIT_LOCKED_STATUSES,
+  FIELD_MAX_CHARS,
   FOUND_STATUSES,
   FOUND_TRANSITIONS,
+  HEIGHT_CM,
+  INITIAL_STATUS,
   LIMITS,
   MATCHING_STATES,
   MISSING_STATUSES,
@@ -19,67 +26,77 @@ import {
   OUTCOMES,
   OUTPUT_TYPES,
   PHONE_PATTERN,
+  REDACTABLE_STATUSES,
   REF_CODE_PATTERN,
   SEXES,
+  SHA256_HEX_PATTERN,
+  USERNAME_PATTERN,
   USER_ROLES,
   caseDraftSchema,
-  intakeDraftMetadataSchema,
   isLegalTransition,
   refCodeSchema,
 } from "@/contracts";
+import { intakeDraftMetadataSchema } from "@/contracts/server";
 import { exampleMissingDraft } from "@/contracts/examples";
 
-// The SQL companion is the source of truth for enums; it is read, never edited.
-const sql = readFileSync(join(import.meta.dirname, "..", "..", "docs", "code", "schema_v2.sql"), "utf8");
+// The SQL companion is the source of truth for enums and CHECKs; it is read, never
+// edited. Every check runs on whitespace-collapsed SQL, so reformatting the file
+// cannot break a test while a changed constraint still does.
+const root = join(import.meta.dirname, "..", "..");
+const raw = readFileSync(join(root, "docs", "code", "schema_v2.sql"), "utf8");
+const sql = raw.replace(/--[^\n]*/g, "").replace(/\s+/g, " ");
+const has = (fragment: string) => sql.includes(fragment.replace(/\s+/g, " "));
 const quoted = (list: string) => [...list.matchAll(/'([^']+)'/g)].map((m) => m[1]);
-
-const sqlEnums = Object.fromEntries(
-  [...sql.matchAll(/CREATE TYPE (\w+)\s+AS ENUM \(([^)]*)\)/g)].map((m) => [m[1], quoted(m[2])]),
-);
+const match = (re: RegExp) => {
+  const m = sql.match(re);
+  if (!m) throw new Error(`SQL fragment not found: ${re}`);
+  return m;
+};
+const table = (name: string) => match(new RegExp(`CREATE TABLE ${name} \\((.*?)\\);`))[1];
 
 describe("state enums equal schema_v2.sql", () => {
-  it.each([
-    ["case_kind", CASE_KINDS],
-    ["case_status", CASE_STATUSES],
-    ["sex_t", SEXES],
-    ["source_t", CASE_SOURCES],
-    ["user_role", USER_ROLES],
-    ["candidate_status", CANDIDATE_STATUSES],
-    ["decision_t", DECISION_TYPES],
-    ["outcome_t", OUTCOMES],
-    ["duplicate_status", DUPLICATE_STATUSES],
-    ["matching_state_t", MATCHING_STATES],
-    ["output_t", OUTPUT_TYPES],
-    ["actor_t", ACTOR_TYPES],
-  ] as const)("%s", (name, values) => {
-    expect([...values]).toEqual(sqlEnums[name]);
+  const sqlEnums = Object.fromEntries([...sql.matchAll(/CREATE TYPE (\w+) AS ENUM \(([^)]*)\)/g)].map((m) => [m[1], quoted(m[2])]));
+  const ours: Record<string, readonly string[]> = {
+    case_kind: CASE_KINDS,
+    case_status: CASE_STATUSES,
+    sex_t: SEXES,
+    source_t: CASE_SOURCES,
+    user_role: USER_ROLES,
+    candidate_status: CANDIDATE_STATUSES,
+    decision_t: DECISION_TYPES,
+    outcome_t: OUTCOMES,
+    duplicate_status: DUPLICATE_STATUSES,
+    matching_state_t: MATCHING_STATES,
+    output_t: OUTPUT_TYPES,
+    actor_t: ACTOR_TYPES,
+  };
+
+  it("the set of SQL enums is exactly the set the contracts mirror", () => {
+    expect(Object.keys(sqlEnums).sort()).toEqual(Object.keys(ours).sort());
   });
 
-  it("covers every SQL enum", () => {
-    expect(Object.keys(sqlEnums)).toHaveLength(12);
+  it.each(Object.keys(ours).map((k) => [k] as const))("%s", (name) => {
+    expect([...ours[name]]).toEqual(sqlEnums[name]);
   });
 
   it("duplicate rules equal the rule CHECK", () => {
-    expect([...DUPLICATE_RULES]).toEqual(quoted(sql.match(/rule\s+text NOT NULL CHECK \(rule IN \(([^)]*)\)\)/)![1]));
+    expect([...DUPLICATE_RULES]).toEqual(quoted(match(/rule text NOT NULL CHECK \(rule IN \(([^)]*)\)\)/)[1]));
   });
 
   it("missing and found status subsets follow the kind CHECKs", () => {
-    const notFound = quoted(sql.match(/CHECK \(kind = 'missing' OR status NOT IN \(([^)]*)\)\)/)![1]);
-    const notMissing = quoted(sql.match(/CHECK \(kind = 'found' OR status <> ('[^']+')\)/)![1]);
+    const notFound = quoted(match(/CHECK \(kind = 'missing' OR status NOT IN \(([^)]*)\)\)/)[1]);
+    const notMissing = quoted(match(/CHECK \(kind = 'found' OR status <> ('[^']+')\)/)[1]);
     expect([...FOUND_STATUSES]).toEqual(CASE_STATUSES.filter((s) => !notFound.includes(s)));
     expect([...MISSING_STATUSES]).toEqual(CASE_STATUSES.filter((s) => !notMissing.includes(s)));
+    expect(has("CHECK ((ref_code LIKE 'M-%') = (kind = 'missing'))")).toBe(true);
   });
 });
 
-describe("lifecycle transitions equal enforce_case_transition()", () => {
-  const steps = (kind: string) =>
-    quoted(sql.match(new RegExp(`OLD\\.kind = '${kind}' AND step = ANY \\(ARRAY\\[([\\s\\S]*?)\\]\\)`))![1]);
+describe("lifecycle constants equal enforce_case_transition() and the redaction rules", () => {
+  const steps = (kind: string) => quoted(match(new RegExp(`OLD\\.kind = '${kind}' AND step = ANY \\(ARRAY\\[(.*?)\\]\\)`))[1]);
 
-  it("missing (BR-012)", () => {
+  it("missing (BR-012) and found (BR-013) transitions", () => {
     expect(MISSING_TRANSITIONS.map(([a, b]) => `${a}>${b}`)).toEqual(steps("missing"));
-  });
-
-  it("found (BR-013)", () => {
     expect(FOUND_TRANSITIONS.map(([a, b]) => `${a}>${b}`)).toEqual(steps("found"));
   });
 
@@ -89,42 +106,126 @@ describe("lifecycle transitions equal enforce_case_transition()", () => {
     expect(isLegalTransition("found", "open", "referred")).toBe(false);
     expect(isLegalTransition("found", "matched_pending_review", "referred")).toBe(true);
   });
-});
 
-describe("field bounds equal the cases CHECKs", () => {
-  it("ref_code and phone patterns", () => {
-    expect(sql).toContain(`ref_code ~ '${REF_CODE_PATTERN.source}'`);
-    expect(sql).toContain(`contact_phone ~ '${PHONE_PATTERN.source}'`);
-    expect(refCodeSchema.safeParse("M-7K2Q9A").success).toBe(true);
-    expect(refCodeSchema.safeParse("X-7K2Q9A").success).toBe(false);
-    expect(sql).toContain("code        smallint PRIMARY KEY CHECK (code BETWEEN 1 AND 64)");
+  it("initial statuses", () => {
+    const m = match(/\(NEW\.kind = 'missing' AND NEW\.status <> '(\w+)'\) OR \(NEW\.kind = 'found' AND NEW\.status <> '(\w+)'\)/);
+    expect(INITIAL_STATUS).toEqual({ missing: m[1], found: m[2] });
   });
 
-  it("age bounds: exact age 0–17, estimated bounds 0–25", () => {
-    expect(sql).toContain("age_years           smallint CHECK (age_years BETWEEN 0 AND 17)");
-    expect(sql).toContain("age_max             smallint CHECK (age_max BETWEEN 0 AND 25)");
+  it("edit-locked statuses", () => {
+    expect([...EDIT_LOCKED_STATUSES]).toEqual(quoted(match(/IF OLD\.status IN \(([^)]*)\) AND NEW\.anonymised_at IS NULL AND \(to_jsonb\(NEW\) - ARRAY/)[1]));
+  });
+
+  it("redactable statuses (cases CHECK and redaction function)", () => {
+    expect([...REDACTABLE_STATUSES]).toEqual(quoted(match(/CHECK \(anonymised_at IS NULL OR status IN \(([^)]*)\)\)/)[1]));
+    expect([...REDACTABLE_STATUSES]).toEqual(quoted(match(/rec\.status NOT IN \(([^)]*)\)/)[1]));
+  });
+
+  it("trigger-required audit actions", () => {
+    expect(has("a.action=('match.' || d.decision::text)")).toBe(true);
+    expect(DECISION_TYPES.map((d) => `match.${d}`)).toEqual([AUDIT_ACTIONS.matchConfirm, AUDIT_ACTIONS.matchReject]);
+    expect(has(`'${AUDIT_ACTIONS.payloadRedacted}'`)).toBe(true);
+    const d2b = readFileSync(join(root, "docs", "spec", "D2_TRD_PartB_V2.md"), "utf8");
+    expect(d2b).toContain(`\`${AUDIT_ACTIONS.accessDenied}\``);
+    for (const action of Object.values(AUDIT_ACTIONS)) expect(action).toMatch(AUDIT_ACTION_PATTERN);
+  });
+});
+
+describe("patterns equal the SQL CHECK regexes", () => {
+  it.each([
+    ["ref_code", REF_CODE_PATTERN],
+    ["contact_phone", PHONE_PATTERN],
+    ["username", USERNAME_PATTERN],
+    ["action", AUDIT_ACTION_PATTERN],
+  ] as const)("%s", (column, pattern) => {
+    expect(match(new RegExp(`${column} ~ '([^']+)'`))[1]).toBe(pattern.source);
+  });
+
+  it("every SHA-256 column uses the contract pattern", () => {
+    const hashes = [...sql.matchAll(/(\w*hash) ~ '([^']+)'/g)];
+    expect(hashes.map((m) => m[1]).sort()).toEqual(["input_hash", "payload_hash", "submission_payload_hash"]);
+    for (const m of hashes) expect(m[2]).toBe(SHA256_HEX_PATTERN.source);
+  });
+
+  it("ref codes parse", () => {
+    expect(refCodeSchema.safeParse("M-7K2Q9A").success).toBe(true);
+    expect(refCodeSchema.safeParse("X-7K2Q9A").success).toBe(false);
+  });
+});
+
+describe("field bounds equal the SQL CHECKs", () => {
+  it("every capped text column matches FIELD_MAX_CHARS", () => {
+    const caps = new Map<string, Set<number>>();
+    for (const m of sql.matchAll(/(\w+) text (?:NOT NULL )?(?:DEFAULT '[^']*' )?CHECK \(length\(\1\) <= (\d+)\)/g)) {
+      caps.set(m[1], (caps.get(m[1]) ?? new Set()).add(Number(m[2])));
+    }
+    const ours: Record<string, number> = FIELD_MAX_CHARS;
+    const checked = [...caps.keys()].filter((c) => c in ours);
+    expect(checked.length).toBeGreaterThanOrEqual(15);
+    for (const column of checked) expect([...caps.get(column)!]).toEqual([ours[column]]);
+    expect(has(`display_name text NOT NULL CHECK (length(display_name) BETWEEN 2 AND ${FIELD_MAX_CHARS.display_name})`)).toBe(true);
+  });
+
+  it("ages, height, district, coordinates, score and rank", () => {
+    expect(has(`age_years smallint CHECK (age_years BETWEEN 0 AND ${AGE.exactMax})`)).toBe(true);
+    expect(has(`age_min smallint CHECK (age_min BETWEEN 0 AND ${AGE.estimateMax})`)).toBe(true);
+    expect(has(`age_max smallint CHECK (age_max BETWEEN 0 AND ${AGE.estimateMax})`)).toBe(true);
+    expect(has(`CHECK (kind = 'found' OR age_min IS NULL OR age_min <= ${AGE.missingMax})`)).toBe(true);
+    expect(has(`CHECK (kind = 'found' OR age_max IS NULL OR age_max <= ${AGE.missingMax})`)).toBe(true);
+    expect(has(`height_cm smallint CHECK (height_cm BETWEEN ${HEIGHT_CM.min} AND ${HEIGHT_CM.max})`)).toBe(true);
+    expect(has("code smallint PRIMARY KEY CHECK (code BETWEEN 1 AND 64)")).toBe(true);
+    expect(has("CHECK (lat BETWEEN 20 AND 27)")).toBe(true);
+    expect(has("CHECK (lng BETWEEN 88 AND 93)")).toBe(true);
+    expect(has(`rank smallint NOT NULL CHECK (rank BETWEEN 1 AND ${LIMITS.candidatesPerQueueItem})`)).toBe(true);
+    expect(has("score numeric(5,2) NOT NULL CHECK (score BETWEEN 0 AND 100)")).toBe(true);
+    expect(has(`ai_calls_used BETWEEN 0 AND ${LIMITS.aiCallsPerDraft}`)).toBe(true);
+  });
+
+  it("age schemas agree with those bounds", () => {
     const child = (patch: object) => caseDraftSchema.safeParse({ ...exampleMissingDraft, child: { ...exampleMissingDraft.child, ...patch } });
     expect(child({ age_years: 18 }).success).toBe(false);
     expect(child({ age_years: null, age_min: 20, age_max: 25 }).success).toBe(true);
     expect(child({ age_years: null, age_min: 20, age_max: 26 }).success).toBe(false);
+    expect(child({ height_cm: 39 }).success).toBe(false);
+    expect(child({ height_cm: 221 }).success).toBe(false);
   });
 
-  it("per-draft paid-call limit", () => {
-    expect(sql).toContain(`ai_calls_used BETWEEN 0 AND ${LIMITS.aiCallsPerDraft}`);
+  it("interval, exact-time and found-description CHECKs that the submission rules mirror", () => {
+    expect(has("CHECK (event_at_lower IS NULL OR event_at_upper IS NULL OR event_at_lower <= event_at_upper)")).toBe(true);
+    expect(has("CHECK (event_at IS NULL OR (event_at_lower IS NOT NULL AND event_at_upper IS NOT NULL AND event_at BETWEEN event_at_lower AND event_at_upper))")).toBe(true);
+    expect(has("CHECK (event_at_approx OR event_at IS NULL OR (event_at = event_at_lower AND event_at = event_at_upper))")).toBe(true);
+    expect(has("length(trim(concat_ws(' ', circumstances, clothing, marks))) >= 3")).toBe(true);
+    // SQL only rejects a future lower bound; the contract also rejects a future time/upper bound (CN-12).
+    expect(has("NEW.event_at_lower > clock_timestamp()")).toBe(true);
+  });
+
+  it("identity CHECKs the contract mirrors", () => {
+    expect(has("CHECK (role = 'officer' OR verified = false)")).toBe(true);
+    const drafts = table("intake_drafts");
+    expect(drafts).toContain("CHECK ((session_id IS NOT NULL) <> (user_id IS NOT NULL))");
+    expect(drafts).toContain("CHECK (expires_at > created_at)");
   });
 });
 
 describe("TC-060 pre-submit server metadata holds no payload", () => {
-  const table = sql.match(/CREATE TABLE intake_drafts \(([\s\S]*?)\n\);/)![1];
-  const columns = [...table.matchAll(/^\s+([a-z_]+)\s+(?:uuid|text|smallint|integer|timestamptz|case_kind)\b/gm)].map((m) => m[1]);
+  const columns = table("intake_drafts")
+    .split(/,(?![^(]*\))/)
+    .map((c) => c.trim())
+    .filter((c) => !c.startsWith("CHECK"))
+    .map((c) => c.split(" ")[0]);
 
   it("metadata schema keys are exactly the intake_drafts columns", () => {
-    expect(Object.keys(intakeDraftMetadataSchema.shape).sort()).toEqual(columns.sort());
+    expect(columns.length).toBeGreaterThan(5);
+    expect(new Set(Object.keys(intakeDraftMetadataSchema.shape))).toEqual(new Set(columns));
   });
 
   it("contains no transcript, reviewed field or child payload", () => {
-    for (const key of Object.keys(intakeDraftMetadataSchema.shape)) {
-      expect(key).not.toMatch(/text|transcript|child|name|phone|place|draft$|audio|evidence/);
-    }
+    for (const key of columns) expect(key).not.toMatch(/text|transcript|child|name|phone|place|draft$|audio|evidence/);
+  });
+});
+
+describe("runtime schema copy", () => {
+  it.runIf(existsSync(join(root, "db", "schema_v2.sql")))("db/schema_v2.sql is byte-equal to docs/code/schema_v2.sql", () => {
+    expect(readFileSync(join(root, "db", "schema_v2.sql")).equals(readFileSync(join(root, "docs", "code", "schema_v2.sql")))).toBe(true);
   });
 });

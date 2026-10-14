@@ -1,25 +1,26 @@
 // CaseDraft: the reviewed editable payload (D5 §6, D2A §5.4) and its submission rules
 // (BR-015/016). A draft never carries a token, AI counter or session metadata.
 import { z } from "zod";
-import { districtCodeSchema, isoDateTimeSchema, phoneSchema } from "./primitives";
-import { EVIDENCE_DERIVATIONS, caseKindSchema, sexSchema } from "./states";
-
-const text = (max: number) => z.string().max(max).nullable();
-
-export const EVIDENCE_FIELDS = [
-  "child.name", "child.name_latin", "child.age_years", "child.age_min", "child.age_max", "child.sex",
-  "child.height_cm", "child.clothing", "child.marks",
-  "event.at", "event.at_lower", "event.at_upper", "event.place_text", "event.district_text",
-  "event.district_code", "event.thana", "event.circumstances",
-  "reporter.relation", "reporter.phone",
-] as const;
+import {
+  AGE,
+  CLOCK_SKEW_MS,
+  FIELD_MAX_CHARS as MAX,
+  HEIGHT_CM,
+  LIMITS,
+  districtCodeSchema,
+  inputDateTimeSchema,
+  optionalText,
+  phoneSchema,
+  trimmedText,
+} from "./primitives";
+import { DRAFT_FIELD_PATHS, EVIDENCE_DERIVATIONS, caseKindSchema, sexSchema } from "./states";
 
 // Quotes refer to source_text in UTF-16 offsets (D2A §2.1).
 export const evidenceSpanSchema = z
   .strictObject({
-    quote: z.string().min(1),
-    start_utf16: z.int().min(0),
-    end_utf16: z.int().min(1),
+    quote: z.string().min(1).max(LIMITS.quoteChars),
+    start_utf16: z.int().min(0).max(MAX.raw_text),
+    end_utf16: z.int().min(1).max(MAX.raw_text),
     derivation: z.enum(EVIDENCE_DERIVATIONS),
   })
   .refine((s) => s.end_utf16 - s.start_utf16 === s.quote.length, {
@@ -28,29 +29,29 @@ export const evidenceSpanSchema = z
   });
 export type EvidenceSpan = z.infer<typeof evidenceSpanSchema>;
 
-const evidenceFields: readonly string[] = EVIDENCE_FIELDS;
+const evidenceFields: readonly string[] = DRAFT_FIELD_PATHS;
 const evidenceSchema = z.record(
   z.string().refine((k) => evidenceFields.includes(k), "unknown evidence field"),
   evidenceSpanSchema,
 );
-const sourceTextSchema = z.string().max(4000);
+// Not trimmed: evidence offsets point into it unchanged.
+const sourceTextSchema = z.string().max(MAX.raw_text);
 
 const childBase = {
-  name: text(80),
-  name_latin: text(80),
+  name: optionalText(MAX.child_name),
+  name_latin: optionalText(MAX.child_name_latin),
   sex: sexSchema,
-  height_cm: z.int().min(40).max(220).nullable(),
-  clothing: text(300),
-  marks: text(300),
+  height_cm: z.int().min(HEIGHT_CM.min).max(HEIGHT_CM.max).nullable(),
+  clothing: optionalText(MAX.clothing),
+  marks: optionalText(MAX.marks),
 };
-const ageYears = z.int().min(0).max(17).nullable();
+const ageYears = z.int().min(0).max(AGE.exactMax).nullable();
 const ageBound = (max: number) => z.int().min(0).max(max).nullable();
 
 const eventBase = {
   at_approx: z.boolean(),
-  district_text: text(80),
-  thana: text(80),
-  circumstances: text(500),
+  thana: optionalText(MAX.thana),
+  circumstances: optionalText(MAX.circumstances),
 };
 
 // Structural draft: unknowns stay null. Used by extraction and owner reads.
@@ -58,25 +59,26 @@ export const caseDraftSchema = z
   .strictObject({
     kind: caseKindSchema,
     source_text: sourceTextSchema,
-    child: z.strictObject({ ...childBase, age_years: ageYears, age_min: ageBound(25), age_max: ageBound(25) }),
+    child: z.strictObject({ ...childBase, age_years: ageYears, age_min: ageBound(AGE.estimateMax), age_max: ageBound(AGE.estimateMax) }),
     event: z.strictObject({
       ...eventBase,
-      at: isoDateTimeSchema.nullable(),
-      at_lower: isoDateTimeSchema.nullable(),
-      at_upper: isoDateTimeSchema.nullable(),
-      place_text: text(200),
+      at: inputDateTimeSchema.nullable(),
+      at_lower: inputDateTimeSchema.nullable(),
+      at_upper: inputDateTimeSchema.nullable(),
+      place_text: optionalText(MAX.place_text),
+      district_text: optionalText(80),
       district_code: districtCodeSchema.nullable(),
     }),
-    reporter: z.strictObject({ relation: text(40), phone: z.string().max(32).nullable() }),
+    reporter: z.strictObject({ relation: optionalText(MAX.reporter_relation), phone: optionalText(32) }),
     evidence: evidenceSchema,
   })
   .superRefine(checkSpans, { when: spansParse });
 export type CaseDraft = z.infer<typeof caseDraftSchema>;
+export type CaseDraftInput = z.input<typeof caseDraftSchema>;
 
 /* ---------- Submission rules ---------- */
 
-const agesSubset = (max: number) =>
-  z.object({ age_years: ageYears, age_min: ageBound(max), age_max: ageBound(max) });
+const agesSubset = (max: number) => z.object({ age_years: ageYears, age_min: ageBound(max), age_max: ageBound(max) });
 
 function checkAges(required: boolean) {
   return (c: { age_years: number | null; age_min: number | null; age_max: number | null }, ctx: z.RefinementCtx) => {
@@ -103,7 +105,7 @@ function fillExactAge<T extends { age_years: number | null; age_min: number | nu
 }
 
 function childSchema(kind: "missing" | "found") {
-  const max = kind === "missing" ? 17 : 25;
+  const max = kind === "missing" ? AGE.missingMax : AGE.estimateMax;
   const subset = agesSubset(max);
   return z
     .strictObject({ ...childBase, age_years: ageYears, age_min: ageBound(max), age_max: ageBound(max) })
@@ -111,22 +113,26 @@ function childSchema(kind: "missing" | "found") {
     .transform(fillExactAge);
 }
 
-const notFuture = (iso: string) => Date.parse(iso) <= Date.now();
+// Compared at millisecond precision; inputDateTimeSchema rejects finer digits.
+const isFuture = (iso: string) => Date.parse(iso) > Date.now() + CLOCK_SKEW_MS;
 const timesSubset = z.object({
-  at: isoDateTimeSchema,
-  at_lower: isoDateTimeSchema,
-  at_upper: isoDateTimeSchema,
+  at: inputDateTimeSchema,
+  at_lower: inputDateTimeSchema,
+  at_upper: inputDateTimeSchema,
   at_approx: z.boolean(),
 });
 
-// Exact events cannot be future; approximate bounds must be consistent with intake time.
+// SQL only rejects a future event_at_lower; the contract deliberately also rejects a
+// future event time or interval end (BR-016), with CLOCK_SKEW_MS tolerance.
 const submissionEventSchema = z
   .strictObject({
     ...eventBase,
-    at: isoDateTimeSchema.refine(notFuture, "event time cannot be in the future"),
-    at_lower: isoDateTimeSchema,
-    at_upper: isoDateTimeSchema,
-    place_text: z.string().trim().min(1).max(200),
+    at: inputDateTimeSchema.refine((v) => !isFuture(v), "event time cannot be in the future"),
+    at_lower: inputDateTimeSchema,
+    at_upper: inputDateTimeSchema,
+    place_text: trimmedText(1, MAX.place_text),
+    // No cases column stores it (CN-06): accepted for form round-trips, always null after parsing.
+    district_text: optionalText(80).optional().transform(() => null),
     district_code: districtCodeSchema,
   })
   .superRefine(
@@ -136,13 +142,13 @@ const submissionEventSchema = z
       else if (at < lo || at > hi) ctx.addIssue({ code: "custom", message: "event time outside its interval", path: ["at"] });
       else if (!e.at_approx && (lo !== at || hi !== at))
         ctx.addIssue({ code: "custom", message: "exact event needs equal bounds", path: ["at_approx"] });
-      else if (at <= Date.now() && hi > Date.now())
+      else if (!isFuture(e.at) && isFuture(e.at_upper))
         ctx.addIssue({ code: "custom", message: "interval cannot end in the future", path: ["at_upper"] });
     },
     { when: (p) => timesSubset.safeParse(p.value).success },
   );
 
-const submissionReporterSchema = z.strictObject({ relation: text(40), phone: phoneSchema });
+const submissionReporterSchema = z.strictObject({ relation: optionalText(MAX.reporter_relation), phone: phoneSchema });
 
 const spansSubset = z.object({ source_text: sourceTextSchema, evidence: evidenceSchema });
 function spansParse(p: { value: unknown }) {
@@ -167,10 +173,18 @@ export const missingSubmissionDraftSchema = z
   })
   .superRefine(checkSpans, { when: spansParse });
 export type MissingSubmissionDraft = z.output<typeof missingSubmissionDraftSchema>;
+export type MissingSubmissionDraftInput = z.input<typeof missingSubmissionDraftSchema>;
+
+// Mirrors the SQL CHECK length(trim(concat_ws(' ', circumstances, clothing, marks))) >= 3:
+// NULLs skipped, joined with spaces, only spaces trimmed, code points counted.
+export function foundDescriptionLength(parts: readonly (string | null)[]): number {
+  const joined = parts.filter((p): p is string => p !== null).join(" ");
+  return [...joined.replace(/^ +| +$/g, "")].length;
+}
 
 const descriptionSubset = z.object({
-  child: z.object({ clothing: text(300), marks: text(300) }),
-  event: z.object({ circumstances: text(500) }),
+  child: z.object({ clothing: optionalText(MAX.clothing), marks: optionalText(MAX.marks) }),
+  event: z.object({ circumstances: optionalText(MAX.circumstances) }),
 });
 
 // Found: description required (circumstances/clothing/marks), age may be unknown.
@@ -186,24 +200,11 @@ export const foundSubmissionDraftSchema = z
   .superRefine(checkSpans, { when: spansParse })
   .superRefine(
     (d, ctx) => {
-      const description = [d.event.circumstances, d.child.clothing, d.child.marks].filter(Boolean).join(" ").trim();
-      if (description.length < 3) {
+      if (foundDescriptionLength([d.event.circumstances, d.child.clothing, d.child.marks]) < 3) {
         ctx.addIssue({ code: "custom", message: "found report needs a description", path: ["event", "circumstances"] });
       }
     },
     { when: (p) => descriptionSubset.safeParse(p.value).success },
   );
 export type FoundSubmissionDraft = z.output<typeof foundSubmissionDraftSchema>;
-
-// Canonical reviewed-payload JSON for the submission hash: sorted keys, no device
-// timestamps. The server hashes it with SHA-256 (D2A §5.6).
-export function canonicalJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
-  if (value !== null && typeof value === "object") {
-    const entries = Object.entries(value as Record<string, unknown>)
-      .filter(([, v]) => v !== undefined)
-      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(",")}}`;
-  }
-  return JSON.stringify(value);
-}
+export type FoundSubmissionDraftInput = z.input<typeof foundSubmissionDraftSchema>;
