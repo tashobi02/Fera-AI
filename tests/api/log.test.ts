@@ -1,6 +1,6 @@
 // D2B §10.1/§14 log allowlist: no child payload, names, phones, free text, tokens or cookies.
 import { describe, expect, it } from "vitest";
-import { createLogger, levelFor, type LogEntry } from "@/app/api/_shared/log";
+import { createLogger, describeError, issueTokens, levelFor, type LogEntry } from "@/app/api/_shared/log";
 
 const NAME = "রাফি হাসান";
 const PHONE = "01712345678";
@@ -46,6 +46,7 @@ describe("allowlist logger", () => {
       status: 400,
       duration_ms: 13,
       error_id: "E-001",
+      dropped: ["_unknown"],
     });
     for (const leak of [NAME, PHONE, PHONE_BN, TOKEN, NOTE, "fera_ps", "at handler"]) expect(lines[0]).not.toContain(leak);
   });
@@ -63,26 +64,66 @@ describe("allowlist logger", () => {
       status: 99,
       error_id: "E-999",
     } as unknown as LogEntry);
-    expect(JSON.parse(lines[0])).toEqual({ level: 50, time: 1_700_000_000_000, event: "handler.threw" });
+    expect(JSON.parse(lines[0])).toEqual({
+      level: 50,
+      time: 1_700_000_000_000,
+      event: "handler.threw",
+      dropped: ["request_id", "route", "role", "rule", "err_name", "method", "status", "error_id"],
+    });
+    for (const leak of [NAME, PHONE, TOKEN, NOTE]) expect(lines[0]).not.toContain(leak);
   });
 
-  it("drops an unknown event name and never throws on a broken sink", () => {
+  it("drops an unknown event name and reports a broken sink once per minute on stderr", () => {
     const { lines, log } = capture();
     log.info({ event: NAME } as unknown as LogEntry);
-    expect(JSON.parse(lines[0])).toEqual({ level: 30, time: 1_700_000_000_000 });
-    const broken = createLogger(() => {
-      throw new Error("sink down");
-    });
+    expect(JSON.parse(lines[0])).toEqual({ level: 30, time: 1_700_000_000_000, dropped: ["event"] });
+    let t = 0;
+    const fallback: string[] = [];
+    const broken = createLogger(
+      () => {
+        throw new Error(`sink down ${PHONE}`);
+      },
+      () => t,
+      (l) => fallback.push(l),
+    );
     expect(() => broken.info({ event: "request" })).not.toThrow();
+    broken.info({ event: "request" });
+    t += 60_000;
+    broken.info({ event: "request" });
+    expect(fallback).toEqual(['{"level":50,"event":"log.sink_failed"}\n', '{"level":50,"event":"log.sink_failed"}\n']);
   });
 
-  it("maps statuses to D2B §13 developer-log levels", () => {
+  it("keeps only safe issue tokens", () => {
+    const { lines, log } = capture();
+    log.error({ event: "response.invalid", issues: [{ code: "unrecognized_keys", path: "" }, { code: "invalid_type", path: `child.${NAME}` }] });
+    expect(JSON.parse(lines[0]).issues).toEqual([{ code: "unrecognized_keys", path: "" }]);
+    expect(issueTokens(Array.from({ length: 9 }, () => ({ code: "custom", path: ["a", 0] })))).toHaveLength(5);
+    expect(issueTokens([{ code: "custom", path: ["child", "age_years"] }])).toEqual([{ code: "custom", path: "child.age_years" }]);
+  });
+
+  it("maps error IDs to D2B §13 developer-log levels", () => {
     expect(levelFor(200)).toBe("info");
-    expect(levelFor(401, "E-002")).toBe("info");
-    expect(levelFor(400, "E-001")).toBe("warn");
-    expect(levelFor(403, "E-003")).toBe("warn");
-    expect(levelFor(429, "E-007")).toBe("warn");
-    expect(levelFor(500, "E-021")).toBe("error");
-    expect(levelFor(503, "E-011")).toBe("error");
+    expect(levelFor(500)).toBe("error");
+    const table = {
+      "E-001": "warn", "E-002": "info", "E-003": "warn", "E-004": "warn", "E-007": "warn", "E-008": "info",
+      "E-011": "error", "E-012": "error", "E-013": "error", "E-014": "warn", "E-016": "error", "E-019": "info",
+      "E-021": "error", "E-023": "warn",
+    } as const;
+    for (const [id, level] of Object.entries(table)) expect([id, levelFor(400, id as keyof typeof table)]).toEqual([id, level]);
+  });
+});
+
+describe("describeError", () => {
+  it("returns name, code token and the top real frame, skipping frames faked in the message", () => {
+    const err = Object.assign(new Error(`bad ${PHONE}\n    at evil (${PHONE}:1:1)`), { code: "ECONNREFUSED" });
+    const d = describeError(err);
+    expect(d).toMatchObject({ err_name: "Error", err_code: "ECONNREFUSED" });
+    expect(d.err_frame).toMatch(/^log\.test\.ts:\d+$/);
+    expect(JSON.stringify(d)).not.toContain(PHONE);
+  });
+
+  it("returns nothing for non-errors and ignores non-string codes", () => {
+    expect(describeError(PHONE)).toEqual({});
+    expect(describeError(Object.assign(new Error("x"), { code: 42 })).err_code).toBeUndefined();
   });
 });

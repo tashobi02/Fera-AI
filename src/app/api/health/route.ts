@@ -1,4 +1,6 @@
 // API-019 GET /api/health: public readiness, no data (D2A §5.5, D2B §14).
+// TODO(TASK-062/015/016): when DB and embedding pings are added, each must catch its
+// own failure and report "unavailable" (still 200), never a provider or driver error.
 import { healthResponseSchema, type HealthResponse } from "@/contracts";
 import pkg from "../../../../package.json";
 import { defineRoute } from "../_shared";

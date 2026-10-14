@@ -1,7 +1,7 @@
 // COMP-021 fixed-window limiter: window, reset, E-007 seconds, store failure modes, hashed keys.
 import { describe, expect, it } from "vitest";
 import { PRINCIPALS } from "@/contracts/examples";
-import { MemoryRateLimitStore, RATE_LIMITS, RateLimiter, createKeyer, type RateLimitRule, type RateLimitStore } from "@/app/api/_shared";
+import { MemoryRateLimitStore, RATE_LIMITS, RateLimiter, createKeyer, hasPaidLimits, type RateLimitRule, type RateLimitStore } from "@/app/api/_shared";
 
 const rule: RateLimitRule = { id: "test.rule", limit: 3, windowMs: 60_000, scope: "principal", onStoreError: "deny" };
 const T0 = Date.parse("2026-10-14T10:00:00Z");
@@ -69,6 +69,24 @@ describe("store failure modes (COMP-021 vs BR-023)", () => {
     const limiter = new RateLimiter(failing);
     expect(await limiter.peek(RATE_LIMITS.signInFailures, "k")).toEqual({ ok: true, degraded: true });
   });
+
+  it.each([[undefined], [null], [-1], [1.5], [Number.NaN], ["3"]])("a store returning %s is a store error", async (bad) => {
+    const odd = { increment: async () => bad, peek: async () => bad } as unknown as RateLimitStore;
+    const limiter = new RateLimiter(odd);
+    expect(await limiter.hit(RATE_LIMITS.aiPrincipal, "k")).toEqual({ ok: false, reason: "unavailable" });
+    expect(await limiter.peek(RATE_LIMITS.signInFailures, "k")).toEqual({ ok: true, degraded: true });
+  });
+});
+
+describe("paid-route limits (BR-023)", () => {
+  it("require both AI limits at spec strength, failing closed", () => {
+    expect(hasPaidLimits([RATE_LIMITS.aiPrincipal, RATE_LIMITS.aiNetwork])).toBe(true);
+    expect(hasPaidLimits([{ ...RATE_LIMITS.aiPrincipal, limit: 5 }, RATE_LIMITS.aiNetwork])).toBe(true);
+    expect(hasPaidLimits(undefined)).toBe(false);
+    expect(hasPaidLimits([RATE_LIMITS.aiNetwork])).toBe(false);
+    expect(hasPaidLimits([{ ...RATE_LIMITS.aiPrincipal, onStoreError: "allow" }, RATE_LIMITS.aiNetwork])).toBe(false);
+    expect(hasPaidLimits([{ ...RATE_LIMITS.aiPrincipal, scope: "network" }, RATE_LIMITS.aiNetwork])).toBe(false);
+  });
 });
 
 describe("spec limits", () => {
@@ -76,6 +94,7 @@ describe("spec limits", () => {
     expect(RATE_LIMITS.aiPrincipal).toMatchObject({ limit: 10, windowMs: 60_000, scope: "principal", onStoreError: "deny" });
     expect(RATE_LIMITS.aiNetwork).toMatchObject({ limit: 30, windowMs: 60_000, scope: "network", onStoreError: "deny" });
     expect(RATE_LIMITS.signInFailures).toMatchObject({ limit: 5, windowMs: 60_000, scope: "network" });
+    expect(RATE_LIMITS.preAuthNetwork).toMatchObject({ limit: 300, windowMs: 60_000, scope: "network", onStoreError: "allow" });
   });
 });
 
@@ -105,5 +124,23 @@ describe("MemoryRateLimitStore", () => {
     await store.increment("c", T0 + 60_000, 60_000);
     expect(store.size).toBe(1);
     expect(await store.peek("a", T0)).toBe(0);
+  });
+
+  it("stays bounded with many live keys, evicting the oldest first, in bounded time", async () => {
+    const store = new MemoryRateLimitStore(1_000, () => T0);
+    const started = performance.now();
+    for (let i = 0; i < 50_000; i++) await store.increment(`k${i}`, T0, 60_000);
+    expect(performance.now() - started).toBeLessThan(2_000);
+    expect(store.size).toBe(1_000);
+    expect(await store.peek("k0", T0)).toBe(0);
+    expect(await store.peek("k49999", T0)).toBe(1);
+  });
+
+  it("counts within a window and restarts in the next", async () => {
+    const store = new MemoryRateLimitStore(10, () => T0);
+    expect(await store.increment("a", T0, 60_000)).toBe(1);
+    expect(await store.increment("a", T0, 60_000)).toBe(2);
+    expect(await store.increment("a", T0 + 60_000, 60_000)).toBe(1);
+    expect(store.size).toBe(1);
   });
 });
