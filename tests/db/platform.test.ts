@@ -5,8 +5,40 @@ import type { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   addCandidate, closeMissing, closedPair, confirmPair, connect, createActors, dbTestsEnabled, expectPgError,
-  fakePhone, insertFound, insertMissing, one, openMissing, seedReference, tx, type Actors,
+  fakePhone, insertFound, insertMissing, one, openMissing, PRIVILEGE_MATRIX_SQL, seedReference, tx, type Actors,
 } from "./support/db";
+
+// Golden: widening or narrowing any grant in db/roles.sql must update this list.
+const EXPECTED_PRIVILEGES = [
+  "fera_app ai_budget SELECT",
+  "fera_app ai_calls INSERT,SELECT",
+  "fera_app ai_reservations SELECT",
+  "fera_app audit_log INSERT(action,actor_session_id,actor_type,actor_user_id,candidate_id,case_id,details,request_id)",
+  "fera_app audit_log SELECT",
+  "fera_app case_versions INSERT,SELECT",
+  "fera_app cases INSERT(age_max,age_min,age_years,child_name,child_name_latin,circumstances,client_submission_id,clothing,contact_phone,created_by_user_id,district_code,embedding,embedding_model,embedding_revision,embedding_space,event_at,event_at_approx,event_at_lower,event_at_upper,gd_number,height_cm,id,input_hash,is_synthetic,kind,marks,match_error_id,matched_at,matching_state,place_text,provenance,raw_text,ref_code,reporter_relation,reporter_session_id,sex,source,source_url,status,submission_payload_hash,thana,version)",
+  "fera_app cases SELECT",
+  "fera_app cases UPDATE(age_max,age_min,age_years,child_name,child_name_latin,circumstances,closed_at,clothing,contact_phone,district_code,embedding,embedding_model,embedding_revision,embedding_space,event_at,event_at_approx,event_at_lower,event_at_upper,gd_number,height_cm,input_hash,marks,match_error_id,matched_at,matching_state,outcome,outcome_note,place_text,provenance,raw_text,reporter_relation,sex,status,thana,version)",
+  "fera_app district_neighbours SELECT",
+  "fera_app districts SELECT",
+  "fera_app duplicate_links INSERT,SELECT",
+  "fera_app duplicate_links UPDATE(reason,resolved_at,resolved_by,status)",
+  "fera_app generated_outputs INSERT,SELECT",
+  "fera_app intake_drafts DELETE,INSERT,SELECT",
+  "fera_app intake_drafts UPDATE(payload_hash)",
+  "fera_app match_candidates INSERT,SELECT",
+  "fera_app match_candidates UPDATE(decided_at,status)",
+  "fera_app parent_sessions INSERT,SELECT",
+  "fera_app parent_sessions UPDATE(last_seen_at,revoked_at)",
+  "fera_app rate_limits DELETE,INSERT,SELECT",
+  "fera_app rate_limits UPDATE(count)",
+  "fera_app referrals INSERT,SELECT",
+  "fera_app review_decisions INSERT,SELECT",
+  "fera_app users SELECT",
+  "fera_app users UPDATE(verified)",
+  "fera_redactor cases SELECT(anonymised_at,id,kind,status)",
+  "fera_redactor match_candidates SELECT(found_case_id,missing_case_id,status)",
+];
 
 const RUNTIME_ROLES = ["fera_app", "fera_redactor"] as const;
 
@@ -21,7 +53,7 @@ describe.skipIf(!dbTestsEnabled)("PostgreSQL 16 platform invariants (TASK-062)",
     app = await connect("app");
     redactor = await connect("redactor");
     await seedReference(admin);
-    actors = await createActors(app);
+    actors = await createActors(admin);
   });
 
   afterAll(async () => {
@@ -49,6 +81,14 @@ describe.skipIf(!dbTestsEnabled)("PostgreSQL 16 platform invariants (TASK-062)",
         "SELECT count(*)::int AS n FROM pg_auth_members m JOIN pg_roles r ON r.oid = m.member WHERE r.rolname IN ('fera_app', 'fera_redactor')",
       );
       expect(member.n).toBe(0);
+      const config = await admin.query(
+        "SELECT rolname, rolconfig FROM pg_roles WHERE rolname IN ('fera_owner', 'fera_app', 'fera_redactor') ORDER BY rolname",
+      );
+      expect(Object.fromEntries(config.rows.map((r) => [r.rolname, r.rolconfig]))).toEqual({
+        fera_app: ["search_path=public", "statement_timeout=30s", "lock_timeout=5s", "idle_in_transaction_session_timeout=60s"],
+        fera_owner: null,
+        fera_redactor: ["search_path=public", "statement_timeout=60s", "lock_timeout=5s", "idle_in_transaction_session_timeout=60s"],
+      });
     });
 
     it("has fera_owner own every schema table and function, never a login role", async () => {
@@ -125,11 +165,44 @@ describe.skipIf(!dbTestsEnabled)("PostgreSQL 16 platform invariants (TASK-062)",
       await expectPgError(app.query("UPDATE cases SET anonymised_at = now() WHERE id = $1", [missing.id]), "42501");
     });
 
-    it("keeps the redactor narrow: no password hashes, no inserts, no spend functions", async () => {
+    it("matches the golden privilege matrix for every role, table and column", async () => {
+      const { rows } = await admin.query<{ line: string }>(PRIVILEGE_MATRIX_SQL);
+      expect(rows.map((r) => r.line)).toEqual(EXPECTED_PRIVILEGES);
+    });
+
+    it("runs the three service functions as fera_owner with a pinned search_path (OD-062-2)", async () => {
+      const { rows } = await admin.query(
+        `SELECT proname, prosecdef, pg_get_userbyid(proowner) AS owner, proconfig FROM pg_proc
+         WHERE pronamespace = 'public'::regnamespace AND proname IN ('redact_case', 'reserve_ai_call', 'settle_ai_call') ORDER BY 1`,
+      );
+      for (const r of rows) {
+        expect(r).toMatchObject({ prosecdef: true, owner: "fera_owner", proconfig: ["search_path=pg_catalog, public, pg_temp"] });
+      }
+      expect(rows).toHaveLength(3);
+      const defaults = await one<{ n: number }>(
+        admin,
+        `SELECT count(*)::int AS n FROM pg_default_acl d WHERE d.defaclrole = 'fera_owner'::regrole AND d.defaclobjtype = 'f'
+           AND NOT EXISTS (SELECT 1 FROM aclexplode(d.defaclacl) a WHERE a.grantee = 0)`,
+      );
+      expect(defaults.n).toBe(1);
+    });
+
+    it("keeps the redactor narrow: no password hashes, no payload reads, no writes, no spend functions", async () => {
       await expectPgError(redactor.query("SELECT password_hash FROM users LIMIT 1"), "42501");
-      await expectPgError(redactor.query("SELECT id, role FROM users LIMIT 1").then(() => redactor.query("INSERT INTO parent_sessions DEFAULT VALUES")), "42501");
-      await expectPgError(redactor.query("UPDATE cases SET status = 'open' WHERE false"), "42501");
+      await expectPgError(redactor.query("SELECT id FROM users LIMIT 1"), "42501");
+      await expectPgError(redactor.query("SELECT child_name FROM cases LIMIT 1"), "42501");
+      await expectPgError(redactor.query("INSERT INTO parent_sessions DEFAULT VALUES"), "42501");
+      await expectPgError(redactor.query("UPDATE cases SET gd_number = NULL WHERE false"), "42501");
+      await expectPgError(redactor.query("UPDATE cases SET anonymised_at = now() WHERE false"), "42501");
+      await expectPgError(redactor.query("INSERT INTO audit_log (actor_type, action) VALUES ('admin', 'case.payload_redacted')"), "42501");
       await expectPgError(redactor.query("SELECT reserve_ai_call(NULL, 0.01)"), "42501");
+    });
+
+    it("keeps the app away from accounts it does not manage: no user inserts, no role or activity changes", async () => {
+      await expectPgError(app.query("INSERT INTO users (username, display_name, password_hash, role) VALUES ('x.y.z', '[MOCK] X', 'h', 'admin')"), "42501");
+      await expectPgError(app.query("UPDATE users SET role = 'admin' WHERE false"), "42501");
+      await expectPgError(app.query("UPDATE users SET is_active = true WHERE false"), "42501");
+      await app.query("UPDATE users SET verified = true WHERE id = $1", [actors.officer]);
     });
 
     it("rejects a non-synthetic case row (BR-026, cases_synthetic_release_only)", async () => {
@@ -164,6 +237,10 @@ describe.skipIf(!dbTestsEnabled)("PostgreSQL 16 platform invariants (TASK-062)",
       );
       expect(row).toEqual({ state: "settled", used: 1 });
       await expectPgError(app.query("UPDATE ai_budget SET cap_usd = 30"), "42501");
+      await expectPgError(app.query("UPDATE ai_budget SET reserved_usd = 0, committed_usd = 0"), "42501");
+      await expectPgError(app.query("UPDATE ai_reservations SET state = 'settled' WHERE false"), "42501");
+      await expectPgError(app.query("INSERT INTO ai_reservations (reserved_usd) VALUES (0)"), "42501");
+      await expectPgError(app.query("UPDATE intake_drafts SET ai_calls_used = 0, revision = 1 WHERE id = $1", [draft.id]), "42501");
     });
   });
 

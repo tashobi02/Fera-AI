@@ -47,6 +47,25 @@ export async function tx<T>(client: ClientBase, fn: () => Promise<T>): Promise<T
   }
 }
 
+// Effective privileges of the runtime roles on every public table: table-level grants,
+// then column-level grants where no table-level grant exists. Golden-tested.
+export const PRIVILEGE_MATRIX_SQL = `
+  WITH roles(role) AS (VALUES ('fera_app'), ('fera_redactor')),
+  tabs AS (SELECT c.oid, c.relname FROM pg_class c WHERE c.relnamespace = 'public'::regnamespace AND c.relkind = 'r'),
+  tp AS (
+    SELECT r.role, t.relname, p.priv FROM roles r, tabs t,
+      unnest(ARRAY['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']) p(priv)
+    WHERE has_table_privilege(r.role, t.oid, p.priv)),
+  cp AS (
+    SELECT r.role, t.relname, p.priv, string_agg(a.attname, ',' ORDER BY a.attname) AS cols
+    FROM roles r, tabs t JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum > 0 AND NOT a.attisdropped,
+      unnest(ARRAY['SELECT','INSERT','UPDATE']) p(priv)
+    WHERE has_column_privilege(r.role, t.oid, a.attnum, p.priv) AND NOT has_table_privilege(r.role, t.oid, p.priv)
+    GROUP BY 1, 2, 3)
+  SELECT role || ' ' || relname || ' ' || string_agg(priv, ',' ORDER BY priv) AS line FROM tp GROUP BY role, relname
+  UNION ALL SELECT role || ' ' || relname || ' ' || priv || '(' || cols || ')' FROM cp
+  ORDER BY 1`;
+
 // SQLSTATEs: 42501 insufficient_privilege, 23514 check_violation, 23505 unique_violation,
 // P0001 plain RAISE EXCEPTION.
 export async function expectPgError(work: Promise<unknown>, code: string, message?: RegExp): Promise<void> {
@@ -93,12 +112,13 @@ export interface Actors {
   admin: string;
 }
 
-export async function createActors(app: ClientBase): Promise<Actors> {
+// Accounts are seeded by the owner (fera_app has no INSERT on users).
+export async function createActors(owner: ClientBase): Promise<Actors> {
   const tag = randomBytes(3).toString("hex");
   const insert = async (name: string, role: string, verified: boolean) =>
     (
       await one<{ id: string }>(
-        app,
+        owner,
         `INSERT INTO users (username, display_name, password_hash, role, verified, district_code)
          VALUES ($1, $2, 'synthetic-not-a-hash', $3, $4, $5) RETURNING id`,
         [`${name}.${tag}`, `[MOCK] ${name}`, role, verified, MOCK_DISTRICT],
