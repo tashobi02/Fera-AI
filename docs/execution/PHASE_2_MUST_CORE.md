@@ -117,7 +117,7 @@ When one of these merges, tell the waiting person straight away; they rebase and
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | TASK-007 | API layer: error envelope E-001–E-024, Zod helpers, request ID, rate limiter (COMP-021) | A · Codex | TASK-001 | 4 | Unit tests for envelope and limiter | `todo` | | |
-| TASK-062 | Schema invariants, restricted runtime role, full related-payload redaction | A · Codex | TASK-002, TASK-061 | 4 | Negative and positive lifecycle/redaction checks | `todo` | | |
+| TASK-062 | Schema invariants, restricted runtime role, full related-payload redaction | A · Codex | TASK-002, TASK-061 | 4 | Negative and positive lifecycle/redaction checks | `review` | lane `phase2--mahim-invariants` (not merged) | [platform-db-invariants.md](evidence/platform-db-invariants.md): `npm run test:db` 59/59 on local PG16.15 + pgvector 0.8.1 (platform 45, redaction 14); roles `fera_owner`/`fera_app`/`fera_redactor` (OD-062-1); 3 schema gaps reported, schema unchanged; hosted roles and CI `db` job not run (UNKNOWN/pending) |
 | TASK-015 | Case service, state guard, audit, versions (COMP-014/015) — **by 12:00** | A · Codex + `database-reviewer` | TASK-007, 061, 062 | 6 | TC-032 and TC-016 pass | `todo` | | |
 | TASK-006 | Auth.js credentials, parent cookie, `requireRole`, seeded users | B · Claude Code + `security-reviewer` | TASK-002 | 5 | TC-023 passes | `todo` | | |
 | TASK-031 | S-008 sign-in + S-016 not-found | B · Claude Code | TASK-006 | 2 | TC-022 passes | `todo` | | |
@@ -167,6 +167,7 @@ Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 ### Obidit (lead)
 ### Masnun
 ### Mahim
+- 2026-10-14 23:55 · Claude Code · mahim-invariants · TASK-062 `todo` → `review`; db/roles.sql + db:reset wiring, test:db (per-run fera_test_* DBs) 59/59 pass, src/server/admin/redact.ts, evidence in platform-db-invariants.md; hosted host and CI db job pending.
 
 ## Audit amendments (2026-10-12)
 
