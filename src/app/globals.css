@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+/* Placeholder (TASK-001). TASK-008 replaces this with DESIGN.md tokens
+   (Cockpit & Paper) and the Fera overrides. */
+body {
+  background: #ffffff;
+  color: #171717;
+}

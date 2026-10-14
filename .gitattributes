@@ -1,0 +1,2 @@
+# Protected spec pack is hash-checked byte for byte (tests/docs-integrity.test.ts)
+docs/** -text
