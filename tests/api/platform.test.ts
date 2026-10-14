@@ -7,13 +7,14 @@ import {
   ERROR_CATALOGUE,
   ERROR_IDS,
   caseKindSchema,
+  createMissingRequestSchema,
   errorEnvelopeSchema,
   healthResponseSchema,
   phoneSchema,
   type ServerErrorId,
 } from "@/contracts";
 import { canIntake, type Principal } from "@/contracts/server";
-import { PRINCIPALS } from "@/contracts/examples";
+import { PRINCIPALS, exampleCreateMissingRequest, exampleMissingDraft } from "@/contracts/examples";
 import { ApiError, RATE_LIMITS, RateLimiter, Reply, createRouteFactory, errorResponse } from "@/app/api/_shared";
 import { GET as healthGET } from "@/app/api/health/route";
 import { ORIGIN, captureLogs, get, jsonPost, noParams, sameOriginHeaders, testFactory } from "./fakes";
@@ -177,6 +178,38 @@ describe("JSON body helper", () => {
     });
     await expectError(await route(bad, noParams), "E-001");
     await expectError(await route(jsonPost("/api/x", ""), noParams), "E-001");
+  });
+});
+
+describe("E-001 field paths (D6 TC-030, CN-15)", () => {
+  const { defineRoute } = testFactory(PRINCIPALS.parent);
+  const route = defineRoute({
+    api: "API-003",
+    body: createMissingRequestSchema,
+    response: z.strictObject({ ok: z.literal(true) }),
+    handler: async () => ({ ok: true as const }),
+  });
+
+  it("returns the four invalid draft paths and no values or messages", async () => {
+    const future = "2099-01-01T10:00:00+06:00";
+    const bad = {
+      ...exampleCreateMissingRequest,
+      draft: {
+        ...exampleMissingDraft,
+        child: { ...exampleMissingDraft.child, age_years: 19, age_min: null, age_max: null },
+        event: { ...exampleMissingDraft.event, at: future, at_lower: future, at_upper: future, at_approx: false, district_code: "XYZ" },
+        reporter: { ...exampleMissingDraft.reporter, phone: "0171" },
+      },
+    };
+    const body = await expectError(await route(jsonPost("/api/x", bad), noParams), "E-001");
+    expect(body.error.fields).toEqual(["child.age_years", "event.at", "event.district_code", "reporter.phone"]);
+    const text = JSON.stringify(body);
+    for (const leak of ["0171", "XYZ", "2099", "Too big", "Invalid"]) expect(text).not.toContain(leak);
+  });
+
+  it("non-draft failures carry no fields", async () => {
+    const body = await expectError(await route(jsonPost("/api/x", { confirmed: false }), noParams), "E-001");
+    expect(body.error.fields).toBeUndefined();
   });
 });
 

@@ -1,18 +1,29 @@
 // Bilingual error envelope responses (D2A §5.1–5.2, D2B §13). Built only from the
 // contracts' `errorEnvelope`; E-022/E-024 are client-only and never sent.
-import { CLIENT_ONLY_ERROR_IDS, errorEnvelope, httpStatusFor, type ErrorId, type ServerErrorId } from "@/contracts";
+import {
+  CLIENT_ONLY_ERROR_IDS,
+  errorEnvelope,
+  httpStatusFor,
+  type DraftFieldPath,
+  type ErrorId,
+  type ServerErrorId,
+} from "@/contracts";
 
 // The message is the error ID only, so a thrown ApiError can never carry user data.
 export class ApiError extends Error {
   readonly id: ServerErrorId;
   readonly seconds?: number;
+  // E-001 only: dotted draft field paths from the contracts' enum (D6 TC-030), never values.
+  readonly fields?: readonly DraftFieldPath[];
   constructor(id: "E-007", params: { seconds: number });
+  constructor(id: "E-001", params?: { fields?: readonly DraftFieldPath[] });
   constructor(id: Exclude<ServerErrorId, "E-007">);
-  constructor(id: ServerErrorId, params?: { seconds: number }) {
+  constructor(id: ServerErrorId, params?: { seconds?: number; fields?: readonly DraftFieldPath[] }) {
     super(id);
     this.name = "ApiError";
     this.id = id;
     this.seconds = params?.seconds;
+    if (id === "E-001" && params?.fields?.length) this.fields = params.fields;
   }
 }
 
@@ -40,7 +51,12 @@ export function errorResponse(requestId: string, error: ApiError): Response {
   let envelope;
   try {
     if (isClientOnly(id)) throw new Error("client-only error id");
-    envelope = id === "E-007" ? errorEnvelope("E-007", { seconds: error.seconds ?? 0 }) : errorEnvelope(id);
+    envelope =
+      id === "E-007"
+        ? errorEnvelope("E-007", { seconds: error.seconds ?? 0 })
+        : id === "E-001"
+          ? errorEnvelope("E-001", error.fields ? { fields: error.fields } : {})
+          : errorEnvelope(id);
   } catch {
     id = "E-021";
     envelope = errorEnvelope("E-021");

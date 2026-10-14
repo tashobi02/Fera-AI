@@ -1,9 +1,9 @@
 // Request ID, same-origin check and Zod input helpers (D2A §5.1, §9.4, D2B §10.1).
-// Every input failure is a bare E-001: no Zod messages, field paths or input values
-// are returned or logged (OD-1 in specs/001-platform-foundation/contract-notes.md).
+// Every input failure is E-001 with at most the contracts' dotted draft field paths
+// (D6 TC-030, CN-15): no Zod messages or input values are returned or logged.
 import { randomUUID } from "node:crypto";
 import type { z } from "zod";
-import { LIMITS, isUuid } from "@/contracts";
+import { LIMITS, fieldsFromZodIssues, isUuid } from "@/contracts";
 import { ApiError } from "./envelope";
 
 // Only a UUID is accepted from the client, so a request ID can never carry a name or phone.
@@ -35,7 +35,10 @@ export function clientAddress(req: Request): string | null {
 
 export function parseWith<S extends z.ZodType>(schema: S, value: unknown): z.output<S> {
   const parsed = schema.safeParse(value);
-  if (!parsed.success) throw new ApiError("E-001");
+  if (!parsed.success) {
+    const fields = fieldsFromZodIssues(parsed.error.issues);
+    throw new ApiError("E-001", fields ? { fields } : {});
+  }
   return parsed.data;
 }
 
