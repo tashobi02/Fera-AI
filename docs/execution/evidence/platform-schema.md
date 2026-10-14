@@ -6,7 +6,7 @@ Owner: Mahim · Lane: `mahim-db` (Claude Code) · Date: 2026-10-14 (Asia/Dhaka) 
 
 | Item | Value |
 |---|---|
-| Runtime | Docker 29.4.0, image `fera-pg16-pgvector:0.8.1` built from `db/docker/Dockerfile` (official `postgres:16-alpine` + pgvector v0.8.1 from source). The prebuilt `pgvector/pgvector:pg16` pull failed repeatedly (registry CDN EOF) and Supabase's local stack needs ~2–3 GB of images on a disk with ~2 GB free, so the local stack is this single container. |
+| Runtime | Docker 29.4.0, image `fera-pg16-pgvector:0.8.1` built from `db/docker/Dockerfile` (official `postgres:16-alpine` + pgvector v0.8.1 from source, pinned to upstream commit 778dacf2…). The prebuilt `pgvector/pgvector:pg16` pull failed repeatedly (registry CDN EOF) and Supabase's local stack needs ~2–3 GB of images on a disk with ~2 GB free, so the local stack is this single container. |
 | Address | `127.0.0.1:54322` (bound to loopback only), database `fera` |
 | `SHOW server_version` | `16.15` |
 | `pg_extension` | `plpgsql 1.0, vector 0.8.1` (A-034: pgvector ≥ 0.8.1 ✔) |
@@ -21,7 +21,9 @@ npm run db:up      # build/start fera-db on 127.0.0.1:54322
 npm run db:reset   # drop + recreate `fera`, apply db/schema_v2.sql, print the checks above
 ```
 
-Observed: first `db:reset` exit 0 (schema applied to a fresh database, no errors); second run exit 0 (idempotent drop/recreate). `DATABASE_URL=postgresql://…@db.example.supabase.co…` → `db:reset refuses a non-local database host`, exit 1. Guard unit tests: `tests/db/reset-guard.test.ts` (13 cases). No credentials are written to any committed file; the local `postgres/postgres` password is the container default for synthetic dev data only.
+Safety: `db:reset` is the only allowed reset. It refuses non-local hosts, any query-string connection parameter (`?host=`/`?hostaddr=`/`?service=` would override the host in libpq) and runs psql with every `PG*` variable removed. **Never** run the Supabase CLI's own `supabase db reset --linked` / `--db-url` against the hosted project.
+
+Observed: first `db:reset` exit 0 (schema applied to a fresh database, no errors); second run exit 0 (idempotent drop/recreate). `DATABASE_URL=postgresql://…@db.example.supabase.co…` → `db:reset refuses a non-local database host`, exit 1. Guard unit tests: `tests/db/reset-guard.test.ts` (19 cases, incl. query-parameter and PG* env bypasses). No credentials are written to any committed file; the local `postgres/postgres` password is the container default for synthetic dev data only.
 
 ## Hosted — NOT done
 

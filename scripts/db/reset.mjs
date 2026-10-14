@@ -2,7 +2,7 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { DEFAULT_DATABASE_URL, assertLocalDatabaseUrl, maskUrl, withDatabase } from "./guard.mjs";
+import { DEFAULT_DATABASE_URL, assertLocalDatabaseUrl, maskUrl, scrubbedEnv, withDatabase } from "./guard.mjs";
 
 const DB_NAME = "fera";
 const SCHEMA = "db/schema_v2.sql";
@@ -12,6 +12,7 @@ function psql(url, args, opts = {}) {
   return execFileSync("psql", [url.href, "-v", "ON_ERROR_STOP=1", "-X", "-q", ...args], {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "inherit"],
+    env: scrubbedEnv(),
     ...opts,
   });
 }

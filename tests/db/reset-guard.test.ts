@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 // @ts-expect-error -- plain ESM script without type declarations
-import { DEFAULT_DATABASE_URL, assertLocalDatabaseUrl, maskUrl, withDatabase } from "../../scripts/db/guard.mjs";
+import { DEFAULT_DATABASE_URL, assertLocalDatabaseUrl, maskUrl, scrubbedEnv, withDatabase } from "../../scripts/db/guard.mjs";
 
 describe("db:reset guard", () => {
   it.each([
@@ -19,6 +19,21 @@ describe("db:reset guard", () => {
     "postgresql://u:p@localhost.attacker.test/postgres",
   ])("refuses non-local %s", (url) => {
     expect(() => assertLocalDatabaseUrl(url)).toThrow(/non-local/);
+  });
+
+  it.each([
+    "postgresql://u:p@localhost:5432/postgres?host=db.example.supabase.co",
+    "postgresql://u:p@127.0.0.1:5432/postgres?hostaddr=203.0.113.7",
+    "postgresql://u:p@localhost/postgres?service=prod",
+    "postgresql://u:p@localhost/postgres?sslmode=require",
+    "postgresql://u:p@localhost/postgres#x",
+  ])("refuses connection parameters %s", (url) => {
+    expect(() => assertLocalDatabaseUrl(url)).toThrow(/connection parameters/);
+  });
+
+  it("strips every PG* variable from the psql environment", () => {
+    const env = scrubbedEnv({ PATH: "/bin", PGHOST: "remote", PGHOSTADDR: "203.0.113.7", PGSERVICE: "prod", PGSERVICEFILE: "/x", PGPASSWORD: "p" });
+    expect(env).toEqual({ PATH: "/bin" });
   });
 
   it.each(["not a url", "", "mysql://u:p@localhost/db", "http://localhost:5432/postgres"])("refuses malformed %j", (url) => {

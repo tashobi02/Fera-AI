@@ -17,7 +17,18 @@ export function assertLocalDatabaseUrl(raw) {
   if (!LOCAL_HOSTS.has(url.hostname)) {
     throw new Error("db:reset refuses a non-local database host");
   }
+  // libpq lets ?host=, ?hostaddr= and ?service= override the authority host, so any
+  // connection parameter in the query string is refused outright.
+  if (url.search !== "" || url.hash !== "") {
+    throw new Error("db:reset refuses connection parameters in DATABASE_URL");
+  }
   return url;
+}
+
+// psql inherits the environment, and PGHOST/PGHOSTADDR/PGSERVICE/PGSERVICEFILE (or any
+// other PG* setting) could redirect it. Only the guarded URL may decide the target.
+export function scrubbedEnv(env = process.env) {
+  return Object.fromEntries(Object.entries(env).filter(([key]) => !key.startsWith("PG")));
 }
 
 export function maskUrl(url) {
