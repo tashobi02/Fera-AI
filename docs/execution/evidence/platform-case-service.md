@@ -1,6 +1,6 @@
 # TASK-015 evidence: case service, state guard, audit and versions
 
-Owner: Mahim · Lane: `mahim-case` (Claude Code), branch `phase2--mahim-case` from `origin/phase2` at `c34fb9b` · Code commit: `e0879e8` · Date: 2026-10-15 (Asia/Dhaka) · Links: TASK-015 (spec-kit T011, T014–T021), COMP-014/015, FR-016/017/018/021/029/031, BR-001/005/010/012/013/019/020/024/025, TC-016, TC-032 (plus the service parts of TC-010/018/029/031/042/046/052/053), D2 Part A §3.3–3.4, §4, §5.5 API-003/004/005/007/010/011, §7.1 and §8, D2 Part B §10.1 and §13.
+Owner: Mahim · Lane: `mahim-case` (Claude Code), branch `phase2--mahim-case` from `origin/phase2` at `c34fb9b` · Code commits: `e0879e8` (initial), `ada7429` (fera-review round 1 fixes) · Date: 2026-10-15 (Asia/Dhaka) · Links: TASK-015 (spec-kit T011, T014–T021), COMP-014/015, FR-016/017/018/021/029/031, BR-001/005/010/012/013/019/020/024/025, TC-016, TC-032 (plus the service parts of TC-010/018/029/031/042/046/052/053), D2 Part A §3.3–3.4, §4, §5.5 API-003/004/005/007/010/011, §7.1 and §8, D2 Part B §10.1 and §13.
 
 All data is synthetic. Only the local PG 16 container at `127.0.0.1:54322` was used, through `npm run test:db`'s throwaway `fera_test_*` databases plus one scratch `fera_test_casedev` database used while iterating and then dropped. No hosted database was touched, and no `.env*` file was read. Nothing was deployed, and no CI run is attached: the hosted deployment and the CI `db` job are **UNKNOWN**.
 
@@ -18,23 +18,47 @@ All data is synthetic. Only the local PG 16 container at `127.0.0.1:54322` was u
 | Decision (API-010) | `src/server/case/decision.ts` | The officer row is re-read and share-locked, and the officer must be active and verified (E-004 otherwise). The service locks the neighbourhood, then rechecks that the candidate is pending, that the live versions equal both the candidate's and the expected versions, and that both endpoints are live (E-005 otherwise). **Confirm** writes the decision, the confirmed candidate, the voided competitors, `match.confirm`, the referral record (simulation) and `referral.recorded`. It moves missing → confirmed and found → referred, stepping through matched_pending_review when an endpoint was open, and reconciles every other affected report. **Reject** writes the reasoned decision, the rejected candidate and `match.reject`, then reconciles the pair. The service function is complete. TASK-028 (Masnun) owns the API-010 route and SCREEN-010 and returns `result.response`. |
 | Close (API-011) | `src/server/case/close.ts` | Verified officers only. `coordination_recorded` needs `confirmed` plus the confirmed pair's referral record; otherwise it is E-017. `resolved_outside_fera` needs `open`; otherwise it is E-005. A found report or a stale version is E-005. The note is stored and never audited. `case.closed` carries the outcome and `reason_recorded: true`. TASK-029 owns the route. |
 | Read (API-004 helper) | `src/server/case/read.ts` | `readCase` returns the contracts' `projectCaseFor` view or `hidden` (the same answer for absent and forbidden). Raw officer contact access writes `case.contact_viewed` in the same transaction. No route was built. |
-| Redaction | re-exported from `src/server/admin/redact.ts` | Not duplicated. API-016 still uses the `fera_redactor` pool. |
+| Redaction | `src/server/admin/redact.ts` (unchanged) | Not duplicated and, since round 1, not re-exported: API-016 routes import it directly and use the `fera_redactor` pool. |
 | Consumer notes | `src/server/case/README.md` | Signatures and usage for Obidit (API-003/005/006) and Masnun (API-007, matcher lock protocol, API-010). |
 | Test harness | `scripts/db/test-db.mjs` | `tests/db/case.test.ts` was added to the per-file fresh-database list. |
 
 No HTTP route or UI was built. D6 TASK-015 names none; the routes belong to TASK-022/023/026/028/029. `src/contracts/**`, `db/schema_v2.sql`, `db/roles.sql`, `docs/spec/**`, `docs/markdown/**`, `docs/code/**` and `docs/MANIFEST.json` are unchanged. No grant was needed beyond the existing `fera_app` grants. For example, `SELECT … FOR UPDATE/SHARE` works through the column UPDATE grants on `cases`, `match_candidates` and `users`. No new dependency was added.
 
-## Verification (2026-10-15, local)
+## Review round 1 (fera-review at `9efd0ef`, 2026-10-15)
+
+All five reviewers returned **PASS**: safeguarding, database, security, TypeScript and silent-failure. There were no BLOCK findings. The WARN items were fixed in `ada7429`:
+
+| # | Finding | Fix |
+|---|---|---|
+| 1 | The barrel exposed low-level steps, so a caller could auto-close (BR-001/012) | `@/server/case` exports the commands only. Matcher and test helpers moved to `src/server/case/internal.ts`, whose header names who may use it and the lock protocol. The `redactCases` re-export is gone. `applyStatus` refuses a step into `confirmed`/`referred`/`closed` for any non-officer actor (`StepAuthorityError` → E-021). The README claims are scoped, and its API-006 guidance now uses `readCase`. |
+| 2 | Malformed IDs and non-null assertions in `decideCandidate` | `isUuid` checks give E-004 before any connection; case and candidate IDs are decoded as UUIDs; a vanished row is a deliberate `DecisionStateError`. |
+| 3 | A service-thrown E-003 was not audited | `compose.ts` writes `access.denied` for every signed-in E-003/E-004, whether from the guard or the handler; E-001 is not audited (tested). |
+| 4 | Re-closing a closed report | E-005, checked before the E-017 rule (unit and DB tests). |
+| 5 | Refused transactions were not audited (D2B §10.1, OD-015-7) | After the rollback, one `match.refused`, `case.close.refused` or `case.edit.refused` row is written, holding `{ error_id, api }` and the case/candidate FKs only when those rows exist. If that write fails, the call fails closed with E-021 (`RefusalAuditError`). E-004 stays with `access.denied`. |
+| 6 | The concurrency tests could hide a deadlock | `ServiceContext.attempts` was added (default 3); both concurrency tests run with `attempts: 1`. New real-DB tests cover a `LockSetChanged` retry (a candidate inserted while the decision waits for its lock: 2 attempts, the new candidate voided, its report reopened) and a deferred pair-integrity refusal surfacing at `SET CONSTRAINTS` after the callback finished. |
+| 7 | Silent failures | `tx.ts` logs `db.refusal` with SQLSTATE, constraint, table, routine and stage only. It logs at error level for the pair-integrity, decision and audit triggers, otherwise warn. Failures with no SQLSTATE log `db.tx_failed` with the stage; a failed ROLLBACK logs `db.rollback_failed` and the original error is still the one thrown; client `error` events log `db.client_error` and the client is discarded; the listener is removed on release. `commands.ts` no longer lets a failed `ROLLBACK TO SAVEPOINT` mask the insert error, moved RELEASE and row mapping out of the try, and treats a NULL stored hash as E-006. `requireRole` logs `audit.unavailable` and throws `PageAuditUnavailableError`. `pool.ts` sets `query_timeout` 31 s (just above the role's 30 s `statement_timeout`) and `keepAlive`. New log keys: `constraint`, `table`, `routine`, `tx_stage`. |
+| 8 | Edits | Ownership is rechecked on the locked row. `confirmed !== true` (or a wrong draft kind) gives E-001 on create and edit, before any connection, and writes no `access.denied`. |
+| 9 | Row casts | Typed per-column decoding is in `src/server/db/decode.ts` (`RowShapeError` names only the table and column). It covers `CaseRow` (including evidence spans), candidates, returned IDs, districts and duplicate refs. There is one shared `Queryable` (`src/server/db/queryable.ts`). |
+| 10 | `readCase` | The district and duplicate lookups run only for officers. |
+| 11 | Flaky test | The request-ID probe `"abc"` became `"not-a-uuid"`, and the leak check runs on `body.error` only. |
+| 12 | Audit actors | `ACTION_ACTORS` in `checkAuditEntry`: `match.*`, `referral.recorded`, `case.closed`, `case.close.refused` and `case.contact_viewed` are officer-only; `case.edited` and `case.edit.refused` are parent-only; admins write only `access.denied`. |
+| nice | 55P03, timestamps, hook test | A lock timeout is retried once, with a 10–40 ms × attempt jittered backoff before each retry. `decided_at` and `closed_at` written by the app use `clock_timestamp()`. The source-grep hook test was replaced by `tests/case/hooks-default.test.ts`, which goes through the real default resolver, `defineRoute` and `requireRole`. `server-only` is not installed, so OD-015-15 applies. |
+
+## Verification (2026-10-15, local, after review round 1 at `ada7429`)
 
 | Command | Exit | Result |
 |---|---|---|
 | `npm run lint` | 0 | clean |
 | `npm run typecheck` | 0 | clean |
-| `npm test` | 0 | 760 passed, 113 skipped (the DB suites); 58 of them in `tests/case/` |
-| `npm run test:db` | 0 | 113/113 on PG 16.15 + pgvector 0.8.1: platform 48, redaction 18, auth 13, **case 34**, each on its own `fera_test_*` database |
+| `npm test` (run twice) | 0, 0 | 772 passed, 116 skipped (the DB suites), both runs; 70 of them in `tests/case/` |
+| `npm run test:db` | 0 | 116/116 on PG 16.15 + pgvector 0.8.1: platform 48, redaction 18, auth 13, **case 37**, each on its own `fera_test_*` database |
 | `npm run build` | 0 | routes `/`, `/_not-found`, `/api/auth/sign-in`, `/api/auth/sign-out`, `/api/health` (no new routes) |
 
-**Flaky test, not part of this change.** One of three `npm test` runs failed `tests/api/platform.test.ts › does not log unsafe client ID abc`. That test asserts that no log line contains "abc", and a random request-ID UUID can contain that hex substring. The file passed when run alone, and the next two full runs passed. The test is in TASK-007's area and was left unchanged.
+**Flaky test, fixed in round 1.** Before round 1, one of three `npm test` runs failed `tests/api/platform.test.ts › does not log unsafe client ID abc`. A random request-ID UUID can contain the hex substring "abc". The probe is now non-hex (item 11), and both round-1 runs passed.
+
+The per-file lists below describe the initial suites. Round 1 added these:
+- unit: 5 transaction-logging/retry tests, 6 service tests, 1 handler-E-003 audit test and 2 default-hook tests, replacing the source-grep test;
+- DB: 3 tests (re-close, deferred refusal at SET CONSTRAINTS, LockSetChanged retry), plus refusal-audit assertions in the stale-decision, rollback and edit tests.
 
 New unit tests (`tests/case/`, 58):
 - **state (5):** The guard's step list is compared with the step lists parsed out of `enforce_case_transition()` in `db/schema_v2.sql`. All 36 status pairs are checked per kind (6 legal missing steps, 3 legal found steps, everything else E-005), along with the TC-032 steps, same-status steps, leaving a terminal state, and initial jumps.
@@ -80,12 +104,12 @@ DB tests (`tests/db/case.test.ts`, 34, as `fera_app`):
 - **No routes or UI.** API-003/005/006/007/010/011/013/004 handlers belong to the consuming tasks. The service is tested directly, not through HTTP. The HTTP-level parts of TC-010/022/052 wait for those routes.
 - **Matching is not triggered.** Create and edit leave `matching_state = 'queued'`. Embedding, duplicate checks and the matcher are TASK-016/017/018. Candidate rows in the tests come from the test helper `addCandidate`, which does no locking and writes no audit.
 - **Redaction-time idempotency gap** (OD-015-4) is open.
-- **No review yet.** `fera-review` and the safeguarding and database reviewers have not been run on this lane.
+- **Review.** fera-review round 1: PASS, with the WARN items fixed in `ada7429`. A re-review of the fixes has not been run.
 - **Hosted environment.** Hosted Supabase and Vercel behaviour, CI and the multi-instance lock timeout under load are **UNKNOWN**.
 
 ## Open decisions
 
-OD-015-1 to OD-015-13 are recorded in `specs/001-platform-foundation/contract-notes.md` ("Case service open decisions"):
+OD-015-1 to OD-015-17 are recorded in `specs/001-platform-foundation/contract-notes.md` ("Case service open decisions"):
 - E-006 vs D2A's E-005 wording
 - `voided` vs `superseded`
 - audit codes outside the frozen contracts, and the effective-role actor
@@ -98,7 +122,19 @@ OD-015-1 to OD-015-13 are recorded in `specs/001-platform-foundation/contract-no
 - `system` actor for submitted → open
 - closure with leftover pending candidates
 - edit side effects
-- the unmapped lock timeout
+- the lock timeout (now retried once)
+- audit growth from repeated denials and replays (OD-015-14)
+- `server-only` (OD-015-15)
+- `FOR UPDATE` kept on purpose (OD-015-16)
+- unindexed lookups (OD-015-17)
+
+Notes for consumers:
+- A retry after a **successful** decision or closure returns E-005, because the candidate is no longer pending or the report is already closed. The UI must reload rather than show a failure.
+- TASK-017 duties come from the lock protocol in `src/server/case/internal.ts`:
+  - lock both endpoints ascending before inserting candidates;
+  - reconcile the queue state in the same transaction;
+  - never step a report into `confirmed`, `referred` or `closed`.
+- `voided` vs `superseded` is still OD-015-2.
 
 ## Contract changes wanted (not made; `src/contracts/` is frozen)
 
