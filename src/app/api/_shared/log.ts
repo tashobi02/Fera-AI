@@ -11,7 +11,7 @@ export type LogLevel = keyof typeof LEVELS;
 
 export const LOG_EVENTS = [
   "request", "handler.threw", "response.invalid", "envelope.fallback", "audit.unavailable",
-  "auth.principal_invalid", "auth.resolver_stub", "auth.dev_secret", "db.pool_error",
+  "auth.principal_invalid", "auth.resolver_stub", "auth.dev_secret", "auth.insecure_cookies", "db.pool_error",
   "ratelimit.limited", "ratelimit.unavailable", "ratelimit.degraded", "ratelimit.memory_store", "ratelimit.unknown_address",
 ] as const;
 export type LogEvent = (typeof LOG_EVENTS)[number];

@@ -1,7 +1,9 @@
 // TASK-006: signed cookie values, cookie names/attributes and key loading (D2A §9.1/§9.4).
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { CookieJar } from "@/app/api/_shared";
+import { CookieJar, secureCookiesFor } from "@/app/api/_shared";
+import { get, noParams, testFactory } from "../api/fakes";
+import { z } from "zod";
 import { SecretConfigError, decodeSecret, loadSecret, subkey } from "@/server/auth";
 import {
   SESSION_TTL_SECONDS,
@@ -163,5 +165,28 @@ describe("signing keys", () => {
   it("derives distinct subkeys per purpose", () => {
     const secret = Buffer.alloc(32, 5);
     expect(subkey(secret, "user-session.v1").equals(subkey(secret, "parent-session.v1"))).toBe(false);
+  });
+});
+
+describe("Secure cookie mode", () => {
+  it("is on in production, off for the DEMO_MODE=1 laptop, and always on for Vercel", () => {
+    expect(secureCookiesFor(true, {})).toBe(true);
+    expect(secureCookiesFor(true, { DEMO_MODE: "1" })).toBe(false);
+    expect(secureCookiesFor(true, { DEMO_MODE: "1", VERCEL: "1" })).toBe(true);
+    expect(secureCookiesFor(false, { VERCEL: "1" })).toBe(true);
+    expect(secureCookiesFor(false, {})).toBe(false);
+  });
+
+  it("logs auth.insecure_cookies once at error when a production server runs without Secure", async () => {
+    const { defineRoute, logs } = testFactory(null, { production: true, secureCookies: false });
+    const route = defineRoute({ api: "API-019", response: z.strictObject({ ok: z.literal(true) }), handler: async () => ({ ok: true as const }) });
+    await route(get("/api/health"), noParams);
+    await route(get("/api/health"), noParams);
+    const hits = logs.parsed().filter((l) => l.event === "auth.insecure_cookies");
+    expect(hits).toHaveLength(1);
+    expect(hits[0].level).toBe(50);
+    const dev = testFactory(null, { production: false, secureCookies: false });
+    await dev.defineRoute({ api: "API-019", response: z.strictObject({ ok: z.literal(true) }), handler: async () => ({ ok: true as const }) })(get("/api/health"), noParams);
+    expect(dev.logs.parsed().some((l) => l.event === "auth.insecure_cookies")).toBe(false);
   });
 });

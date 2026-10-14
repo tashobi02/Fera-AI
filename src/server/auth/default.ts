@@ -17,10 +17,10 @@ export function defaultAuthStore(): AuthStore {
 export function defaultAuth(): Auth {
   auth ??= createAuth({
     store: defaultAuthStore(),
-    keys: () => ({
-      session: subkey(loadSecret("AUTH_SECRET"), "user-session.v1"),
-      parent: subkey(loadSecret("PARENT_COOKIE_KEY"), "parent-session.v1"),
-    }),
+    keys: {
+      session: () => subkey(loadSecret("AUTH_SECRET"), "user-session.v1"),
+      parent: () => subkey(loadSecret("PARENT_COOKIE_KEY"), "parent-session.v1"),
+    },
   });
   return auth;
 }

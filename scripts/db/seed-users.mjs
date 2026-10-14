@@ -8,9 +8,12 @@
 // D2A §9.5 "re-seed" recovery path. Other accounts are untouched.
 //
 // Passwords: SEED_ADMIN_PASSWORD for the admin, SEED_USER_PASSWORD for the five desk
-// accounts, each at least 16 characters; SEED_ADMIN_USER renames the admin. Unset, the
-// documented local dev defaults below apply (loopback, synthetic, not secrets). Passwords
-// are never printed.
+// accounts, each 16–200 characters (NFC-normalised, as the app verifies them);
+// SEED_ADMIN_USER renames the admin. The committed local defaults below apply only to
+// a plain local dev run: the default admin URL and database, without DEMO_MODE=1 or
+// NODE_ENV=production. Anything else — the finale laptop (DEMO_MODE=1), a production
+// build, an overridden FERA_DB_ADMIN_URL or FERA_DB_NAME — needs both passwords set
+// explicitly in the environment. Passwords are never printed.
 import { hash } from "@node-rs/argon2";
 import { pathToFileURL } from "node:url";
 import pg from "pg";
@@ -39,10 +42,21 @@ export function seedAccounts(env = process.env) {
   ];
 }
 
+// Why the committed defaults may not be used, or null when they may.
+export function defaultsRefusedBecause(env = process.env) {
+  if (env.DEMO_MODE === "1") return "DEMO_MODE=1";
+  if (env.NODE_ENV === "production") return "NODE_ENV=production";
+  if (env.FERA_DB_ADMIN_URL) return "FERA_DB_ADMIN_URL is set";
+  if (env.FERA_DB_NAME) return "FERA_DB_NAME is set";
+  return null;
+}
+
 export function seedPasswords(env = process.env) {
+  const refused = defaultsRefusedBecause(env);
   const out = {};
   for (const [key, fallback] of Object.entries(LOCAL_SEED_PASSWORDS)) {
-    const value = env[key] || fallback;
+    if (!env[key] && refused) throw new Error(`${key} must be set explicitly (${refused}); the local defaults are for plain local dev only`);
+    const value = (env[key] || fallback).normalize("NFC");
     if (value.length < MIN_PASSWORD || value.length > 200) throw new Error(`${key} must be 16–200 characters`);
     out[key] = value;
   }

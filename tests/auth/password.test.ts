@@ -1,6 +1,6 @@
 // TASK-006: argon2id password KDF (D2B §10.1/§10.2 A07). Synthetic passwords only.
 import { describe, expect, it } from "vitest";
-import { ARGON2_PARAMS, hashPassword, isCurrentHash, verifyPassword } from "@/server/auth";
+import { ARGON2_PARAMS, PASSWORD_MIN_CHARS, hashPassword, isCurrentHash, verifyPassword, warmPasswordCheck } from "@/server/auth";
 
 const PASSWORD = "synthetic-pass-0001";
 
@@ -34,9 +34,26 @@ describe("argon2id password hashing", () => {
     }
   });
 
-  it("refuses empty and over-long passwords at hashing time", async () => {
+  it("refuses passwords under 10 or over 200 characters at hashing time (D2B §10.2 A07)", async () => {
+    expect(PASSWORD_MIN_CHARS).toBe(10);
     expect(() => hashPassword("")).toThrow();
+    expect(() => hashPassword("123456789")).toThrow();
+    expect(isCurrentHash(await hashPassword("1234567890"))).toBe(true);
     expect(() => hashPassword("x".repeat(201))).toThrow();
+  });
+
+  it("NFC-normalises passwords, so composed and decomposed Bangla input verify the same", async () => {
+    const composed = "synthetic-\u0995\u09CB\u09A1-pass"; // কোড with ো as U+09CB
+    const decomposed = "synthetic-\u0995\u09C7\u09BE\u09A1-pass"; // ো typed as ে + া
+    expect(decomposed).not.toBe(composed);
+    expect(decomposed.normalize("NFC")).toBe(composed);
+    const stored = await hashPassword(decomposed);
+    expect(await verifyPassword(stored, composed)).toBe(true);
+    expect(await verifyPassword(stored, decomposed)).toBe(true);
+  });
+
+  it("warmPasswordCheck builds the dummy hash without throwing", async () => {
+    await expect(warmPasswordCheck()).resolves.toBeUndefined();
   });
 
   it("costs about the same for an unknown account as for a wrong password (one argon2 verify each)", async () => {

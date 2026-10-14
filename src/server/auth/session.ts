@@ -33,12 +33,13 @@ import {
 
 export const MINTING_APIS: readonly ApiId[] = ["API-001", "API-002"];
 
-export type AuthKeys = { session: Buffer; parent: Buffer };
+// Each key is loaded on use from the environment, and only where it is needed, so a
+// missing PARENT_COOKIE_KEY never breaks staff sign-in and vice versa.
+export type AuthKeys = { session: () => Buffer; parent: () => Buffer };
 
 export type AuthDeps = {
   store: AuthStore;
-  // Called per use so keys come from the environment at call time.
-  keys: () => AuthKeys;
+  keys: AuthKeys;
   now?: () => number;
 };
 
@@ -46,7 +47,7 @@ export function createAuth(deps: AuthDeps) {
   const now = deps.now ?? Date.now;
 
   async function userFromToken(token: string): Promise<Principal | null> {
-    const key = deps.keys().session;
+    const key = deps.keys.session();
     const claims = verifySessionToken(key, token, now());
     if (!claims) return null;
     const row = await deps.store.userById(claims.userId);
@@ -55,7 +56,7 @@ export function createAuth(deps: AuthDeps) {
   }
 
   async function parentFromToken(token: string): Promise<Principal | null> {
-    const sessionId = verifyParentToken(deps.keys().parent, token);
+    const sessionId = verifyParentToken(deps.keys.parent(), token);
     if (!sessionId) return null;
     return parentPrincipal(await deps.store.parentSession(sessionId), now());
   }
@@ -74,7 +75,7 @@ export function createAuth(deps: AuthDeps) {
     const principal = parentPrincipal(row, now());
     if (!principal) return null;
     const remaining = Math.floor((Date.parse(row.expires_at) - now()) / 1000);
-    cookies.set(cookieNames(cookies.secure).parent, signParentToken(deps.keys().parent, row.id), {
+    cookies.set(cookieNames(cookies.secure).parent, signParentToken(deps.keys.parent(), row.id), {
       maxAgeSeconds: Math.max(0, Math.min(PARENT_COOKIE_MAX_AGE_SECONDS, remaining)),
     });
     return principal;
@@ -92,7 +93,7 @@ export function createAuth(deps: AuthDeps) {
 
   // Starts an 8-hour credential session for an already verified account.
   function startSession(user: AuthUserRow, cookies: CookieJar): SessionView {
-    const { token, expiresAt } = signSessionToken(deps.keys().session, user.id, user.password_hash, now());
+    const { token, expiresAt } = signSessionToken(deps.keys.session(), user.id, user.password_hash, now());
     cookies.set(cookieNames(cookies.secure).session, token, { maxAgeSeconds: SESSION_TTL_SECONDS });
     const p = userPrincipal(user);
     return {
@@ -104,10 +105,10 @@ export function createAuth(deps: AuthDeps) {
     };
   }
 
-  // Throws when a signing key is missing or short, so a misconfigured server fails the
+  // Throws when the session key is missing or short, so a misconfigured server fails the
   // same way for right and wrong credentials (no password oracle).
   function checkKeys(): void {
-    deps.keys();
+    deps.keys.session();
   }
 
   function endSession(cookies: CookieJar): void {

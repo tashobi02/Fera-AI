@@ -7,7 +7,7 @@ export { createSignIn } from "./sign-in";
 export type { SignInDeps } from "./sign-in";
 export { pgAuthStore } from "./store";
 export type { AuthStore, AuthUserRow } from "./store";
-export { hashPassword, verifyPassword, isCurrentHash, ARGON2_PARAMS } from "./password";
+export { hashPassword, verifyPassword, isCurrentHash, warmPasswordCheck, ARGON2_PARAMS, PASSWORD_MIN_CHARS } from "./password";
 export { cookieNames, cookieSourceFromHeader, SESSION_TTL_SECONDS, PARENT_COOKIE_MAX_AGE_SECONDS } from "./tokens";
 export type { CookieSource } from "./tokens";
 export { loadSecret, subkey, decodeSecret, SecretConfigError } from "./secrets";

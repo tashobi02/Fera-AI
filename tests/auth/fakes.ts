@@ -2,9 +2,10 @@
 import { randomUUID } from "node:crypto";
 import { toDhakaIso, type UserRole } from "@/contracts";
 import type { ParentSessionRow } from "@/contracts/server";
-import { createAuth, type AuthKeys, type AuthStore, type AuthUserRow } from "@/server/auth";
+import { createAuth, type AuthStore, type AuthUserRow } from "@/server/auth";
 
-export const KEYS: AuthKeys = { session: Buffer.alloc(32, 1), parent: Buffer.alloc(32, 2) };
+export const KEYS = { session: Buffer.alloc(32, 1), parent: Buffer.alloc(32, 2) };
+export const KEY_SOURCE = { session: () => KEYS.session, parent: () => KEYS.parent };
 export const DAY_MS = 86_400_000;
 
 export class MemoryAuthStore implements AuthStore {
@@ -62,7 +63,7 @@ export class MemoryAuthStore implements AuthStore {
 
 export function fakeAuth(now: () => number = Date.now) {
   const store = new MemoryAuthStore(now);
-  const auth = createAuth({ store, keys: () => KEYS, now });
+  const auth = createAuth({ store, keys: KEY_SOURCE, now });
   return { store, auth };
 }
 

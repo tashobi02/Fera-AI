@@ -128,13 +128,16 @@ describe("API-020 sign-in", () => {
     expect(t.store.reads).toBe(0);
   });
 
-  it("with a missing signing key it fails the same way (E-021) for right and wrong passwords, before any lookup", async () => {
+  it("with a missing session key it fails the same way (E-021) for right and wrong passwords, before any lookup", async () => {
     const store = new MemoryAuthStore();
     store.addUser("officer.demo", "officer", officerHash, { verified: true });
     const auth = createAuth({
       store,
-      keys: () => {
-        throw new Error("AUTH_SECRET must be set");
+      keys: {
+        session: () => {
+          throw new Error("AUTH_SECRET must be set");
+        },
+        parent: () => Buffer.alloc(32, 2),
       },
     });
     const signIn = createSignIn({ auth, store, limiter: new RateLimiter(new MemoryRateLimitStore()), keyer: createKeyer("k") });
@@ -144,5 +147,47 @@ describe("API-020 sign-in", () => {
       expect((await errorOf(res)).body.error.id).toBe("E-021");
     }
     expect(store.reads).toBe(0);
+  });
+
+  it("does not need PARENT_COOKIE_KEY: staff sign-in works with only the session key", async () => {
+    const store = new MemoryAuthStore();
+    store.addUser("officer.demo", "officer", officerHash, { verified: true });
+    const auth = createAuth({
+      store,
+      keys: {
+        session: () => Buffer.alloc(32, 1),
+        parent: () => {
+          throw new Error("PARENT_COOKIE_KEY must be set");
+        },
+      },
+    });
+    const signIn = createSignIn({ auth, store, limiter: new RateLimiter(new MemoryRateLimitStore()), keyer: createKeyer("k") });
+    const route = testFactory(null, { resolvePrincipal: auth.resolvePrincipal }).defineRoute({
+      api: "API-020",
+      response: sessionViewSchema,
+      handler: ({ req, cookies }) => signIn(req, cookies),
+    });
+    const res = await route(jsonPost("/api/auth/sign-in", { username: "officer.demo", password: PASSWORD }), noParams);
+    expect(res.status).toBe(200);
+  });
+
+  it("a parallel burst runs at most five credential checks per key; the rest get E-007 without a lookup", async () => {
+    const t = setup();
+    const results = await Promise.all(
+      Array.from({ length: 12 }, () => t.post({ username: "officer.demo", password: "wrong-password-0" })),
+    );
+    const ids = await Promise.all(results.map(async (r) => (await errorOf(r)).body.error.id));
+    expect(ids.filter((id) => id === "E-002")).toHaveLength(5);
+    expect(ids.filter((id) => id === "E-007")).toHaveLength(7);
+    expect(t.store.reads).toBe(5);
+    // The slots are released: the window now holds 5 stored failures, so the next try is limited too.
+    expect((await errorOf(await t.post({ username: "officer.demo", password: PASSWORD }))).body.error.id).toBe("E-007");
+  });
+
+  it("in-flight successes hold a slot only while running", async () => {
+    const t = setup();
+    const burst = await Promise.all(Array.from({ length: 5 }, () => t.post({ username: "officer.demo", password: PASSWORD })));
+    expect(burst.map((r) => r.status)).toEqual([200, 200, 200, 200, 200]);
+    expect((await t.post({ username: "officer.demo", password: PASSWORD })).status).toBe(200);
   });
 });

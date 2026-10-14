@@ -164,6 +164,7 @@ export function createRouteFactory(deps: RouteDeps) {
   const production = deps.production ?? isProductionEnv();
   const secureCookies = deps.secureCookies ?? secureCookiesFor(production);
   let memoryStoreWarned = false;
+  let insecureWarned = false;
   let noProxyWarned = false;
 
   return function defineRoute<
@@ -194,6 +195,10 @@ export function createRouteFactory(deps: RouteDeps) {
       let reason: ErrorReason | undefined;
       let response: Response;
 
+      if (production && !secureCookies && !insecureWarned) {
+        insecureWarned = true;
+        logger.error({ event: "auth.insecure_cookies" });
+      }
       if (production && limiter.usesMemoryStore && !memoryStoreWarned) {
         memoryStoreWarned = true;
         logger.error({ event: "ratelimit.memory_store" });

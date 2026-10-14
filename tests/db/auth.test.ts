@@ -92,6 +92,8 @@ describe.skipIf(!dbTestsEnabled)("auth on PostgreSQL 16 (TASK-006)", () => {
         execFileSync("node", ["scripts/db/seed-users.mjs"], { env: { ...process.env, ...PASSWORDS, ...env }, stdio: "pipe" });
       expect(run({ FERA_DB_ADMIN_URL: "postgresql://postgres:x@db.example.invalid:5432/postgres" })).toThrow(/non-local/);
       expect(run({ SEED_USER_PASSWORD: "too-short" })).toThrow(/16/);
+      // FERA_DB_NAME is set here (per-run database), so the committed defaults are refused.
+      expect(run({ SEED_USER_PASSWORD: "", SEED_ADMIN_PASSWORD: "" })).toThrow(/must be set explicitly/);
     });
   });
 

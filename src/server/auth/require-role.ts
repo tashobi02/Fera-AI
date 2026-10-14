@@ -5,30 +5,44 @@
 // - No principal → redirect to /sign-in?next=<same-origin path> (E-002 → SCREEN-008 →
 //   return to the same URL), except on parent-only pages: parents have no account, so
 //   they get the not-found page instead.
-// - Signed in with the wrong effective role → notFound() (SCREEN-016, same as E-004), so a
-//   page never confirms that a record or an area exists. An unverified officer has staff
-//   permissions (BR-024).
-// - Reads cookies only; it never mints a parent session (that happens on API-001/002).
-// A page that loads a specific record still owes the access.denied audit for a hidden
-// record through the case service (TASK-015).
-import { cookies } from "next/headers";
+// - Signed in with the wrong effective role → an `access.denied` audit through the
+//   page-denial hook, then notFound() (SCREEN-016, same as E-004), so a page never
+//   confirms that a record or an area exists (BR-010, D2B E-004). An unverified officer
+//   has staff permissions (BR-024).
+// - The hook is TASK-015's audit writer (setPageAuditDenied, or the `auditDenied` option).
+//   Until one is installed, or when it throws, the guard fails closed: it throws, so the
+//   visitor sees the error page rather than SCREEN-016 — mirroring the API layer, where a
+//   signed-in denial without audit is E-021 (compose.ts).
+// - Reads the raw Cookie header, so duplicated cookies are refused exactly as in route
+//   handlers. It never mints a parent session (that happens on API-001/002).
+import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { effectiveRole, type EffectiveRole, type Principal } from "@/contracts/server";
 import { isProductionEnv, secureCookiesFor } from "@/app/api/_shared/cookies";
 import { defaultAuth } from "./default";
+import { cookieSourceFromHeader } from "./tokens";
 
 export const SIGN_IN_PATH = "/sign-in";
 const RETURN_MAX_CHARS = 512;
 
 // Only a same-origin absolute path survives; anything else returns to the role home.
+// Dot segments are refused before parsing (also as %2e), because URL normalisation can
+// turn "/a/..//evil.example" into "//evil.example"; the normalised result must still
+// start with exactly one "/".
+const DOT_SEGMENT = /^(?:\.|%2e){1,2}$/i;
+
 export function safeReturnPath(raw: string | null | undefined): string | null {
   if (typeof raw !== "string" || raw.length === 0 || raw.length > RETURN_MAX_CHARS) return null;
   if (!raw.startsWith("/") || raw.startsWith("//") || raw.startsWith("/\\")) return null;
   // Control characters, whitespace and backslashes are refused outright.
-  if (/[\u0000- \u007f\\]/.test(raw)) return null;
+  if (/[\u0000-\u0020\u007f\\]/.test(raw)) return null;
+  const path = raw.split(/[?#]/, 1)[0];
+  if (path.split("/").some((segment) => DOT_SEGMENT.test(segment))) return null;
   const parsed = new URL(raw, "http://fera.invalid");
   if (parsed.origin !== "http://fera.invalid") return null;
-  return `${parsed.pathname}${parsed.search}`;
+  const out = `${parsed.pathname}${parsed.search}`;
+  if (!out.startsWith("/") || out.startsWith("//") || out.startsWith("/\\")) return null;
+  return out;
 }
 
 export function signInPath(returnTo: string | null | undefined): string {
@@ -51,17 +65,53 @@ export function decideAccess(principal: Principal | null, allowed: readonly Effe
   return parentOnly ? { kind: "not-found" } : { kind: "sign-in" };
 }
 
+export type PageDeniedInput = {
+  principal: Principal;
+  role: EffectiveRole;
+  path: string; // pathname only, no query
+  errorId: "E-004";
+  reason: "role";
+  caseId: null; // a page guard denies before any record is loaded
+};
+// Writes the `access.denied` audit row for a page denial (TASK-015). A throw fails closed.
+export type PageAuditDenied = (input: PageDeniedInput) => Promise<void>;
+
+export class PageAuditUnavailableError extends Error {
+  constructor() {
+    super("page denial audit unavailable");
+    this.name = "PageAuditUnavailableError";
+  }
+}
+
+let pageAuditDenied: PageAuditDenied | null = null;
+
+// TASK-015 installs the audit writer here at server start.
+export function setPageAuditDenied(hook: PageAuditDenied | null): void {
+  pageAuditDenied = hook;
+}
+
 export async function currentPrincipal(): Promise<Principal | null> {
-  const store = await cookies();
-  return defaultAuth().principalFrom((name) => store.getAll(name).map((c) => c.value), secureCookiesFor(isProductionEnv()));
+  const cookieHeader = (await headers()).get("cookie");
+  return defaultAuth().principalFrom(cookieSourceFromHeader(cookieHeader), secureCookiesFor(isProductionEnv()));
 }
 
 export async function requireRole(
   allowed: readonly EffectiveRole[],
   returnTo: string,
+  opts: { auditDenied?: PageAuditDenied } = {},
 ): Promise<{ principal: Principal; role: EffectiveRole }> {
-  const decision = decideAccess(await currentPrincipal(), allowed);
+  const principal = await currentPrincipal();
+  const decision = decideAccess(principal, allowed);
   if (decision.kind === "sign-in") redirect(signInPath(returnTo));
-  if (decision.kind === "not-found") notFound();
+  if (decision.kind === "not-found") {
+    const role = effectiveRole(principal);
+    if (principal && role) {
+      const hook = opts.auditDenied ?? pageAuditDenied;
+      if (!hook) throw new PageAuditUnavailableError();
+      const path = safeReturnPath(returnTo)?.split("?", 1)[0] ?? "/";
+      await hook({ principal, role, path, errorId: "E-004", reason: "role", caseId: null });
+    }
+    notFound();
+  }
   return { principal: decision.principal, role: decision.role };
 }
