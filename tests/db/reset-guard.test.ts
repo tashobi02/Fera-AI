@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 // @ts-expect-error -- plain ESM script without type declarations
-import { DEFAULT_DATABASE_URL, assertLocalDatabaseUrl, maskUrl, scrubbedEnv, withDatabase } from "../../scripts/db/guard.mjs";
+import { DEFAULT_DATABASE_URL, assertDatabaseName, assertLocalDatabaseUrl, maskUrl, scrubbedEnv, withDatabase } from "../../scripts/db/guard.mjs";
 
 describe("db:reset guard", () => {
   it.each([
@@ -44,5 +44,12 @@ describe("db:reset guard", () => {
     const url = assertLocalDatabaseUrl("postgresql://postgres:s3cret@127.0.0.1:54322/postgres");
     expect(maskUrl(url)).not.toContain("s3cret");
     expect(withDatabase(url, "fera").pathname).toBe("/fera");
+  });
+
+  it("database names must be fera-prefixed identifiers", () => {
+    for (const ok of ["fera", "fera_test_42"]) expect(assertDatabaseName(ok)).toBe(ok);
+    for (const bad of ["postgres", "fera; DROP DATABASE x", "Fera", "fera-x", "", "x".repeat(50)]) {
+      expect(() => assertDatabaseName(bad)).toThrow();
+    }
   });
 });
