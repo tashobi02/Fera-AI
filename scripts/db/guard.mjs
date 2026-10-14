@@ -37,6 +37,14 @@ export function maskUrl(url) {
   return copy.href;
 }
 
+// Only fera-prefixed names, so tests can use per-run databases (fera_test_<n>) safely.
+export function assertDatabaseName(name) {
+  if (typeof name !== "string" || !/^fera[a-z0-9_]{0,40}$/.test(name)) {
+    throw new Error("FERA_DB_NAME must match ^fera[a-z0-9_]*$");
+  }
+  return name;
+}
+
 // The maintenance URL connects to the server's `postgres` database so `fera` can be dropped.
 export function withDatabase(url, name) {
   const copy = new URL(url.href);
