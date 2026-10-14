@@ -1,118 +1,181 @@
 # TASK-062 evidence — schema invariants, restricted roles, related-payload redaction
 
-Owner: Mahim · Lane: `mahim-invariants` (Claude Code) · Date: 2026-10-14 (Asia/Dhaka) · Links: TASK-062 (T006/T007), BR-009/010/012/013/020/025/026, TC-015/016/029/032/046/050/051/052/053/062, D2 Part A §7/7.1/§9 and API-016.
+Owner: Mahim · Lane: `mahim-invariants` (Claude Code) · Date: 2026-10-14/15 (Asia/Dhaka) · Links: TASK-062 (T006/T007), BR-009/010/012/013/020/025/026, TC-015/016/029/032/046/050/051/052/053/062, D2 Part A §7/7.1/§9 and API-016.
 
-`db/schema_v2.sql` is unchanged (SHA-256 `3fe345b1…bf67`, byte-identical to `docs/code/schema_v2.sql`). Roles and grants live outside it in `db/roles.sql`, applied by `db:reset` straight after the schema. Every gap below is reported, not patched.
+`db/schema_v2.sql` is unchanged (SHA-256 `3fe345b1…bf67`, byte-identical to `docs/code/schema_v2.sql`). Roles, grants and the function security attributes live outside it in `db/roles.sql`, which `db:reset` applies straight after the schema. Schema gaps are reported here, not patched.
+
+**Scope of this evidence.** Everything below is the database-level part, run on the local container. The app and API parts of TC-016, TC-046, TC-052, TC-053 and TC-062 are still pending in TASK-015 and the route owners. The hosted database is **UNKNOWN**.
 
 ## Roles (T006)
 
-D2A asks for "restricted credentials, never the schema owner", "separate restricted runtime roles" and, for API-016, an "admin route plus restricted redaction DB role". It names no roles, so these are this lane's choice (**OD-062-1**, for review):
+D2A asks for "restricted credentials, never the schema owner", "separate restricted runtime roles" and, for API-016, an "admin route plus restricted redaction DB role". It does not name the roles, so the three below are this lane's choice. That choice is **OD-062-1**, open for review.
 
 | Role | Login | Purpose |
 |---|---|---|
-| `fera_owner` | no | Owns every table, sequence, enum and non-extension function in `public` (ownership is transferred after the superuser applies the schema; `vector` stays with the extension owner). Migrations use `SET ROLE fera_owner`. |
+| `fera_owner` | no | Owns every table, enum and non-extension function in `public`. The superuser applies the schema, then ownership is transferred; `vector` stays with the extension owner. Migrations use `SET ROLE fera_owner`. |
 | `fera_app` | yes, `CONNECTION LIMIT 40` | Application runtime for every route except payload redaction. |
 | `fera_redactor` | yes, `CONNECTION LIMIT 5` | API-016 only; used by `src/server/admin/redact.ts`. |
 
-All three: `NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS`; the two login roles are `NOINHERIT`, members of nothing, `search_path = public`. Roles are cluster-global, so `db/roles.sql` creates them only if absent and re-applies attributes, passwords and grants on each run. Passwords come from `FERA_APP_DB_PASSWORD` / `FERA_REDACTOR_DB_PASSWORD` via psql `\getenv` (never argv). The local defaults in `scripts/db/roles.mjs` (`fera_app_local_dev`, `fera_redactor_local_dev`) only work on the loopback-only synthetic container and are not secrets.
+All three are `NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS`. Both login roles are also `NOINHERIT`.
 
-### Grant list
+Role settings: `ALTER ROLE … RESET ALL` runs first, then:
 
-Database: `REVOKE ALL ON DATABASE <db> FROM PUBLIC` (no CONNECT, no TEMP), `GRANT CONNECT` to the two login roles. Schema: `REVOKE CREATE ON SCHEMA public FROM PUBLIC`, `GRANT USAGE` to both. Start state: `REVOKE ALL` on all tables, sequences and the three service functions from PUBLIC and both roles. No role gets TRUNCATE, TRIGGER or REFERENCES anywhere. Identity columns need no sequence grant.
+| Setting | `fera_app` | `fera_redactor` | Why |
+|---|---|---|---|
+| `search_path` | `public` | `public` | |
+| `statement_timeout` | 30s | 60s | Requests are short; one redaction batch item can take longer. |
+| `lock_timeout` | 5s | 5s | A stuck lock must not stall case rows. |
+| `idle_in_transaction_session_timeout` | 60s | 60s | An abandoned transaction must not hold case rows. |
+
+`db/roles.sql` behaviour:
+- **Idempotent.** It tolerates a concurrent `CREATE ROLE`. Already-owned objects are skipped, so a re-run takes no `ACCESS EXCLUSIVE` locks. Re-running it twice in a row was observed to work.
+- **Drift repair.** Memberships *of* the three roles are revoked, and so is anyone else's membership *in* `fera_app`/`fera_redactor`, except the running operator's. Grants of `fera_owner` to operators are kept.
+- **Transactional.** Ownership, function attributes and every REVOKE/GRANT run in one transaction.
+- **Single runner.** Role statements write shared catalogs, so two concurrent runs can fail with "tuple concurrently updated". Run one `db:reset`/`test:db` per cluster at a time. `test:db` itself runs its files one after another.
+- **Passwords.** They come from `FERA_APP_DB_PASSWORD`/`FERA_REDACTOR_DB_PASSWORD` through psql `\getenv`, never argv. An unset, empty or shorter-than-16-character value stops the script before any statement runs (observed). `scripts/db/rolePasswordEnv` treats an empty value as unset, with a warning. It returns the local defaults `fera_app_local_dev` and `fera_redactor_local_dev` only after checking that the admin URL is local. These defaults are not secrets.
+- **Cleartext in the statement.** `ALTER ROLE … PASSWORD` carries the cleartext, so server statement logging could record it. That is acceptable only on the local container. On a hosted database, use psql `\password` or a precomputed SCRAM-SHA-256 verifier.
+
+### OD-062-2: service functions run as their owner (provisional)
+
+The frozen schema defines `redact_case`, `reserve_ai_call` and `settle_ai_call` as SECURITY INVOKER. `db/roles.sql` now runs `ALTER FUNCTION … SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp` on all three. They are owned by `fera_owner`, and the function bodies are unchanged. It also runs `ALTER DEFAULT PRIVILEGES FOR ROLE fera_owner REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC`.
+
+Callers now hold EXECUTE in place of the table privileges the functions write. The tests show the bypass is closed:
+- `fera_redactor` cannot null identifying fields, set `anonymised_at`, rewrite candidate reasons, delete outputs or insert audit rows.
+- `fera_app` cannot move `ai_budget`, write `ai_reservations` or change `intake_drafts.ai_calls_used`/`revision`.
+
+This change alters the security attributes of spec-pack functions, so the PR **needs review by all three owners**. It is resolved here only provisionally, in the grants layer.
+
+**Finding while applying it.** Deferred constraint triggers fire at COMMIT, where they run as the session role (`fera_redactor`) rather than inside the definer function. `check_pair_integrity` reads whole rows that the redactor cannot read. So `redact.ts` sets `SET CONSTRAINTS ALL IMMEDIATE` inside its transaction, and the deferred checks then fire inside `redact_case()` as the owner. A direct `SELECT redact_case(…)` without it fails closed: 42501 at COMMIT, nothing changed (tested). Nothing had to be forced, and no trigger path broke.
+
+### Grant list (golden-tested)
+
+Database: `REVOKE ALL ON DATABASE <db> FROM PUBLIC` (no CONNECT, no TEMP), then `GRANT CONNECT` to the two login roles. Schema: `REVOKE CREATE ON SCHEMA public FROM PUBLIC`, then `GRANT USAGE` to both. Starting point: `REVOKE ALL` on all tables, sequences and the three functions, from PUBLIC and both roles. No role gets TRUNCATE, TRIGGER or REFERENCES anywhere.
+
+`tests/db/platform.test.ts` compares the effective table- and column-level privileges for every role × table against this list. Any widening or narrowing of a grant fails the test.
 
 `fera_app`:
 
 | Object | Privileges |
 |---|---|
 | `districts`, `district_neighbours` | SELECT |
-| `users` | SELECT, INSERT; UPDATE (display_name, password_hash, verified, is_active, district_code) |
+| `users` | SELECT; UPDATE (verified), for API-017 [MOCK]. Accounts, roles and activity are owner-seeded; no INSERT |
 | `parent_sessions` | SELECT, INSERT; UPDATE (last_seen_at, revoked_at) |
-| `intake_drafts` | SELECT, INSERT, DELETE (D2A §8 cleanup); UPDATE (payload_hash, revision, ai_calls_used) |
-| `cases` | SELECT; INSERT on every column except anonymised_at, closed_at, outcome, outcome_note, created_at, updated_at; UPDATE on payload, lifecycle and matching columns. Not updatable: id, ref_code, kind, source, source_url, is_synthetic, reporter_session_id, created_by_user_id, client_submission_id, submission_payload_hash, anonymised_at, created_at |
+| `intake_drafts` | SELECT, INSERT, DELETE (D2A §8 cleanup); UPDATE (payload_hash). The counter and revision move only through `reserve_ai_call` |
+| `cases` | SELECT. INSERT on 42 columns: everything except anonymised_at, closed_at, outcome, outcome_note, created_at and updated_at. UPDATE on 35 payload, lifecycle and matching columns. Not updatable: id, ref_code, kind, source, source_url, is_synthetic, reporter_session_id, created_by_user_id, client_submission_id, submission_payload_hash, anonymised_at, created_at |
 | `case_versions`, `review_decisions`, `referrals`, `generated_outputs` | SELECT, INSERT |
 | `match_candidates` | SELECT, INSERT; UPDATE (status, decided_at) |
 | `duplicate_links` | SELECT, INSERT; UPDATE (status, resolved_by, resolved_at, reason) |
-| `audit_log` | SELECT; INSERT (actor_type, actor_user_id, actor_session_id, action, case_id, candidate_id, details, request_id). `at` is not insertable, so the database clock is always used |
-| `ai_budget` | SELECT; UPDATE (reserved_usd, committed_usd). `cap_usd` stays with the owner |
-| `ai_reservations` | SELECT, INSERT; UPDATE (state, actual_usd, settled_at) |
+| `audit_log` | SELECT. INSERT on 8 columns, not `at` (the database clock sets it) |
+| `ai_budget`, `ai_reservations` | SELECT |
 | `ai_calls` | SELECT, INSERT |
 | `rate_limits` | SELECT, INSERT, DELETE; UPDATE (count) |
-| functions | EXECUTE `reserve_ai_call(uuid,numeric)`, `settle_ai_call(uuid,numeric)` |
+| functions | EXECUTE `reserve_ai_call`, `settle_ai_call` |
 
-`fera_redactor` gets exactly what `redact_case()` and the triggers it fires read and write:
+`fera_redactor`: EXECUTE `redact_case`; SELECT `cases`(id, kind, status, anonymised_at) and `match_candidates`(missing_case_id, found_case_id, status). Those are the columns `redact.ts` reads to list cases and pre-check eligibility. Nothing else.
 
-| Object | Privileges |
-|---|---|
-| function | EXECUTE `redact_case(uuid,uuid)` |
-| `users` | SELECT (id, role, verified, is_active). No password_hash |
-| `cases`, `match_candidates`, `review_decisions`, `referrals` | SELECT (whole-row reads in `check_pair_integrity` / `check_duplicate_integrity`) |
-| `cases` | UPDATE on the 27 identifying columns `redact_case` clears, plus anonymised_at |
-| `case_versions` | SELECT (case_id), UPDATE (snapshot) |
-| `generated_outputs` | SELECT (case_id), DELETE |
-| `match_candidates` | UPDATE (reason_bn, reason_en, components) |
-| `review_decisions` | UPDATE (reason) |
-| `referrals` | UPDATE (note) |
-| `duplicate_links` | SELECT (case_a, case_b), UPDATE (reason) |
-| `audit_log` | SELECT (candidate_id, actor_type, actor_user_id, action); INSERT (actor_type, actor_user_id, action, case_id, details) |
-
-Choosing between OD-3 options for `submission_payload_hash` (recompute it after an owner edit) would need that column added to `fera_app`'s UPDATE list.
+Resolving OD-3 by recomputing the hash after owner edits would need `submission_payload_hash` added to `fera_app`'s UPDATE grant.
 
 ## Test results
 
-Commands: `npm run test:db` (each file gets a fresh `fera_test_<pid>_<n>` database from `db:reset`, then the database is dropped), and `npm run lint && npm run typecheck && npm test && npm run build` (DB suites skip without `FERA_DB_TESTS=1`). Local server: PostgreSQL 16.15, pgvector 0.8.1, container `fera-db` on 127.0.0.1:54322.
+Commands:
+- `npm run test:db` gives each file a fresh `fera_test_<pid>_<n>` database through `db:reset` and drops it afterwards.
+- `npm run lint && npm run typecheck && npm test && npm run build`. The DB suites skip without `FERA_DB_TESTS=1`.
+
+Local server: PostgreSQL 16.15 with pgvector 0.8.1, container `fera-db` on 127.0.0.1:54322. The image is built from `db/docker/Dockerfile`, whose base is now pinned to the `postgres:16-alpine` multi-arch index digest `sha256:cf78e766…0685`; the rebuild was verified.
+
+Latest run, 2026-10-15 00:12 (Asia/Dhaka): `npm run test:db` exited 0. `platform.test.ts` passed 48/48 on `fera_test_79212_0` and `redaction.test.ts` passed 18/18 on `fera_test_79212_1`; both databases were dropped afterwards. Plain `npm test` passed 325 and skipped 66 (the DB suites); that count includes 4 new `rolePasswordEnv` unit tests. In the first session the Docker Desktop daemon stopped responding and was restarted. The `fera-db-data` volume and the default `fera` database survived.
 
 | Group | File | Tests | Result |
 |---|---|---|---|
-| Restricted roles: attributes, ownership, no TRUNCATE/TRIGGER/REFERENCES, function EXECUTE, PUBLIC CONNECT, 11 DDL/bypass refusals for both login roles (CREATE in public, TEMP, CREATE FUNCTION, ALTER/DROP TABLE, DISABLE TRIGGER, DROP TRIGGER, `session_replication_role`, `SET ROLE fera_owner`, CREATE SCHEMA), app cannot redact, narrow redactor, BR-026 synthetic-only, invoker spend functions (TC-051, TC-062) | `tests/db/platform.test.ts` | 20 | pass |
-| Append-only audit: DB clock, null-FK denial (TC-052 at DB level), privilege refusal for the runtime, trigger refusal even for the superuser (TC-016, TC-051) | `tests/db/platform.test.ts` | 4 | pass |
-| Lifecycle guard: initial states, full legal paths, open→confirmed, submitted→matched_pending_review, found→closed, open→referred, terminal exits, pending-review needs a candidate, closed needs outcome + closed_at, coordination closure needs a pair, field/outcome locks, stale pending candidate, future interval (TC-032) | `tests/db/platform.test.ts` | 11 | pass (includes an "unversioned edit accepted" app-obligation test) |
-| Candidates and pairs: one confirm of two with competitor voided and other report reopened, second confirm blocked by unique index, stale version, swapped kinds, missing audit/referral, unverified officer, reject reason + audit, immutable history (TC-029, TC-046, TC-053) | `tests/db/platform.test.ts` | 7 | pass (includes the TC-053 gap test) |
-| Duplicate links: case_a < case_b, same kind, shared phone never confirmed_same, verified resolver | `tests/db/platform.test.ts` | 3 | pass |
-| Redaction (T007): TC-015 all-eligible run (2 redacted, 1 found report skipped while its missing report is unclosed, status/district counts unchanged); direct fields cleared, age coarsened to a 2-year band, ID/ref/date/district/lifecycle kept; OD-3 keys nulled; related snapshot, output, candidate, decision, referral and duplicate payload cleared (TC-050); no identifying string left in any table; prior audit unchanged plus one `case.payload_redacted` event with `mode: pseudonymisation, external_copies_removed: false`; immutable after; repeat is a no-op; found report redacted once its missing report closes; non-terminal and unknown IDs skipped; non-admin principal refused before any query; inactive admin refused by the DB and propagated | `tests/db/redaction.test.ts` | 14 | pass (includes 2 gap tests) |
+| Restricted roles: attributes, settings, no memberships; ownership; golden privilege matrix; no TRUNCATE/TRIGGER/REFERENCES; function EXECUTE, SECURITY DEFINER with pinned search_path, default ACL; no PUBLIC CONNECT; 11 DDL or bypass refusals for both login roles; app cannot redact; narrow redactor; app account limits; BR-026 synthetic-only; spend only via the functions (TC-051; TC-062 DB part) | `platform.test.ts` | 23 | pass |
+| Append-only audit: database clock, null-FK denial insert, runtime refused by privilege, superuser refused by trigger (TC-016/TC-052 DB part) | `platform.test.ts` | 4 | pass |
+| Lifecycle guard (TC-032), including an "unversioned edit accepted" app-obligation test | `platform.test.ts` | 11 | pass |
+| Candidates and pairs (TC-029; TC-046/TC-053 DB part), including the TC-053 app-obligation test | `platform.test.ts` | 7 | pass |
+| Duplicate links | `platform.test.ts` | 3 | pass |
+| Redaction (T007): see the list below | `redaction.test.ts` | 18 | pass |
 
-Observed 2026-10-14 23:53 (Asia/Dhaka): `npm run test:db` exit 0 — `platform.test.ts` 45/45 passed on `fera_test_72142_0`, `redaction.test.ts` 14/14 passed on `fera_test_72142_1`, both databases dropped afterwards; roles were already present from the previous run, so the script's idempotent path was exercised. `db/roles.sql` without the password variables stops at its first statement (psql exit 3). Plain `npm test`: 321 passed, 59 skipped (the DB suites). Earlier in the session the Docker Desktop daemon stopped responding and was restarted; the `fera-db-data` volume and the default `fera` database survived.
+The 18 redaction tests cover:
+- the TC-015 all-eligible run, and the TC-050 related-payload clearing;
+- the OD-3 keys being nulled, and no identifying string left in any table;
+- the safe audit event; immutability afterwards; repeat as a no-op; the found report redacted once its missing report closes;
+- non-terminal and unknown IDs skipped;
+- refusals before any query: a non-admin principal, and an invalid request (schema parse);
+- failing closed: a pool that is not `fera_redactor`, an inactive admin (SQLSTATE only), and a direct call without immediate constraints;
+- batch abort behaviour, the bypass-closed checks, and the deactivated-resolver gap.
 
 ## What the frozen schema enforces vs what the app must
 
-Schema, verified above: initial states; the legal transition graph for each kind; kind immutability; closed ⇒ outcome; closed_at ⇔ terminal; terminal field and outcome locks; pending-review ⇒ a pending candidate (on the row being updated); no stale pending candidate on an updated case; one confirmed candidate per endpoint; a confirmed pair needs decision + simulated referral + `match.confirm` audit + both final states; rejection needs a reason and `match.reject` audit; verified active decision author; immutable decision/referral/confirmed-candidate history except prescribed redaction; duplicate ordering, kind and shared-phone rules; append-only audit by trigger (even for the superuser); synthetic-only rows; redaction eligibility, its field set and the safe audit event.
+**Enforced by the schema (verified above):**
+- Lifecycle: initial states; the legal transition graph for each kind; kind immutability.
+- Closure: closed ⇒ outcome; closed_at ⇔ terminal.
+- Locks: terminal field and outcome locks.
+- Pending candidates, on the rows a transaction updates: pending-review ⇒ a pending candidate; an updated case keeps no stale pending candidate.
+- Pairs: one confirmed candidate per endpoint. A confirmed pair needs a decision, a simulated referral, a `match.confirm` audit row and both final states. A rejection needs a reason and a `match.reject` audit row. The decision author must be a verified, active officer.
+- History: decision, referral and confirmed-candidate history is immutable, except the prescribed redaction.
+- Duplicates: ordering, same kind, shared-phone rules.
+- Audit is append-only by trigger, even for the superuser.
+- Synthetic-only rows.
+- Redaction: eligibility, the field set it clears, and the safe audit event.
 
-App obligations (TASK-015 and the route owners):
-- Version bump and `case_versions` snapshot on every owner edit (the DB accepts an unversioned edit; test documents it).
-- Reconciling the other report when its last pending candidate is voided (TC-053). The schema only checks the rows a transaction updates, so voiding a competitor can leave that report in `matched_pending_review` with no pending candidate (gap test).
-- `resolved_outside_fera` only from open (`allowedCloseOutcome`); the SQL only constrains the other direction.
-- Sorted-UUID lock order, expected-version rechecks, competitor voiding and audit rows other than the three trigger-required actions.
-- Admin authority for redaction. `redact_case(p_case, p_admin)` takes the admin UUID as an argument, so the route must pass the session principal's ID; `redact.ts` checks `canCall("API-016")` first.
-- No child payload in `audit_log.details` (redaction cannot clear append-only rows; the full-table scan above shows the test fixtures leave none).
-- OD-3 replay tombstone: after redaction the idempotency key is gone (test confirms it is nulled).
+**App and route obligations (TASK-015 and the route owners):**
+- Bump the version and write a `case_versions` snapshot on every owner edit. The DB accepts an unversioned edit; a test documents this.
+- Reconcile the other report when its last pending candidate is voided (TC-053). D2A §7.1 assigns "UI state reconciliation" to application tests. The schema only checks rows a transaction updates, so voiding a competitor can leave that report in `matched_pending_review` with no pending candidate (app-obligation test).
+- Allow `resolved_outside_fera` only from open (`allowedCloseOutcome`). SQL constrains only the other direction.
+- Sorted-UUID lock order, expected-version rechecks, competitor voiding, and audit rows other than the three trigger-required actions.
+- Admin authority for redaction. `redact_case(p_case, p_admin)` takes the admin UUID as an argument, so the route must pass the session principal's ID. `redact.ts` checks `canCall("API-016")` and asserts `current_user = fera_redactor`.
+- The API-016 route writes `access.denied` (through `fera_app`) when it catches `RedactionForbiddenError`.
+- Never log or return pg `err.detail`, `err.where` or `err.message`. They can quote row values. `RedactionDbError` carries only the SQLSTATE and the committed count.
+- No writes to `case_versions` or `generated_outputs` for a redacted case. `redact_case` clears them, and only the `cases` row is locked against later writes.
+- No child payload in `audit_log.details`. Redaction cannot clear append-only rows; the full-table scan finds none from the test fixtures.
+- OD-3 replay tombstone: after redaction the idempotency key is gone (tested).
 
-## Schema gaps found (reported, not edited)
+## Schema gaps (reported, not edited)
 
-1. **Service functions are SECURITY INVOKER** (`redact_case`, `reserve_ai_call`, `settle_ai_call`). EXECUTE alone is not enough, so the caller also holds the underlying column privileges: `fera_redactor` can null identifying columns outside `redact_case` (gap test), and `fera_app` can move `ai_budget.reserved_usd/committed_usd` directly. A spec-pack change to `SECURITY DEFINER` + `SET search_path = public, pg_temp`, owned by `fera_owner`, would let both roles hold EXECUTE only (**OD-062-2**, spec PR with all-owner review).
-2. **Competitor reconciliation is not enforced** (see above; TC-053 stays an app test).
-3. **A later officer deactivation blocks redaction**: `redact_case` rewrites `duplicate_links.reason`, and `check_duplicate_integrity` re-checks the original resolver on every update, so a link resolved by a since-deactivated officer makes redaction fail with 42501 (gap test). Needs a spec decision (**OD-062-3**).
-4. `redact_case` raises eligibility errors with the generic SQLSTATE P0001, so `redact.ts` checks eligibility with the same predicate under `FOR UPDATE` first instead of matching message text.
-5. `redact_case` sets `duplicate_links.reason = '[REDACTED]'` on flagged links that had no reason. Harmless, noted for accuracy.
+Real schema gaps:
+1. **The service functions are SECURITY INVOKER.** Under that, the callers must hold the table privileges the functions write, which opens direct-write bypasses. Mitigated provisionally in the operator layer (OD-062-2, above); a spec-pack PR would make it permanent.
+2. **A later officer deactivation blocks redaction.** `redact_case` rewrites `duplicate_links.reason`, and `check_duplicate_integrity` re-checks the original resolver on every update. So a link resolved by an officer who has since been deactivated makes redaction fail with 42501 (gap test). **OD-062-3.**
+
+App obligation, not a schema gap: competitor reconciliation (TC-053, D2A §7.1 line 1246).
+
+Observations:
+- `redact_case` raises eligibility errors with the generic SQLSTATE P0001. So `redact.ts` re-checks eligibility with the same predicate, cross-referenced in a code comment, instead of matching message text.
+- It sets `duplicate_links.reason = '[REDACTED]'` even on flagged links that had no reason.
 
 ## Hosted database — operator procedure (not run)
 
-The hosted Supabase project's state is **UNKNOWN**: whether the schema is applied, its server/pgvector versions, roles, pooler mode and Data API settings were not inspected (agents do not read `.env*`). Applying anything there needs Mahim's and Obidit's go-ahead. Procedure:
+The hosted Supabase project's state is **UNKNOWN**. Not inspected: whether the schema is applied, server/pgvector versions, roles, pooler mode, Data API settings (agents do not read `.env*`). Changing it needs Mahim's and Obidit's go-ahead.
 
-1. Confirm PostgreSQL 16 and pgvector ≥ 0.8.1 on the host; record which schema holds `vector` (`SELECT extnamespace::regnamespace FROM pg_extension WHERE extname = 'vector'`), because `CREATE EXTENSION IF NOT EXISTS vector` installs into the first `search_path` schema. If it is not `public`, the runtime roles' `search_path` must include it so `vector`, `<=>` and `vector_cosine_ops` resolve. **UNKNOWN**.
-2. Apply `db/schema_v2.sql` to a fresh database only (D2A §7.1), then `db/roles.sql` with real passwords from the operator's secret store: `FERA_APP_DB_PASSWORD=… FERA_REDACTOR_DB_PASSWORD=… psql "$OWNER_URL" -f db/roles.sql`. On Supabase, `postgres` is not a true superuser. Whether it may create these roles and transfer ownership to `fera_owner` is **UNKNOWN**; verify before relying on it.
-3. **Supabase default privileges.** `REVOKE … FROM PUBLIC` does not remove Supabase's default-privilege grants to `anon`, `authenticated` and `service_role`. If the Data API exposes `public`, those roles may reach every table and call `redact_case` over RPC. Check with `has_table_privilege` / `has_function_privilege` for each, `REVOKE ALL ON ALL TABLES, SEQUENCES, FUNCTIONS IN SCHEMA public FROM anon, authenticated, service_role`, `ALTER DEFAULT PRIVILEGES … REVOKE` for future objects, and remove `public` from the exposed schemas or disable the Data API. Defensive RLS (enable with no permissive policies for those roles) is optional extra protection; this lane did not add it. Current host state: **UNKNOWN**.
-4. Connection strings: `DATABASE_URL` uses `fera_app`, a separate redaction URL uses `fera_redactor` (variable name is TASK-015's choice), and the owner/admin URL is used only for migrations. All go over TLS and are held as hosting secrets, never committed or logged.
-5. Pooler mode (transaction vs session) is **UNKNOWN**. The case service's multi-statement transactions and deferred constraint triggers need one connection per transaction; prepared statements under a transaction pooler need checking.
-6. Re-run the negative checks from `tests/db/platform.test.ts` against the host as `fera_app`/`fera_redactor` (TC-062), plus the `has_table_privilege` checks for the Supabase roles. Not done; the hosted result is **UNKNOWN**.
+1. **Client.** Use psql ≥ 15; `\getenv` needs it.
+2. **Versions and the `vector` schema.** Confirm PostgreSQL 16 and pgvector ≥ 0.8.1. Find which schema holds `vector`: `SELECT extnamespace::regnamespace FROM pg_extension WHERE extname = 'vector'`. Supabase often uses `extensions`. If it is not `public`, add it to the runtime roles' path, for example `ALTER ROLE fera_app SET search_path = public, extensions` (same for `fera_redactor`). Then check that `vector`, `<=>` and `vector_cosine_ops` resolve. The functions' pinned path is `pg_catalog, public, pg_temp`; they do not use vector operators. **UNKNOWN.**
+3. **Fresh database.** On Supabase, "fresh" means an empty `public` schema, with no earlier Fera objects. Apply `db/schema_v2.sql` (D2A §7.1).
+4. **Operator rights.** The operator must be able to `SET ROLE fera_owner`, so run `GRANT fera_owner TO <operator>`. To run `REVOKE CREATE ON SCHEMA public FROM PUBLIC` it must own `public` or be granted that right. On Supabase, `postgres` is not a true superuser; whether it can create these roles and transfer ownership is **UNKNOWN**.
+5. **Roles.** Run `db/roles.sql`, with passwords from the operator's secret store or set afterwards with `\password`.
+6. **Database ACL side effects.** The impact of `REVOKE ALL ON DATABASE … FROM PUBLIC` on Supabase's internal roles (`authenticator`, `supabase_admin`, storage/auth services) is **UNKNOWN**. Check that those services still connect, or grant them CONNECT explicitly.
+7. **Supabase default privileges.** `REVOKE … FROM PUBLIC` does not remove Supabase's default-privilege grants to `anon`, `authenticated` and `service_role`. If the Data API exposes `public`, those roles may reach tables and call `redact_case` over RPC. To close this:
+   - Check each with `has_table_privilege` / `has_function_privilege`.
+   - Run `REVOKE ALL ON ALL TABLES, SEQUENCES, FUNCTIONS IN SCHEMA public FROM anon, authenticated, service_role`, plus the matching `ALTER DEFAULT PRIVILEGES … REVOKE`.
+   - Remove `public` from the exposed schemas, or disable the Data API.
+   - About RLS: enabling RLS with no policies would block `fera_app` and `fera_redactor` too, and would not stop `service_role`, which has BYPASSRLS. Defensive RLS therefore needs explicit permissive policies for the two Fera roles. This lane did not add RLS.
+   - Current host state: **UNKNOWN**.
+8. **Connection strings.** `DATABASE_URL` uses `fera_app`. A separate redaction URL uses `fera_redactor`; the variable name is TASK-015's choice. The owner/admin URL is for migrations only. All go over TLS, are kept as hosting secrets, and are never committed or logged.
+9. **Pooler mode** (transaction vs session) is **UNKNOWN**. Multi-statement transactions, `SET CONSTRAINTS` and deferred triggers need one connection per transaction; prepared statements under a transaction pooler need checking.
+10. **Re-run the checks on the host.** Run the negative checks from `tests/db/platform.test.ts` as `fera_app`/`fera_redactor` (TC-062), plus the Supabase-role privilege checks. Not done; **UNKNOWN**.
 
 ## CI
 
-`.github/workflows/ci.yml` gains a `db` job: it builds `db/docker/Dockerfile`, starts the container on 127.0.0.1:54322 and runs `npm run test:db`. It has not run yet because nothing was pushed from this lane; its first result is **pending**.
+`.github/workflows/ci.yml` gains a `db` job. It builds the digest-pinned `db/docker/Dockerfile`, starts it on 127.0.0.1:54322 and runs `npm run test:db`. It has not run yet because nothing was pushed from this lane; the first result is **pending**.
+
+## Dependencies (for the PR description)
+
+- `pg@8.23.1` (runtime) and `@types/pg@8.23.1` (dev), both pinned exactly. AGENTS.md names `pg` with hand-written SQL, no ORM, as the planned driver; these are the first users. Both versions were published at least two weeks before 2026-10-14.
+- When they were added, npm 11 dropped other platforms' optional bindings from the lockfile. The lockfile was rebuilt as the original plus only the 15 new `pg` packages.
 
 ## Open decisions
 
-- **OD-062-1** role design (three roles above): needs review by all owners.
-- **OD-062-2** SECURITY DEFINER service functions: a spec-pack PR, or keep the invoker grants.
-- **OD-062-3** redaction vs deactivated duplicate resolver.
-- **OD-3** (existing): the hash after an edit and the replay tombstone after redaction. If the hash is recomputed, `fera_app` needs UPDATE on `submission_payload_hash`.
-- Seeding identity: whether `npm run seed` runs as `fera_app` (the grants allow users/cases/audit inserts but not reference data) or as the owner is TASK-010/Masnun's decision. Districts need the owner.
-- Retained metadata after redaction (ref code, district, dates, status, a coarse age band, version, audit IDs) is pseudonymous restricted data, not anonymous.
+- **OD-062-1:** the role design (three roles, above). Needs all-owner review.
+- **OD-062-2:** SECURITY DEFINER on the three service functions in the operator layer. Provisional. Needs all three owners, and later a spec-pack PR to move it into the schema.
+- **OD-062-3:** redaction vs a deactivated duplicate resolver.
+- **OD-062-4:** batch failure. The current behaviour aborts at the first failing case: earlier cases stay redacted, later ones are not attempted, and the error carries the committed count (tested). The alternative is to continue and count failures.
+- **OD-3** (existing): the hash after an edit, and the replay tombstone after redaction.
+- **Seeding identity.** Accounts and reference data now need the owner, because `fera_app` cannot insert users. TASK-010/Masnun decide how `npm run seed` connects.
+- Retained metadata after redaction is pseudonymous restricted data, not anonymous: ref code, district, dates, status, a coarse 2-year age band, version, audit IDs.
