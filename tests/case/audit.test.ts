@@ -87,7 +87,7 @@ describe("audit details allowlist", () => {
     ["an unknown field path", { fields_changed: ["child.photo"] }],
     ["a probability-shaped score", { score: 101 }],
   ])("refuses %s", (_label, details) => {
-    expect(rule(() => checkAuditEntry(officer, { action: CASE_AUDIT_ACTIONS.caseEdited, details: details as never }))).toBe("details");
+    expect(rule(() => checkAuditEntry(officer, { action: CASE_AUDIT_ACTIONS.caseStateChanged, details: details as never }))).toBe("details");
   });
 
   it("allows exactly the officer API-013 keys (a superset of the admin keys)", () => {
@@ -137,7 +137,7 @@ describe("appendAudit", () => {
 
   it("sends nothing when the entry is refused", async () => {
     const r = recorder();
-    await expect(appendAudit(r.db, officer, { action: CASE_AUDIT_ACTIONS.caseEdited, details: { note: "x" } as never })).rejects.toBeInstanceOf(AuditWriteError);
+    await expect(appendAudit(r.db, officer, { action: CASE_AUDIT_ACTIONS.caseStateChanged, details: { note: "x" } as never })).rejects.toBeInstanceOf(AuditWriteError);
     expect(r.calls).toHaveLength(0);
   });
 
@@ -189,12 +189,17 @@ describe("access.denied hooks (BR-010, TC-052)", () => {
     expect((await res.json()).error.id).toBe("E-021");
   });
 
-  it("is installed as the default API and page hook", async () => {
-    const shared = await import("@/app/api/_shared/index");
-    const source = (await import("node:fs")).readFileSync("src/app/api/_shared/index.ts", "utf8");
-    expect(typeof shared.defineRoute).toBe("function");
-    expect(source).toMatch(/createRouteFactory\(\{ resolvePrincipal, auditDenied: auditAccessDenied, logger \}\)/);
-    const guard = (await import("node:fs")).readFileSync("src/server/auth/require-role.ts", "utf8");
-    expect(guard).toMatch(/let pageAuditDenied: PageAuditDenied \| null = auditPageDenied;/);
+  it("audits a signed-in E-003 thrown by a handler or service, but not E-001", async () => {
+    const { ApiError } = await import("@/app/api/_shared");
+    const f = testFactory(testUser(OFFICER, "staff"));
+    const deny = f.defineRoute({ api: "API-007", response: z.strictObject({}), handler: async () => {
+      throw new ApiError("E-003");
+    } });
+    const invalid = f.defineRoute({ api: "API-007", response: z.strictObject({}), handler: async () => {
+      throw new ApiError("E-001");
+    } });
+    expect((await deny(get("/api/found-cases"), noParams)).status).toBe(403);
+    expect((await invalid(get("/api/found-cases"), noParams)).status).toBe(400);
+    expect(f.audit).toEqual([expect.objectContaining({ api: "API-007", errorId: "E-003", caseId: null })]);
   });
 });

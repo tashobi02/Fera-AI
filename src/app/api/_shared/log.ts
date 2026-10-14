@@ -12,6 +12,7 @@ export type LogLevel = keyof typeof LEVELS;
 export const LOG_EVENTS = [
   "request", "handler.threw", "response.invalid", "envelope.fallback", "audit.unavailable",
   "auth.principal_invalid", "auth.resolver_stub", "auth.dev_secret", "auth.insecure_cookies", "db.pool_error",
+  "db.refusal", "db.rollback_failed", "db.client_error", "db.tx_failed",
   "ratelimit.limited", "ratelimit.unavailable", "ratelimit.degraded", "ratelimit.memory_store", "ratelimit.unknown_address",
 ] as const;
 export type LogEvent = (typeof LOG_EVENTS)[number];
@@ -20,6 +21,10 @@ export const LOG_STAGES = ["origin", "resolver", "limiter", "input", "authorize"
 export type LogStage = (typeof LOG_STAGES)[number];
 
 export type LogIssue = { code: string; path: string };
+
+// Case-service transaction stages (src/server/case/tx.ts).
+export const TX_STAGES = ["connect", "begin", "callback", "constraints", "commit", "rollback"] as const;
+export type TxStage = (typeof TX_STAGES)[number];
 
 export type LogEntry = {
   event: LogEvent;
@@ -39,6 +44,11 @@ export type LogEntry = {
   err_code?: string;
   err_frame?: string;
   issues?: LogIssue[];
+  // Database refusal facts (pg error fields that hold identifiers only, never values).
+  constraint?: string;
+  table?: string;
+  routine?: string;
+  tx_stage?: TxStage;
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -68,6 +78,10 @@ const CHECKS: { [K in keyof LogEntry]-?: (v: unknown) => unknown } = {
   err_name: matches(/^[A-Za-z0-9_.]{1,60}$/),
   err_code: matches(/^[A-Z0-9_]{1,32}$/),
   err_frame: matches(/^[A-Za-z0-9_.\-[\]]{1,80}:\d{1,7}$/),
+  constraint: matches(/^[a-z_][a-z0-9_]{0,62}$/),
+  table: matches(/^[a-z_][a-z0-9_]{0,62}$/),
+  routine: matches(/^[A-Za-z_][A-Za-z0-9_]{0,62}$/),
+  tx_stage: has(TX_STAGES),
   issues: (v) => {
     if (!Array.isArray(v)) return undefined;
     const kept = v

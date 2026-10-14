@@ -9,15 +9,17 @@
 //   access.denied row (null FK when the case does not exist).
 // - When an officer is served a raw contact phone, the case.contact_viewed audit row is
 //   written in the same transaction (D2A §5.4), so the read fails if the audit fails.
-import type { PoolClient } from "pg";
 import { isUuid } from "@/contracts";
-import { projectCaseFor, type CaseReadView, type OfficerContext, type Principal } from "@/contracts/server";
+import { effectiveRole, projectCaseFor, type CaseReadView, type OfficerContext, type Principal } from "@/contracts/server";
 import { CASE_AUDIT_ACTIONS, actorFor, appendAudit } from "@/server/audit";
 import { getCaseRow } from "./rows";
-import type { ServiceContext } from "./state";
+import { asRow, col, firstRow } from "@/server/db/decode";
+import type { Queryable } from "@/server/db/queryable";
+import { txOptions, type ServiceContext } from "./state";
 import { withTransaction } from "./tx";
 
-type Queryable = Pick<PoolClient, "query">;
+// Only the officer projection uses district names and duplicate cues.
+const NO_OFFICER_CONTEXT: OfficerContext = { districtNameBn: null, duplicateOf: [] };
 
 export type ReadResult = { kind: "ok"; view: CaseReadView } | { kind: "hidden"; caseId: string | null };
 
@@ -31,9 +33,10 @@ export async function officerContext(db: Queryable, caseId: string, districtCode
      WHERE (d.case_a = $1 OR d.case_b = $1) AND d.status <> 'dismissed' ORDER BY c.ref_code`,
     [caseId],
   );
+  const d = firstRow("districts", district.rows);
   return {
-    districtNameBn: (district.rows[0] as { name_bn?: string } | undefined)?.name_bn ?? null,
-    duplicateOf: (dupes.rows as { ref_code: string }[]).map((r) => r.ref_code),
+    districtNameBn: d ? col.text("districts", d, "name_bn") : null,
+    duplicateOf: dupes.rows.map((r) => col.text("cases", asRow("cases", r), "ref_code")),
   };
 }
 
@@ -42,7 +45,7 @@ export async function readCase(principal: Principal, caseId: string, ctx: Servic
   return withTransaction(async (client) => {
     const row = await getCaseRow(client, caseId);
     if (!row) return { kind: "hidden", caseId: null };
-    const octx = await officerContext(client, row.id, row.district_code);
+    const octx = effectiveRole(principal) === "officer" ? await officerContext(client, row.id, row.district_code) : NO_OFFICER_CONTEXT;
     const view = projectCaseFor(principal, row, octx);
     if (!view) return { kind: "hidden", caseId: row.id };
     if (view.view === "officer" && view.contactServed) {
@@ -54,5 +57,5 @@ export async function readCase(principal: Principal, caseId: string, ctx: Servic
       });
     }
     return { kind: "ok", view };
-  }, { pool: ctx.pool });
+  }, txOptions(ctx));
 }

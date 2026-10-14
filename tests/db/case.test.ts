@@ -25,9 +25,10 @@ import {
   editMissingCase,
   openCase,
   readCase,
-  withTransaction,
 } from "@/server/case";
+import { withTransaction } from "@/server/case/internal";
 import { setPoolForTests } from "@/server/db/pool";
+import { captureLogs } from "../api/fakes";
 import { testParent, testUser } from "../support/principals";
 import {
   MOCK_DISTRICT, addCandidate, connect, createActors, dbTestsEnabled, expectPgError, fakePhone, one, pool, seedReference, type Actors,
@@ -188,6 +189,38 @@ describe.skipIf(!dbTestsEnabled)("case service on PostgreSQL 16 (TASK-015)", () 
         ref_code: row.ref_code, version: 1, from_status: "open", to_status: "closed", api: "API-011", outcome: "resolved_outside_fera", reason_recorded: true,
       });
     });
+
+    it("refuses re-closing a closed report with E-005 (before the referral rule) and audits the refusal after rollback", async () => {
+      const { row } = await openMissingReport();
+      await closeCase(officer, row.id, { outcome: "resolved_outside_fera", note: "[MOCK] note", expected_version: 1 }, ctx());
+      for (const outcome of ["coordination_recorded", "resolved_outside_fera"] as const) {
+        expect(await errorOf(closeCase(officer, row.id, { outcome, note: "[MOCK] again", expected_version: 1 }, ctx()))).toBe("E-005");
+      }
+      const refused = await appClient.query("SELECT actor_type, details FROM audit_log WHERE case_id = $1 AND action = 'case.close.refused'", [row.id]);
+      expect(refused.rows).toEqual([0, 1].map(() => ({ actor_type: "officer", details: { error_id: "E-005", api: "API-011" } })));
+      expect((await one<{ outcome_note: string }>(appClient, "SELECT outcome_note FROM cases WHERE id = $1", [row.id])).outcome_note).toBe("[MOCK] note");
+    });
+
+    it("surfaces a deferred pair-integrity refusal at SET CONSTRAINTS, after the callback finished, as E-005", async () => {
+      const { row: m } = await openMissingReport();
+      const f = await openFoundReport();
+      const logs = captureLogs();
+      let finished = false;
+      const err = await errorOf(
+        withTransaction(async (c) => {
+          await c.query(
+            `INSERT INTO match_candidates (missing_case_id, found_case_id, missing_version, found_version, score, rank, reason_bn, reason_en, components)
+             VALUES ($1, $2, 9, 1, 50, 1, '[MOCK]', '[MOCK]', '{}')`,
+            [m.id, f.id],
+          ); // a stale missing_version: refused only by the deferred check
+          finished = true;
+        }, { pool: app, attempts: 1, logger: logs.logger }),
+      );
+      expect(finished).toBe(true);
+      expect(err).toBe("E-005");
+      expect(logs.parsed()).toEqual([expect.objectContaining({ level: 50, event: "db.refusal", err_code: "23514", tx_stage: "constraints" })]);
+      expect((await one<{ n: number }>(appClient, "SELECT count(*)::int AS n FROM match_candidates WHERE missing_case_id = $1", [m.id])).n).toBe(0);
+    });
   });
 
   /* ---------- TC-016 ---------- */
@@ -316,8 +349,16 @@ describe.skipIf(!dbTestsEnabled)("case service on PostgreSQL 16 (TASK-015)", () 
       const before = await counts();
       expect(await errorOf(decideCandidate(officer, c, confirm({ m: { version: 2 }, f }), ctx()))).toBe("E-005");
       expect(await errorOf(decideCandidate(officer, c, { decision: "reject", reason: "[MOCK] reason", expected_missing_version: 1, expected_found_version: 7 }, ctx()))).toBe("E-005");
-      expect(await counts()).toEqual(before);
+      // Nothing of the decision is written; only the two refusals are audited, after rollback.
+      expect(await counts()).toEqual({ ...before, audit: before.audit + 2 });
       expect(await candidateStatus(c)).toBe("pending");
+      const refused = await appClient.query(
+        "SELECT actor_type, actor_user_id, case_id, candidate_id, details FROM audit_log WHERE action = 'match.refused' AND candidate_id = $1 ORDER BY id",
+        [c],
+      );
+      expect(refused.rows).toEqual([0, 1].map(() => ({
+        actor_type: "officer", actor_user_id: actors.officer, case_id: m.id, candidate_id: c, details: { error_id: "E-005", api: "API-010" },
+      })));
     });
 
     it("refuses an unverified officer, and an officer un-verified after sign-in, with E-004 and no writes (BR-001/024)", async () => {
@@ -345,7 +386,7 @@ describe.skipIf(!dbTestsEnabled)("case service on PostgreSQL 16 (TASK-015)", () 
       // decision, candidate, competitor and match.confirm writes (past the contract cap).
       const err = await errorOf(decideCandidate(officer, c, confirm({ m, f }, { agency_name: "x".repeat(121) } as never), ctx()));
       expect(err).toBe("E-005");
-      expect(await counts()).toEqual(before);
+      expect(await counts()).toEqual({ ...before, audit: before.audit + 1 }); // the match.refused row only
       expect([await candidateStatus(c), await candidateStatus(competitor)]).toEqual(["pending", "pending"]);
       expect([(await statusOf(m.id)).status, (await statusOf(f.id)).status, (await statusOf(f2.id)).status]).toEqual([
         "matched_pending_review", "matched_pending_review", "matched_pending_review",
@@ -384,8 +425,9 @@ describe.skipIf(!dbTestsEnabled)("case service on PostgreSQL 16 (TASK-015)", () 
       const c1 = await addCandidate(appClient, m.id, f1.id);
       const c2 = await addCandidate(appClient, m.id, f2.id, 2);
       const results = await Promise.allSettled([
-        decideCandidate(officer, c1, confirm({ m, f: f1 }), { pool: app }),
-        decideCandidate(officer, c2, confirm({ m, f: f2 }), { pool: app2 }),
+        // attempts: 1 — a deadlock would surface as 40P01 instead of being retried away.
+        decideCandidate(officer, c1, confirm({ m, f: f1 }), { pool: app, attempts: 1 }),
+        decideCandidate(officer, c2, confirm({ m, f: f2 }), { pool: app2, attempts: 1 }),
       ]);
       expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
       const lost = results.find((r) => r.status === "rejected") as PromiseRejectedResult;
@@ -393,6 +435,43 @@ describe.skipIf(!dbTestsEnabled)("case service on PostgreSQL 16 (TASK-015)", () 
       expect((lost.reason as ApiError).id).toBe("E-005");
       const confirmed = await one<{ n: number }>(appClient, "SELECT count(*)::int AS n FROM match_candidates WHERE missing_case_id = $1 AND status = 'confirmed'", [m.id]);
       expect(confirmed.n).toBe(1);
+    });
+
+    it("retries the whole decision when a new pending candidate appears while it waits for its locks (LockSetChanged)", async () => {
+      const { row: m } = await openMissingReport();
+      const f = await openFoundReport();
+      const f3 = await openFoundReport();
+      const c = await addCandidate(appClient, m.id, f.id);
+      const other = await connect("app");
+      try {
+        await other.query("BEGIN");
+        await other.query("SELECT id FROM cases WHERE id = ANY($1::uuid[]) ORDER BY id FOR UPDATE", [[m.id, f3.id]]);
+        let connects = 0;
+        const counting = { connect: () => (connects++, app.connect()) };
+        const decision = decideCandidate(officer, c, confirm({ m, f }), { pool: counting });
+        // Wait until the decision is blocked on the missing report's row lock.
+        for (let i = 0; i < 200; i++) {
+          const w = await one<{ n: number }>(admin, "SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname = current_database() AND usename = 'fera_app' AND wait_event_type = 'Lock'");
+          if (w.n > 0) break;
+          await new Promise((r) => setTimeout(r, 10));
+        }
+        const fresh = await one<{ id: string }>(
+          other,
+          `INSERT INTO match_candidates (missing_case_id, found_case_id, missing_version, found_version, score, rank, reason_bn, reason_en, components)
+           VALUES ($1, $2, 1, 1, 40, 2, '[MOCK]', '[MOCK]', '{}') RETURNING id`,
+          [m.id, f3.id],
+        );
+        await other.query("UPDATE cases SET status = 'matched_pending_review' WHERE id = $1", [f3.id]);
+        await other.query("COMMIT");
+        const out = await decision;
+        expect(connects).toBe(2); // first attempt saw the lock set grow, second succeeded
+        expect(out.voidedCandidateIds).toEqual([fresh.id]);
+        expect(out.reopenedCaseIds).toEqual([f3.id]);
+        expect((await statusOf(f3.id)).status).toBe("open");
+      } finally {
+        await other.query("ROLLBACK").catch(() => undefined);
+        await other.end();
+      }
     });
 
     it("runs crossing confirms over overlapping neighbourhoods without deadlock (sorted locks), 5 rounds", async () => {
@@ -406,8 +485,8 @@ describe.skipIf(!dbTestsEnabled)("case service on PostgreSQL 16 (TASK-015)", () 
         const x = await addCandidate(appClient, m1.id, f2.id, 2);
         const y = await addCandidate(appClient, m2.id, f1.id, 2);
         const [ra, rb] = await Promise.all([
-          decideCandidate(officer, a, confirm({ m: m1, f: f1 }), { pool: app }),
-          decideCandidate(officer, b, confirm({ m: m2, f: f2 }), { pool: app2 }),
+          decideCandidate(officer, a, confirm({ m: m1, f: f1 }), { pool: app, attempts: 1 }),
+          decideCandidate(officer, b, confirm({ m: m2, f: f2 }), { pool: app2, attempts: 1 }),
         ]);
         expect([ra.response.candidate_status, rb.response.candidate_status]).toEqual(["confirmed", "confirmed"]);
         expect([await candidateStatus(x), await candidateStatus(y)]).toEqual(["voided", "voided"]);
@@ -489,6 +568,8 @@ describe.skipIf(!dbTestsEnabled)("case service on PostgreSQL 16 (TASK-015)", () 
       const c = await addCandidate(appClient, m.id, f.id);
       await decideCandidate(officer, c, confirm({ m, f }), ctx());
       expect(await errorOf(editMissingCase(parent, m.id, { draft, confirmed: true, expected_version: 1 }, ctx()))).toBe("E-018");
+      const refused = await appClient.query("SELECT actor_type, details FROM audit_log WHERE case_id = $1 AND action = 'case.edit.refused' ORDER BY id", [m.id]);
+      expect(refused.rows.map((r) => [r.actor_type, r.details.error_id])).toEqual([["parent", "E-005"], ["parent", "E-018"]]);
       const other = await newParent();
       expect(await errorOf(editMissingCase(other, m.id, { draft, confirmed: true, expected_version: 1 }, ctx()))).toBe("E-004");
     });

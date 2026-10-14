@@ -26,17 +26,17 @@
 // There is no "defer" decision in the pack (decision_t is confirm | reject): leaving a
 // candidate pending is the deferral, and nothing is written for it.
 import { ApiError } from "@/app/api/_shared/envelope";
-import { decisionResponseSchema, type CaseStatus, type DecisionRequest, type DecisionResponse } from "@/contracts";
+import { CANDIDATE_STATUSES, decisionResponseSchema, isUuid, type CandidateStatus, type CaseStatus, type DecisionRequest, type DecisionResponse } from "@/contracts";
 import { effectiveRole, type CaseRow, type Principal } from "@/contracts/server";
 import { CASE_AUDIT_ACTIONS, actorFor, appendAudit } from "@/server/audit";
-import type { PoolClient } from "pg";
+import { asRow, col, firstRow } from "@/server/db/decode";
+import type { Queryable } from "@/server/db/queryable";
 import { voidPendingCandidates } from "./candidates";
 import { lockCandidates, lockCases, lockNeighbourhood } from "./lock";
-import { isQueueStatus } from "./rows";
-import { applyStatusPath, reconcileQueueState, type ServiceContext } from "./state";
+import { auditRefusals } from "./refused";
+import { isQueueStatus, returnedId } from "./rows";
+import { applyStatusPath, reconcileQueueState, txOptions, type ServiceContext } from "./state";
 import { withTransaction } from "./tx";
-
-type Queryable = Pick<PoolClient, "query">;
 
 export type DecisionResult = {
   response: DecisionResponse; // the API-010 DTO (officer only)
@@ -55,10 +55,33 @@ type CandidateRow = {
   found_case_id: string;
   missing_version: number;
   found_version: number;
-  score: string; // numeric(5,2) arrives as text
+  score: number; // numeric(5,2), decoded from text
   rank: number;
-  status: string;
+  status: CandidateStatus;
 };
+
+// A row this transaction just locked and changed is missing: an invariant broke.
+export class DecisionStateError extends Error {
+  constructor() {
+    super("decision endpoint vanished inside its transaction");
+    this.name = "DecisionStateError";
+  }
+}
+
+const MC = "match_candidates";
+function mapCandidate(value: unknown): CandidateRow {
+  const r = asRow(MC, value);
+  return {
+    id: col.uuid(MC, r, "id"),
+    missing_case_id: col.uuid(MC, r, "missing_case_id"),
+    found_case_id: col.uuid(MC, r, "found_case_id"),
+    missing_version: col.int(MC, r, "missing_version"),
+    found_version: col.int(MC, r, "found_version"),
+    score: col.numeric(MC, r, "score"),
+    rank: col.int(MC, r, "rank"),
+    status: col.oneOf(MC, r, "status", CANDIDATE_STATUSES),
+  };
+}
 
 // Officer authority, rechecked in the transaction (BR-024). FOR SHARE needs the
 // fera_app UPDATE (verified) grant on users, which it has for API-017.
@@ -76,7 +99,8 @@ async function readCandidate(db: Queryable, id: string): Promise<CandidateRow | 
      FROM match_candidates WHERE id = $1`,
     [id],
   );
-  return (rows[0] as CandidateRow | undefined) ?? null;
+  const row = firstRow(MC, rows);
+  return row ? mapCandidate(row) : null;
 }
 
 const live = (row: CaseRow | undefined): row is CaseRow => !!row && row.anonymised_at === null && isQueueStatus(row.status);
@@ -102,17 +126,29 @@ export async function decideCandidate(
   request: DecisionRequest,
   ctx: ServiceContext = {},
 ): Promise<DecisionResult> {
-  // Record route (API-010): anything but an active verified officer is E-004.
+  // Record route (API-010): anything but an active verified officer, or a malformed
+  // candidate ID, is E-004.
   if (effectiveRole(principal) !== "officer" || principal.kind !== "user") throw new ApiError("E-004");
+  if (!isUuid(candidateId)) throw new ApiError("E-004");
   const actor = actorFor(principal);
   const officerId = principal.userId;
   const api = "API-010" as const;
   const requestId = ctx.requestId;
+  let missingCaseId: string | null = null;
 
-  return withTransaction(async (client) => {
+  return auditRefusals(principal, ctx, {
+    action: CASE_AUDIT_ACTIONS.matchRefused,
+    api,
+    candidateId,
+    // Read after a refusal, by which time the candidate's missing report is known.
+    get caseId() {
+      return missingCaseId;
+    },
+  }, () => withTransaction(async (client) => {
     if (!(await lockVerifiedOfficer(client, officerId))) throw new ApiError("E-004");
     const peek = await readCandidate(client, candidateId);
     if (!peek) throw new ApiError("E-004");
+    missingCaseId = peek.missing_case_id;
     const pair = [peek.missing_case_id, peek.found_case_id];
 
     const confirm = request.decision === "confirm";
@@ -141,7 +177,7 @@ export async function decideCandidate(
       found_ref: f.ref_code,
       missing_version: m.version,
       found_version: f.version,
-      score: Number(c.score),
+      score: c.score,
       rank: c.rank,
     };
     const reason = request.reason ?? null;
@@ -149,10 +185,10 @@ export async function decideCandidate(
       "INSERT INTO review_decisions (candidate_id, officer_id, decision, reason) VALUES ($1, $2, $3::decision_t, $4) RETURNING id",
       [c.id, officerId, request.decision, reason],
     );
-    const decisionId = (decisionRows[0] as { id: string }).id;
+    const decisionId = returnedId("review_decisions", decisionRows);
 
     if (request.decision === "reject") {
-      await client.query("UPDATE match_candidates SET status = 'rejected', decided_at = now() WHERE id = $1", [c.id]);
+      await client.query("UPDATE match_candidates SET status = 'rejected', decided_at = clock_timestamp() WHERE id = $1", [c.id]);
       await appendAudit(client, actor, {
         action: CASE_AUDIT_ACTIONS.matchReject,
         caseId: m.id,
@@ -162,8 +198,11 @@ export async function decideCandidate(
       });
       const reopened = await reconcileQueueState(client, actor, pair, { api, requestId });
       const after = await lockCases(client, pair);
+      const m2 = after.get(m.id);
+      const f2 = after.get(f.id);
+      if (!m2 || !f2) throw new DecisionStateError();
       return {
-        response: respond(c, "rejected", after.get(m.id)!, after.get(f.id)!, null),
+        response: respond(c, "rejected", m2, f2, null),
         candidateId: c.id,
         missingCaseId: m.id,
         foundCaseId: f.id,
@@ -174,7 +213,7 @@ export async function decideCandidate(
       };
     }
 
-    await client.query("UPDATE match_candidates SET status = 'confirmed', decided_at = now() WHERE id = $1", [c.id]);
+    await client.query("UPDATE match_candidates SET status = 'confirmed', decided_at = clock_timestamp() WHERE id = $1", [c.id]);
     const competitors = pending.filter((p) => p.id !== c.id);
     const voided = await voidPendingCandidates(client, actor, competitors, new Set(pair), api, requestId);
     await appendAudit(client, actor, {
@@ -192,7 +231,7 @@ export async function decideCandidate(
        VALUES ($1, $2, $3, $4, COALESCE($5, 'শিশু সুরক্ষা সেবা')) RETURNING id`,
       [c.id, f.id, m.id, officerId, agency],
     );
-    const referralId = (referralRows[0] as { id: string }).id;
+    const referralId = returnedId("referrals", referralRows);
     await appendAudit(client, actor, {
       action: CASE_AUDIT_ACTIONS.referralRecorded,
       caseId: f.id,
@@ -216,5 +255,5 @@ export async function decideCandidate(
       voidedCandidateIds: voided,
       reopenedCaseIds: reopened,
     };
-  }, { pool: ctx.pool });
+  }, txOptions(ctx)));
 }

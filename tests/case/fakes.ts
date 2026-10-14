@@ -5,26 +5,37 @@
 import type { PoolClient } from "pg";
 
 export type Recorded = { text: string; values: unknown[] };
-export type Handler = { match: RegExp; reply: (values: unknown[], calls: Recorded[]) => unknown[] | Error };
+export type Handler = { match: RegExp; reply: (values: unknown[], calls: Recorded[]) => unknown[] | Error | Promise<unknown[] | Error> };
 
 export function fakePool(handlers: Handler[]) {
   const calls: Recorded[] = [];
   let connects = 0;
   let releases = 0;
+  const releasedWith: unknown[] = [];
+  const listeners = new Set<(err: unknown) => void>();
   const client = {
+    on(event: string, fn: (err: unknown) => void) {
+      if (event === "error") listeners.add(fn);
+      return client;
+    },
+    removeListener(event: string, fn: (err: unknown) => void) {
+      if (event === "error") listeners.delete(fn);
+      return client;
+    },
     async query(text: string, values: unknown[] = []) {
       calls.push({ text, values });
       for (const h of handlers) {
         if (h.match.test(text)) {
-          const out = h.reply(values, calls);
+          const out = await h.reply(values, calls);
           if (out instanceof Error) throw out;
           return { rows: out, rowCount: out.length };
         }
       }
       return { rows: [], rowCount: 0 };
     },
-    release() {
+    release(arg?: unknown) {
       releases++;
+      releasedWith.push(arg);
     },
   };
   const pool = {
@@ -43,6 +54,10 @@ export function fakePool(handlers: Handler[]) {
     get releases() {
       return releases;
     },
+    releasedWith,
+    listeners,
+    // Simulates a connection error event on the client.
+    emitError: (err: unknown) => listeners.forEach((fn) => fn(err)),
   };
 }
 

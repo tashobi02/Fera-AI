@@ -2,20 +2,32 @@
 // enforce_case_transition() through the contracts' isLegalTransition(); the trigger
 // stays the final authority, and its check_violation becomes E-005 with a rollback
 // (errors.ts, tx.ts). Every status change writes an audit row in the same transaction.
-import type { PoolClient } from "pg";
 import { ApiError } from "@/app/api/_shared/envelope";
 import { isLegalTransition, sameId, type CaseKind, type CaseStatus, type Outcome } from "@/contracts";
 import { effectiveRole, type ApiId, type CaseRow, type Principal } from "@/contracts/server";
 import { CASE_AUDIT_ACTIONS, SYSTEM_ACTOR, appendAudit, type AuditActor, type AuditDetails, type CaseAuditAction } from "@/server/audit";
 import { lockCases } from "./lock";
 import { CASE_COLUMNS, getCaseRow, isQueueStatus, mapCaseRow, pendingCandidatesFor } from "./rows";
-import { withTransaction, type Connectable } from "./tx";
-
-type Queryable = Pick<PoolClient, "query">;
+import type { Queryable } from "@/server/db/queryable";
+import { withTransaction, type Connectable, type TxOptions } from "./tx";
 
 // Per-call options. `requestId` is stored on the audit rows; `pool` is a test seam
-// (default: the fera_app pool).
-export type ServiceContext = { requestId?: string | null; pool?: Connectable };
+// (default: the fera_app pool); `attempts` bounds transient-conflict retries (default 3,
+// tests use 1 so a deadlock fails instead of being retried away).
+export type ServiceContext = { requestId?: string | null; pool?: Connectable; attempts?: number };
+
+export const txOptions = (ctx: ServiceContext): TxOptions => ({ pool: ctx.pool, attempts: ctx.attempts });
+
+// A step into confirmed, referred or closed is an officer's decision or closure (BR-001):
+// no system, matcher, parent or staff actor may take it, whatever the caller.
+export const OFFICER_ONLY_TARGETS: readonly CaseStatus[] = ["confirmed", "referred", "closed"];
+
+export class StepAuthorityError extends Error {
+  constructor() {
+    super("only a verified officer's decision or closure may take this step");
+    this.name = "StepAuthorityError";
+  }
+}
 
 // App-level guard: an illegal step is E-005 before any statement runs.
 export function assertTransition(kind: CaseKind, from: CaseStatus, to: CaseStatus): void {
@@ -37,16 +49,17 @@ const TERMINAL: readonly CaseStatus[] = ["closed", "referred"];
 // the terminal steps (closed, referred); outcome and note only on closure. The version
 // is not bumped: versions count reviewed-payload edits, and candidates pin them.
 export async function applyStatus(db: Queryable, actor: AuditActor, row: CaseRow, change: StatusChange): Promise<CaseRow> {
+  if (OFFICER_ONLY_TARGETS.includes(change.to) && actor.type !== "officer") throw new StepAuthorityError();
   assertTransition(row.kind, row.status, change.to);
   const { rows } = await db.query(
     `UPDATE cases SET status = $2::case_status,
-       closed_at = CASE WHEN $3::boolean THEN now() ELSE closed_at END,
+       closed_at = CASE WHEN $3::boolean THEN clock_timestamp() ELSE closed_at END,
        outcome = COALESCE($4::outcome_t, outcome),
        outcome_note = COALESCE($5::text, outcome_note)
      WHERE id = $1 RETURNING ${CASE_COLUMNS}`,
     [row.id, change.to, TERMINAL.includes(change.to), change.outcome ?? null, change.outcomeNote ?? null],
   );
-  if (!rows[0]) throw new ApiError("E-005");
+  if (rows.length === 0) throw new ApiError("E-005");
   const next = mapCaseRow(rows[0]);
   await appendAudit(db, actor, {
     action: change.audit?.action ?? CASE_AUDIT_ACTIONS.caseStateChanged,
@@ -119,8 +132,8 @@ export async function openCase(principal: Principal, caseId: string, ctx: Servic
     if (!peek) throw new ApiError("E-004");
     if (peek.kind !== "missing" || !sameId(peek.reporter_session_id, principal.sessionId)) throw new ApiError("E-004", { caseId: peek.id });
     const row = (await lockCases(client, [peek.id])).get(peek.id);
-    if (!row) throw new ApiError("E-004");
+    if (!row || !sameId(row.reporter_session_id, principal.sessionId)) throw new ApiError("E-004", { caseId: peek.id });
     if (row.status !== "submitted") return row;
     return applyStatus(client, SYSTEM_ACTOR, row, { to: "open", api: "API-003", requestId: ctx.requestId });
-  }, { pool: ctx.pool });
+  }, txOptions(ctx));
 }

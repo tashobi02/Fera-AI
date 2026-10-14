@@ -6,16 +6,10 @@ import { ApiError } from "@/app/api/_shared";
 import { REF_CODE_PATTERN, createFoundRequestSchema, createMissingRequestSchema, updateCaseRequestSchema } from "@/contracts";
 import { IDS, exampleCreateFoundRequest, exampleCreateMissingRequest, exampleMissingRow, exampleUpdateCaseRequest } from "@/contracts/examples";
 import { submissionPayloadHash } from "@/contracts/server";
-import {
-  changedFields,
-  closeCase,
-  createFoundCase,
-  createMissingCase,
-  decideCandidate,
-  editMissingCase,
-  newRefCode,
-  openCase,
-} from "@/server/case";
+import { closeCase, createFoundCase, createMissingCase, decideCandidate, editMissingCase, openCase } from "@/server/case";
+import { RefusalAuditError, changedFields, newRefCode } from "@/server/case/internal";
+import { StepAuthorityError, applyStatus } from "@/server/case/state";
+import { SYSTEM_ACTOR, actorFor } from "@/server/audit";
 import { testParent, testUser } from "../support/principals";
 import { fakePool, pgError, type Handler } from "./fakes";
 
@@ -177,6 +171,81 @@ describe("server-derived authority (BR-024)", () => {
     expect((err as ApiError).id).toBe("E-004");
     expect((err as ApiError).caseId).toBe(IDS.missingCase); // the hidden case, for the denial audit FK
     expect(db.sent(/FOR UPDATE/)).toHaveLength(0);
+  });
+});
+
+describe("review round 1 fixes", () => {
+  const officerLock: Handler = { match: /FROM users WHERE id = \$1 AND role = 'officer' AND verified AND is_active FOR SHARE/, reply: () => [{ id: IDS.officerUser }] };
+  const closedRow = { ...exampleMissingRow, status: "closed", outcome: "coordination_recorded", closed_at: "2026-10-13T10:00:00+06:00", version: 1 };
+  const close = { outcome: "coordination_recorded" as const, note: "[MOCK] note", expected_version: 1 };
+
+  it("answers E-001 (not a denial) for an unconfirmed create or edit, before any connection", async () => {
+    for (const run of [
+      (db: ReturnType<typeof fakePool>) => createMissingCase(parent, { ...missingReq, confirmed: false as never }, { pool: db.pool }),
+      (db: ReturnType<typeof fakePool>) => createFoundCase(staff, { ...foundReq, confirmed: false as never }, { pool: db.pool }),
+      (db: ReturnType<typeof fakePool>) =>
+        editMissingCase(parent, IDS.missingCase, { ...updateCaseRequestSchema.parse(exampleUpdateCaseRequest), confirmed: false as never }, { pool: db.pool }),
+      (db: ReturnType<typeof fakePool>) => createMissingCase(parent, { ...missingReq, draft: { ...missingReq.draft, kind: "found" as never } }, { pool: db.pool }),
+    ]) {
+      const db = fakePool([]);
+      expect(await errId(run(db))).toBe("E-001");
+      expect(db.connects).toBe(0);
+    }
+  });
+
+  it("answers E-004 for a malformed candidate or case ID without touching the database", async () => {
+    const db = fakePool([]);
+    const decision = { decision: "reject" as const, reason: "[MOCK] reason", expected_missing_version: 1, expected_found_version: 1 };
+    expect(await errId(decideCandidate(officer, "not-a-uuid", decision, { pool: db.pool }))).toBe("E-004");
+    expect(await errId(closeCase(officer, "M-7K2Q9A", close, { pool: db.pool }))).toBe("E-004");
+    expect(await errId(editMissingCase(parent, "1", updateCaseRequestSchema.parse(exampleUpdateCaseRequest), { pool: db.pool }))).toBe("E-004");
+    expect(db.connects).toBe(0);
+  });
+
+  it("refuses re-closing a closed report with E-005 before the referral rule, and audits the refusal after rollback", async () => {
+    const db = fakePool([
+      officerLock,
+      { match: /FROM cases WHERE id = \$1 FOR UPDATE/, reply: () => [closedRow] },
+      { match: /^SELECT id FROM cases WHERE id = \$1$/, reply: () => [{ id: IDS.missingCase }] },
+      audit,
+    ]);
+    expect(await errId(closeCase(officer, IDS.missingCase, close, { pool: db.pool }))).toBe("E-005");
+    expect(db.sent(/FROM referrals/)).toHaveLength(0); // the E-017 check never ran
+    expect(db.connects).toBe(2); // the refused transaction, then the refusal audit on its own
+    const [row] = db.sent(/^INSERT INTO audit_log/);
+    expect(row.values.slice(0, 6)).toEqual(["officer", IDS.officerUser, null, "case.close.refused", IDS.missingCase, null]);
+    expect(row.values[6]).toBe('{"error_id":"E-005","api":"API-011"}');
+  });
+
+  it("fails closed (RefusalAuditError → E-021) when the refusal audit cannot be written", async () => {
+    let connects = 0;
+    const db = fakePool([
+      officerLock,
+      { match: /FROM cases WHERE id = \$1 FOR UPDATE/, reply: () => [closedRow] },
+      { match: /^SELECT id FROM cases WHERE id = \$1$/, reply: () => (++connects, pgError("08006")) },
+    ]);
+    const err = await closeCase(officer, IDS.missingCase, close, { pool: db.pool }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(RefusalAuditError);
+    expect(connects).toBe(1);
+  });
+
+  it("does not audit an E-004 as a refusal (the API layer writes access.denied for it)", async () => {
+    const db = fakePool([officerLock]);
+    expect(await errId(closeCase(officer, IDS.missingCase, close, { pool: db.pool }))).toBe("E-004");
+    expect(db.sent(/^INSERT INTO audit_log/)).toHaveLength(0);
+    expect(db.connects).toBe(1);
+  });
+
+  it("refuses a step into confirmed, referred or closed for any non-officer actor", async () => {
+    const db = fakePool([]);
+    const client = await db.pool.connect();
+    const open = { ...exampleMissingRow, status: "open" as const };
+    const mpr = { ...exampleMissingRow, status: "matched_pending_review" as const };
+    for (const actor of [SYSTEM_ACTOR, actorFor(parent), actorFor(staff), actorFor(admin)]) {
+      await expect(applyStatus(client, actor, open, { to: "closed", outcome: "resolved_outside_fera" })).rejects.toBeInstanceOf(StepAuthorityError);
+      await expect(applyStatus(client, actor, mpr, { to: "confirmed" })).rejects.toBeInstanceOf(StepAuthorityError);
+    }
+    expect(db.sent(/UPDATE cases/)).toHaveLength(0);
   });
 });
 

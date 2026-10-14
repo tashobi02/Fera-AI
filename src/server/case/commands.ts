@@ -12,12 +12,12 @@
 //   first, then replays it (TC-042).
 // - Every accepted write and its audit row commit together.
 import { randomInt } from "node:crypto";
-import type { PoolClient } from "pg";
 import { ApiError } from "@/app/api/_shared/envelope";
 import {
   DRAFT_FIELD_PATHS,
   EDIT_LOCKED_STATUSES,
   REF_PREFIX,
+  isUuid,
   sameId,
   type CaseKind,
   type CreateFoundRequest,
@@ -38,14 +38,14 @@ import {
   type SubmissionKey,
 } from "@/contracts/server";
 import { CASE_AUDIT_ACTIONS, actorFor, appendAudit, type AuditActor } from "@/server/audit";
-import { SQLSTATE, mapInsertError, sqlstateOf } from "./errors";
+import type { Queryable } from "@/server/db/queryable";
+import { SQLSTATE, mapInsertError, refusalFacts, sqlstateOf } from "./errors";
 import { lockNeighbourhood } from "./lock";
 import { CASE_COLUMNS, getCaseRow, mapCaseRow } from "./rows";
 import { voidPendingCandidates } from "./candidates";
-import { assertTransition, reconcileQueueState, type ServiceContext } from "./state";
+import { auditRefusals } from "./refused";
+import { assertTransition, reconcileQueueState, txOptions, type ServiceContext } from "./state";
 import { withTransaction } from "./tx";
-
-type Queryable = Pick<PoolClient, "query">;
 
 export type CreateResult = { case: CaseRow; replayed: boolean };
 
@@ -180,13 +180,16 @@ async function existingSubmission(db: Queryable, spec: CreateSpec): Promise<Case
     `SELECT ${CASE_COLUMNS} FROM cases WHERE ${spec.scopeColumn} = $1 AND client_submission_id = $2`,
     [spec.ownerId, spec.clientSubmissionId],
   );
-  return rows[0] ? mapCaseRow(rows[0]) : null;
+  return rows.length === 0 ? null : mapCaseRow(rows[0]);
 }
 
 async function replayOrConflict(db: Queryable, actor: AuditActor, spec: CreateSpec, existing: CaseRow, hash: string): Promise<CreateResult> {
+  // No stored hash (only after redaction, which also clears the key): the payload cannot
+  // be proven identical, so it is a conflict, never a second report (OD-015-4).
+  if (existing.submission_payload_hash === null) throw new ApiError("E-006");
   const outcome = classifySubmission(
     spec.key,
-    { ...spec.key, caseId: existing.id, payloadHash: existing.submission_payload_hash ?? "" },
+    { ...spec.key, caseId: existing.id, payloadHash: existing.submission_payload_hash },
     hash,
   );
   if (outcome.kind !== "replay") throw new ApiError("E-006");
@@ -204,8 +207,9 @@ async function insertReport(db: Queryable, spec: CreateSpec, hash: string): Prom
   for (let attempt = 1; attempt <= REF_ATTEMPTS; attempt++) {
     const ref = newRefCode(spec.kind);
     await db.query("SAVEPOINT case_insert");
+    let rows: unknown[];
     try {
-      const { rows } = await db.query(
+      ({ rows } = await db.query(
         `INSERT INTO cases (ref_code, kind, status, source, is_synthetic, ${spec.scopeColumn}, client_submission_id,
            submission_payload_hash, raw_text, child_name, child_name_latin, age_years, age_min, age_max, sex,
            height_cm, clothing, marks, circumstances, event_at, event_at_approx, event_at_lower, event_at_upper,
@@ -221,16 +225,17 @@ async function insertReport(db: Queryable, spec: CreateSpec, hash: string): Prom
           cols.event_at_lower, cols.event_at_upper, cols.place_text, cols.district_code, cols.thana,
           cols.reporter_relation, cols.contact_phone, cols.provenance,
         ],
-      );
-      await db.query("RELEASE SAVEPOINT case_insert");
-      return rows[0] ? mapCaseRow(rows[0]) : null;
+      ));
     } catch (err) {
-      await db.query("ROLLBACK TO SAVEPOINT case_insert");
-      const refCollision =
-        sqlstateOf(err) === SQLSTATE.uniqueViolation && (err as { constraint?: unknown }).constraint === "cases_ref_code_key";
-      if (refCollision && attempt < REF_ATTEMPTS) continue;
+      // A failed ROLLBACK TO SAVEPOINT must not hide the insert error: the whole
+      // transaction is rolled back by withTransaction anyway.
+      const recovered = await db.query("ROLLBACK TO SAVEPOINT case_insert").then(() => true, () => false);
+      const refCollision = sqlstateOf(err) === SQLSTATE.uniqueViolation && refusalFacts(err).constraint === "cases_ref_code_key";
+      if (recovered && refCollision && attempt < REF_ATTEMPTS) continue;
       throw mapInsertError(err);
     }
+    await db.query("RELEASE SAVEPOINT case_insert");
+    return rows.length === 0 ? null : mapCaseRow(rows[0]);
   }
   throw new Error("reference code attempts exhausted");
 }
@@ -256,7 +261,7 @@ async function createReport(spec: CreateSpec): Promise<CreateResult> {
       details: { ref_code: inserted.ref_code, version: inserted.version, to_status: inserted.status, api: spec.api, replayed: false },
     });
     return { case: inserted, replayed: false };
-  }, { pool: spec.ctx.pool });
+  }, txOptions(spec.ctx));
 }
 
 // API-003: a parent's reviewed missing report, stored as `submitted` (BR-012). The route
@@ -266,10 +271,10 @@ export async function createMissingCase(
   request: CreateMissingRequest,
   ctx: ServiceContext = {},
 ): Promise<CreateResult> {
+  // An unconfirmed or wrong-kind body is invalid input (E-001), not a denial.
+  if (request.confirmed !== true || request.draft.kind !== "missing") throw new ApiError("E-001");
   const scope = submissionScopeFor(principal);
-  if (request.confirmed !== true || request.draft.kind !== "missing" || scope?.principal !== "parent_session") {
-    throw new ApiError("E-003");
-  }
+  if (scope?.principal !== "parent_session") throw new ApiError("E-003");
   return createReport({
     kind: "missing",
     api: "API-003",
@@ -292,10 +297,9 @@ export async function createFoundCase(
   request: CreateFoundRequest,
   ctx: ServiceContext = {},
 ): Promise<CreateResult> {
+  if (request.confirmed !== true || request.draft.kind !== "found") throw new ApiError("E-001");
   const scope = submissionScopeFor(principal);
-  if (request.confirmed !== true || request.draft.kind !== "found" || scope?.principal !== "user") {
-    throw new ApiError("E-003");
-  }
+  if (scope?.principal !== "user") throw new ApiError("E-003");
   return createReport({
     kind: "found",
     api: "API-007",
@@ -334,11 +338,12 @@ export async function editMissingCase(
   request: UpdateCaseRequest,
   ctx: ServiceContext = {},
 ): Promise<CaseRow> {
-  if (effectiveRole(principal) !== "parent" || principal.kind !== "parent" || request.confirmed !== true) {
-    throw new ApiError("E-004");
-  }
+  if (request.confirmed !== true) throw new ApiError("E-001"); // invalid input, not a denial
+  if (effectiveRole(principal) !== "parent" || principal.kind !== "parent" || !isUuid(caseId)) throw new ApiError("E-004");
   const actor = actorFor(principal);
-  return withTransaction(async (client) => {
+  const sessionId = principal.sessionId;
+  const target = { action: CASE_AUDIT_ACTIONS.caseEditRefused, api: "API-005" as const, caseId };
+  return auditRefusals(principal, ctx, target, () => withTransaction(async (client) => {
     const peek = await getCaseRow(client, caseId);
     if (!peek) throw new ApiError("E-004");
     if (peek.kind !== "missing" || !sameId(peek.reporter_session_id, principal.sessionId)) {
@@ -346,7 +351,8 @@ export async function editMissingCase(
     }
     const { cases, pending } = await lockNeighbourhood(client, [peek.id]);
     const row = cases.get(peek.id);
-    if (!row) throw new ApiError("E-004");
+    // Ownership rechecked on the locked row.
+    if (!row || row.kind !== "missing" || !sameId(row.reporter_session_id, sessionId)) throw new ApiError("E-004", { caseId: peek.id });
     if (row.anonymised_at !== null || EDIT_LOCKED_STATUSES.includes(row.status)) throw new ApiError("E-018");
     if (row.version !== request.expected_version) throw new ApiError("E-005");
 
@@ -376,7 +382,7 @@ export async function editMissingCase(
         cols.reporter_relation, cols.contact_phone, cols.provenance, nextStatus, row.version,
       ],
     );
-    if (!rows[0]) throw new ApiError("E-005");
+    if (rows.length === 0) throw new ApiError("E-005");
     const updated = mapCaseRow(rows[0]);
     await appendAudit(client, actor, {
       action: CASE_AUDIT_ACTIONS.caseEdited,
@@ -393,5 +399,5 @@ export async function editMissingCase(
     const others = pending.map((c) => (c.missing_case_id === row.id ? c.found_case_id : c.missing_case_id));
     await reconcileQueueState(client, actor, others, { api: "API-005", requestId: ctx.requestId });
     return updated;
-  }, { pool: ctx.pool });
+  }, txOptions(ctx)));
 }

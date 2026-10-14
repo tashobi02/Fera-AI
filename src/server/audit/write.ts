@@ -13,7 +13,9 @@
 import type { z } from "zod";
 import { isUuid, officerAuditEntryViewSchema, type ActorType } from "@/contracts";
 import { effectiveRole, type Principal } from "@/contracts/server";
-import { isWritableAuditAction, type CaseAuditAction } from "./actions";
+import { ACTION_ACTORS, isWritableAuditAction, type CaseAuditAction } from "./actions";
+import type { Queryable } from "@/server/db/queryable";
+import { col, firstRow } from "@/server/db/decode";
 
 export const auditDetailsSchema = officerAuditEntryViewSchema.shape.details;
 export type AuditDetails = z.input<typeof auditDetailsSchema>;
@@ -56,7 +58,6 @@ export type AuditEntry = {
   requestId?: string | null;
 };
 
-type Queryable = { query: (text: string, values?: unknown[]) => Promise<{ rows: unknown[] }> };
 
 const optionalId = (v: string | null | undefined): string | null => {
   if (v === undefined || v === null) return null;
@@ -73,7 +74,7 @@ export function checkAuditEntry(actor: AuditActor, entry: AuditEntry) {
     (actor.type === "parent" && isUuid(actor.sessionId) && actor.userId === null) ||
     (actor.type === "system" && actor.userId === null && actor.sessionId === null) ||
     (["staff", "officer", "admin"].includes(actor.type) && isUuid(actor.userId) && actor.sessionId === null);
-  if (!actorOk) throw new AuditWriteError("actor");
+  if (!actorOk || !ACTION_ACTORS[entry.action].includes(actor.type)) throw new AuditWriteError("actor");
   const parsed = auditDetailsSchema.safeParse(entry.details ?? {});
   if (!parsed.success) throw new AuditWriteError("details");
   return {
@@ -92,7 +93,8 @@ export async function appendAudit(client: Queryable, actor: AuditActor, entry: A
      VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8) RETURNING id`,
     [actor.type, actor.userId, actor.sessionId, entry.action, safe.caseId, safe.candidateId, JSON.stringify(safe.details), safe.requestId],
   );
-  const id = Number((rows[0] as { id?: unknown } | undefined)?.id);
+  const row = firstRow("audit_log", rows);
+  const id = row ? col.numeric("audit_log", row, "id") : Number.NaN;
   if (!Number.isSafeInteger(id) || id < 1) throw new AuditWriteError("insert");
   return id;
 }

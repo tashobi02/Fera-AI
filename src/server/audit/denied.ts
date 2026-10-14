@@ -16,13 +16,13 @@ import type { PageAuditDenied } from "@/server/auth/require-role";
 import { getPool } from "@/server/db/pool";
 import { CASE_AUDIT_ACTIONS } from "./actions";
 import { actorFor, appendAudit } from "./write";
+import type { Queryable } from "@/server/db/queryable";
 
-type Queryable = { query: (text: string, values?: unknown[]) => Promise<{ rows: unknown[] }> };
 
 async function existingCaseId(db: Queryable, caseId: string | null): Promise<string | null> {
   if (caseId === null || !isUuid(caseId)) return null;
   const { rows } = await db.query("SELECT id FROM cases WHERE id = $1", [caseId]);
-  return rows.length === 1 ? caseId.toLowerCase() : null;
+  return rows.length === 1 ? caseId.toLowerCase() : null; // existence only; no column is read
 }
 
 export function createDeniedAuditHooks(db: () => Queryable = () => getPool()) {

@@ -9,15 +9,14 @@
 //   - found reports never close (they end as referred): E-005 (TC-032).
 //   - stale expected_version → E-005; the note is stored, never audited.
 import { ApiError } from "@/app/api/_shared/envelope";
-import { allowedCloseOutcome, closeCaseResponseSchema, isMissingStatus, type CloseCaseRequest, type CloseCaseResponse } from "@/contracts";
+import { allowedCloseOutcome, closeCaseResponseSchema, isMissingStatus, isUuid, type CloseCaseRequest, type CloseCaseResponse } from "@/contracts";
 import { effectiveRole, type Principal } from "@/contracts/server";
 import { CASE_AUDIT_ACTIONS, actorFor } from "@/server/audit";
-import type { PoolClient } from "pg";
+import type { Queryable } from "@/server/db/queryable";
 import { lockCases } from "./lock";
-import { applyStatus, type ServiceContext } from "./state";
+import { auditRefusals } from "./refused";
+import { applyStatus, txOptions, type ServiceContext } from "./state";
 import { withTransaction } from "./tx";
-
-type Queryable = Pick<PoolClient, "query">;
 
 async function hasConfirmedReferral(db: Queryable, missingCaseId: string): Promise<boolean> {
   const { rows } = await db.query(
@@ -38,8 +37,10 @@ export async function closeCase(
 ): Promise<CloseResult> {
   // Record route (API-011): anything but an active verified officer is E-004.
   if (effectiveRole(principal) !== "officer" || principal.kind !== "user") throw new ApiError("E-004");
+  if (!isUuid(caseId)) throw new ApiError("E-004");
   const actor = actorFor(principal);
-  return withTransaction(async (client) => {
+  const target = { action: CASE_AUDIT_ACTIONS.caseCloseRefused, api: "API-011" as const, caseId };
+  return auditRefusals(principal, ctx, target, () => withTransaction(async (client) => {
     const { rows: officer } = await client.query(
       "SELECT id FROM users WHERE id = $1 AND role = 'officer' AND verified AND is_active FOR SHARE",
       [principal.userId],
@@ -49,6 +50,8 @@ export async function closeCase(
     if (!row) throw new ApiError("E-004");
     if (row.kind !== "missing" || row.anonymised_at !== null || !isMissingStatus(row.status)) throw new ApiError("E-005");
     if (row.version !== request.expected_version) throw new ApiError("E-005");
+    // Already closed (a retried or repeated closure): E-005 before any outcome rule.
+    if (row.status === "closed") throw new ApiError("E-005");
 
     if (request.outcome === "coordination_recorded") {
       if (row.status !== "confirmed" || !(await hasConfirmedReferral(client, row.id))) throw new ApiError("E-017");
@@ -69,5 +72,5 @@ export async function closeCase(
       caseId: closed.id,
       response: closeCaseResponseSchema.parse({ ref_code: closed.ref_code, status: "closed", closed_at: closed.closed_at }),
     };
-  }, { pool: ctx.pool });
+  }, txOptions(ctx)));
 }

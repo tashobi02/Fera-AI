@@ -14,13 +14,11 @@
 //
 // Postgres orders uuid values bytewise, which equals JS string order on the lowercase
 // canonical form (the contracts lowercase every UUID).
-import type { PoolClient } from "pg";
 import { isUuid } from "@/contracts";
 import type { CaseRow } from "@/contracts/server";
+import type { Queryable } from "@/server/db/queryable";
 import { LockSetChanged } from "./errors";
 import { CASE_COLUMNS, mapCaseRow, pendingCandidatesFor, type PendingCandidate } from "./rows";
-
-type Queryable = Pick<PoolClient, "query">;
 
 export function sortedIds(ids: Iterable<string>): string[] {
   return [...new Set([...ids].filter(isUuid).map((id) => id.toLowerCase()))].sort();
@@ -32,7 +30,7 @@ export async function lockCases(db: Queryable, ids: Iterable<string>): Promise<M
   const locked = new Map<string, CaseRow>();
   for (const id of sortedIds(ids)) {
     const { rows } = await db.query(`SELECT ${CASE_COLUMNS} FROM cases WHERE id = $1 FOR UPDATE`, [id]);
-    if (rows[0]) locked.set(id, mapCaseRow(rows[0]));
+    if (rows.length > 0) locked.set(id, mapCaseRow(rows[0]));
   }
   return locked;
 }

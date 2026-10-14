@@ -3,17 +3,26 @@
 TASK-015, owner Mahim. Server-only: import from route handlers or other `src/server/` modules, never from UI code.
 
 ```ts
+// Route handlers: the commands only.
 import { createMissingCase, openCase, decideCandidate, closeCase, readCase } from "@/server/case";
-import { actorFor, appendAudit, CASE_AUDIT_ACTIONS, SYSTEM_ACTOR } from "@/server/audit";
+// Matcher (TASK-017) and tests only, under the lock protocol in its header:
+import { withTransaction, lockCases, reconcileQueueState } from "@/server/case/internal";
+import { SYSTEM_ACTOR } from "@/server/audit";
 ```
 
 ## Rules every caller can rely on
 
-- Every function takes the server-derived `Principal` from the route (`HandlerInput.principal`). Each one checks role, ownership and officer verification itself. The route's coarse guard is not trusted.
+- Every **command** exported from `@/server/case` takes the server-derived `Principal` from the route (`HandlerInput.principal`). Each one checks role, ownership and officer verification itself. The route's coarse guard is not trusted. The helpers in `@/server/case/internal` check no principal: their callers must already have authorised the work.
+- A step into `confirmed`, `referred` or `closed` is refused to any actor that is not an officer, whatever the caller (`StepAuthorityError` → E-021).
 - Inputs are the **parsed** contract request types (`createMissingRequestSchema` output and so on). The route parses the body, and the service never sees raw bodies.
-- Errors are thrown as `ApiError` with contract IDs. Let them propagate, because `defineRoute` turns them into the envelope. An `E-004` that carries a `caseId` makes the API layer write the `access.denied` row, so never write that row yourself. Any other error is rethrown unchanged, and the layer logs its SQLSTATE and answers E-021.
+- Errors are thrown as `ApiError` with contract IDs. Let them propagate, because `defineRoute` turns them into the envelope.
+  - Every signed-in E-003 or E-004 makes the API layer write one `access.denied` row. An E-004's `caseId` only sets that row's case FK (null when the case does not exist). Never write that row yourself.
+  - A refused decision, closure or owner edit (E-005, E-017, E-018) is audited by the service after its rollback, as `match.refused`, `case.close.refused` or `case.edit.refused`, with `{ error_id, api }` only. If that write fails, the call fails with E-021.
+  - An unconfirmed or wrong-kind body is E-001, never a denial.
+  - Any other error is rethrown unchanged, and the layer logs its SQLSTATE and answers E-021.
 - Each call is one transaction (`withTransaction`). Every write and its audit rows commit together. If the audit write fails, the action fails with it.
-- `ctx` is `{ requestId?, pool? }`. Pass `requestId` from `HandlerInput` so audit rows carry it. `pool` is a test seam, and the default is the `fera_app` pool.
+- `ctx` is `{ requestId?, pool?, attempts? }`. Pass `requestId` from `HandlerInput` so audit rows carry it. `pool` is a test seam, and the default is the `fera_app` pool. `attempts` bounds transient-conflict retries (default 3).
+- A retried call after a **successful** decision or closure returns E-005, because the candidate is no longer pending or the report is already closed. The UI must reload the current state rather than treat that as a failure.
 - Return values are contract row types (`CaseRow`, server-only), contract DTOs (`DecisionResponse`, `CloseCaseResponse`) or IDs. Project `CaseRow` in the route with `projectCaseFor` / the per-role response schema before sending it.
 
 ## Obidit — API-003 submit, API-006 outputs (TASK-022/023)
@@ -33,7 +42,7 @@ const opened = await openCase(principal, row.id, { requestId }); // submitted �
 
 - `editMissingCase(principal, caseId, body, ctx)` covers API-005, the owner edit. It checks `expected_version` (a stale version is E-005). Confirmed, closed, referred and redacted reports are E-018. It writes a `case_versions` snapshot of the old payload, bumps `version`, voids pending candidates, reopens their other reports, sets `matching_state = 'queued'` and clears the embedding so the matcher re-embeds.
 - `readCase(principal, caseId, ctx)` covers API-004. It returns `{ kind: "ok", view }` or `{ kind: "hidden", caseId }`. On `hidden`, throw `new ApiError("E-004", { caseId: r.caseId ?? undefined })`. Raw officer contact access is audited inside the call.
-- For API-006, read the case with `getCaseRow(client, id)` inside your own `withTransaction`, or with `readCase` and the owner view. Outputs must use the current `version`.
+- For API-006, call `readCase(principal, caseId, ctx)`. It checks ownership and returns the owner projection, or `hidden` (throw E-004). Build outputs from that view, never from a raw row, and use its current `version`.
 
 ## Masnun — API-007 found log, matcher, API-010 (TASK-026/017/028)
 
@@ -41,7 +50,7 @@ const opened = await openCase(principal, row.id, { requestId }); // submitted �
 // API-007 (principal = staff, or an officer verified or not)
 const { case: row, replayed } = await createFoundCase(principal, body, { requestId }); // status "open"
 
-// Matcher (TASK-017): follow the lock protocol in lock.ts.
+// Matcher (TASK-017): import from "@/server/case/internal" and follow its lock protocol.
 await withTransaction(async (client) => {
   await lockCases(client, [missingId, foundId, /* every endpoint you touch */]); // ascending UUIDs, one pass
   // INSERT INTO match_candidates … (both endpoints' current versions)
@@ -69,7 +78,7 @@ return result.response; // DecisionResponse: referral_state "recorded", referral
 
 ## Audit logger
 
-- Write audit rows with `appendAudit(client, actor, { action, caseId?, candidateId?, details?, requestId? })`, inside your transaction.
+- Write audit rows with `appendAudit(client, actor, { action, caseId?, candidateId?, details?, requestId? })`, inside your transaction. Each action has an allowed set of actor types (`ACTION_ACTORS`): for example `match.*`, `referral.recorded` and `case.closed` are officer-only, and `case.edited` is parent-only.
   - `actor` comes from `actorFor(principal)`, which uses the effective role, so an unverified officer is audited as `staff`. Use `SYSTEM_ACTOR` for pipeline steps.
   - `action` must be one of the `CASE_AUDIT_ACTIONS` codes. `case.payload_redacted` is written only by `redact_case()`.
   - `details` must pass the strict API-013 officer details schema, which holds typed tokens, IDs, versions, statuses and counts. It has no free-text key, and an unknown key throws.
@@ -88,8 +97,9 @@ return result.response; // DecisionResponse: referral_state "recorded", referral
 | `referral.recorded` | API-010 confirm, internal record (simulation) | the found report |
 | `case.closed` | API-011 | the missing report |
 | `case.contact_viewed` | raw phone served to an officer (API-004) | the report |
+| `match.refused` / `case.close.refused` / `case.edit.refused` | refused decision, closure or owner edit, after rollback (`{ error_id, api }`) | the case/candidate if they exist |
 | `access.denied` | signed-in E-003/E-004, API or page | the case if it exists, else null |
 
 ## Redaction
 
-API-016 stays in `src/server/admin/redact.ts`, which uses the `fera_redactor` pool. `@/server/case` re-exports `redactCases` for convenience and adds no second implementation.
+API-016 stays in `src/server/admin/redact.ts`, which uses the `fera_redactor` pool. Admin routes import it from there directly; the case service has no redaction entry.

@@ -3,12 +3,11 @@
 // every listed candidate (lock.ts). Status `voided` follows D1 STORY-019/BR-020 and D3
 // row 12; `superseded` is left to the matcher for its own replacement of pending rows
 // (OD-015-2).
-import type { PoolClient } from "pg";
 import type { ApiId } from "@/contracts/server";
 import { CASE_AUDIT_ACTIONS, appendAudit, type AuditActor } from "@/server/audit";
+import type { Queryable } from "@/server/db/queryable";
+import { col, asRow } from "@/server/db/decode";
 import type { PendingCandidate } from "./rows";
-
-type Queryable = Pick<PoolClient, "query">;
 
 // Voids the pending candidates and writes one match.voided row each. The row is filed
 // on the endpoint outside `subject` (the reports the action is about), so that report's
@@ -23,10 +22,10 @@ export async function voidPendingCandidates(
 ): Promise<string[]> {
   if (pending.length === 0) return [];
   const { rows } = await db.query(
-    "UPDATE match_candidates SET status = 'voided', decided_at = now() WHERE id = ANY($1::uuid[]) AND status = 'pending' RETURNING id",
+    "UPDATE match_candidates SET status = 'voided', decided_at = clock_timestamp() WHERE id = ANY($1::uuid[]) AND status = 'pending' RETURNING id",
     [pending.map((c) => c.id)],
   );
-  const voided = new Set((rows as { id: string }[]).map((r) => r.id));
+  const voided = new Set(rows.map((r) => col.uuid("match_candidates", asRow("match_candidates", r), "id")));
   for (const c of pending) {
     if (!voided.has(c.id)) continue;
     const other = subject.has(c.missing_case_id) ? c.found_case_id : c.missing_case_id;

@@ -2,7 +2,8 @@
 // E-005; transaction rollback"; COMP-015 "audit write failure aborts the action").
 import { describe, expect, it } from "vitest";
 import { ApiError } from "@/app/api/_shared";
-import { LockSetChanged, isRetryable, mapDbError, mapInsertError, sqlstateOf, withTransaction } from "@/server/case";
+import { LockSetChanged, isRetryable, mapDbError, mapInsertError, sqlstateOf, withTransaction } from "@/server/case/internal";
+import { captureLogs } from "../api/fakes";
 import { fakePool, pgError } from "./fakes";
 
 const idOf = (v: unknown) => (v instanceof ApiError ? v.id : v);
@@ -124,22 +125,79 @@ describe("withTransaction", () => {
     expect(runs).toBe(1);
   });
 
-  it("discards a client whose ROLLBACK failed", async () => {
-    const released: unknown[] = [];
-    const client = {
-      async query(text: string) {
-        if (text === "ROLLBACK") throw new Error("connection lost");
-        if (text === "SELECT fail") throw pgError("23514");
-        return { rows: [] };
-      },
-      release(arg?: unknown) {
-        released.push(arg);
-      },
-    };
-    const pool = { connect: async () => client as never };
-    await withTransaction(async (c) => {
+  it("discards a client whose ROLLBACK failed, logs it, and still throws the original error", async () => {
+    const logs = captureLogs();
+    const db = fakePool([
+      { match: /^ROLLBACK$/, reply: () => new Error("connection lost") },
+      { match: /^SELECT fail$/, reply: () => pgError("23514", "illegal transition open>confirmed") },
+    ]);
+    const err = await withTransaction(async (c) => {
       await c.query("SELECT fail");
-    }, { pool }).catch(() => undefined);
-    expect(released).toEqual([true]);
+    }, { pool: db.pool, logger: logs.logger }).catch((e: unknown) => e);
+    expect(idOf(err)).toBe("E-005"); // the original check_violation, not "connection lost"
+    expect(db.releasedWith).toEqual([true]);
+    const events = logs.parsed().map((l) => l.event);
+    expect(events).toEqual(["db.refusal", "db.rollback_failed"]);
+    expect(logs.lines.join("\n")).not.toContain("connection lost");
+    expect(logs.lines.join("\n")).not.toContain("open>confirmed");
+  });
+
+  it("logs a refusal with identifier facts only, at error level for pair-integrity and audit triggers", async () => {
+    const logs = captureLogs();
+    const refusal = (where: string) =>
+      pgError("23514", "confirmed pair requires decision for M-ABC123 phone 01700000001", {
+        constraint: "cases_check", table: "cases", routine: "exec_stmt_raise", where, detail: "Failing row contains (01700000001)",
+      });
+    for (const where of ["PL/pgSQL function check_pair_integrity() line 60 at RAISE", "PL/pgSQL function enforce_case_transition() line 30 at RAISE"]) {
+      const db = fakePool([{ match: /SET CONSTRAINTS/, reply: () => refusal(where) }]);
+      await withTransaction(async () => "x", { pool: db.pool, logger: logs.logger }).catch(() => undefined);
+    }
+    const [severe, ordinary] = logs.parsed();
+    expect(severe).toMatchObject({ level: 50, event: "db.refusal", err_code: "23514", constraint: "cases_check", table: "cases", routine: "exec_stmt_raise", tx_stage: "constraints" });
+    expect(ordinary).toMatchObject({ level: 40, event: "db.refusal", tx_stage: "constraints" });
+    const text = logs.lines.join("\n");
+    for (const leak of ["M-ABC123", "01700000001", "check_pair_integrity", "Failing row"]) expect(text).not.toContain(leak);
+  });
+
+  it("records the failing stage for an error without a SQLSTATE, and does not log app-level ApiErrors", async () => {
+    const logs = captureLogs();
+    const db = fakePool([{ match: /^COMMIT$/, reply: () => new TypeError("socket closed") }]);
+    await withTransaction(async () => "x", { pool: db.pool, logger: logs.logger }).catch(() => undefined);
+    expect(logs.parsed()[0]).toMatchObject({ event: "db.tx_failed", tx_stage: "commit", err_name: "TypeError" });
+    const before = logs.lines.length;
+    await withTransaction(async () => {
+      throw new ApiError("E-018");
+    }, { pool: fakePool([]).pool, logger: logs.logger }).catch(() => undefined);
+    expect(logs.lines.length).toBe(before);
+  });
+
+  it("listens for client errors during the transaction, discards that client, and removes the listener", async () => {
+    const logs = captureLogs();
+    const db = fakePool([]);
+    await withTransaction(async () => {
+      expect(db.listeners.size).toBe(1);
+      db.emitError(Object.assign(new Error("terminated"), { code: "ECONNRESET" }));
+      return "x";
+    }, { pool: db.pool, logger: logs.logger });
+    expect(db.listeners.size).toBe(0);
+    expect(db.releasedWith).toEqual([true]);
+    expect(logs.parsed()[0]).toMatchObject({ event: "db.client_error", tx_stage: "callback", err_code: "ECONNRESET" });
+  });
+
+  it("retries a lock timeout once only, and honours attempts: 1", async () => {
+    let runs = 0;
+    const db = fakePool([]);
+    const err = await withTransaction(async () => {
+      runs++;
+      throw pgError("55P03");
+    }, { pool: db.pool, attempts: 5 }).catch((e: unknown) => e);
+    expect(runs).toBe(2);
+    expect((err as { code?: string }).code).toBe("55P03");
+    runs = 0;
+    await withTransaction(async () => {
+      runs++;
+      throw pgError("40P01");
+    }, { pool: db.pool, attempts: 1 }).catch(() => undefined);
+    expect(runs).toBe(1);
   });
 });

@@ -3,7 +3,7 @@
 // for check_pair_integrity(), case.payload_redacted for redact_case(), and the D2B
 // E-004 access.denied event); TASK-015 names the rest here. Every code matches the
 // audit_log.action CHECK ^[a-z_.]{3,60}$.
-import { AUDIT_ACTION_PATTERN, AUDIT_ACTIONS } from "@/contracts";
+import { AUDIT_ACTION_PATTERN, AUDIT_ACTIONS, type ActorType } from "@/contracts";
 
 export const CASE_AUDIT_ACTIONS = {
   // Contract codes the app writes.
@@ -19,12 +19,36 @@ export const CASE_AUDIT_ACTIONS = {
   caseContactViewed: "case.contact_viewed", // raw contact served to an officer (D2A §5.4)
   matchVoided: "match.voided", // pending candidate invalidated by a confirm or an edit
   referralRecorded: "referral.recorded", // internal referral record (simulation), never delivery
+  // Refused transactions, written after the rollback (D2B §10.1, BR-010): { error_id, api } only.
+  matchRefused: "match.refused", // API-010 decision refused (E-005)
+  caseCloseRefused: "case.close.refused", // API-011 closure refused (E-005/E-017)
+  caseEditRefused: "case.edit.refused", // API-005 owner edit refused (E-005/E-018)
 } as const;
 
 export type CaseAuditAction = (typeof CASE_AUDIT_ACTIONS)[keyof typeof CASE_AUDIT_ACTIONS];
 
 // case.payload_redacted is written only by redact_case() inside the database.
 export const WRITABLE_AUDIT_ACTIONS: readonly CaseAuditAction[] = Object.values(CASE_AUDIT_ACTIONS);
+
+// Which actor types may author each action (checkAuditEntry). Decisions, referrals,
+// closures and contact views are verified-officer acts (BR-001/024); owner edits are the
+// parent's; pipeline steps may be `system`. Admins write only access.denied here.
+export const ACTION_ACTORS: Record<CaseAuditAction, readonly ActorType[]> = {
+  "match.confirm": ["officer"],
+  "match.reject": ["officer"],
+  "match.refused": ["officer"],
+  "referral.recorded": ["officer"],
+  "case.closed": ["officer"],
+  "case.close.refused": ["officer"],
+  "case.contact_viewed": ["officer"],
+  "match.voided": ["officer", "parent", "system"],
+  "case.created": ["parent", "staff", "officer"],
+  "case.submission_replayed": ["parent", "staff", "officer"],
+  "case.edited": ["parent"],
+  "case.edit.refused": ["parent"],
+  "case.state_changed": ["parent", "staff", "officer", "system"],
+  "access.denied": ["parent", "staff", "officer", "admin"],
+};
 
 export function isWritableAuditAction(action: unknown): action is CaseAuditAction {
   return typeof action === "string" && AUDIT_ACTION_PATTERN.test(action) && (WRITABLE_AUDIT_ACTIONS as readonly string[]).includes(action);
