@@ -1,6 +1,7 @@
 // Error catalogue E-001–E-024: keys and HTTP from D2A §5.2, messages from D2B §13.
 import { z } from "zod";
 import { toBanglaDigits } from "./primitives";
+import { draftFieldPathSchema, isDraftFieldPath, type DraftFieldPath } from "./states";
 
 type CatalogueEntry = {
   key: string;
@@ -76,6 +77,11 @@ export const CLIENT_ONLY_ERROR_IDS: readonly ClientOnlyErrorId[] = ["E-022", "E-
 
 const noPlaceholder = (v: string) => !v.includes("{s}");
 
+// E-001 may name the fields to highlight (D6 TC-030 "E-001 with 4 paths", D2B E-001
+// "Zod issue paths; highlight fields"). Dotted draft paths only: no messages, no values.
+export const MAX_ERROR_FIELDS = 32;
+export const errorFieldsSchema = z.array(draftFieldPathSchema).min(1).max(MAX_ERROR_FIELDS);
+
 export const errorEnvelopeSchema = z.strictObject({
   error: z
     .strictObject({
@@ -85,25 +91,50 @@ export const errorEnvelopeSchema = z.strictObject({
       message_en: z.string().min(1).refine(noPlaceholder, "unfilled placeholder"),
       retryable: z.boolean(),
       fallback: z.literal("manual_form").optional(),
+      fields: errorFieldsSchema.optional(),
     })
-    .refine((e) => ERROR_CATALOGUE[e.id].key === e.key, { message: "key does not match id", path: ["key"] }),
+    .refine((e) => ERROR_CATALOGUE[e.id].key === e.key, { message: "key does not match id", path: ["key"] })
+    .refine((e) => e.fields === undefined || e.id === "E-001", { message: "fields only on E-001", path: ["fields"] }),
 });
 export type ErrorEnvelope = z.infer<typeof errorEnvelopeSchema>;
 
-// Bilingual envelope. E-007 requires the retry delay in whole seconds; message_bn
-// shows it in Bangla numerals.
+// Request bodies nest the draft (`draft.child.age_years`); the envelope names the draft field.
+const REQUEST_PREFIXES = ["draft"];
+
+// Maps Zod issue paths to known dotted draft paths, dropping anything unknown and
+// never reading issue messages or input values. Returns undefined when none match.
+export function fieldsFromZodIssues(issues: readonly { path: readonly PropertyKey[] }[]): DraftFieldPath[] | undefined {
+  const out: DraftFieldPath[] = [];
+  for (const issue of issues) {
+    const segments = issue.path.map(String);
+    const trimmed = REQUEST_PREFIXES.includes(segments[0]) ? segments.slice(1) : segments;
+    const path = trimmed.join(".");
+    if (isDraftFieldPath(path) && !out.includes(path)) out.push(path);
+    if (out.length === MAX_ERROR_FIELDS) break;
+  }
+  return out.length > 0 ? out : undefined;
+}
+
+export type ErrorParams = { seconds?: number; fields?: readonly DraftFieldPath[] };
+
+// Bilingual envelope. E-007 requires the retry delay in whole seconds (message_bn
+// shows Bangla numerals); E-001 may carry `fields`. The general overload lets error
+// mappers pass any ID; the E-007 rule is still enforced at runtime.
 export function errorEnvelope(id: "E-007", params: { seconds: number }): ErrorEnvelope;
-export function errorEnvelope(id: Exclude<ErrorId, "E-007">): ErrorEnvelope;
-export function errorEnvelope(id: ErrorId, params?: { seconds: number }): ErrorEnvelope {
+export function errorEnvelope(id: "E-001", params?: { fields?: readonly DraftFieldPath[] }): ErrorEnvelope;
+export function errorEnvelope(id: ErrorId, params?: ErrorParams): ErrorEnvelope;
+export function errorEnvelope(id: ErrorId, params: ErrorParams = {}): ErrorEnvelope {
   const entry: CatalogueEntry = ERROR_CATALOGUE[id];
   let fill = (text: string) => text;
   if (id === "E-007") {
-    const seconds = params?.seconds;
+    const seconds = params.seconds;
     if (seconds === undefined || !Number.isInteger(seconds) || seconds < 1) {
       throw new Error("E-007 needs a positive whole number of seconds");
     }
     fill = (text: string) => text.replace("{s}", text === entry.bn ? toBanglaDigits(seconds) : String(seconds));
   }
+  if (params.fields !== undefined && id !== "E-001") throw new Error("fields are only allowed on E-001");
+  const fields = params.fields && params.fields.length > 0 ? [...new Set(params.fields)].slice(0, MAX_ERROR_FIELDS) : undefined;
   return errorEnvelopeSchema.parse({
     error: {
       id,
@@ -112,6 +143,7 @@ export function errorEnvelope(id: ErrorId, params?: { seconds: number }): ErrorE
       message_en: fill(entry.en),
       retryable: entry.retryable,
       ...(entry.fallback ? { fallback: entry.fallback } : {}),
+      ...(fields ? { fields } : {}),
     },
   });
 }

@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { ADMIN_AUDIT_DETAIL_KEYS, OFFICER_AUDIT_DETAIL_KEYS, adminAuditEntryViewSchema, officerAuditEntryViewSchema } from "@/contracts";
 import { projectAuditFor as project, type AuditRow, type AuditWithheldHook, type Principal } from "@/contracts/server";
+import { testParent, testUser } from "../support/principals";
 import { IDS, REFS, exampleAdminAuditResponse, exampleAuditRows, exampleOfficerAuditResponse } from "@/contracts/examples";
 
-const officer: Principal = { kind: "user", userId: IDS.officerUser, role: "officer", verified: true, isActive: true };
-const unverifiedOfficer: Principal = { ...officer, verified: false };
-const admin: Principal = { kind: "user", userId: IDS.adminUser, role: "admin", verified: false, isActive: true };
-const staff: Principal = { kind: "user", userId: IDS.staffUser, role: "staff", verified: false, isActive: true };
-const parent: Principal = { kind: "parent", sessionId: IDS.parentSession };
+const officer = testUser(IDS.officerUser, "officer", { verified: true });
+const unverifiedOfficer = testUser(IDS.officerUser, "officer");
+const admin = testUser(IDS.adminUser, "admin");
+const staff = testUser(IDS.staffUser, "staff");
+const parent = testParent(IDS.parentSession);
 
 const auditedCase = { id: IDS.missingCase, ref_code: REFS.missing };
 const projectAuditFor = (p: Principal | null, rows: readonly AuditRow[], hook?: AuditWithheldHook) => project(p, auditedCase, rows, hook);
@@ -105,6 +106,11 @@ describe("API-013 safe audit views (D2A §9.2, BR-010/024)", () => {
     for (const p of [admin, officer]) {
       expect(projectAuditFor(p, [otherCase, otherRef, noCase])).toMatchObject({ entries: [], withheld: 3 });
     }
+  });
+
+  it("withholds rows whose jsonb details is null, an array or a scalar (no TypeError)", () => {
+    const bad = [null, [], "x", 7].map((details) => ({ ...exampleAuditRows[1], details }) as unknown as AuditRow);
+    for (const p of [admin, officer]) expect(projectAuditFor(p, bad)).toMatchObject({ entries: [], withheld: 4 });
   });
 
   it("a bad display name withholds only its own row", () => {

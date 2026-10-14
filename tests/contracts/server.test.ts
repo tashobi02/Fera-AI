@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createMissingRequestSchema, sessionViewSchema, adminUserViewSchema } from "@/contracts";
+import { createMissingRequestSchema, sessionViewSchema, adminUserViewSchema, type MissingSubmissionDraftInput } from "@/contracts";
 import {
   canonicalJson,
   classifySubmission,
@@ -29,6 +29,15 @@ describe("canonical JSON and payload hash (D2A §5.6, TC-042)", () => {
     const json = canonicalJson(value);
     expect(json).toBe('{"a":[true,null,"ক"],"b":1,"c":{"y":2,"z":"x"}}');
     expect(createHash("sha256").update(json, "utf8").digest("hex")).toBe("977b5e5f8398a2d336ca5a35cdaeaeaffdce3da637fbb5bcecfc227a0142dafb");
+  });
+
+  it("accepts parsed submission drafts only (type-level)", () => {
+    const input: MissingSubmissionDraftInput = exampleMissingDraft;
+    // Compile-time only: an unparsed client draft is not hashable.
+    const hashUnparsed = () =>
+      // @ts-expect-error MissingSubmissionDraftInput is not a parsed MissingSubmissionDraft
+      submissionPayloadHash(input);
+    expect(typeof hashUnparsed).toBe("function");
   });
 
   it("throws on values JSON cannot represent exactly", () => {

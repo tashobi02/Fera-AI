@@ -9,6 +9,7 @@ import {
   LIMITS,
   districtCodeSchema,
   inputDateTimeSchema,
+  noNulString,
   optionalText,
   phoneSchema,
   trimmedText,
@@ -18,7 +19,7 @@ import { DRAFT_FIELD_PATHS, EVIDENCE_DERIVATIONS, caseKindSchema, sexSchema } fr
 // Quotes refer to source_text in UTF-16 offsets (D2A §2.1).
 export const evidenceSpanSchema = z
   .strictObject({
-    quote: z.string().min(1).max(LIMITS.quoteChars),
+    quote: noNulString().min(1).max(LIMITS.quoteChars),
     start_utf16: z.int().min(0).max(MAX.raw_text),
     end_utf16: z.int().min(1).max(MAX.raw_text),
     derivation: z.enum(EVIDENCE_DERIVATIONS),
@@ -35,7 +36,7 @@ const evidenceSchema = z.record(
   evidenceSpanSchema,
 );
 // Not trimmed: evidence offsets point into it unchanged.
-const sourceTextSchema = z.string().max(MAX.raw_text);
+const sourceTextSchema = noNulString().max(MAX.raw_text);
 
 const childBase = {
   name: optionalText(MAX.child_name),
@@ -114,7 +115,10 @@ function childSchema(kind: "missing" | "found") {
 }
 
 // Compared at millisecond precision; inputDateTimeSchema rejects finer digits.
+// `at` and `at_upper` allow CLOCK_SKEW_MS for device clocks. `at_lower` uses zero
+// skew because the database trigger compares it to clock_timestamp() exactly.
 const isFuture = (iso: string) => Date.parse(iso) > Date.now() + CLOCK_SKEW_MS;
+const lowerIsFuture = (iso: string) => Date.parse(iso) > Date.now();
 const timesSubset = z.object({
   at: inputDateTimeSchema,
   at_lower: inputDateTimeSchema,
@@ -122,8 +126,8 @@ const timesSubset = z.object({
   at_approx: z.boolean(),
 });
 
-// SQL only rejects a future event_at_lower; the contract deliberately also rejects a
-// future event time or interval end (BR-016), with CLOCK_SKEW_MS tolerance.
+// SQL only rejects a future event_at_lower (zero skew, mirrored here). The contract
+// also rejects a future event time or interval end (BR-016), with CLOCK_SKEW_MS.
 const submissionEventSchema = z
   .strictObject({
     ...eventBase,
@@ -144,9 +148,16 @@ const submissionEventSchema = z
         ctx.addIssue({ code: "custom", message: "exact event needs equal bounds", path: ["at_approx"] });
       else if (!isFuture(e.at) && isFuture(e.at_upper))
         ctx.addIssue({ code: "custom", message: "interval cannot end in the future", path: ["at_upper"] });
+      else if (!isFuture(e.at) && lowerIsFuture(e.at_lower))
+        ctx.addIssue({ code: "custom", message: "interval cannot start in the future", path: ["at_lower"] });
     },
     { when: (p) => timesSubset.safeParse(p.value).success },
   );
+
+// district_text is never submitted (CN-06), so its evidence key is dropped too.
+const submissionEvidenceSchema = evidenceSchema.transform((e) =>
+  Object.fromEntries(Object.entries(e).filter(([k]) => k !== "event.district_text")),
+);
 
 const submissionReporterSchema = z.strictObject({ relation: optionalText(MAX.reporter_relation), phone: phoneSchema });
 
@@ -169,7 +180,7 @@ export const missingSubmissionDraftSchema = z
     child: childSchema("missing"),
     event: submissionEventSchema,
     reporter: submissionReporterSchema,
-    evidence: evidenceSchema,
+    evidence: submissionEvidenceSchema,
   })
   .superRefine(checkSpans, { when: spansParse });
 export type MissingSubmissionDraft = z.output<typeof missingSubmissionDraftSchema>;
@@ -195,7 +206,7 @@ export const foundSubmissionDraftSchema = z
     child: childSchema("found"),
     event: submissionEventSchema,
     reporter: submissionReporterSchema,
-    evidence: evidenceSchema,
+    evidence: submissionEvidenceSchema,
   })
   .superRefine(checkSpans, { when: spansParse })
   .superRefine(

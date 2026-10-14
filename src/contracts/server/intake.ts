@@ -22,6 +22,10 @@ export const intakeDraftMetadataSchema = z
     if ((d.session_id === null) === (d.user_id === null)) {
       ctx.addIssue({ code: "custom", message: "exactly one of session_id or user_id", path: ["session_id"] });
     }
+    // Parents hold missing drafts under their session; staff/officers hold found drafts.
+    if ((d.kind === "missing") !== (d.session_id !== null)) {
+      ctx.addIssue({ code: "custom", message: "missing drafts belong to a session, found drafts to a user", path: ["kind"] });
+    }
     if (Date.parse(d.expires_at) <= Date.parse(d.created_at)) {
       ctx.addIssue({ code: "custom", message: "expires_at must be after created_at", path: ["expires_at"] });
     }

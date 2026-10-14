@@ -37,12 +37,13 @@ import {
   exampleOfficerMissingView,
   exampleReviewQueueResponse,
 } from "@/contracts/examples";
+import { testUser } from "../support/principals";
 
 const { parent, otherParent, staff, officer, admin } = PRINCIPALS;
-const otherStaff: Principal = { ...staff, userId: IDS.adminUser };
+const otherStaff = testUser(IDS.adminUser, "staff");
 // Same account as the found report creator, but with the officer role unverified.
-const unverifiedOfficer: Principal = { ...officer, userId: IDS.staffUser, verified: false };
-const inactiveOfficer: Principal = { ...officer, isActive: false };
+const unverifiedOfficer = testUser(IDS.staffUser, "officer");
+const inactiveOfficer = testUser(IDS.officerUser, "officer", { verified: true, isActive: false });
 
 const ctx = { districtNameBn: "[MOCK] জেলা ২৬", duplicateOf: [] };
 const candidateInput = {
@@ -156,6 +157,24 @@ describe("BR-007/024 role projections (FV-04)", () => {
     for (const v of payload(exampleFoundRow)) expect(text).not.toContain(v);
   });
 
+  it("microsecond timestamps from timestamptz rows do not break owner/staff views (11)", () => {
+    const micro: CaseRow = {
+      ...exampleMissingRow,
+      event_at: "2026-10-12T16:00:00.123456+06:00",
+      event_at_lower: "2026-10-12T15:00:00.000001+06:00",
+      event_at_upper: "2026-10-12T18:00:00.999999+06:00",
+      created_at: "2026-10-12T20:00:00.123456+06:00",
+    };
+    const view = projectCaseFor(parent, micro, ctx);
+    expect(view?.view === "owner" && view.data.draft?.event).toMatchObject({
+      at: "2026-10-12T16:00:00.123+06:00",
+      at_lower: "2026-10-12T15:00:00+06:00",
+      at_upper: "2026-10-12T18:00:00.999+06:00",
+    });
+    expect(view?.view === "owner" && view.data.created_at).toBe("2026-10-12T20:00:00.123456+06:00");
+    expect(projectCaseFor(staff, { ...exampleFoundRow, event_at: "2026-10-12T19:30:00.5+06:00", event_at_lower: "2026-10-12T19:30:00.5+06:00", event_at_upper: "2026-10-12T19:30:00.5+06:00" }, ctx)?.view).toBe("staff_own");
+  });
+
   it("staff and unverified officer read only their own found report, never candidates (TC-022)", () => {
     for (const p of [staff, unverifiedOfficer]) {
       const own = projectCaseFor(p, exampleFoundRow, ctx);
@@ -191,7 +210,10 @@ describe("BR-007/024 role projections (FV-04)", () => {
 
   it("only an active verified officer gets the operational and candidate views", () => {
     expect(projectCaseFor(officer, exampleMissingRow, ctx)).toMatchObject({ view: "officer", contactServed: true });
-    expect(projectCandidateFor(officer, candidateInput)?.identity_probability).toBe(false);
+    expect(projectCandidateFor(officer, candidateInput)).toMatchObject({
+      data: { identity_probability: false },
+      contactServed: { missing: true, found: true },
+    });
     expect(projectCaseFor(inactiveOfficer, exampleMissingRow, ctx)).toBeNull();
     expect(projectCandidateFor(inactiveOfficer, candidateInput)).toBeNull();
     expect(projectCaseFor(null, exampleMissingRow, ctx)).toBeNull();

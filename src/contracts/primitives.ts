@@ -33,18 +33,35 @@ export function toDhakaIso(epochMs: number): IsoDateTime {
   return `${date}T${hms}${frac && frac !== "000" ? `.${frac}` : ""}${DHAKA_OFFSET}`;
 }
 
+// Format validity only: four-digit years 1000–9999. A domain lower bound for event
+// or intake times is a spec decision (OD-6, UNKNOWN), so none is applied here.
+const yearInRange = (v: string) => {
+  const year = Number(v.slice(0, 4));
+  return year >= 1000 && year <= 9999;
+};
+
 // Server/response values: must already carry +06:00; up to microsecond digits (timestamptz).
 export const isoDateTimeSchema = z.iso
   .datetime({ offset: true })
+  .refine(yearInRange, "year must be 1000–9999")
   .refine((v) => v.endsWith(DHAKA_OFFSET), "times are serialised with +06:00")
   .refine((v) => !/\.\d{7,}/.test(v), "at most microsecond precision");
 
 // Client-entered times: any explicit offset, at most millisecond precision so JS
-// comparisons are exact; canonicalised to +06:00 before validation and hashing.
+// comparisons are exact; canonicalised to +06:00 and re-validated, so a shift past
+// year 9999 (a six-digit ISO year) is rejected rather than emitted.
 export const inputDateTimeSchema = z.iso
   .datetime({ offset: true })
+  .refine(yearInRange, "year must be 1000–9999")
   .refine((v) => !/\.\d{4,}/.test(v), "at most millisecond precision")
-  .transform((v) => toDhakaIso(Date.parse(v)));
+  .transform((v) => toDhakaIso(Date.parse(v)))
+  .pipe(isoDateTimeSchema);
+
+// Mapped database timestamps may carry microseconds; drafts hold milliseconds.
+// Row mappers pass event times through this before building a CaseDraft.
+export function toMillisecondIso(iso: string): IsoDateTime {
+  return toDhakaIso(Date.parse(iso));
+}
 
 /* ---------- Identifiers and patterns copied from schema_v2.sql CHECKs ---------- */
 
@@ -65,8 +82,8 @@ export const draftTokenSchema = z.string().min(16).max(2048).regex(/^[A-Za-z0-9.
 
 /* ---------- Limits ---------- */
 
-// Column caps from schema_v2.sql. SQL `length()` counts code points and `.max()`
-// counts UTF-16 units, so the contract is never looser than the database.
+// Column caps from schema_v2.sql. Zod 4.6.7 (pinned exactly) `.max()` counts code
+// points, like SQL `length()`, so the limits agree character for character.
 export const FIELD_MAX_CHARS = {
   raw_text: 4000,
   child_name: 80,
@@ -94,7 +111,8 @@ export const LIMITS = {
   textChars: { min: 20, max: 2000 },
   audioSeconds: { min: 5, max: 120 },
   audioMaxBytes: 2 * 1024 * 1024, // "≤2 MB"; MiB reading is an open decision
-  jsonBodyBytes: 64 * 1024, // routes reject larger JSON bodies before parsing
+  jsonBodyBytes: 64 * 1024, // default per-route JSON body cap, enforced before parsing
+  importBodyBytes: 512 * 1024, // API-015: up to 50 items × 2,000 characters (≤3 bytes each in UTF-8)
   aiCallsPerDraft: 6,
   followUpRounds: 4,
   pageSize: { min: 1, max: 50 },
@@ -108,19 +126,22 @@ export const LIMITS = {
 
 /* ---------- Text ---------- */
 
+// Postgres text and jsonb reject U+0000, so every text input does too.
+const NO_NUL = /^[^\u0000]*$/;
+export const noNulString = () => z.string().regex(NO_NUL, "text must not contain U+0000");
+
 // Raw input is capped at 2× the post-trim maximum before trimming, so a huge
 // whitespace-padded value is rejected without further work.
 const preTrimCap = (max: number) => max * 2;
 
 // Required text: trimmed, then length-checked.
 export function trimmedText(min: number, max: number) {
-  return z.string().max(preTrimCap(max)).trim().min(min).max(max);
+  return noNulString().max(preTrimCap(max)).trim().min(min).max(max);
 }
 
 // Optional reviewed text: trimmed; blank becomes null ("unknown stays unknown").
 export function optionalText(max: number) {
-  return z
-    .string()
+  return noNulString()
     .max(preTrimCap(max))
     .trim()
     .max(max)
@@ -159,8 +180,7 @@ const LONG_DIGIT_RUN = /[0-9০-৯]{5,}/;
 
 // users.display_name is 2–80 in SQL. Tightened so a name can never carry a phone or
 // long number into session, admin-user or audit views. Seed accounts must comply.
-export const displayNameSchema = z
-  .string()
+export const displayNameSchema = noNulString()
   .trim()
   .min(2)
   .max(FIELD_MAX_CHARS.display_name)
@@ -170,10 +190,13 @@ export const reasonSchema = trimmedText(LIMITS.reasonChars.min, LIMITS.reasonCha
 
 /* ---------- URLs, cursors and query integers ---------- */
 
-// Synthetic fixture URLs only: https, no credentials, host example.invalid or a subdomain.
+// Synthetic fixture URLs only: https, no credentials, host example.invalid or a
+// subdomain; no control characters, whitespace or backslash. The stored and served
+// value is the canonical WHATWG href.
 export const syntheticSourceUrlSchema = z
   .string()
   .max(LIMITS.sourceUrlChars)
+  .refine((u) => !/[\u0000- \u007f\\]/.test(u), "source_url must not contain control characters, spaces or backslashes")
   .refine((u) => {
     if (!URL.canParse(u)) return false;
     const url = new URL(u);
@@ -184,11 +207,12 @@ export const syntheticSourceUrlSchema = z
       url.password === "" &&
       (host === "example.invalid" || host.endsWith(".example.invalid"))
     );
-  }, "source_url must be an https example.invalid URL");
+  }, "source_url must be an https example.invalid URL")
+  .transform((u) => new URL(u).href);
 
-// Opaque server-signed cursor: base64url payload, optional "." + base64url signature.
-// The server verifies the signature; the contract only bounds the charset and size.
-export const cursorSchema = z.string().regex(/^[A-Za-z0-9_-]{8,400}(\.[A-Za-z0-9_-]{16,100})?$/);
+// Opaque server-signed cursor: base64url payload "." base64url signature. Unsigned
+// cursors fail here; the server still verifies the signature.
+export const cursorSchema = z.string().regex(/^[A-Za-z0-9_-]{8,400}\.[A-Za-z0-9_-]{16,100}$/);
 
 // Query-string integers: plain decimal digits only ("0x1A", "1e1", " 5 ", "5.0" fail).
 export const queryIntSchema = z

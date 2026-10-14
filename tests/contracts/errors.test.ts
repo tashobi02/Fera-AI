@@ -7,9 +7,12 @@ import {
   ERROR_IDS,
   errorEnvelope,
   errorEnvelopeSchema,
+  createMissingRequestSchema,
+  fieldsFromZodIssues,
   httpStatusFor,
   type ErrorId,
 } from "@/contracts";
+import { exampleCreateMissingRequest, exampleMissingDraft } from "@/contracts/examples";
 
 const spec = (file: string) => readFileSync(join(import.meta.dirname, "..", "..", "docs", "spec", file), "utf8");
 const rows = (md: string) =>
@@ -60,9 +63,42 @@ describe("error envelope E-001–E-024", () => {
 
   it("E-007 requires a positive whole number of seconds (C15)", () => {
     for (const seconds of [0, -5, 1.5, NaN]) expect(() => errorEnvelope("E-007", { seconds })).toThrow();
-    // @ts-expect-error seconds are required for E-007
-    expect(() => errorEnvelope("E-007")).toThrow();
+    expect(() => errorEnvelope("E-007")).toThrow(); // the general overload type-checks; runtime still refuses
+    const anyId: ErrorId = "E-007";
+    expect(() => errorEnvelope(anyId)).toThrow();
     expect(errorEnvelopeSchema.safeParse(errorEnvelope("E-007", { seconds: 1 })).success).toBe(true);
+  });
+
+  it("TC-030: E-001 carries the four field paths and nothing else", () => {
+    const future = "2099-01-01T10:00:00+06:00";
+    const bad = {
+      ...exampleCreateMissingRequest,
+      draft: {
+        ...exampleMissingDraft,
+        child: { ...exampleMissingDraft.child, age_years: 19, age_min: null, age_max: null },
+        event: { ...exampleMissingDraft.event, at: future, at_lower: future, at_upper: future, at_approx: false, district_code: "XYZ" },
+        reporter: { ...exampleMissingDraft.reporter, phone: "0171" },
+      },
+    };
+    const parsed = createMissingRequestSchema.safeParse(bad);
+    const fields = fieldsFromZodIssues(parsed.error!.issues);
+    expect(fields).toEqual(["child.age_years", "event.at", "event.district_code", "reporter.phone"]);
+    const env = errorEnvelope("E-001", { fields });
+    expect(errorEnvelopeSchema.safeParse(env).success).toBe(true);
+    expect(env.error.fields).toEqual(fields);
+    const text = JSON.stringify(env);
+    for (const leak of ["0171", "XYZ", "19", "2099", ...parsed.error!.issues.map((i) => i.message)]) expect(text).not.toContain(leak);
+  });
+
+  it("fields: known draft paths only, E-001 only, deduplicated and capped", () => {
+    expect(fieldsFromZodIssues([{ path: ["draft", "child", "favourite"] }, { path: ["password"] }, { path: [] }])).toBeUndefined();
+    expect(fieldsFromZodIssues([{ path: ["event", "at"] }, { path: ["draft", "event", "at"] }])).toEqual(["event.at"]);
+    expect(() => errorEnvelope("E-004", { fields: ["event.at"] })).toThrow();
+    const env = errorEnvelope("E-001");
+    expect(errorEnvelopeSchema.safeParse({ error: { ...env.error, fields: ["child.favourite"] } }).success).toBe(false);
+    expect(errorEnvelopeSchema.safeParse({ error: { ...env.error, fields: Array(33).fill("event.at") } }).success).toBe(false);
+    const notFound = errorEnvelope("E-004");
+    expect(errorEnvelopeSchema.safeParse({ error: { ...notFound.error, fields: ["event.at"] } }).success).toBe(false);
   });
 
   it("rejects an unfilled {s} placeholder", () => {

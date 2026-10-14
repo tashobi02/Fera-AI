@@ -40,7 +40,8 @@ import { intakeDraftMetadataSchema } from "@/contracts/server";
 import { exampleMissingDraft } from "@/contracts/examples";
 
 // The SQL companion is the source of truth for enums and CHECKs; it is read, never
-// edited. Every check runs on whitespace-collapsed SQL, so reformatting the file
+// edited. Trigger functions referenced: enforce_case_transition(), check_pair_integrity()
+// (via the *_integrity constraint triggers) and redact_case(). Every check runs on whitespace-collapsed SQL, so reformatting the file
 // cannot break a test while a changed constraint still does.
 const root = join(import.meta.dirname, "..", "..");
 const raw = readFileSync(join(root, "docs", "code", "schema_v2.sql"), "utf8");
@@ -154,15 +155,21 @@ describe("patterns equal the SQL CHECK regexes", () => {
 });
 
 describe("field bounds equal the SQL CHECKs", () => {
-  it("every capped text column matches FIELD_MAX_CHARS", () => {
+  // Capped columns the contracts never accept or serve (internal-only text).
+  const UNMAPPED_CAPPED_COLUMNS = ["note"]; // referrals.note: no API carries it
+
+  it("every SQL-capped text column is a FIELD_MAX_CHARS key (or explicitly unmapped) with the same cap", () => {
     const caps = new Map<string, Set<number>>();
     for (const m of sql.matchAll(/(\w+) text (?:NOT NULL )?(?:DEFAULT '[^']*' )?CHECK \(length\(\1\) <= (\d+)\)/g)) {
       caps.set(m[1], (caps.get(m[1]) ?? new Set()).add(Number(m[2])));
     }
     const ours: Record<string, number> = FIELD_MAX_CHARS;
-    const checked = [...caps.keys()].filter((c) => c in ours);
-    expect(checked.length).toBeGreaterThanOrEqual(15);
-    for (const column of checked) expect([...caps.get(column)!]).toEqual([ours[column]]);
+    expect(caps.size).toBeGreaterThanOrEqual(15);
+    for (const [column, values] of caps) {
+      if (UNMAPPED_CAPPED_COLUMNS.includes(column)) continue;
+      expect(column in ours, `${column} has no FIELD_MAX_CHARS entry`).toBe(true);
+      expect([...values]).toEqual([ours[column]]);
+    }
     expect(has(`display_name text NOT NULL CHECK (length(display_name) BETWEEN 2 AND ${FIELD_MAX_CHARS.display_name})`)).toBe(true);
   });
 
@@ -197,6 +204,24 @@ describe("field bounds equal the SQL CHECKs", () => {
     expect(has("length(trim(concat_ws(' ', circumstances, clothing, marks))) >= 3")).toBe(true);
     // SQL only rejects a future lower bound; the contract also rejects a future time/upper bound (CN-12).
     expect(has("NEW.event_at_lower > clock_timestamp()")).toBe(true);
+  });
+
+  it("age, required-field and decision CHECKs the submission and decision rules mirror (18)", () => {
+    expect(has("CHECK ((age_min IS NULL) = (age_max IS NULL))")).toBe(true);
+    expect(has("CHECK (age_min IS NULL OR age_min <= age_max)")).toBe(true);
+    expect(has("CHECK (age_years IS NULL OR (age_min IS NOT NULL AND age_min = age_years AND age_max = age_years))")).toBe(true);
+    expect(has("CHECK (kind <> 'missing' OR anonymised_at IS NOT NULL OR age_min IS NOT NULL)")).toBe(true);
+    expect(
+      has(
+        "CHECK (anonymised_at IS NOT NULL OR (event_at IS NOT NULL AND event_at_lower IS NOT NULL AND event_at_upper IS NOT NULL AND district_code IS NOT NULL AND contact_phone IS NOT NULL AND place_text IS NOT NULL AND length(place_text) >= 1))",
+      ),
+    ).toBe(true);
+    const min = LIMITS.reasonChars.min;
+    expect(has(`CHECK (decision = 'confirm' OR (reason IS NOT NULL AND length(reason) BETWEEN ${min} AND ${LIMITS.reasonChars.max}))`)).toBe(true);
+    expect(has(`CHECK (status = 'flagged' OR (reason IS NOT NULL AND length(reason) >= ${min}))`)).toBe(true);
+    expect(has("CHECK (rule <> 'same_phone' OR status <> 'confirmed_same')")).toBe(true);
+    expect(has("CHECK (status <> 'closed' OR outcome IS NOT NULL)")).toBe(true);
+    expect(has("CHECK ((status IN ('closed', 'referred')) = (closed_at IS NOT NULL))")).toBe(true);
   });
 
   it("identity CHECKs the contract mirrors", () => {

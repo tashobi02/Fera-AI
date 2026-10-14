@@ -8,6 +8,7 @@
 // - A unique-violation (23505) on (scope, client_submission_id) during insert is a
 //   race with the same key: re-read the row and classify again.
 import { createHash } from "node:crypto";
+import type { FoundSubmissionDraft, MissingSubmissionDraft } from "../draft";
 import { sameId, sha256HexSchema } from "../primitives";
 import { effectiveRole, type Principal } from "./principal";
 
@@ -79,8 +80,9 @@ export function canonicalJson(value: unknown): string {
   throw new Error(`${typeof value} is not canonical JSON`);
 }
 
-// SHA-256 of the canonical parsed draft. district_text is excluded (no column, CN-06).
-export function submissionPayloadHash(parsedDraft: { event: Record<string, unknown> } & Record<string, unknown>): string {
+// SHA-256 of the canonical *parsed* draft (output of the submission schemas only).
+// district_text is excluded (no column, CN-06).
+export function submissionPayloadHash(parsedDraft: MissingSubmissionDraft | FoundSubmissionDraft): string {
   const event = Object.fromEntries(Object.entries(parsedDraft.event).filter(([k]) => k !== "district_text"));
   return createHash("sha256").update(canonicalJson({ ...parsedDraft, event }), "utf8").digest("hex");
 }

@@ -72,7 +72,7 @@ export const INITIAL_STATUS = { missing: "submitted", found: "open" } as const;
 // Report fields are locked from these statuses on (enforce_case_transition "terminal report fields are locked").
 export const EDIT_LOCKED_STATUSES: readonly CaseStatus[] = ["confirmed", "closed", "referred"];
 export const EDITABLE_STATUSES: readonly CaseStatus[] = ["submitted", "open", "matched_pending_review"];
-// Payload redaction is allowed only here (cases CHECK on anonymised_at; redact_case_payload()).
+// Payload redaction is allowed only here (cases CHECK on anonymised_at; redact_case()).
 export const REDACTABLE_STATUSES: readonly CaseStatus[] = ["closed", "referred"];
 
 // Closure outcome by the missing report's current status (BR-012). SQL enforces only
@@ -146,7 +146,8 @@ export const REFERRAL_RECORDED_LABEL = { bn: "রেফারেল নথিভ
 // D4 §score: similarity, never probability or identity.
 export const SIMILARITY_LABEL = { bn: "মিলের মাত্রা", en: "Similarity" } as const;
 
-// Audit actions the database triggers require (candidates_integrity, redact_case_payload)
+// Audit actions the database requires (check_pair_integrity() via the *_integrity
+// constraint triggers, and redact_case())
 // plus the D2B E-004 denial event. Other action codes are named by TASK-015.
 export const AUDIT_ACTIONS = {
   matchConfirm: "match.confirm",
@@ -166,3 +167,6 @@ export const DRAFT_FIELD_PATHS = [
 ] as const;
 export type DraftFieldPath = (typeof DRAFT_FIELD_PATHS)[number];
 export const draftFieldPathSchema = z.enum(DRAFT_FIELD_PATHS);
+export function isDraftFieldPath(path: string): path is DraftFieldPath {
+  return (DRAFT_FIELD_PATHS as readonly string[]).includes(path);
+}

@@ -8,7 +8,9 @@ import { z } from "zod";
 import { ERROR_CATALOGUE, type ErrorId } from "./errors";
 import { caseDraftSchema, foundSubmissionDraftSchema, missingSubmissionDraftSchema } from "./draft";
 import {
+  AGE,
   FIELD_MAX_CHARS as MAX,
+  HEIGHT_CM,
   LIMITS,
   AUDIT_ACTION_PATTERN,
   MASKED_PHONE_PATTERN,
@@ -21,6 +23,8 @@ import {
   draftTokenSchema,
   inputDateTimeSchema,
   isoDateTimeSchema,
+  maskPhone,
+  noNulString,
   pageLimitSchema,
   reasonSchema,
   refCodeSchema,
@@ -133,11 +137,11 @@ const officerCaseShape = {
   child: z.strictObject({
     name: bounded(MAX.child_name),
     name_latin: bounded(MAX.child_name_latin),
-    age_years: z.int().nullable(),
-    age_min: z.int().nullable(),
-    age_max: z.int().nullable(),
+    age_years: z.int().min(0).max(AGE.exactMax).nullable(),
+    age_min: z.int().min(0).max(AGE.estimateMax).nullable(),
+    age_max: z.int().min(0).max(AGE.estimateMax).nullable(),
     sex: sexSchema,
-    height_cm: z.int().nullable(),
+    height_cm: z.int().min(HEIGHT_CM.min).max(HEIGHT_CM.max).nullable(),
     clothing: bounded(MAX.clothing),
     marks: bounded(MAX.marks),
   }),
@@ -162,9 +166,16 @@ const officerCaseShape = {
   updated_at: isoDateTimeSchema,
 };
 
+// The masked phone, when a raw phone is present, must be the mask of that phone.
+function checkMask(v: { contact_phone: string | null; contact_phone_masked: string | null }, ctx: z.RefinementCtx) {
+  if (v.contact_phone !== null && v.contact_phone_masked !== maskPhone(v.contact_phone)) {
+    ctx.addIssue({ code: "custom", message: "contact_phone_masked must mask contact_phone", path: ["contact_phone_masked"] });
+  }
+}
+
 // Single-case (API-004) and candidate (API-009) detail for a verified active officer.
 // Serving contact_phone is audited (route obligation, D2A §5.4).
-export const officerCaseViewSchema = z.strictObject(officerCaseShape).superRefine(checkIdentity);
+export const officerCaseViewSchema = z.strictObject(officerCaseShape).superRefine(checkIdentity).superRefine(checkMask);
 export type OfficerCaseView = z.infer<typeof officerCaseViewSchema>;
 
 // List and queue rows (API-008, API-022): masked phone only.
@@ -376,10 +387,18 @@ export type QueueCandidate = z.infer<typeof queueCandidateSchema>;
 
 export const reviewQueueResponseSchema = z.strictObject({
   items: z.array(
-    z.strictObject({
-      case: officerCaseRowSchema,
-      candidates: z.array(queueCandidateSchema).max(LIMITS.candidatesPerQueueItem),
-    }),
+    z
+      .strictObject({
+        case: officerCaseRowSchema,
+        candidates: z.array(queueCandidateSchema).max(LIMITS.candidatesPerQueueItem),
+      })
+      .superRefine((item, ctx) => {
+        item.candidates.forEach((c, i) => {
+          if (c.counterpart.kind === item.case.kind) {
+            ctx.addIssue({ code: "custom", message: "counterpart must be the other kind of report", path: ["candidates", i, "counterpart", "kind"] });
+          }
+        });
+      }),
   ),
   next_cursor: cursorSchema.nullable(),
 });
@@ -409,7 +428,13 @@ export const decisionRequestSchema = z.discriminatedUnion("decision", [
   z.object({ decision: z.literal("reject"), reason: reasonSchema, ...expectedVersions }),
   z.object({
     decision: z.literal("confirm"),
-    reason: z.string().max(MAX.reason * 2).trim().max(MAX.reason).optional(),
+    // Optional on confirm; blank means no reason.
+    reason: noNulString()
+      .max(MAX.reason * 2)
+      .trim()
+      .max(MAX.reason)
+      .transform((v) => (v === "" ? undefined : v))
+      .optional(),
     agency_name: trimmedText(1, MAX.agency_name).optional(),
     ...expectedVersions,
     reviewer_checklist: z.object({
@@ -427,7 +452,7 @@ export type DecisionRequestInput = z.input<typeof decisionRequestSchema>;
 // Explicit endpoint state and version per D2A §5.4 (CN-11).
 export const decisionResponseSchema = z
   .strictObject({
-    candidate_status: candidateStatusSchema,
+    candidate_status: z.enum(["confirmed", "rejected"]), // the only results of a decision
     missing: z.strictObject({ ref_code: refCodeSchema.startsWith("M-"), status: missingStatusSchema, version: versionSchema }),
     found: z.strictObject({ ref_code: refCodeSchema.startsWith("F-"), status: foundStatusSchema, version: versionSchema }),
     referral_id: uuidSchema.nullable(),

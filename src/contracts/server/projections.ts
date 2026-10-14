@@ -3,7 +3,7 @@
 // schema before returning. A null result means the route answers E-004 (identical
 // for hidden and absent records) and writes the access.denied audit entry.
 import type { CaseDraftInput } from "../draft";
-import { LIMITS, maskPhone, sameId } from "../primitives";
+import { LIMITS, maskPhone, sameId, toMillisecondIso } from "../primitives";
 import {
   ADMIN_AUDIT_DETAIL_KEYS,
   OFFICER_AUDIT_DETAIL_KEYS,
@@ -34,6 +34,11 @@ import { EDITABLE_STATUSES, kindStatus, statusGroup } from "../states";
 import { effectiveRole, type Principal } from "./principal";
 import type { AuditRow, CaseRow } from "./rows";
 
+// Row-mapping rule: DB timestamps arrive as +06:00 strings, possibly with microseconds
+// (timestamptz). Views accept them as-is; draft event times are truncated to
+// milliseconds because drafts are client-editable input.
+const ms = (iso: string | null) => (iso === null ? null : toMillisecondIso(iso));
+
 function draftFromRow(row: CaseRow): CaseDraftInput {
   return {
     kind: row.kind,
@@ -50,10 +55,10 @@ function draftFromRow(row: CaseRow): CaseDraftInput {
       marks: row.marks,
     },
     event: {
-      at: row.event_at,
+      at: ms(row.event_at),
       at_approx: row.event_at_approx,
-      at_lower: row.event_at_lower,
-      at_upper: row.event_at_upper,
+      at_lower: ms(row.event_at_lower),
+      at_upper: ms(row.event_at_upper),
       place_text: row.place_text,
       district_text: null, // not persisted; district_code is authoritative (CN-06)
       district_code: row.district_code,
@@ -261,11 +266,13 @@ export type CandidateInput = {
   qualified: boolean;
 };
 
+export type CandidateReadView = { data: CandidateDecisionView; contactServed: { missing: boolean; found: boolean } };
+
 // API-009: candidates exist only for active verified officers (BR-007). Serves both
-// raw phones, so the route writes contact_viewed for each endpoint.
-export function projectCandidateFor(p: Principal | null, c: CandidateInput): CandidateDecisionView | null {
+// raw phones; the route writes contact_viewed for each endpoint flagged in contactServed.
+export function projectCandidateFor(p: Principal | null, c: CandidateInput): CandidateReadView | null {
   if (effectiveRole(p) !== "officer") return null;
-  return candidateDecisionViewSchema.parse({
+  const data = candidateDecisionViewSchema.parse({
     candidate_id: c.candidateId,
     missing: toOfficerCaseView(c.missing.row, c.missing.ctx),
     found: toOfficerCaseView(c.found.row, c.found.ctx),
@@ -275,6 +282,7 @@ export function projectCandidateFor(p: Principal | null, c: CandidateInput): Can
     qualified: c.qualified,
     identity_probability: false,
   });
+  return { data, contactServed: { missing: data.missing.contact_phone !== null, found: data.found.contact_phone !== null } };
 }
 
 /* ---------- API-013 audit ---------- */
@@ -290,7 +298,12 @@ export type AuditWithheldHook = (info: { index: number; errorId: "E-021" }) => v
 
 // Keeps only the role's allowlisted keys. A row that still fails (unsafe stored value,
 // another case's ID or ref) is withheld and counted instead of failing the response.
+const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+  typeof v === "object" && v !== null && !Array.isArray(v) && Object.getPrototypeOf(v) === Object.prototype;
+
+// details is jsonb: a stored null, array or scalar is withheld, never dereferenced.
 function belongsTo(r: AuditRow, auditedCase: AuditedCase): boolean {
+  if (!isPlainObject(r.details)) return false;
   const ref = r.details.ref_code;
   return sameId(r.case_id, auditedCase.id) && (ref === undefined || ref === auditedCase.ref_code);
 }

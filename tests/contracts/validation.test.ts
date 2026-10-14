@@ -8,6 +8,8 @@ import {
   createMissingRequestSchema,
   cursorSchema,
   dashboardStatsResponseSchema,
+  decisionRequestSchema,
+  displayNameSchema,
   decisionResponseSchema,
   evidenceSpanSchema,
   extractRequestSchema,
@@ -22,11 +24,17 @@ import {
   pageLimitSchema,
   reasonSchema,
   reviewQueueQuerySchema,
+  reviewQueueResponseSchema,
   statusGroup,
   uuidSchema,
 } from "@/contracts";
+import { intakeDraftMetadataSchema } from "@/contracts/server";
 import {
+  exampleConfirmDecisionRequest,
   exampleConfirmDecisionResponse,
+  exampleIntakeDraftMetadata,
+  exampleRejectDecisionResponse,
+  exampleReviewQueueResponse,
   exampleCreateFoundRequest,
   exampleCreateMissingRequest,
   exampleDashboardStatsResponse,
@@ -103,11 +111,18 @@ describe("C11 time policy", () => {
     expect(ok(isoDateTimeSchema.safeParse("2026-10-12T10:00:00Z"))).toBe(false);
   });
 
-  it("future checks allow CLOCK_SKEW_MS", () => {
+  it("at/at_upper allow CLOCK_SKEW_MS; at_lower has zero skew like the SQL trigger (C9 round 3)", () => {
     const at = (ms: number) => new Date(Date.now() + ms).toISOString();
-    const exact = (iso: string) => missing((d) => ({ ...d, event: { ...d.event, at: iso, at_lower: iso, at_upper: iso, at_approx: false } }));
-    expect(ok(exact(at(CLOCK_SKEW_MS - 1000)))).toBe(true);
-    expect(ok(exact(at(CLOCK_SKEW_MS + 1000)))).toBe(false);
+    const event = (patch: object) => missing((d) => ({ ...d, event: { ...d.event, ...patch } }));
+    const paths = (r: { error?: { issues: { path: PropertyKey[] }[] } }) => (r.error?.issues ?? []).map((i) => i.path.join("."));
+    // Approximate event: lower bound in the past, time and upper bound inside the skew window.
+    expect(paths(event({ at_lower: at(-60_000), at: at(CLOCK_SKEW_MS - 1000), at_upper: at(CLOCK_SKEW_MS - 1000), at_approx: true }))).toEqual([]);
+    expect(paths(event({ at_lower: at(-60_000), at: at(0), at_upper: at(CLOCK_SKEW_MS + 1000), at_approx: true }))).toEqual(["draft.event.at_upper"]);
+    // Exact event a minute ahead: within skew for `at`, but the lower bound is in the future.
+    const soon = at(60_000);
+    expect(paths(event({ at: soon, at_lower: soon, at_upper: soon, at_approx: false }))).toEqual(["draft.event.at_lower"]);
+    const late = at(CLOCK_SKEW_MS + 1000);
+    expect(paths(event({ at: late, at_lower: late, at_upper: late, at_approx: false }))).toEqual(["draft.event.at"]);
   });
 });
 
@@ -234,5 +249,73 @@ describe("D23 dashboard invariants", () => {
     expect(ok(dashboardStatsResponseSchema.safeParse({ ...d, districts: shifted }))).toBe(false);
     const dup = d.districts.map((x) => (x.code === 2 ? { ...x, code: 1 } : x));
     expect(ok(dashboardStatsResponseSchema.safeParse({ ...d, districts: dup }))).toBe(false);
+  });
+});
+
+describe("round 3 hardening", () => {
+  it("5: masked phone must mask the raw phone; officer ages/heights bounded like SQL", () => {
+    const v = exampleOfficerMissingView;
+    expect(ok(officerCaseViewSchema.safeParse({ ...v, contact_phone_masked: "018••••••99" }))).toBe(false);
+    expect(ok(officerCaseViewSchema.safeParse({ ...v, child: { ...v.child, age_years: 18 } }))).toBe(false);
+    expect(ok(officerCaseViewSchema.safeParse({ ...v, child: { ...v.child, height_cm: 300 } }))).toBe(false);
+  });
+
+  it("5: queue counterpart is the other kind of report", () => {
+    const item = exampleReviewQueueResponse.items[0];
+    const same = { ...item, candidates: [{ ...item.candidates[0], counterpart: item.case }] };
+    expect(ok(reviewQueueResponseSchema.safeParse({ ...exampleReviewQueueResponse, items: [same] }))).toBe(false);
+  });
+
+  it("5: intake metadata kind is tied to its scope", () => {
+    const m = exampleIntakeDraftMetadata;
+    expect(ok(intakeDraftMetadataSchema.safeParse({ ...m, kind: "found" }))).toBe(false);
+    expect(ok(intakeDraftMetadataSchema.safeParse({ ...m, kind: "found", session_id: null, user_id: m.session_id }))).toBe(true);
+    expect(ok(intakeDraftMetadataSchema.safeParse({ ...m, kind: "missing", session_id: null, user_id: m.session_id }))).toBe(false);
+  });
+
+  it("5: blank confirm reason is undefined; decision results are confirmed or rejected only", () => {
+    const parsed = decisionRequestSchema.parse({ ...exampleConfirmDecisionRequest, reason: "   " });
+    expect(parsed.decision === "confirm" && parsed.reason).toBeUndefined();
+    expect(ok(decisionResponseSchema.safeParse({ ...exampleRejectDecisionResponse, candidate_status: "voided" }))).toBe(false);
+    expect(ok(decisionResponseSchema.safeParse({ ...exampleRejectDecisionResponse, candidate_status: "pending" }))).toBe(false);
+  });
+
+  it("6: U+0000 is rejected in every text input", () => {
+    const nul = "ক\u0000খ";
+    expect(ok(missing((d) => ({ ...d, child: { ...d.child, marks: nul } })))).toBe(false);
+    expect(ok(missing((d) => ({ ...d, event: { ...d.event, place_text: nul } })))).toBe(false);
+    expect(ok(caseDraftSchema.safeParse({ ...exampleMissingDraft, source_text: `${exampleMissingDraft.source_text}\u0000` }))).toBe(false);
+    expect(ok(evidenceSpanSchema.safeParse({ quote: "\u0000", start_utf16: 0, end_utf16: 1, derivation: "direct" }))).toBe(false);
+    expect(ok(reasonSchema.safeParse(`কারণ${"\u0000"}`))).toBe(false);
+    expect(ok(displayNameSchema.safeParse("[MOCK]\u0000"))).toBe(false);
+  });
+
+  it("7: four-digit years 1000–9999 only, including after the +06:00 shift", () => {
+    expect(ok(inputDateTimeSchema.safeParse("0999-12-31T00:00:00Z"))).toBe(false);
+    expect(ok(inputDateTimeSchema.safeParse("9999-12-31T17:00:00Z"))).toBe(true);
+    expect(ok(inputDateTimeSchema.safeParse("9999-12-31T23:00:00Z"))).toBe(false); // would be year 10000 in Dhaka
+    expect(ok(isoDateTimeSchema.safeParse("0500-01-01T00:00:00+06:00"))).toBe(false);
+  });
+
+  it("8: source URLs reject control characters, spaces and backslashes, and are canonicalised", () => {
+    const url = (source_url: string) =>
+      importRequestSchema.safeParse({ ...exampleImportRequest, items: [{ ...exampleImportRequest.items[0], source_url }] });
+    for (const bad of ["https://example.invalid/a b", "https://example.invalid/a\tb", "https://example.invalid\\a", "https://example.invalid/\u007f"]) {
+      expect(ok(url(bad))).toBe(false);
+    }
+    expect(url("HTTPS://Fixture.EXAMPLE.invalid/post/../post/1").data?.items[0].source_url).toBe("https://fixture.example.invalid/post/1");
+  });
+
+  it("13: the district_text evidence key is dropped on submission", () => {
+    const parsed = missing((d) => ({
+      ...d,
+      evidence: { ...d.evidence, "event.district_text": { quote: "মিতু", start_utf16: 11, end_utf16: 15, derivation: "direct" } },
+    }));
+    expect(parsed.success).toBe(true);
+    expect(parsed.data?.draft.evidence).not.toHaveProperty(["event.district_text"]);
+  });
+
+  it("15: cursors must be signed", () => {
+    expect(ok(cursorSchema.safeParse("eyJpZCI6MX0"))).toBe(false);
   });
 });

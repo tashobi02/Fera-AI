@@ -1,6 +1,7 @@
-// One valid typed example per API DTO, for tests and UI lanes as typed fakes.
-// Not exported from either barrel; ESLint allows importing it only from tests/ and
-// fakes. Synthetic only: invented names, [MOCK] district labels, and phone numbers
+// One valid typed example per API DTO: typed fakes for route-handler and service
+// tests. Not exported from either barrel; ESLint allows importing it only from tests/
+// and fakes/. UI lanes use the client-safe DTO subset in client-examples.ts instead,
+// which carries the same values as JSON with no server code. Synthetic only: invented names, [MOCK] district labels, and phone numbers
 // from the placeholder scheme 01X0000000N (X = 7 parent, 8 staff). They pass the
 // BR-016 format check but are not real subscriber numbers.
 import type { z } from "zod";
@@ -8,19 +9,18 @@ import type { CaseDraft, EvidenceSpan } from "./draft";
 import { errorEnvelope, errorEnvelopeSchema } from "./errors";
 import { toBanglaDigits } from "./primitives";
 import * as s from "./schemas";
+// Server submodules without node:crypto only (not the server barrel).
+import { intakeDraftMetadataSchema, type IntakeDraftMetadata } from "./server/intake";
+import { parentPrincipal, userPrincipal } from "./server/principal";
 import {
-  intakeDraftMetadataSchema,
   projectAuditFor,
   projectCandidateFor,
   projectCaseFor,
   projectCaseListFor,
   projectQueueFor,
   toRematchResponse,
-  type AuditRow,
-  type CaseRow,
-  type IntakeDraftMetadata,
-  type Principal,
-} from "./server";
+} from "./server/projections";
+import type { AuditRow, CaseRow } from "./server/rows";
 import { COUNTING_BASIS } from "./states";
 
 export const IDS = {
@@ -208,13 +208,25 @@ export const exampleFoundRow: CaseRow = rowFrom(exampleFoundDraft, {
 
 const officerCtx = { districtNameBn: MOCK_DISTRICT_BN, duplicateOf: [] };
 
+function must<T>(value: T | null, what: string): T {
+  if (value === null) throw new Error(`example ${what} failed`);
+  return value;
+}
+
+// Principals are minted only by the constructors, from fake rows.
+export const FIXTURE_NOW_MS = Date.parse("2026-10-13T10:00:00+06:00");
+const session = (id: string) =>
+  must(parentPrincipal({ id, expires_at: "2026-11-12T10:00:00+06:00", revoked_at: null }, FIXTURE_NOW_MS), "session");
+const user = (id: string, role: "staff" | "officer" | "admin", verified = false) =>
+  must(userPrincipal({ id, role, verified, is_active: true }), "user");
+
 export const PRINCIPALS = {
-  parent: { kind: "parent", sessionId: IDS.parentSession },
-  otherParent: { kind: "parent", sessionId: IDS.otherParentSession },
-  staff: { kind: "user", userId: IDS.staffUser, role: "staff", verified: false, isActive: true },
-  officer: { kind: "user", userId: IDS.officerUser, role: "officer", verified: true, isActive: true },
-  admin: { kind: "user", userId: IDS.adminUser, role: "admin", verified: false, isActive: true },
-} as const satisfies Record<string, Principal>;
+  parent: session(IDS.parentSession),
+  otherParent: session(IDS.otherParentSession),
+  staff: user(IDS.staffUser, "staff"),
+  officer: user(IDS.officerUser, "officer", true),
+  admin: user(IDS.adminUser, "admin"),
+};
 
 function officerDetail(row: CaseRow): s.OfficerCaseView {
   const view = projectCaseFor(PRINCIPALS.officer, row, officerCtx);
@@ -383,7 +395,7 @@ const candidate = projectCandidateFor(PRINCIPALS.officer, {
   qualified: true,
 });
 if (!candidate) throw new Error("example candidate projection failed");
-export const exampleCandidateDecisionView: s.CandidateDecisionView = candidate;
+export const exampleCandidateDecisionView: s.CandidateDecisionView = candidate.data;
 
 export const exampleConfirmDecisionRequest: s.DecisionRequestInput = {
   decision: "confirm",
@@ -676,3 +688,58 @@ export const EXAMPLES: readonly { api: string; name: string; schema: z.ZodType; 
   { api: "*", name: "ErrorEnvelope", schema: errorEnvelopeSchema, value: exampleErrorEnvelope },
   { api: "-", name: "IntakeDraftMetadata (server-only)", schema: intakeDraftMetadataSchema, value: exampleIntakeDraftMetadata },
 ];
+
+/* ---------- Client-safe subset (DTO values only, written to client-examples.json) ---------- */
+
+// Every request input and response DTO a UI lane may render or send. No rows,
+// principals or server-only metadata. tests/contracts/client-examples.test.ts keeps
+// client-examples.json equal to these values.
+export const CLIENT_EXAMPLE_VALUES = {
+  transcribeFields: exampleTranscribeFields,
+  transcribeResponse: exampleTranscribeResponse,
+  extractRequest: exampleExtractRequest,
+  extractFollowUpRequest: exampleExtractFollowUpRequest,
+  extractResponse: exampleExtractResponse,
+  createMissingRequest: exampleCreateMissingRequest,
+  createMissingResponse: exampleCreateMissingResponse,
+  ownerCaseView: exampleOwnerCaseView,
+  staffOwnCaseView: exampleStaffOwnCaseView,
+  officerMissingView: exampleOfficerMissingView,
+  officerFoundView: exampleOfficerFoundView,
+  adminCaseView: exampleAdminCaseView,
+  updateCaseRequest: exampleUpdateCaseRequest,
+  outputRequest: exampleOutputRequest,
+  outputResponse: exampleOutputResponse,
+  createFoundRequest: exampleCreateFoundRequest,
+  createFoundResponse: exampleCreateFoundResponse,
+  reviewQueueQuery: exampleReviewQueueQuery,
+  reviewQueueResponse: exampleReviewQueueResponse,
+  candidateDecisionView: exampleCandidateDecisionView,
+  confirmDecisionRequest: exampleConfirmDecisionRequest,
+  rejectDecisionRequest: exampleRejectDecisionRequest,
+  confirmDecisionResponse: exampleConfirmDecisionResponse,
+  rejectDecisionResponse: exampleRejectDecisionResponse,
+  closeCaseRequest: exampleCloseCaseRequest,
+  closeCaseResponse: exampleCloseCaseResponse,
+  dashboardStatsResponse: exampleDashboardStatsResponse,
+  officerAuditResponse: exampleOfficerAuditResponse,
+  adminAuditResponse: exampleAdminAuditResponse,
+  rematchResponse: exampleRematchResponse,
+  importRequest: exampleImportRequest,
+  importResponse: exampleImportResponse,
+  anonymiseRequest: exampleAnonymiseRequest,
+  anonymiseResponse: exampleAnonymiseResponse,
+  verifyUserRequest: exampleVerifyUserRequest,
+  verifyUserResponse: exampleVerifyUserResponse,
+  myCaseResponse: exampleMyCaseResponse,
+  healthResponse: exampleHealthResponse,
+  signInRequest: exampleSignInRequest,
+  sessionView: exampleSessionView,
+  pageQuery: examplePageQuery,
+  adminUsersResponse: exampleAdminUsersResponse,
+  caseListQuery: exampleCaseListQuery,
+  caseListResponse: exampleCaseListResponse,
+  duplicateDecisionRequest: exampleDuplicateDecisionRequest,
+  duplicateDecisionResponse: exampleDuplicateDecisionResponse,
+  errorEnvelope: exampleErrorEnvelope,
+};

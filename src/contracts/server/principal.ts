@@ -8,26 +8,37 @@ import { isUuid } from "../primitives";
 import type { CaseKind, UserRole } from "../states";
 import type { ParentSessionRow, UserRow } from "./rows";
 
-export type Principal =
-  | { kind: "parent"; sessionId: string }
-  | { kind: "user"; userId: string; role: UserRole; verified: boolean; isActive: boolean };
+// Branded so a Principal cannot be written as an object literal: only
+// parentPrincipal() and userPrincipal() mint one. Tests build principals through the
+// same constructors (tests/support/principals.ts).
+declare const principalBrand: unique symbol;
+type Branded<T> = T & { readonly [principalBrand]: true };
 
-export function parentPrincipal(session: ParentSessionRow | null, nowMs: number = Date.now()): Principal | null {
+export type ParentPrincipal = Branded<{ kind: "parent"; sessionId: string }>;
+export type UserPrincipal = Branded<{ kind: "user"; userId: string; role: UserRole; verified: boolean; isActive: boolean }>;
+export type Principal = ParentPrincipal | UserPrincipal;
+
+// The brand is compile-time only; this is the single place that applies it.
+function mint<T extends { kind: string }>(value: T): Branded<T> {
+  return value as Branded<T>;
+}
+
+export function parentPrincipal(session: ParentSessionRow | null, nowMs: number = Date.now()): ParentPrincipal | null {
   if (!session || !isUuid(session.id) || session.revoked_at !== null) return null;
   const expires = Date.parse(session.expires_at);
   if (!Number.isFinite(expires) || expires <= nowMs) return null;
-  return { kind: "parent", sessionId: session.id.toLowerCase() };
+  return mint({ kind: "parent" as const, sessionId: session.id.toLowerCase() });
 }
 
-export function userPrincipal(user: UserRow | null): Principal | null {
+export function userPrincipal(user: UserRow | null): UserPrincipal | null {
   if (!user || !isUuid(user.id)) return null;
-  return {
-    kind: "user",
+  return mint({
+    kind: "user" as const,
     userId: user.id.toLowerCase(),
     role: user.role,
     verified: user.role === "officer" && user.verified,
     isActive: user.is_active,
-  };
+  });
 }
 
 export type EffectiveRole = "parent" | "staff" | "officer" | "admin";
