@@ -832,7 +832,8 @@ describe("default factory and API-019 health route", () => {
   it("the stub resolver fails closed with E-002 and logs auth.resolver_stub once", async () => {
     const writes: string[] = [];
     vi.spyOn(process.stdout, "write").mockImplementation((chunk) => (writes.push(String(chunk)), true));
-    const { defineRoute } = await import("@/app/api/_shared");
+    const { createRouteFactory, stubResolver } = await import("@/app/api/_shared");
+    const defineRoute = createRouteFactory({ resolvePrincipal: stubResolver });
     const route = defineRoute({ api: "API-008", response: okSchema, handler: ok });
     await expectError(await route(get("/api/x"), noParams), "E-002");
     await expectError(await route(get("/api/x"), noParams), "E-002");

@@ -11,11 +11,12 @@
 //   writes the access.denied audit, so handlers must not write it again.
 // - Next's own 404/405 responses (unknown path, unexported method) are not enveloped.
 import { createLogger } from "./log";
+import { defaultAuth } from "@/server/auth/default";
 import { createRouteFactory, type PrincipalResolver } from "./compose";
 
 export { ApiError, ERROR_REASONS, errorResponse, jsonResponse } from "./envelope";
 export type { ApiErrorParams, ErrorReason, ErrorResult } from "./envelope";
-export { CookieJar } from "./cookies";
+export { CookieJar, isProductionEnv, secureCookiesFor } from "./cookies";
 export type { CookieOptions } from "./cookies";
 export { RATE_LIMITS, RateLimiter, MemoryRateLimitStore, createKeyer, hasPaidLimits } from "./limit";
 export type { RateLimitRule, RateLimitStore, LimitDecision } from "./limit";
@@ -52,12 +53,10 @@ export type {
 const logger = createLogger();
 let stubWarned = false;
 
-// Stub until TASK-006: no principal, so every non-public route answers E-002 (fail
-// closed), and the first call logs auth.resolver_stub at error. TASK-006 replaces it
-// with the Auth.js and parent-cookie resolver, which mints the parent session only on
-// API-001/002 (D2A §9.1). auditDenied is unset until TASK-015, so a signed-in denial
-// fails closed with E-021.
-const stubResolver: PrincipalResolver = async () => {
+// Null resolver kept for tests and tools that build a factory without a database: no
+// principal, so every non-public route answers E-002 (fail closed), and the first call
+// logs auth.resolver_stub at error.
+export const stubResolver: PrincipalResolver = async () => {
   if (!stubWarned) {
     stubWarned = true;
     logger.error({ event: "auth.resolver_stub" });
@@ -65,4 +64,9 @@ const stubResolver: PrincipalResolver = async () => {
   return null;
 };
 
-export const defineRoute = createRouteFactory({ resolvePrincipal: stubResolver, logger });
+// TASK-006: principals come from the database on every request (src/server/auth). The
+// parent session is minted only on API-001/002 (D2A §9.1). auditDenied is unset until
+// TASK-015, so a signed-in denial still fails closed with E-021.
+const resolvePrincipal: PrincipalResolver = (input) => defaultAuth().resolvePrincipal(input);
+
+export const defineRoute = createRouteFactory({ resolvePrincipal, logger });

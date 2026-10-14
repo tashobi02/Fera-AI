@@ -12,10 +12,25 @@ export type CookieOptions = {
   secure?: boolean;
 };
 
+// Production is Vercel or NODE_ENV=production. DEMO_MODE=1 is the offline finale laptop
+// over plain HTTP, where Secure cookies would be dropped, so it turns Secure off.
+export function isProductionEnv(env: Record<string, string | undefined> = process.env): boolean {
+  return Boolean(env.VERCEL) || env.NODE_ENV === "production";
+}
+
+export function secureCookiesFor(production: boolean, env: Record<string, string | undefined> = process.env): boolean {
+  return production && env.DEMO_MODE !== "1";
+}
+
 export class CookieJar {
   private readonly lines: string[] = [];
 
   constructor(private readonly secureDefault: boolean) {}
+
+  // Whether cookies default to Secure; auth uses it to pick `__Host-` names.
+  get secure(): boolean {
+    return this.secureDefault;
+  }
 
   set(name: string, value: string, opts: CookieOptions = {}): void {
     if (!NAME.test(name) || !VALUE.test(value)) throw new Error("invalid cookie name or value");
