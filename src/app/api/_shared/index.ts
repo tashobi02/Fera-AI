@@ -12,6 +12,7 @@
 // - Next's own 404/405 responses (unknown path, unexported method) are not enveloped.
 import { createLogger } from "./log";
 import { defaultAuth } from "@/server/auth/default";
+import { auditAccessDenied } from "@/server/audit/denied";
 import { createRouteFactory, type PrincipalResolver } from "./compose";
 
 export { ApiError, ERROR_REASONS, errorResponse, jsonResponse } from "./envelope";
@@ -65,8 +66,9 @@ export const stubResolver: PrincipalResolver = async () => {
 };
 
 // TASK-006: principals come from the database on every request (src/server/auth). The
-// parent session is minted only on API-001/002 (D2A §9.1). auditDenied is unset until
-// TASK-015, so a signed-in denial still fails closed with E-021.
+// parent session is minted only on API-001/002 (D2A §9.1). TASK-015: every signed-in
+// E-003/E-004 denial writes one access.denied row (src/server/audit/denied.ts); if that
+// write fails the request still fails closed with E-021.
 const resolvePrincipal: PrincipalResolver = (input) => defaultAuth().resolvePrincipal(input);
 
-export const defineRoute = createRouteFactory({ resolvePrincipal, logger });
+export const defineRoute = createRouteFactory({ resolvePrincipal, auditDenied: auditAccessDenied, logger });
