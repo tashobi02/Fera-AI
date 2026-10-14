@@ -5,7 +5,7 @@ import nextTs from "eslint-config-next/typescript";
 function contractPatterns({ server }) {
   const patterns = [
     {
-      group: ["@/contracts/examples", "**/contracts/examples", "@/contracts/client-examples", "**/contracts/client-examples"],
+      group: ["@/contracts/examples", "**/contracts/examples", "@/contracts/client-examples", "**/contracts/client-examples", "@/contracts/client-examples.json", "**/contracts/client-examples.json"],
       message: "Typed fakes are for tests/ and fakes/ only.",
     },
     { group: ["**/docs/code/**"], message: "Runtime code must not import the spec companion; use @/contracts." },

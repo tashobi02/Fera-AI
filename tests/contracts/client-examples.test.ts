@@ -25,6 +25,18 @@ describe("client-safe examples (16)", () => {
     expect(source).not.toMatch(/node:/);
   });
 
+  it("the client-safe access module and its principal source import no server code", () => {
+    for (const rel of ["access.ts", "server/principal.ts"]) {
+      const source = readFileSync(join(import.meta.dirname, "..", "..", "src", "contracts", rel), "utf8");
+      // Type-only imports are erased at compile time; only value imports reach a bundle.
+      const imports = [...source.matchAll(/^(?:import|export)(?! type)[^;]*?from "([^"]+)"/gm)].map((m) => m[1]);
+      expect(imports.length, rel).toBeGreaterThan(0);
+      for (const spec of imports) {
+        expect(spec, rel).not.toMatch(/^node:|projections|submission|intake|rows|examples/);
+      }
+    }
+  });
+
   it("contains no server-only shapes", () => {
     const text = JSON.stringify(expected);
     for (const marker of ["reporter_session_id", "created_by_user_id", "payload_hash", "submission_payload_hash", "actor_session_id"]) {
