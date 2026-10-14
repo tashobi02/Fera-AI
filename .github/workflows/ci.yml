@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main, phase1, phase2]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  # TC-062: the frozen schema, db/roles.sql and the invariant/redaction tests on a real
+  # PostgreSQL 16 + pgvector 0.8.1 built from the same Dockerfile as the local stack.
+  db:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: psql client (>= 15 for \getenv)
+        run: command -v psql >/dev/null || (sudo apt-get update && sudo apt-get install -y postgresql-client); psql --version
+      - run: docker build -t fera-pg16-pgvector:0.8.1 db/docker
+      - run: docker run -d --name fera-db -e POSTGRES_PASSWORD=postgres -p 127.0.0.1:54322:5432 fera-pg16-pgvector:0.8.1
+      - name: wait for PostgreSQL
+        run: for i in $(seq 1 60); do PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -Atc 'select 1' postgres >/dev/null 2>&1 && exit 0; sleep 2; done; exit 1
+      - run: npm run test:db

@@ -116,8 +116,8 @@ When one of these merges, tell the waiting person straight away; they rebase and
 ## Tasks — Mahim
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| TASK-007 | API layer: error envelope E-001–E-024, Zod helpers, request ID, rate limiter (COMP-021) | A · Codex | TASK-001 | 4 | Unit tests for envelope and limiter | `todo` | | |
-| TASK-062 | Schema invariants, restricted runtime role, full related-payload redaction | A · Codex | TASK-002, TASK-061 | 4 | Negative and positive lifecycle/redaction checks | `todo` | | |
+| TASK-007 | API layer: error envelope E-001–E-024, Zod helpers, request ID, rate limiter (COMP-021) | A · Claude Code | TASK-001 | 4 | Unit tests for envelope and limiter | `review` | branch `phase2--mahim-api`, HEAD `a054767` on contracts `edb6a4d` (no PR yet) | `src/app/api/_shared/` + `/api/health`; `tests/api/` 179 cases (envelope + fallback, E-022/E-024 never sent, E-001 field paths, body/multipart caps, abort → E-001, server request ID, E-002/E-003, record-route E-004 + access.denied audit, audit failure → E-021, per-role strict DTOs, cookie seam, same-origin incl. scheme, limiter window/reset/E-007/E-013/bounded store, address trust, log redaction); lint/typecheck/test (479 pass, 1 skipped)/build exit 0. fera-review round 1 BLOCK fixed; re-review pending. **Gate:** no paid route ships on the memory limiter store (API-OD-1). Open decisions API-OD-1–7 in `specs/001-platform-foundation/contract-notes.md`; resolver waits for TASK-006, audit hook for TASK-015. |
+| TASK-062 | Schema invariants, restricted runtime role, full related-payload redaction | A · Codex | TASK-002, TASK-061 | 4 | Negative and positive lifecycle/redaction checks | `review` | lane `phase2--mahim-invariants` (not merged) | [platform-db-invariants.md](evidence/platform-db-invariants.md): `npm run test:db` 66/66 on local PG16.15 + pgvector 0.8.1 (platform 48 incl. golden privilege matrix, redaction 18). DB-level only: app/API parts of TC-016/046/052/053/062 pending TASK-015/routes; hosted UNKNOWN; CI `db` job not run. 2 schema gaps (SECURITY INVOKER, mitigated provisionally by OD-062-2 — needs all-owner review; deactivated resolver OD-062-3), schema unchanged. PR adds pg 8.23.1 + @types/pg 8.23.1 |
 | TASK-015 | Case service, state guard, audit, versions (COMP-014/015) — **by 12:00** | A · Codex + `database-reviewer` | TASK-007, 061, 062 | 6 | TC-032 and TC-016 pass | `todo` | | |
 | TASK-006 | Auth.js credentials, parent cookie, `requireRole`, seeded users | B · Claude Code + `security-reviewer` | TASK-002 | 5 | TC-023 passes | `todo` | | |
 | TASK-031 | S-008 sign-in + S-016 not-found | B · Claude Code | TASK-006 | 2 | TC-022 passes | `todo` | | |
@@ -167,6 +167,10 @@ Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 ### Obidit (lead)
 ### Masnun
 ### Mahim
+- 2026-10-14 17:35 · Claude Code · mahim-api · TASK-007 `todo` → `review`; shared API layer and 92 tests at `a33d9af`; in-memory limiter, real principal resolver waits for TASK-006.
+- 2026-10-14 18:40 · Claude Code · mahim-api · TASK-007 stays `review`; fera-review BLOCK (record-route E-004 + denial audit) and WARNs fixed at `a054767`, 179 API tests; re-review pending.
+- 2026-10-14 23:55 · Claude Code · mahim-invariants · TASK-062 `todo` → `review`; db/roles.sql + db:reset wiring, test:db (per-run fera_test_* DBs) 59/59 pass, src/server/admin/redact.ts, evidence in platform-db-invariants.md; hosted host and CI db job pending.
+- 2026-10-15 00:15 · Claude Code · mahim-invariants · TASK-062 stays `review`; fera-review fixes: SECURITY DEFINER service functions in roles.sql (OD-062-2, all-owner review), narrower grants + golden matrix, roles.sql transaction/drift/timeouts/password checks, redact.ts hardening, digest-pinned Dockerfile; test:db 66/66.
 
 ## Audit amendments (2026-10-12)
 
