@@ -2,6 +2,7 @@
 // Requests strip unknown keys, so client-sent authority (owner, role, author,
 // synthetic flag) never reaches a service. Responses are strict allowlists.
 import { z } from "zod";
+import { ERROR_CATALOGUE, type ErrorId } from "./errors";
 import { caseDraftSchema, foundSubmissionDraftSchema, missingSubmissionDraftSchema } from "./draft";
 import {
   LIMITS,
@@ -76,11 +77,12 @@ export const officerCaseViewSchema = z.strictObject({
   kind: caseKindSchema,
   status: caseStatusSchema,
   status_group: statusGroupSchema,
-  is_synthetic: z.boolean(),
+  is_synthetic: z.literal(true), // synthetic-only release (BR-026)
   source: caseSourceSchema,
   source_url: z.string().nullable(),
   child: z.strictObject({
     name: z.string().nullable(),
+    name_latin: z.string().nullable(),
     age_years: z.int().nullable(),
     age_min: z.int().nullable(),
     age_max: z.int().nullable(),
@@ -98,7 +100,9 @@ export const officerCaseViewSchema = z.strictObject({
     district_code: districtCodeSchema.nullable(),
     district_name_bn: z.string().nullable(),
     thana: z.string().nullable(),
+    circumstances: z.string().nullable(), // part of the found description (BR-015) the officer reviews
   }),
+  reporter_relation: z.string().nullable(),
   contact_phone: z.string().nullable(),
   contact_phone_masked: z.string().nullable(),
   version: versionSchema,
@@ -222,11 +226,14 @@ export type UpdateCaseRequest = z.input<typeof updateCaseRequestSchema>;
 export const outputRequestSchema = z.object({ type: outputTypeSchema });
 export type OutputRequest = z.infer<typeof outputRequestSchema>;
 
+// Every generated output is a draft and carries the visible draft label (API-006, D4 honest labels).
+export const OUTPUT_DRAFT_LABEL_BN = "খসড়া" as const;
+
 export const outputResponseSchema = z
   .strictObject({
     type: outputTypeSchema,
-    text_bn: z.string().min(1).max(3000),
-    label_bn: z.string().min(1),
+    text_bn: z.string().min(1).max(3000).refine((t) => t.includes(OUTPUT_DRAFT_LABEL_BN), "output text must carry the draft label"),
+    label_bn: z.literal(OUTPUT_DRAFT_LABEL_BN),
     word_count: count,
     generated_at: isoDateTimeSchema,
   })
@@ -255,7 +262,7 @@ export const queueCandidateSchema = z.strictObject({
   reason_en: z.string().max(200),
   components: componentsSchema,
   counterpart: officerCaseViewSchema,
-  qualified: z.boolean(),
+  qualified: z.literal(true), // API-008 returns qualified candidates only
   identity_probability: z.literal(false),
 });
 
@@ -387,17 +394,96 @@ export const dashboardStatsResponseSchema = z
   });
 export type DashboardStatsResponse = z.infer<typeof dashboardStatsResponseSchema>;
 
-/* ---------- API-013 safe audit ---------- */
+/* ---------- API-013 safe audit (D2A §9.2: officer operational, admin metadata only) ---------- */
 
-export const auditEntryViewSchema = z.strictObject({
+// Every details key has a typed schema; there is no free-text string anywhere, so
+// names, notes, reasons, phones, provider payloads and URLs cannot be represented.
+// Keys derive from the STORY-017/BR-010 events: create, edit, state change,
+// match.confirm/reject, close, payload redaction, duplicate decision, officer
+// verification, import, output, contact access and access.denied.
+const auditVersion = versionSchema;
+const editableFieldSchema = z.enum([
+  "child.name", "child.name_latin", "child.age", "child.sex", "child.height_cm", "child.clothing", "child.marks",
+  "event.at", "event.place_text", "event.district_code", "event.thana", "event.circumstances",
+  "reporter.relation", "reporter.phone",
+]);
+
+const adminAuditDetailsShape = {
+  ref_code: refCodeSchema.optional(), // the audited case's own reference only
+  version: auditVersion.optional(),
+  from_status: caseStatusSchema.optional(),
+  to_status: caseStatusSchema.optional(),
+  outcome: outcomeSchema.optional(),
+  output_type: outputTypeSchema.optional(),
+  error_id: z.enum(Object.keys(ERROR_CATALOGUE) as [ErrorId, ...ErrorId[]]).optional(),
+  api: z.string().regex(/^API-0(0[1-9]|1[0-9]|2[0-3])$/).optional(),
+  mode: z.literal("pseudonymisation").optional(),
+  external_copies_removed: z.literal(false).optional(),
+  referral_simulated: z.literal(true).optional(),
+  reason_recorded: z.boolean().optional(), // the reason text itself is never in the audit view
+  replayed: z.boolean().optional(),
+  verified: z.boolean().optional(),
+  target_role: userRoleSchema.optional(),
+  fields_changed: z.array(editableFieldSchema).max(editableFieldSchema.options.length).optional(),
+  imported: count.optional(),
+  skipped: count.optional(),
+  duplicates_flagged: count.optional(),
+  redacted: count.optional(),
+};
+
+// Officer-only additions: pair references, candidate link, similarity and decision detail.
+const officerAuditDetailsShape = {
+  ...adminAuditDetailsShape,
+  candidate_id: uuidSchema.optional(),
+  missing_ref: refCodeSchema.startsWith("M-").optional(),
+  found_ref: refCodeSchema.startsWith("F-").optional(),
+  missing_version: auditVersion.optional(),
+  found_version: auditVersion.optional(),
+  candidate_status: candidateStatusSchema.optional(),
+  decision: z.enum(["confirm", "reject"]).optional(),
+  score: similarity.optional(),
+  rank: z.int().min(1).max(LIMITS.candidatesPerQueueItem).optional(),
+  duplicate_status: duplicateStatusSchema.optional(),
+  duplicate_rule: z.enum(["profile", "same_phone"]).optional(),
+  contact_viewed: z.boolean().optional(),
+};
+
+export const ADMIN_AUDIT_DETAIL_KEYS = Object.keys(adminAuditDetailsShape) as (keyof typeof adminAuditDetailsShape)[];
+export const OFFICER_AUDIT_DETAIL_KEYS = Object.keys(officerAuditDetailsShape) as (keyof typeof officerAuditDetailsShape)[];
+
+const auditActionSchema = z.string().regex(/^[a-z_.]{3,60}$/); // audit_log.action CHECK
+const PHONE_LIKE = /(?:01|০১)[0-9০-৯]{9}/;
+const actorDisplaySchema = z
+  .string()
+  .trim()
+  .min(2)
+  .max(80)
+  .refine((v) => !PHONE_LIKE.test(v) && !/[0-9০-৯]{5,}/.test(v), "actor display must not carry a number");
+
+export const officerAuditEntryViewSchema = z.strictObject({
   at: isoDateTimeSchema,
   actor_role: actorTypeSchema,
-  actor_id: uuidSchema.nullable(), // only when the reader is authorised to see it
-  actor_display: z.string().nullable(),
-  action: z.string().regex(/^[a-z_.]{3,60}$/),
-  details: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])), // allowlisted safe keys
+  actor_id: uuidSchema.nullable(), // internal user ID; null for parent sessions and system
+  actor_display: actorDisplaySchema.nullable(), // staff/officer/admin display name only, never a parent
+  action: auditActionSchema,
+  details: z.strictObject(officerAuditDetailsShape),
 });
-export const auditResponseSchema = z.strictObject({ entries: z.array(auditEntryViewSchema) });
+export type OfficerAuditEntryView = z.infer<typeof officerAuditEntryViewSchema>;
+
+// Metadata only: no actor identity, candidate IDs, scores, pair references or decision detail.
+export const adminAuditEntryViewSchema = z.strictObject({
+  at: isoDateTimeSchema,
+  actor_role: actorTypeSchema,
+  action: auditActionSchema,
+  details: z.strictObject(adminAuditDetailsShape),
+});
+export type AdminAuditEntryView = z.infer<typeof adminAuditEntryViewSchema>;
+
+export const officerAuditResponseSchema = z.strictObject({ view: z.literal("officer"), entries: z.array(officerAuditEntryViewSchema) });
+export const adminAuditResponseSchema = z.strictObject({ view: z.literal("admin"), entries: z.array(adminAuditEntryViewSchema) });
+export const auditResponseSchema = z.discriminatedUnion("view", [officerAuditResponseSchema, adminAuditResponseSchema]);
+export type OfficerAuditResponse = z.infer<typeof officerAuditResponseSchema>;
+export type AdminAuditResponse = z.infer<typeof adminAuditResponseSchema>;
 export type AuditResponse = z.infer<typeof auditResponseSchema>;
 
 /* ---------- API-014 rematch: status only for every role (TC-044) ---------- */

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   FOUND_COUNT_CATEGORY,
@@ -19,6 +21,8 @@ import {
   extractResponseSchema,
   missingSubmissionDraftSchema,
   normalisePhone,
+  OUTPUT_DRAFT_LABEL_BN,
+  outputResponseSchema,
   transcribeResponseSchema,
   updateCaseRequestSchema,
   type FoundStatus,
@@ -34,6 +38,7 @@ import {
   exampleExtractResponse,
   exampleFoundDraft,
   exampleMissingDraft,
+  exampleOutputResponse,
   exampleRejectDecisionRequest,
 } from "@/contracts/examples";
 
@@ -271,6 +276,19 @@ describe("BR-001/005/020 decisions and simulated referral (FV-01)", () => {
     expect(duplicateDecisionAllowed("same_phone", "dismissed")).toBe(true);
     expect(duplicateDecisionAllowed("profile", "confirmed_same")).toBe(true);
     expect(duplicateDecisionRequestSchema.safeParse({ status: "confirmed_same", reason: "একই বিবরণ" }).success).toBe(false);
+  });
+});
+
+describe("API-006 outputs carry the draft label", () => {
+  it("label is খসড়া and the text includes it", () => {
+    expect(OUTPUT_DRAFT_LABEL_BN).toBe("খসড়া");
+    expect(outputResponseSchema.safeParse({ ...exampleOutputResponse, label_bn: "চূড়ান্ত" }).success).toBe(false);
+    expect(outputResponseSchema.safeParse({ ...exampleOutputResponse, text_bn: "সিনথেটিক উদাহরণ।" }).success).toBe(false);
+  });
+
+  it("matches the D4 honest-label string", () => {
+    const d4 = readFileSync(join(import.meta.dirname, "..", "..", "docs", "spec", "D4_Design_Brief_V2.md"), "utf8");
+    expect(d4).toContain(`"${OUTPUT_DRAFT_LABEL_BN}" (draft)`);
   });
 });
 

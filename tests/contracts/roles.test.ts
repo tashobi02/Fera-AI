@@ -7,7 +7,9 @@ import {
   createFoundResponseSchema,
   createMissingResponseSchema,
   effectiveRole,
+  officerCaseViewSchema,
   ownerCaseViewSchema,
+  reviewQueueResponseSchema,
   projectCandidateFor,
   projectCaseFor,
   staffOwnCaseViewSchema,
@@ -26,6 +28,7 @@ import {
   exampleMissingRow,
   exampleOfficerFoundView,
   exampleOfficerMissingView,
+  exampleReviewQueueResponse,
 } from "@/contracts/examples";
 
 const parent: Principal = { kind: "parent", sessionId: IDS.parentSession };
@@ -127,6 +130,20 @@ describe("BR-007/024 role projections (FV-04)", () => {
     expect(adminCaseViewSchema.safeParse({ ...adminView, child_name: "x" }).success).toBe(false);
     expect(createMissingResponseSchema.safeParse({ ...exampleCreateMissingResponse, candidates: [] }).success).toBe(false);
     expect(createFoundResponseSchema.safeParse({ ...exampleCreateFoundResponse, candidates: [] }).success).toBe(false);
+  });
+
+  it("officer view carries the comparison fields and is synthetic-only (CN-05, CN-08)", () => {
+    const view = projectCaseFor(officer, exampleFoundRow, ctx)!.data as Record<string, unknown> & { event: object; child: object };
+    expect(view.event).toMatchObject({ circumstances: exampleFoundRow.circumstances });
+    expect(view.child).toHaveProperty("name_latin");
+    expect(view).toHaveProperty("reporter_relation");
+    expect(officerCaseViewSchema.safeParse({ ...exampleOfficerMissingView, is_synthetic: false }).success).toBe(false);
+  });
+
+  it("queue candidates are qualified only (API-008)", () => {
+    const item = exampleReviewQueueResponse.items[0];
+    const unqualified = { ...item, candidates: [{ ...item.candidates[0], qualified: false }] };
+    expect(reviewQueueResponseSchema.safeParse({ ...exampleReviewQueueResponse, items: [unqualified] }).success).toBe(false);
   });
 
   it("exports no unrestricted CaseView", () => {

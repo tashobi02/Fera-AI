@@ -29,11 +29,12 @@ check<Extends<K.MissingSubmissionDraft, C.CaseDraft>>();
 check<Extends<K.FoundSubmissionDraft, C.CaseDraft>>();
 check<Same<K.OwnerCaseView, C.OwnerCaseView>>();
 check<Same<K.StaffOwnCaseView, C.StaffOwnCaseView>>();
-check<Same<K.OfficerCaseView, C.OfficerCaseView>>();
+// Wider than the companion (CN-05) and synthetic-only (CN-08); still a valid instance.
+check<Extends<K.OfficerCaseView, C.OfficerCaseView>>();
 check<Same<K.AdminCaseView, C.AdminCaseView>>();
 check<Same<K.ExtractResponse, C.ExtractResponse>>();
 check<Same<K.TranscribeResponse, C.TranscribeResponse>>();
-check<Same<K.OutputResponse, C.OutputResponse>>();
+check<Extends<K.OutputResponse, C.OutputResponse>>();
 check<Same<K.DecisionRequest, C.DecisionRequest>>();
 check<Same<K.DecisionResponse, C.DecisionResponse>>();
 check<Same<K.DashboardStatsResponse, C.DashboardStatsResponse>>();

@@ -4,7 +4,7 @@ import type { z } from "zod";
 import type { CaseDraft, EvidenceSpan } from "./draft";
 import { errorEnvelope, errorEnvelopeSchema } from "./errors";
 import { toBanglaDigits } from "./primitives";
-import { toAdminCaseView, toOfficerCaseView, toRematchResponse, type CaseRow } from "./roles";
+import { projectAuditFor, toAdminCaseView, toOfficerCaseView, toRematchResponse, type AuditRow, type CaseRow } from "./roles";
 import * as s from "./schemas";
 import { COUNTING_BASIS } from "./states";
 
@@ -302,7 +302,7 @@ const gdText = "খসড়া · সিনথেটিক উদাহরণ�
 export const exampleOutputResponse: s.OutputResponse = {
   type: "gd",
   text_bn: gdText,
-  label_bn: "খসড়া",
+  label_bn: s.OUTPUT_DRAFT_LABEL_BN,
   word_count: gdText.split(/\s+/).length,
   generated_at: "2026-10-12T20:10:00+06:00",
 };
@@ -432,18 +432,48 @@ export const exampleDashboardStatsResponse: s.DashboardStatsResponse = {
 
 /* ---------- API-013 / API-014 ---------- */
 
-export const exampleAuditResponse: s.AuditResponse = {
-  entries: [
-    {
-      at: "2026-10-12T20:30:00+06:00",
-      actor_role: "officer",
-      actor_id: IDS.officerUser,
-      actor_display: "[MOCK] কর্মকর্তা",
-      action: "match.confirm",
-      details: { missing_version: 1, found_version: 1, referral_simulated: true },
+// Raw audit rows as the case service stores them (server-only). Details include
+// keys that the admin projection must drop.
+export const exampleAuditRows: AuditRow[] = [
+  {
+    at: "2026-10-12T20:30:00+06:00",
+    actor_type: "officer",
+    actor_user_id: IDS.officerUser,
+    actor_session_id: null,
+    actor_display: "[MOCK] কর্মকর্তা",
+    action: "match.confirm",
+    case_id: IDS.missingCase,
+    candidate_id: IDS.candidate,
+    details: {
+      ref_code: REFS.missing,
+      missing_ref: REFS.missing,
+      found_ref: REFS.found,
+      missing_version: 1,
+      found_version: 1,
+      decision: "confirm",
+      score: 87,
+      referral_simulated: true,
+      reason_recorded: false,
     },
-  ],
-};
+  },
+  {
+    at: "2026-10-12T21:00:00+06:00",
+    actor_type: "officer",
+    actor_user_id: IDS.officerUser,
+    actor_session_id: null,
+    actor_display: "[MOCK] কর্মকর্তা",
+    action: "case.close",
+    case_id: IDS.missingCase,
+    candidate_id: null,
+    details: { ref_code: REFS.missing, from_status: "confirmed", to_status: "closed", outcome: "coordination_recorded", reason_recorded: true },
+  },
+];
+
+const officerPrincipal = { kind: "user", userId: IDS.officerUser, role: "officer", verified: true, isActive: true } as const;
+const adminPrincipal = { kind: "user", userId: IDS.adminUser, role: "admin", verified: false, isActive: true } as const;
+
+export const exampleOfficerAuditResponse = projectAuditFor(officerPrincipal, exampleAuditRows) as s.OfficerAuditResponse;
+export const exampleAdminAuditResponse = projectAuditFor(adminPrincipal, exampleAuditRows) as s.AdminAuditResponse;
 
 export const exampleRematchResponse: s.RematchResponse = toRematchResponse(exampleMissingRow);
 
@@ -581,7 +611,8 @@ export const EXAMPLES: readonly { api: string; name: string; schema: z.ZodType; 
   { api: "API-011", name: "CloseCaseRequest", schema: s.closeCaseRequestSchema, value: exampleCloseCaseRequest },
   { api: "API-011", name: "CloseCaseResponse", schema: s.closeCaseResponseSchema, value: exampleCloseCaseResponse },
   { api: "API-012", name: "DashboardStatsResponse", schema: s.dashboardStatsResponseSchema, value: exampleDashboardStatsResponse },
-  { api: "API-013", name: "AuditResponse", schema: s.auditResponseSchema, value: exampleAuditResponse },
+  { api: "API-013", name: "OfficerAuditResponse", schema: s.officerAuditResponseSchema, value: exampleOfficerAuditResponse },
+  { api: "API-013", name: "AdminAuditResponse", schema: s.adminAuditResponseSchema, value: exampleAdminAuditResponse },
   { api: "API-014", name: "RematchResponse", schema: s.rematchResponseSchema, value: exampleRematchResponse },
   { api: "API-015", name: "ImportRequest", schema: s.importRequestSchema, value: exampleImportRequest },
   { api: "API-015", name: "ImportResponse", schema: s.importResponseSchema, value: exampleImportResponse },

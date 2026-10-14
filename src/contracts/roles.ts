@@ -1,16 +1,21 @@
 // Server-derived principals, the D2A §9.2 permission matrix and per-role DTO
 // projections (BR-007/024). There is no unrestricted CaseView: every read picks
 // one explicit allowlist and parses it with a strict schema before returning.
-import type { Case } from "../../docs/code/fera_types_v2";
+import type { AuditEntry, Case } from "../../docs/code/fera_types_v2";
 import { maskPhone } from "./primitives";
 import {
+  ADMIN_AUDIT_DETAIL_KEYS,
+  OFFICER_AUDIT_DETAIL_KEYS,
+  adminAuditResponseSchema,
   adminCaseViewSchema,
+  officerAuditResponseSchema,
   candidateDecisionViewSchema,
   officerCaseViewSchema,
   ownerCaseViewSchema,
   rematchResponseSchema,
   staffOwnCaseViewSchema,
   type AdminCaseView,
+  type AuditResponse,
   type CandidateDecisionView,
   type OfficerCaseView,
   type OwnerCaseView,
@@ -152,6 +157,7 @@ export function toOfficerCaseView(row: CaseRow, ctx: OfficerContext): OfficerCas
     source_url: row.source_url,
     child: {
       name: row.child_name,
+      name_latin: row.child_name_latin,
       age_years: row.age_years,
       age_min: row.age_min,
       age_max: row.age_max,
@@ -169,7 +175,9 @@ export function toOfficerCaseView(row: CaseRow, ctx: OfficerContext): OfficerCas
       district_code: row.district_code,
       district_name_bn: ctx.districtNameBn,
       thana: row.thana,
+      circumstances: row.circumstances,
     },
+    reporter_relation: row.reporter_relation,
     contact_phone: row.contact_phone,
     contact_phone_masked: row.contact_phone ? maskPhone(row.contact_phone) : null,
     version: row.version,
@@ -243,4 +251,42 @@ export function projectCandidateFor(p: Principal | null, c: CandidateInput): Can
     qualified: c.qualified,
     identity_probability: false,
   });
+}
+
+export type AuditRow = Omit<AuditEntry, "id" | "request_id"> & { actor_display: string | null };
+
+function pick(details: Record<string, unknown>, keys: readonly string[]): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(details).filter(([k]) => keys.includes(k)));
+}
+
+// API-013. Details are reduced to the role's allowlisted keys, then parsed strictly:
+// a value that is not a safe token (free text, phone, name) throws, so the route
+// answers E-021 rather than leak it. null means respond with E-004.
+export function projectAuditFor(p: Principal | null, rows: readonly AuditRow[]): AuditResponse | null {
+  const role = effectiveRole(p);
+  if (role === "officer") {
+    return officerAuditResponseSchema.parse({
+      view: "officer",
+      entries: rows.map((r) => ({
+        at: r.at,
+        actor_role: r.actor_type,
+        actor_id: r.actor_user_id,
+        actor_display: r.actor_type === "parent" ? null : r.actor_display,
+        action: r.action,
+        details: { ...pick(r.details, OFFICER_AUDIT_DETAIL_KEYS), ...(r.candidate_id ? { candidate_id: r.candidate_id } : {}) },
+      })),
+    });
+  }
+  if (role === "admin") {
+    return adminAuditResponseSchema.parse({
+      view: "admin",
+      entries: rows.map((r) => ({
+        at: r.at,
+        actor_role: r.actor_type,
+        action: r.action,
+        details: pick(r.details, ADMIN_AUDIT_DETAIL_KEYS),
+      })),
+    });
+  }
+  return null;
 }
