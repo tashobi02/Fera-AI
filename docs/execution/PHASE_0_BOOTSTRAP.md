@@ -80,7 +80,7 @@ Rules for this phase: no app feature code yet; spike scripts only. Never paste p
 ## Decisions to close (they block lanes)
 | Question | Owner | Blocks | Decision | Recorded in | Status |
 |---|---|---|---|---|---|
-| Managed Postgres host (OQ-021) | Mahim | TASK-002 → everything | Decided by Mahim (14 Oct): Supabase (managed) + Supabase CLI local PG16 (Obidit's unmerged `origin/phase0-local-tooling--lane-b` @1960bdc). Pending D2 Part A OQ-021 condition: host must pass `CREATE EXTENSION vector` and HNSW index creation in TASK-002; if it fails, the decision reopens | Mahim log, 14 Oct | `review` |
+| Managed Postgres host (OQ-021) | Mahim | TASK-002 → everything | Decided by Mahim (14 Oct): Supabase (managed) + Supabase CLI local PG16 (Obidit's unmerged `origin/phase0-local-tooling--lane-b` @1960bdc). Pending D2 Part A OQ-021 condition: host must pass `CREATE EXTENSION vector` (pgvector ≥ 0.8.1, A-034) and HNSW index creation in TASK-002; if it fails, the decision reopens | Mahim log, 14 Oct | `review` |
 | Default LLM provider, keys, prices, data terms (OQ-004, OQ-013, OQ-022) | Obidit | TASK-013 | | `docs/costs.md` | `todo` |
 | Local embeddings on Vercel or API (OQ-023) | Masnun | TASK-016 | | TASK-004 report | `todo` |
 | Voice and poster in Round 2 (OQ-001) | Obidit (lead) | — | Team plan: yes, full scope; organiser agreement UNKNOWN (AMD-0-2) | EXECUTION_PLAN | `review` |
