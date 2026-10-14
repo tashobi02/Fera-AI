@@ -73,7 +73,7 @@ Mark each stage cell `todo` / `done` / `blocked`. After `tasks`, every task line
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | TASK-061 | Contracts in `src/contracts/`: DTOs, Zod, state enums, error envelope E-001–E-024, role projections, idempotency tokens, referral/count semantics | A · Codex + `code_architect`, `typescript_reviewer` | TASK-001 | 3 | Runtime schemas/examples and role projections agree; FV-01–05/10 closed; tag `contracts-v1`. Include one valid example per API DTO, usable as typed fakes by the Phase 2 UI lanes (see Phase 2 "Schedule reality") | `blocked` | | Phase 0 TASK-001 is `todo`; CI green on main is unverified. No contracts created or frozen. |
-| TASK-008 | Layout shell, tokens from `DESIGN.md` incl. its "Fera overrides" (they win over `tokens_v2.css`, see AGENTS.md), self-hosted Inter + JetBrains Mono + Noto Sans Bengali, language toggle (COMP-022, FR-033) | B · Codex + `impeccable` | TASK-001 | 3 | Bangla renders on 1 Android phone | `blocked` | | Phase 0 TASK-001 is `todo`; no app shell exists. Android phone check remains pending. |
+| TASK-008 | Layout shell, tokens from `DESIGN.md` incl. its "Fera overrides" (they win over `tokens_v2.css`, see AGENTS.md), self-hosted Inter + JetBrains Mono + Noto Sans Bengali, language toggle (COMP-022, FR-033) | B · Codex + `impeccable` | TASK-001 | 3 | Bangla renders on 1 Android phone | `review` | branch `phase1--mahim-shell` (lane mahim-shell) | `docs/execution/evidence/platform-language.md`: lint/typecheck/test (54)/build exit 0; headless Chrome 30/30 checks + screenshots. Android phone Bangla check PENDING (Mahim, human-only). |
 
 Cross-person handoffs: Obidit's and Masnun's Phase 2 UI lanes depend on Mahim's TASK-061 DTO examples; Obidit's TASK-012 tests depend on Masnun's district aliases (TASK-009).
 
@@ -110,6 +110,7 @@ Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 - 2026-10-13 12:06 · Codex · Mahim · 001 tasks `todo` → `done`; 23 unchecked steps, 23/23 owner+lane, all nine mapped D6 tasks and blockers recorded.
 - 2026-10-13 12:06 · Codex · Mahim · 001 analyze `todo` → `done`; no-persist prerequisite passed, 12/12 requirement groups and 7/7 success criteria covered, 0 critical/high/medium/low findings; Pause C reached.
 - 2026-10-13 12:07 · Codex · Mahim · 001 PR pending; automatic approval review rejected push to `github.com/tashobi02/Fera-AI.git` because destination authorization was not explicit enough after the earlier rejection. No remote branch or PR was created.
+- 2026-10-14 16:25 · Claude Code · Mahim · lane mahim-shell · TASK-008 `blocked` → `review`; shell, DESIGN.md tokens, self-hosted fonts (196,244 B), COMP-022 toggle with cookie, Bangla numerals helper; checks green; Android phone check pending.
 
 ## Audit amendments (2026-10-12)
 
