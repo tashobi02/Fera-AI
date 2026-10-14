@@ -65,7 +65,7 @@ This is a living tracker. Every agent working on a task in this phase updates it
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | KIT | Commit agent kit: `CLAUDE.md`, `AGENTS.md`, `CODEX.md`, `.claude/`, `.codex/`, `.agents/`, `.specify/` (constitution), `docs/agents/`, `docs/execution/` | any | — | 1 | `bootstrap.sh` runs; `/agents` lists `fera-safeguarding-reviewer`; `$speckit-*` visible in Codex | `review` | 648a60e | Committed on `main` (234 kit files tracked, checked 13 Oct). Assembled and validated 12 Oct: 18 agents, 16 Codex roles, 28 skills per tool, spec-kit 1.1.4.dev0 @0443760. Pending: owners ratify constitution + `fera-*`; `bootstrap.sh` on each laptop |
-| TASK-001 | Repo: Next.js App Router, TS strict, Tailwind, ESLint, CI (lint, typecheck, test), preview deploy | Claude Code | — | 3 | CI green on `main`; preview deploy URL | `todo` | | |
+| TASK-001 | Repo: Next.js App Router, TS strict, Tailwind, ESLint, CI (lint, typecheck, test), preview deploy | Claude Code | — | 3 | CI green on `main`; preview deploy URL | `review` | branch `phase1--mahim-task001` | Next 16.4.0 + React 19.3 + Tailwind 4 + ESLint 9 + Vitest 5; `tsconfig` on `bundler`, still covers `docs/code/fera_types_v2.ts`; stub script names kept. Local 14 Oct from clean `npm ci`: `lint`/`typecheck`/`test` (34 passed: spec-pack hashes vs `docs/MANIFEST.json`, `docs/spec`=`docs/markdown`, locales)/`build` all exit 0. Manual Vercel CLI deploys under Mahim's account (project `fera-ai`, no env vars set): preview https://fera-abcticicm-deatraxs-projects.vercel.app (Ready, reviewed head). An earlier first deploy went to production (https://fera-1jqfsupq2-deatraxs-projects.vercel.app); production must be redeployed from `main` after merge. Placeholder page is `noindex`. Pending: CI green on `main` (merge is a human decision); `npm audit --omit=dev` 0, dev-only `braces` advisory via `eslint-config-next`. |
 | TASK-002 | Pick DB host (OQ-021); apply `schema_v2.sql` locally (Docker) and on host | Claude Code + `database-reviewer` | TASK-001 | 2 | HNSW index created on host and locally | `todo` | | |
 
 Cross-person waits: Masnun's TASK-004 needs Mahim's TASK-001, and TASK-009 needs TASK-002. Masnun can draft the spike script and district file meanwhile, but marks them `done` only once those dependencies are `done`.
@@ -80,7 +80,7 @@ Rules for this phase: no app feature code yet; spike scripts only. Never paste p
 ## Decisions to close (they block lanes)
 | Question | Owner | Blocks | Decision | Recorded in | Status |
 |---|---|---|---|---|---|
-| Managed Postgres host (OQ-021) | Mahim | TASK-002 → everything | | | `todo` |
+| Managed Postgres host (OQ-021) | Mahim | TASK-002 → everything | Decided by Mahim (14 Oct): Supabase (managed) + Supabase CLI local PG16 (Obidit's unmerged `origin/phase0-local-tooling--lane-b` @1960bdc). Pending D2 Part A OQ-021 condition: host must pass `CREATE EXTENSION vector` (pgvector ≥ 0.8.1, A-034) and HNSW index creation in TASK-002; if it fails, the decision reopens | Mahim log, 14 Oct | `review` |
 | Default LLM provider, keys, prices, data terms (OQ-004, OQ-013, OQ-022) | Obidit | TASK-013 | | `docs/costs.md` | `todo` |
 | Local embeddings on Vercel or API (OQ-023) | Masnun | TASK-016 | | TASK-004 report | `todo` |
 | Voice and poster in Round 2 (OQ-001) | Obidit (lead) | — | Team plan: yes, full scope; organiser agreement UNKNOWN (AMD-0-2) | EXECUTION_PLAN | `review` |
@@ -107,6 +107,8 @@ Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 - 2026-10-13 · Claude Code · — · tasks split into per-person tables (Obidit lead, Masnun, Mahim); KIT evidence updated: committed on `main`
 ### Masnun
 ### Mahim
+- 2026-10-14 15:57 · Claude Code · mahim-task001 · OQ-021 decided by Mahim: Supabase; status `review` until TASK-002 proves pgvector + HNSW on the host
+- 2026-10-14 15:57 · Claude Code · mahim-task001 · TASK-001 `todo` → `review`; local checks green, manual Vercel deploy Ready; awaiting PR CI and human merge
 
 ## Audit amendments (2026-10-12)
 
