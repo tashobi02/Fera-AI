@@ -24,9 +24,9 @@ export const BANNED_TERMS = {
   // V2 contract: no physical return or reunification is performed or claimed.
   returned: ["ফিরিয়ে দেওয়া", "ফিরিয়ে দেয়া", "ফিরিয়ে আনা", "ফেরত দেওয়া", "ফেরত দেয়া", "ফেরত পাঠানো", "পুনর্মিলন", "return", "reunit", "reunif"],
   // V2 contract: a referral is recorded, never delivered or acknowledged.
-  delivered: ["পৌঁছে দেওয়া", "পৌঁছে দেয়া", "পৌছে দেওয়া", "পৌঁছে গেছে", "পৌঁছানো হয়েছে", "delivered"],
+  delivered: ["পৌঁছে দেওয়া", "পৌঁছে দেয়া", "পৌছে দেওয়া", "পৌঁছে গেছে", "পৌঁছানো হয়েছে", "deliver"],
   // "Similarity", not probability (D4 §9).
-  probability: ["সম্ভাবনা", "শতাংশ", "%", "probability", "likelihood", "percent"],
+  probability: ["সম্ভাবনা", "শতাংশ", "%", "٪", "probability", "likelihood", "percent"],
   // BR-011: no unsupported legal-compliance claim.
   legal: ["আইনসম্মত", "আইন মেনে", "আইন অনুযায়ী অনুমোদিত", "comply", "complian", "legally approved"],
 } as const satisfies Record<string, readonly string[]>;
@@ -51,8 +51,14 @@ const nfkc = (text: string) => text.normalize("NFKC").replace(IGNORABLE, "").toL
 
 // Decompose first (NFKD) so accents become separate marks ("rúnaway"), strip them, then
 // recompose (NFKC) so a Bangla vowel sign split by junk ("পে-ৗঁছে") becomes ৌ again.
+// Same-script spellings NFKC leaves apart: khanda-ta ৎ is ত ("ফেরৎ" = "ফেরত"); dotless ı and
+// small-capital ɴ read as i and n. Inserted Bangla marks (চন্দ্রবিন্দু, হসন্ত) carry meaning
+// and are not stripped, so "পালিঁয়ে" is a known limit, like cross-script homoglyphs.
+const FOLD: Readonly<Record<string, string>> = { "\u09CE": "\u09A4", "\u0131": "i", "\u0274": "n" };
+const FOLDABLE = /[\u09CE\u0131\u0274]/gu;
+
 export function normaliseForGuard(text: string): string {
-  return text.normalize("NFKD").replace(IGNORABLE, "").toLowerCase()
+  return text.normalize("NFKD").replace(IGNORABLE, "").toLowerCase().replace(FOLDABLE, (c) => FOLD[c])
     .replace(DECORATION, "").replace(NOT_WORD, "").normalize("NFKC");
 }
 

@@ -51,6 +51,12 @@ describe("wording guard", () => {
     // Codex fourth review: precomposed Latin accents.
     expect(findBannedGroup("rúnaway child")).toBe("runaway");
     expect(findBannedGroup("RÉSCUE")).toBe("rescue");
+    // Haiku verification: khanda-ta, lookalike letters, Arabic percent, "delivery".
+    expect(findBannedGroup("ফেরৎ দেওয়া হয়েছে")).toBe("returned");
+    expect(findBannedGroup("ruɴaway")).toBe("runaway");
+    expect(findBannedGroup("delıvered")).toBe("delivered");
+    expect(findBannedGroup("৫০٪ মিল")).toBe("probability");
+    expect(findBannedGroup("delivery confirmed")).toBe("delivered");
     expect(findBannedGroup("৮৭％ মিল")).toBe("probability");
   });
 
