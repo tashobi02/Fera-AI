@@ -102,9 +102,16 @@ export function signInReducer(state: SignInState, action: SignInAction): SignInS
       return { ...state, status: "idle", failure, invalid };
     }
     case "input": {
-      if (action.value === "" || (!state.required[action.field] && !state.invalid[action.field])) return state;
+      // Editing the username ends the demo-fill announcement, so a later fill is read again.
+      const filled = action.field === "username" ? null : state.filled;
+      // validateSignIn trims the username, so whitespace alone still counts as missing.
+      const empty = action.field === "username" ? action.value.trim() === "" : action.value === "";
+      if (empty || (!state.required[action.field] && !state.invalid[action.field])) {
+        return filled === state.filled ? state : { ...state, filled };
+      }
       return {
         ...state,
+        filled,
         required: { ...state.required, [action.field]: false },
         invalid: { ...state.invalid, [action.field]: false },
       };

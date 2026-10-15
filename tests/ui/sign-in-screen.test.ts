@@ -79,8 +79,11 @@ describe("COMP-047 sign-in form", () => {
 
   it("draws input boundaries with the >= 3:1 control token, hairlines only on the card (D4 §13)", () => {
     const html = form("en");
-    for (const input of html.match(/<input[^>]*>/g) ?? []) {
-      expect(input).toMatch(/\bborder-control\b/);
+    const inputs = html.match(/<input[^>]*>/g) ?? [];
+    expect(inputs).toHaveLength(2);
+    const toggle = html.match(/<button[^>]*aria-controls[^>]*>/)?.[0] ?? "";
+    for (const control of [...inputs, toggle]) expect(control).toMatch(/[\s"]border-control[\s"]/);
+    for (const input of inputs) {
       expect(input).toContain("hover:border-control-strong");
       expect(input).toContain("focus:border-control-strong");
       expect(input).not.toMatch(/\bborder-hairline\b/);
@@ -145,7 +148,7 @@ describe("SCREEN-008 page", () => {
 
   it("explains the return only when a deeper page will be reopened", async () => {
     localeCookie = "en";
-    const note = "After signing in, you&#x27;ll go back to the page you opened.";
+    const note = "After signing in, you&#x27;ll go back to that page if your role can open it.";
     expect(await page({ next: "/officer/case/abc" })).toContain(note);
     expect(await page({ next: "/officer" })).not.toContain(note);
     expect(await page({ next: "https://evil.example/x" })).not.toContain(note);

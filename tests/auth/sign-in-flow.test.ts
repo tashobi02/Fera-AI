@@ -120,6 +120,11 @@ describe("signInReducer", () => {
     expect(typed.invalid).toEqual({ username: false, password: true });
   });
 
+  it("whitespace alone does not clear the username error (validateSignIn trims)", () => {
+    const missing = signInReducer(initialSignInState, { type: "submit", values: { username: "", password: "" } });
+    expect(signInReducer(missing, { type: "input", field: "username", value: "   " })).toBe(missing);
+  });
+
   it("a new attempt clears the previous failure", () => {
     const bad: SignInState = { ...initialSignInState, failure: { kind: "credentials" }, invalid: { username: true, password: true } };
     expect(signInReducer(bad, { type: "submit", values: ok })).toMatchObject({ status: "submitting", failure: null });
@@ -129,6 +134,14 @@ describe("signInReducer", () => {
     const missing = signInReducer(initialSignInState, { type: "submit", values: { username: "", password: "" } });
     const filled = signInReducer(missing, { type: "demo-fill", username: "staff.demo" });
     expect(filled).toMatchObject({ filled: "staff.demo", required: { username: false, password: true } });
+  });
+
+  it("editing the username ends the announcement, so filling the same account again is read again", () => {
+    const filled = signInReducer(initialSignInState, { type: "demo-fill", username: "staff.demo" });
+    const edited = signInReducer(filled, { type: "input", field: "username", value: "staff.dem" });
+    expect(edited.filled).toBeNull();
+    expect(signInReducer(edited, { type: "demo-fill", username: "staff.demo" }).filled).toBe("staff.demo");
+    expect(signInReducer(filled, { type: "input", field: "password", value: "x" }).filled).toBe("staff.demo");
   });
 
   it("a bfcache restore (pageshow) makes a busy form usable again", () => {

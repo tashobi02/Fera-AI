@@ -178,6 +178,7 @@ Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 - 2026-10-15 10:52 · Claude Code · mahim-case · TASK-015 stays `review`; fera-review round 2 (safeguarding + security on the fixes): PASS; lint boundary for case internals, refusal-audit retry/log, seed provenance shape; test 772 / test:db 117 (case 38).
 - 2026-10-15 11:21 · Claude Code · mahim-signin · TASK-031 `todo` → `review`; S-008 sign-in + S-016 not-found, test 803 pass (101 new), lint/typecheck/build exit 0; impeccable finish review `fix` applied; TC-022 waits for API-004/009 + TASK-015, browser steps TASK-038; test:db blocked by unresponsive local DB.
 - 2026-10-15 11:56 · Claude Code · mahim-signin · TASK-031 stays `review`; merged origin/phase2 (TASK-015 audit hook is the default: wrong-role page → S-016 + 404); fera-review round 1: a11y BLOCK fixed, WARNs fixed; test 932 / test:db 117 pass; re-review pending.
+- 2026-10-15 12:03 · Claude Code · mahim-signin · TASK-031 stays `review`; fera-review round 2 (a11y + safeguarding on the fixes): PASS; return-note wording (OD-031-7), whitespace/demo-fill reducer fixes, stricter border-token test.
 
 ## Audit amendments (2026-10-12)
 

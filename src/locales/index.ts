@@ -16,7 +16,7 @@ const bn = {
   signInTitleOfficer: "কর্মকর্তা সাইন ইন", // D4 §14
   signInTitleAdmin: "অ্যাডমিন সাইন ইন",
   signInIntro: "স্টাফ, কর্মকর্তা ও অ্যাডমিনের জন্য। অভিভাবকদের অ্যাকাউন্ট লাগে না।",
-  signInReturnNote: "সাইন ইন করার পর আপনি যে পাতাটি খুলেছিলেন সেখানে ফিরে যাবেন।",
+  signInReturnNote: "সাইন ইন করার পর, আপনার অনুমতি থাকলে আপনি সেই পাতায় ফিরে যাবেন।",
   usernameLabel: "ইউজারনেম",
   passwordLabel: "পাসওয়ার্ড",
   usernameRequired: "ইউজারনেম লিখুন।",
@@ -66,7 +66,7 @@ const en = {
   signInTitleOfficer: "Officer sign-in", // D4 §14
   signInTitleAdmin: "Admin sign-in",
   signInIntro: "For staff, officers and admins. Parents don't need an account.",
-  signInReturnNote: "After signing in, you'll go back to the page you opened.",
+  signInReturnNote: "After signing in, you'll go back to that page if your role can open it.",
   usernameLabel: "Username",
   passwordLabel: "Password",
   usernameRequired: "Enter your username.",
