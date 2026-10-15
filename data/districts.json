@@ -1,0 +1,934 @@
+{
+  "provenance": {
+    "status": "UNVERIFIED reference data compiled by an AI agent from general geographic knowledge. A team member must check it against a public source (DEP-004, A-019) before it is called verified; the owner of that check is UNKNOWN until assigned.",
+    "verified_by": null,
+    "verified_on": null,
+    "source": null,
+    "codes": "Fera-internal codes 1-64, assigned once in alphabetical order of the English name (A-032); not official BBS or geo codes. Treat codes as FROZEN identifiers: never renumber; the seed refuses to change an existing code's name unless --allow-recode is given.",
+    "centroids": "Approximate district-level centroids (about 0.1 degree), two decimals, AI-compiled and unverified; never a case or person location (DECISION-013).",
+    "neighbours": "AI-compiled, unverified adjacency (A-013; OQ-017 open). Uncertain pairs were left out, so some real neighbours may be missing; Netrokona-Sherpur and Faridpur-Pabna were removed after review as uncertain. Used only to widen search, never as a hard filter (BR-017).",
+    "divisions": "The 8 administrative divisions, with Mymensingh as the eighth (2015); AI-compiled, unverified."
+  },
+  "districts": [
+    {
+      "code": 1,
+      "name_en": "Bagerhat",
+      "name_bn": "বাগেরহাট",
+      "division_en": "Khulna",
+      "lat": 22.65,
+      "lng": 89.79,
+      "neighbours": [
+        20,
+        28,
+        42,
+        52
+      ]
+    },
+    {
+      "code": 2,
+      "name_en": "Bandarban",
+      "name_bn": "বান্দরবান",
+      "division_en": "Chattogram",
+      "lat": 22.2,
+      "lng": 92.22,
+      "neighbours": [
+        10,
+        12,
+        55
+      ]
+    },
+    {
+      "code": 3,
+      "name_en": "Barguna",
+      "name_bn": "বরগুনা",
+      "division_en": "Barishal",
+      "lat": 22.15,
+      "lng": 90.12,
+      "neighbours": [
+        51,
+        52
+      ]
+    },
+    {
+      "code": 4,
+      "name_en": "Barishal",
+      "name_bn": "বরিশাল",
+      "division_en": "Barishal",
+      "lat": 22.7,
+      "lng": 90.37,
+      "neighbours": [
+        5,
+        8,
+        20,
+        24,
+        34,
+        51,
+        52,
+        58
+      ]
+    },
+    {
+      "code": 5,
+      "name_en": "Bhola",
+      "name_bn": "ভোলা",
+      "division_en": "Barishal",
+      "lat": 22.18,
+      "lng": 90.75,
+      "neighbours": [
+        4,
+        32,
+        48,
+        51
+      ]
+    },
+    {
+      "code": 6,
+      "name_en": "Bogura",
+      "name_bn": "বগুড়া",
+      "division_en": "Rajshahi",
+      "lat": 24.85,
+      "lng": 89.37,
+      "neighbours": [
+        18,
+        26,
+        41,
+        45,
+        60
+      ]
+    },
+    {
+      "code": 7,
+      "name_en": "Brahmanbaria",
+      "name_bn": "ব্রাহ্মণবাড়িয়া",
+      "division_en": "Chattogram",
+      "lat": 23.96,
+      "lng": 91.11,
+      "neighbours": [
+        13,
+        21,
+        29,
+        44
+      ]
+    },
+    {
+      "code": 8,
+      "name_en": "Chandpur",
+      "name_bn": "চাঁদপুর",
+      "division_en": "Chattogram",
+      "lat": 23.23,
+      "lng": 90.65,
+      "neighbours": [
+        4,
+        13,
+        32,
+        39,
+        48,
+        58
+      ]
+    },
+    {
+      "code": 9,
+      "name_en": "Chapainawabganj",
+      "name_bn": "চাঁপাইনবাবগঞ্জ",
+      "division_en": "Rajshahi",
+      "lat": 24.6,
+      "lng": 88.28,
+      "neighbours": [
+        41,
+        54
+      ]
+    },
+    {
+      "code": 10,
+      "name_en": "Chattogram",
+      "name_bn": "চট্টগ্রাম",
+      "division_en": "Chattogram",
+      "lat": 22.45,
+      "lng": 91.9,
+      "neighbours": [
+        2,
+        12,
+        17,
+        27,
+        55
+      ]
+    },
+    {
+      "code": 11,
+      "name_en": "Chuadanga",
+      "name_bn": "চুয়াডাঙ্গা",
+      "division_en": "Khulna",
+      "lat": 23.64,
+      "lng": 88.85,
+      "neighbours": [
+        25,
+        31,
+        37
+      ]
+    },
+    {
+      "code": 12,
+      "name_en": "Cox's Bazar",
+      "name_bn": "কক্সবাজার",
+      "division_en": "Chattogram",
+      "lat": 21.6,
+      "lng": 92.02,
+      "neighbours": [
+        2,
+        10
+      ]
+    },
+    {
+      "code": 13,
+      "name_en": "Cumilla",
+      "name_bn": "কুমিল্লা",
+      "division_en": "Chattogram",
+      "lat": 23.46,
+      "lng": 91.18,
+      "neighbours": [
+        7,
+        8,
+        17,
+        39,
+        48
+      ]
+    },
+    {
+      "code": 14,
+      "name_en": "Dhaka",
+      "name_bn": "ঢাকা",
+      "division_en": "Dhaka",
+      "lat": 23.8,
+      "lng": 90.37,
+      "neighbours": [
+        19,
+        36,
+        39,
+        43
+      ]
+    },
+    {
+      "code": 15,
+      "name_en": "Dinajpur",
+      "name_bn": "দিনাজপুর",
+      "division_en": "Rangpur",
+      "lat": 25.63,
+      "lng": 88.64,
+      "neighbours": [
+        18,
+        26,
+        41,
+        47,
+        50,
+        56,
+        64
+      ]
+    },
+    {
+      "code": 16,
+      "name_en": "Faridpur",
+      "name_bn": "ফরিদপুর",
+      "division_en": "Dhaka",
+      "lat": 23.6,
+      "lng": 89.84,
+      "neighbours": [
+        20,
+        34,
+        35,
+        36,
+        42,
+        53,
+        58
+      ]
+    },
+    {
+      "code": 17,
+      "name_en": "Feni",
+      "name_bn": "ফেনী",
+      "division_en": "Chattogram",
+      "lat": 23.02,
+      "lng": 91.4,
+      "neighbours": [
+        10,
+        13,
+        27,
+        48
+      ]
+    },
+    {
+      "code": 18,
+      "name_en": "Gaibandha",
+      "name_bn": "গাইবান্ধা",
+      "division_en": "Rangpur",
+      "lat": 25.33,
+      "lng": 89.53,
+      "neighbours": [
+        6,
+        15,
+        22,
+        26,
+        30,
+        56
+      ]
+    },
+    {
+      "code": 19,
+      "name_en": "Gazipur",
+      "name_bn": "গাজীপুর",
+      "division_en": "Dhaka",
+      "lat": 24,
+      "lng": 90.42,
+      "neighbours": [
+        14,
+        29,
+        40,
+        43,
+        44,
+        63
+      ]
+    },
+    {
+      "code": 20,
+      "name_en": "Gopalganj",
+      "name_bn": "গোপালগঞ্জ",
+      "division_en": "Dhaka",
+      "lat": 23,
+      "lng": 89.83,
+      "neighbours": [
+        1,
+        4,
+        16,
+        34,
+        42,
+        52
+      ]
+    },
+    {
+      "code": 21,
+      "name_en": "Habiganj",
+      "name_bn": "হবিগঞ্জ",
+      "division_en": "Sylhet",
+      "lat": 24.38,
+      "lng": 91.42,
+      "neighbours": [
+        7,
+        29,
+        38,
+        61,
+        62
+      ]
+    },
+    {
+      "code": 22,
+      "name_en": "Jamalpur",
+      "name_bn": "জামালপুর",
+      "division_en": "Mymensingh",
+      "lat": 24.92,
+      "lng": 89.94,
+      "neighbours": [
+        18,
+        30,
+        40,
+        59,
+        60,
+        63
+      ]
+    },
+    {
+      "code": 23,
+      "name_en": "Jashore",
+      "name_bn": "যশোর",
+      "division_en": "Khulna",
+      "lat": 23.17,
+      "lng": 89.21,
+      "neighbours": [
+        25,
+        28,
+        35,
+        42,
+        57
+      ]
+    },
+    {
+      "code": 24,
+      "name_en": "Jhalokati",
+      "name_bn": "ঝালকাঠি",
+      "division_en": "Barishal",
+      "lat": 22.64,
+      "lng": 90.2,
+      "neighbours": [
+        4,
+        51,
+        52
+      ]
+    },
+    {
+      "code": 25,
+      "name_en": "Jhenaidah",
+      "name_bn": "ঝিনাইদহ",
+      "division_en": "Khulna",
+      "lat": 23.54,
+      "lng": 89.17,
+      "neighbours": [
+        11,
+        23,
+        31,
+        35
+      ]
+    },
+    {
+      "code": 26,
+      "name_en": "Joypurhat",
+      "name_bn": "জয়পুরহাট",
+      "division_en": "Rajshahi",
+      "lat": 25.1,
+      "lng": 89.02,
+      "neighbours": [
+        6,
+        15,
+        18,
+        41
+      ]
+    },
+    {
+      "code": 27,
+      "name_en": "Khagrachhari",
+      "name_bn": "খাগড়াছড়ি",
+      "division_en": "Chattogram",
+      "lat": 23.12,
+      "lng": 91.98,
+      "neighbours": [
+        10,
+        17,
+        55
+      ]
+    },
+    {
+      "code": 28,
+      "name_en": "Khulna",
+      "name_bn": "খুলনা",
+      "division_en": "Khulna",
+      "lat": 22.82,
+      "lng": 89.55,
+      "neighbours": [
+        1,
+        23,
+        42,
+        57
+      ]
+    },
+    {
+      "code": 29,
+      "name_en": "Kishoreganj",
+      "name_bn": "কিশোরগঞ্জ",
+      "division_en": "Dhaka",
+      "lat": 24.43,
+      "lng": 90.78,
+      "neighbours": [
+        7,
+        19,
+        21,
+        40,
+        44,
+        46,
+        61
+      ]
+    },
+    {
+      "code": 30,
+      "name_en": "Kurigram",
+      "name_bn": "কুড়িগ্রাম",
+      "division_en": "Rangpur",
+      "lat": 25.81,
+      "lng": 89.64,
+      "neighbours": [
+        18,
+        22,
+        33,
+        56
+      ]
+    },
+    {
+      "code": 31,
+      "name_en": "Kushtia",
+      "name_bn": "কুষ্টিয়া",
+      "division_en": "Khulna",
+      "lat": 23.9,
+      "lng": 89.12,
+      "neighbours": [
+        11,
+        25,
+        35,
+        37,
+        49,
+        53
+      ]
+    },
+    {
+      "code": 32,
+      "name_en": "Lakshmipur",
+      "name_bn": "লক্ষ্মীপুর",
+      "division_en": "Chattogram",
+      "lat": 22.94,
+      "lng": 90.84,
+      "neighbours": [
+        5,
+        8,
+        48
+      ]
+    },
+    {
+      "code": 33,
+      "name_en": "Lalmonirhat",
+      "name_bn": "লালমনিরহাট",
+      "division_en": "Rangpur",
+      "lat": 25.99,
+      "lng": 89.45,
+      "neighbours": [
+        30,
+        47,
+        56
+      ]
+    },
+    {
+      "code": 34,
+      "name_en": "Madaripur",
+      "name_bn": "মাদারীপুর",
+      "division_en": "Dhaka",
+      "lat": 23.17,
+      "lng": 90.2,
+      "neighbours": [
+        4,
+        16,
+        20,
+        58
+      ]
+    },
+    {
+      "code": 35,
+      "name_en": "Magura",
+      "name_bn": "মাগুরা",
+      "division_en": "Khulna",
+      "lat": 23.49,
+      "lng": 89.42,
+      "neighbours": [
+        16,
+        23,
+        25,
+        31,
+        42,
+        53
+      ]
+    },
+    {
+      "code": 36,
+      "name_en": "Manikganj",
+      "name_bn": "মানিকগঞ্জ",
+      "division_en": "Dhaka",
+      "lat": 23.86,
+      "lng": 90,
+      "neighbours": [
+        14,
+        16,
+        39,
+        49,
+        63
+      ]
+    },
+    {
+      "code": 37,
+      "name_en": "Meherpur",
+      "name_bn": "মেহেরপুর",
+      "division_en": "Khulna",
+      "lat": 23.76,
+      "lng": 88.63,
+      "neighbours": [
+        11,
+        31
+      ]
+    },
+    {
+      "code": 38,
+      "name_en": "Moulvibazar",
+      "name_bn": "মৌলভীবাজার",
+      "division_en": "Sylhet",
+      "lat": 24.48,
+      "lng": 91.77,
+      "neighbours": [
+        21,
+        62
+      ]
+    },
+    {
+      "code": 39,
+      "name_en": "Munshiganj",
+      "name_bn": "মুন্সিগঞ্জ",
+      "division_en": "Dhaka",
+      "lat": 23.55,
+      "lng": 90.53,
+      "neighbours": [
+        8,
+        13,
+        14,
+        36,
+        43,
+        58
+      ]
+    },
+    {
+      "code": 40,
+      "name_en": "Mymensingh",
+      "name_bn": "ময়মনসিংহ",
+      "division_en": "Mymensingh",
+      "lat": 24.75,
+      "lng": 90.4,
+      "neighbours": [
+        19,
+        22,
+        29,
+        46,
+        59,
+        63
+      ]
+    },
+    {
+      "code": 41,
+      "name_en": "Naogaon",
+      "name_bn": "নওগাঁ",
+      "division_en": "Rajshahi",
+      "lat": 24.8,
+      "lng": 88.93,
+      "neighbours": [
+        6,
+        9,
+        15,
+        26,
+        45,
+        54
+      ]
+    },
+    {
+      "code": 42,
+      "name_en": "Narail",
+      "name_bn": "নড়াইল",
+      "division_en": "Khulna",
+      "lat": 23.17,
+      "lng": 89.5,
+      "neighbours": [
+        1,
+        16,
+        20,
+        23,
+        28,
+        35
+      ]
+    },
+    {
+      "code": 43,
+      "name_en": "Narayanganj",
+      "name_bn": "নারায়ণগঞ্জ",
+      "division_en": "Dhaka",
+      "lat": 23.62,
+      "lng": 90.5,
+      "neighbours": [
+        14,
+        19,
+        39,
+        44
+      ]
+    },
+    {
+      "code": 44,
+      "name_en": "Narsingdi",
+      "name_bn": "নরসিংদী",
+      "division_en": "Dhaka",
+      "lat": 23.92,
+      "lng": 90.72,
+      "neighbours": [
+        7,
+        19,
+        29,
+        43
+      ]
+    },
+    {
+      "code": 45,
+      "name_en": "Natore",
+      "name_bn": "নাটোর",
+      "division_en": "Rajshahi",
+      "lat": 24.41,
+      "lng": 89,
+      "neighbours": [
+        6,
+        41,
+        49,
+        54,
+        60
+      ]
+    },
+    {
+      "code": 46,
+      "name_en": "Netrokona",
+      "name_bn": "নেত্রকোণা",
+      "division_en": "Mymensingh",
+      "lat": 24.87,
+      "lng": 90.73,
+      "neighbours": [
+        29,
+        40,
+        61
+      ]
+    },
+    {
+      "code": 47,
+      "name_en": "Nilphamari",
+      "name_bn": "নীলফামারী",
+      "division_en": "Rangpur",
+      "lat": 25.93,
+      "lng": 88.86,
+      "neighbours": [
+        15,
+        33,
+        50,
+        56
+      ]
+    },
+    {
+      "code": 48,
+      "name_en": "Noakhali",
+      "name_bn": "নোয়াখালী",
+      "division_en": "Chattogram",
+      "lat": 22.87,
+      "lng": 91.1,
+      "neighbours": [
+        5,
+        8,
+        13,
+        17,
+        32
+      ]
+    },
+    {
+      "code": 49,
+      "name_en": "Pabna",
+      "name_bn": "পাবনা",
+      "division_en": "Rajshahi",
+      "lat": 24,
+      "lng": 89.23,
+      "neighbours": [
+        31,
+        36,
+        45,
+        53,
+        54,
+        60
+      ]
+    },
+    {
+      "code": 50,
+      "name_en": "Panchagarh",
+      "name_bn": "পঞ্চগড়",
+      "division_en": "Rangpur",
+      "lat": 26.34,
+      "lng": 88.56,
+      "neighbours": [
+        15,
+        47,
+        64
+      ]
+    },
+    {
+      "code": 51,
+      "name_en": "Patuakhali",
+      "name_bn": "পটুয়াখালী",
+      "division_en": "Barishal",
+      "lat": 22.36,
+      "lng": 90.33,
+      "neighbours": [
+        3,
+        4,
+        5,
+        24
+      ]
+    },
+    {
+      "code": 52,
+      "name_en": "Pirojpur",
+      "name_bn": "পিরোজপুর",
+      "division_en": "Barishal",
+      "lat": 22.58,
+      "lng": 89.97,
+      "neighbours": [
+        1,
+        3,
+        4,
+        20,
+        24
+      ]
+    },
+    {
+      "code": 53,
+      "name_en": "Rajbari",
+      "name_bn": "রাজবাড়ী",
+      "division_en": "Dhaka",
+      "lat": 23.76,
+      "lng": 89.64,
+      "neighbours": [
+        16,
+        31,
+        35,
+        49
+      ]
+    },
+    {
+      "code": 54,
+      "name_en": "Rajshahi",
+      "name_bn": "রাজশাহী",
+      "division_en": "Rajshahi",
+      "lat": 24.37,
+      "lng": 88.6,
+      "neighbours": [
+        9,
+        41,
+        45,
+        49
+      ]
+    },
+    {
+      "code": 55,
+      "name_en": "Rangamati",
+      "name_bn": "রাঙ্গামাটি",
+      "division_en": "Chattogram",
+      "lat": 22.73,
+      "lng": 92.3,
+      "neighbours": [
+        2,
+        10,
+        27
+      ]
+    },
+    {
+      "code": 56,
+      "name_en": "Rangpur",
+      "name_bn": "রংপুর",
+      "division_en": "Rangpur",
+      "lat": 25.75,
+      "lng": 89.25,
+      "neighbours": [
+        15,
+        18,
+        30,
+        33,
+        47
+      ]
+    },
+    {
+      "code": 57,
+      "name_en": "Satkhira",
+      "name_bn": "সাতক্ষীরা",
+      "division_en": "Khulna",
+      "lat": 22.72,
+      "lng": 89.07,
+      "neighbours": [
+        23,
+        28
+      ]
+    },
+    {
+      "code": 58,
+      "name_en": "Shariatpur",
+      "name_bn": "শরীয়তপুর",
+      "division_en": "Dhaka",
+      "lat": 23.24,
+      "lng": 90.43,
+      "neighbours": [
+        4,
+        8,
+        16,
+        34,
+        39
+      ]
+    },
+    {
+      "code": 59,
+      "name_en": "Sherpur",
+      "name_bn": "শেরপুর",
+      "division_en": "Mymensingh",
+      "lat": 25.02,
+      "lng": 90.02,
+      "neighbours": [
+        22,
+        40
+      ]
+    },
+    {
+      "code": 60,
+      "name_en": "Sirajganj",
+      "name_bn": "সিরাজগঞ্জ",
+      "division_en": "Rajshahi",
+      "lat": 24.45,
+      "lng": 89.7,
+      "neighbours": [
+        6,
+        22,
+        45,
+        49,
+        63
+      ]
+    },
+    {
+      "code": 61,
+      "name_en": "Sunamganj",
+      "name_bn": "সুনামগঞ্জ",
+      "division_en": "Sylhet",
+      "lat": 25.07,
+      "lng": 91.4,
+      "neighbours": [
+        21,
+        29,
+        46,
+        62
+      ]
+    },
+    {
+      "code": 62,
+      "name_en": "Sylhet",
+      "name_bn": "সিলেট",
+      "division_en": "Sylhet",
+      "lat": 24.9,
+      "lng": 91.87,
+      "neighbours": [
+        21,
+        38,
+        61
+      ]
+    },
+    {
+      "code": 63,
+      "name_en": "Tangail",
+      "name_bn": "টাঙ্গাইল",
+      "division_en": "Dhaka",
+      "lat": 24.25,
+      "lng": 89.92,
+      "neighbours": [
+        19,
+        22,
+        36,
+        40,
+        60
+      ]
+    },
+    {
+      "code": 64,
+      "name_en": "Thakurgaon",
+      "name_bn": "ঠাকুরগাঁও",
+      "division_en": "Rangpur",
+      "lat": 26.03,
+      "lng": 88.46,
+      "neighbours": [
+        15,
+        50
+      ]
+    }
+  ]
+}
