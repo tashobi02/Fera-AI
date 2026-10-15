@@ -3,11 +3,11 @@
 Written by Mahim's agent so that Obidit and Masnun can work in parallel without waiting for Mahim. Read this file first, then your own prompt (`OBIDIT.md` or `MASNUN.md`).
 
 ## Who is who
-- **Mahim (Sadman Shaharier).** Project lead. He is working remotely, so he isn't always reachable. Owns platform, contracts, auth, DB rules, the case service and the S-004/S-005/S-008/S-012/S-013/S-016 screens.
-- **Obidit.** Runs the GitHub repo and Vercel in Dhaka. Owns intake, AI, speech, outputs and the parent screens.
+- **Mahim (Sadman Shaharier).** Owns platform, contracts, auth, DB rules, the case service and the S-004/S-005/S-008/S-012/S-013/S-016 screens. He isn't always reachable, so don't wait on him for anything this file already answers.
+- **Obidit.** Owns intake, AI, speech, outputs and the parent screens. Per Mahim, Obidit also manages the GitHub repo and the team Vercel project.
 - **Masnun.** Owns districts, synthetic data, embeddings, matching, duplicates, dashboard and the staff/officer screens.
 
-`AGENTS.md` still says "Lead: Obidit (from 13 Oct)". Mahim says he is the lead and Obidit manages the repo and deployments. Treat ownership as in the AGENTS.md table; it hasn't changed.
+**Lead is an open decision.** Mahim says he is the project lead. `AGENTS.md` and the phase trackers still say "Lead: Obidit (from 13 Oct)". Changing that needs an AGENTS.md PR agreed by all three owners. Until then, follow the ownership table in AGENTS.md, which nobody disputes.
 
 ## What is already merged into `phase2` (build on it, don't rebuild it)
 | Area | Where | Notes |
@@ -19,16 +19,10 @@ Written by Mahim's agent so that Obidit and Masnun can work in parallel without 
 | DB stack and rules | `db/schema_v2.sql` (frozen), `db/roles.sql` | Runtime role `fera_app` with column-level grants. `reserve_ai_call` / `settle_ai_call` / `redact_case` are SECURITY DEFINER (OD-062-2). Audit is append-only. |
 | Case service (COMP-014/015) | `src/server/case/` and **`src/server/case/README.md`** | `createMissingCase`, `createFoundCase`, `editMissingCase`, `openCase`, `decideCandidate` (one-transaction confirm/reject), `closeCase`, `readCase`. Each takes a server-derived `Principal`, enforces role and ownership, and writes audit rows in the same transaction. Route and page code may import **only** `@/server/case` (ESLint enforces this). Matcher helpers live in `@/server/case/internal`, for `src/server/**` only. |
 | Shell | `src/app/layout.tsx`, `globals.css`, `src/locales/` | DESIGN.md tokens, self-hosted Inter / JetBrains Mono / Noto Sans Bengali, bn/en toggle. New strings go in `src/locales/index.ts` (bn + en), never inline. |
-| In review | PR #12 | S-008 sign-in and S-016 not-found (TASK-031), plus input-border tokens `border-control` / `border-control-strong`. Use those for every text input. |
+| Sign-in and not-found | `src/app/(auth)/sign-in/`, `src/app/not-found.tsx` (PR #12) | S-008 and S-016 (TASK-031). Input-border tokens `border-control` / `border-control-strong` (D4 §13, ≥3:1): use them for every text input. |
 
 ## How to work
-1. **Branch from `origin/phase2`, never `main`.** Use one git worktree per agent lane:
-   ```sh
-   git fetch origin
-   git worktree add -b phase2--<you>-<slug> ../fera-lanes/<you>-<slug> origin/phase2
-   cd ../fera-lanes/<you>-<slug> && npm ci
-   ```
-   Example: `phase2--obidit-templates`. Never run two writing agents in one worktree. (`scripts/agents/new-lane.sh` bases on `main` when no feature branch exists, so use the commands above instead.)
+1. **Branch as described in "Where to branch from" below.** Never run two writing agents in one worktree.
 2. **Open PRs into `phase2`,** never `main`. Keep them small, one D6 task each. Use Conventional Commits with IDs, e.g. `feat(intake): templates + wording guard [TASK-023]`.
 3. **Before every PR, run the `fera-review` skill.** It always includes `fera-safeguarding-reviewer` and picks other reviewers from the diff. Fix every BLOCK, then re-run. Paste the summary into the PR.
 4. **Update your rows in `docs/execution/PHASE_2_MUST_CORE.md`** (or whichever phase file you're in) in the same branch: status, branch/PR, evidence. Add a log line in the existing format. Add an evidence file under `docs/execution/evidence/` like the existing ones (what was done, commands, observed counts, what is NOT done, open decisions).
@@ -41,14 +35,60 @@ Written by Mahim's agent so that Obidit and Masnun can work in parallel without 
    npm run test:db    # DB suites, each in a throwaway fera_test_* database
    ```
    Stop Docker when you're done. It is heavy.
-7. **When something you depend on is missing, build against typed fakes** from `@/contracts/examples` and swap in the real call when it merges.
+7. **When something you depend on is missing, build against typed fakes**, then swap in the real call when it merges. UI and app code use `@/contracts/client-examples`. Tests and `fakes/` folders may also use `@/contracts/examples`; ESLint refuses it anywhere else.
+
+## Where to branch from
+
+**Base every new branch on `origin/phase2`.** It is the team's integration branch for Phase 2 and the only branch with the whole platform. As of 15 Oct it is at `8a96b59` and contains:
+- `phase1`: the scaffold and CI (TASK-001), the local DB stack (TASK-002), the contracts (TASK-061, tag `contracts-v1`) and the shell (TASK-008);
+- Mahim's Phase 2 PRs: #4 API layer (TASK-007), #6 DB rules (TASK-062), #9 auth (TASK-006), #10 (lands #4 and #6), #11 case service (TASK-015), #12 sign-in and not-found (TASK-031);
+- Obidit's specs `specs/002-intake-ai` (specify, clarify, plan).
+
+Always `git fetch origin` first, so you branch from the latest `phase2`, not a stale local copy.
+
+**Do not branch from:**
+- `main` (`1c1ec6c` "Tasks Split"): docs and agent kit only, no app code;
+- `phase1`: has none of the Phase 2 platform;
+- any `phase*--mahim-*` lane branch: they are merged or Mahim's in-flight work;
+- the old `phase0-local-tooling--lane-b` and `phase1-specs--lane-a`: already merged into `phase2`.
+
+`scripts/agents/new-lane.sh` falls back to `main` when no matching feature branch exists, so use the commands below instead.
+
+**Naming:** `phase2--<owner>-<slug>`, one D6 task per branch. Examples: `phase2--obidit-templates` (TASK-023), `phase2--masnun-districts` (TASK-009). Spec-kit work gets its own branch, e.g. `phase2--masnun-spec004`.
+
+**New lane (worktree; recommended for agents):**
+```sh
+cd <your Fera-AI clone>
+git fetch origin
+git worktree add -b phase2--<owner>-<slug> ../fera-lanes/<owner>-<slug> origin/phase2
+cd ../fera-lanes/<owner>-<slug>
+npm ci
+cp ../../Fera-AI/.env.local .env.local   # only if you have one; never commit it, never paste it into a prompt
+```
+
+Without worktrees: `git fetch origin && git switch -c phase2--<owner>-<slug> origin/phase2`. Then use only one agent at a time in that clone.
+
+**First push:** `git push -u origin phase2--<owner>-<slug>`. Then open the PR: `gh pr create --base phase2`.
+
+**When a task needs your own unmerged work** (for example TASK-010 needs your TASK-009 branch):
+- Branch from that branch: `git worktree add -b phase2--masnun-synthetic ../fera-lanes/masnun-synthetic origin/phase2--masnun-districts`.
+- Still open the PR with **base `phase2`**, and write "Depends on #N, merge #N first" at the top.
+- Do **not** set the PR base to the other lane branch. Earlier, stacked PRs merged into lane branches instead of `phase2`, and the work had to be carried over by extra "landing" PRs.
+- Once #N merges, run `git fetch origin && git merge origin/phase2` in the dependent lane and push.
+
+**Keep lanes current:**
+- After any PR merges into `phase2`, run `git fetch origin && git merge origin/phase2` in each open lane.
+- Use merge, not rebase, once a branch is pushed, so nobody has to force-push.
+- Tracker conflicts in `docs/execution/PHASE_*.md` are normal: keep both sides' rows and put log lines in time order.
+
+**Finished lanes:** after the PR merges, remove the worktree with `git worktree remove ../fera-lanes/<owner>-<slug>` and delete its `node_modules` to save disk.
 
 ## Hard rules (from AGENTS.md and the constitution; these override any task text)
-- **Never read or print `.env*`** and never commit secrets. Never put provider keys in prompts.
+- **Never read or print `.env*`** and never commit secrets. Never put provider keys in prompts. The one exception (AMD-CLAUDE-2): `.env.example` is a nonsecret template of variable *names* that you may read and edit. Real keys are typed by a human into `.env.local`, which is never read by an agent or committed.
 - **Never push to `main`.** Never run `db:reset` against a non-local database.
 - **Don't edit** `docs/spec/`, `docs/markdown/`, `docs/code/`, `docs/MANIFEST.json`, `db/schema_v2.sql` or `src/contracts/` in a feature PR.
 - **Synthetic data only.** No photos, faces, ID documents or exact coordinates.
-- **Review before submit:** nothing from a missing report is server-stored, matched, shown or exported before the reporter confirms.
+- **Review before submit (constitution §I, BR-004, BR-023):** "No missing-report payload is stored, matched, shown to another party or exported before the reporter reviews and confirms it. Providers may process audio/text only after the on-screen notice. Before submit, the server stores only expiry, counter, hash and cost metadata. Submission is idempotent on a client UUID." Review is device-local. Each draft may dispatch at most six paid transcribe/extract calls, including retries and fallbacks, enforced through `reserve_ai_call`.
 - **AI retrieves and ranks; people decide.** Never auto-confirm, auto-close or guess fields. Every extracted value carries a source span.
 - **Honest copy:** "similarity", not probability. "Referral recorded (simulation)". No alert, runaway, rescue or legal-compliance claims. `[MOCK]`, synthetic and cached labels are always visible.
 - **Never invent facts:** no dates, figures, approvals or results. Write **UNKNOWN** and list an open decision instead.
@@ -60,7 +100,7 @@ Written by Mahim's agent so that Obidit and Masnun can work in parallel without 
 | OD-062-2 | all three owners | Keep `redact_case` / `reserve_ai_call` / `settle_ai_call` as SECURITY DEFINER? |
 | OD-006-1 | all three owners | Accept the custom session in place of Auth.js? A docs PR then updates D2/AGENTS. |
 | OD-015-1 | Obidit | A changed payload on resubmit returns E-006 (contracts), not D2A's E-005. OK? |
-| OD-015-2 | Masnun | The code writes `voided` for replaced candidates; D6 TC-029 says "superseded". Treat both as non-pending. |
-| OD-015-4 | all three owners | A replay after redaction can create a second report. A fix needs a non-identifying tombstone (schema change). Until then, TASK-022 must clear the device draft and `client_submission_id` after a 2xx. |
+| OD-015-2 | Masnun, then all three owners | The code writes `voided` for replaced candidates; D6 TC-029 says "superseded". Treat both as non-pending until decided. |
+| OD-015-4 | all three owners | A replay after redaction can create a second report. A fix needs a non-identifying tombstone (schema change). **Proposed mitigation, not yet agreed:** TASK-022 clears the device draft and `client_submission_id` after a 2xx. |
 | OD-015-6 | Masnun | Acknowledge the matcher lock protocol in `src/server/case/internal.ts` before TASK-017 merges. |
 | OD-015-14 | all three owners | Audit-row growth from repeated denials and refusals; per-principal limits on API-005/010/011. |
