@@ -1,6 +1,6 @@
 # Fera — Execution Plan (12–24 Oct 2026)
 
-Team: **Obidit** (lead; intake, AI, outputs) · **Masnun** (data, matching, officer workflow, dashboard, evaluation) · **Mahim** (platform, integration, release; "Sadman" in AGENTS.md and the spec pack, D6 owner code S). Lead changed to Obidit on 13 Oct: the lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`. Each phase tracker lists every person's tasks in their own table.
+Team: **Mahim** (lead; platform, integration, release; "Sadman" in AGENTS.md and the spec pack, D6 owner code S) · **Obidit** (intake, AI, outputs) · **Masnun** (data, matching, officer workflow, dashboard, evaluation). The lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`. Each phase tracker lists every person's tasks in their own table.
 Scope: **everything** — all 64 tasks in D6 (Must, Should, Could), ≈222 estimated hours. Times are Asia/Dhaka.
 
 ## The dates that matter

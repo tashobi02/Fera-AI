@@ -1,0 +1,23 @@
+# Knowledge-graph scope: Fera's own code, schema, tests, specs and docs.
+# Vendored agent kits, generated output and byte-identical copies are left out.
+.agents/
+.claude/
+.codex/
+.gemini/
+.specify/
+third_party/
+node_modules/
+.next/
+graphify-out/
+docs/markdown/
+docs/MANIFEST.json
+demo/
+coverage/
+src/app/fonts/
+*.woff2
+package-lock.json
+src/contracts/client-examples.json
+docs/pdf/
+*.png
+.env*
+!.env.example

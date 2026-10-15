@@ -2,8 +2,8 @@
 
 **Window:** Tue 13 Oct 2026, 08:00 → 23:00 (Asia/Dhaka) · **Gate:** G2 · **Plan:** [EXECUTION_PLAN.md](EXECUTION_PLAN.md#phase-2--must-core-build-tue-13-oct-0800--2300--gate-g2) · **Prev:** [Phase 1](PHASE_1_SPECS_CONTRACTS.md) · **Next:** [Phase 3](PHASE_3_FULL_SCOPE_QUALITY.md)
 **Phase status:** `todo`
-**Last updated:** 2026-10-13 · tasks distributed among Obidit, Masnun and Mahim; lead = Obidit
-**Team:** **Obidit** — lead; intake, AI, outputs · **Masnun** — data, matching, officer workflow, dashboard, evaluation · **Mahim** — platform, integration, release (named "Sadman" in AGENTS.md and the spec pack; D6 owner code S). Tasks follow [EXECUTION_PLAN.md](EXECUTION_PLAN.md). The lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`.
+**Last updated:** 2026-10-13 · tasks distributed among Obidit, Masnun and Mahim; lead = Mahim
+**Team:** **Obidit** — intake, AI, outputs · **Masnun** — data, matching, officer workflow, dashboard, evaluation · **Mahim** — lead; platform, integration, release (named "Sadman" in AGENTS.md and the spec pack; D6 owner code S). Tasks follow [EXECUTION_PLAN.md](EXECUTION_PLAN.md). The lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`.
 
 ---
 
@@ -18,7 +18,7 @@ This is a living tracker. Every agent working on a task in this phase updates it
 5. If you are stuck, set the row to `blocked`, say what blocks it in Evidence, and add a log line.
 6. Edit only the rows in **your own person table** and **your log section**, so parallel lanes don't conflict. Never tick a gate box yourself. Gate boxes are ticked from the `fera-gate` report in [docs/gates/](../gates/).
 
-**Status values:** `todo` · `doing` · `review` · `done` · `blocked` · `cut`. Use `cut` only with approval from the lead (Obidit) and in the [D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommendation) cut order. Never cut review-before-submit, officer confirm, referral, audit or redaction.
+**Status values:** `todo` · `doing` · `review` · `done` · `blocked` · `cut`. Use `cut` only with approval from the lead (Mahim) and in the [D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommendation) cut order. Never cut review-before-submit, officer confirm, referral, audit or redaction.
 
 | Action | Claude Code | Codex | Antigravity / any other agent |
 |---|---|---|---|
@@ -49,7 +49,7 @@ Rule for all lanes: **UI and integration lanes do not wait for backend tasks.** 
 - Masnun Lane B builds S-007/S-009/S-010/S-011 against API-007/008/009/010/012 fakes.
 - Mahim Lane B builds S-012 against API-011/013 fakes.
 
-A fake-backed screen counts as `review`, not `done`. It becomes `done` only once its TC passes against the real service. Report the remaining chain hours at every stand-up. If the 18:00 stand-up shows G2 can't be met, the lead (Obidit) applies the D6 §11 cut order or moves the item, with a log line.
+A fake-backed screen counts as `review`, not `done`. It becomes `done` only once its TC passes against the real service. Report the remaining chain hours at every stand-up. If the 18:00 stand-up shows G2 can't be met, the lead (Mahim) applies the D6 §11 cut order or moves the item, with a log line.
 
 ## Who does what
 

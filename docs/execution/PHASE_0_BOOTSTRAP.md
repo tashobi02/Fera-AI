@@ -2,8 +2,8 @@
 
 **Window:** Mon 12 Oct 2026, now → 18:00 (Asia/Dhaka) · **Gate:** G0 · **Plan:** [EXECUTION_PLAN.md](EXECUTION_PLAN.md#phase-0--bootstrap-mon-12-oct-now--1800--gate-g0) · **Next:** [Phase 1](PHASE_1_SPECS_CONTRACTS.md)
 **Phase status:** `doing` — G0 is overdue (due 18:00); see "Known state".
-**Last updated:** 2026-10-13 · tasks distributed among Obidit, Masnun and Mahim; lead = Obidit
-**Team:** **Obidit** — lead; intake, AI, outputs · **Masnun** — data, matching, officer workflow, dashboard, evaluation · **Mahim** — platform, integration, release (named "Sadman" in AGENTS.md and the spec pack; D6 owner code S). Tasks follow [EXECUTION_PLAN.md](EXECUTION_PLAN.md). The lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`.
+**Last updated:** 2026-10-13 · tasks distributed among Obidit, Masnun and Mahim; lead = Mahim
+**Team:** **Obidit** — intake, AI, outputs · **Masnun** — data, matching, officer workflow, dashboard, evaluation · **Mahim** — lead; platform, integration, release (named "Sadman" in AGENTS.md and the spec pack; D6 owner code S). Tasks follow [EXECUTION_PLAN.md](EXECUTION_PLAN.md). The lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`.
 
 ---
 
@@ -18,7 +18,7 @@ This is a living tracker. Every agent working on a task in this phase updates it
 5. If you are stuck, set the row to `blocked`, say what blocks it in Evidence, and add a log line.
 6. Edit only the rows in **your own person table** and **your log section**, so parallel lanes don't conflict. Never tick a gate box yourself. Gate boxes are ticked from the `fera-gate` report in [docs/gates/](../gates/).
 
-**Status values:** `todo` · `doing` · `review` · `done` · `blocked` · `cut`. Use `cut` only with approval from the lead (Obidit) and in the [D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommendation) cut order. Never cut review-before-submit, officer confirm, referral, audit or redaction.
+**Status values:** `todo` · `doing` · `review` · `done` · `blocked` · `cut`. Use `cut` only with approval from the lead (Mahim) and in the [D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommendation) cut order. Never cut review-before-submit, officer confirm, referral, audit or redaction.
 
 | Action | Claude Code | Codex | Antigravity / any other agent |
 |---|---|---|---|
@@ -104,7 +104,7 @@ Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 ### Obidit
 - 2026-10-12 19:15 · Claude Code · — · created phase files; agent kit found missing (KIT)
 - 2026-10-12 20:10 · Claude Code · — · KIT → review: replaced ECC self-config with pinned Fera kit; drafted constitution, fera-safeguarding-reviewer, fera-review, fera-gate, settings.json (backup ../fera-ecc-kit-backup-2026-10-12.tar.gz)
-- 2026-10-13 · Claude Code · — · tasks split into per-person tables (Obidit lead, Masnun, Mahim); KIT evidence updated: committed on `main`
+- 2026-10-13 · Claude Code · — · tasks split into per-person tables (Mahim lead, Obidit, Masnun); KIT evidence updated: committed on `main`
 ### Masnun
 ### Mahim (lead)
 - 2026-10-14 15:57 · Claude Code · mahim-task001 · OQ-021 decided by Mahim: Supabase; status `review` until TASK-002 proves pgvector + HNSW on the host
@@ -115,7 +115,7 @@ Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
 ### AMD-0-1 — Entry and observed state
 **Gap:** no testable entry criterion; “Missing: … the whole agent kit” contradicts KIT's later evidence.
-**Change:** entry G0 requires the local inventory, cleanly identified task owners (Obidit = lead and D6 owner O, Masnun = M, Mahim = S/Sadman), unresolved DEP-001–004/008 decisions and protected-companion hash checks recorded. Kit files are committed on `main` as of 13 Oct; ratification, bootstrap on each laptop and runtime discovery remain UNKNOWN. Do not run bootstrap during this audit or infer its success.
+**Change:** entry G0 requires the local inventory, cleanly identified task owners (Mahim = lead and D6 owner S/Sadman, Obidit = O, Masnun = M), unresolved DEP-001–004/008 decisions and protected-companion hash checks recorded. Kit files are committed on `main` as of 13 Oct; ratification, bootstrap on each laptop and runtime discovery remain UNKNOWN. Do not run bootstrap during this audit or infer its success.
 **Old text corrected:** “and the whole agent kit (`.claude/`, `.agents/`, `.codex/`, `.specify/` incl. the constitution) although `THIRD_PARTY_NOTICES.md` lists it as vendored.”
 **Source:** local git/file inventory 12 Oct; TEAM_HANDOVER_V2 §§5–7; G0/KIT.
 
