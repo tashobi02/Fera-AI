@@ -108,7 +108,7 @@ When one of these merges, tell the waiting person straight away; they rebase and
 | TASK-019 | Seed loader with synthetic labels and 3 demo cases | A · Codex | TASK-010 | 2 | `npm run seed -- --set demo` < 2 min | `todo` | | |
 | TASK-026 | S-007 found-child log + API-007 (COMP-034) | B · Claude Code + `impeccable` | TASK-015, 020 | 3 | TC-008 passes | `review` | branch `phase2--masnun-found-log` (PR pending; depends on TASK-009) | Manual-field path only (TASK-020 free text not built). Lint/typecheck/test/build green, fera-review done. **TC-008 not passed**: no DB run (no Docker here), no Playwright. See [evidence](evidence/found-log.md). |
 | TASK-027 | S-009 queue + API-008 (COMP-035/036) | B · Claude Code + `impeccable` | TASK-017 | 3 | Queue lists seeded candidates | `todo` | | |
-| TASK-028 | S-010 match review + API-009/010, one-transaction confirm, reject with reason | B · Claude Code + `database-reviewer` | TASK-017, 027 | 6 | TC-010 (confirm part), TC-011 pass | `todo` | | |
+| TASK-028 | S-010 match review + API-009/010, one-transaction confirm, reject with reason | B · Claude Code + `database-reviewer` | TASK-017, 027 | 6 | TC-010 (confirm part), TC-011 pass | `review` | branch `phase2--masnun-match-review` (PR pending) | Screen + API-009 read + API-010 route built on the merged `decideCandidate`; fera-review done. **TC-010/011 not passed**: no matcher (TASK-017), no queue (TASK-027), no DB or browser run here. See [evidence](evidence/match-review.md). |
 | TASK-030 | S-011 map + table + API-012 (COMP-040/041) | B · Claude Code + `impeccable` | TASK-009, 029 | 5 | TC-012 passes | `todo` | | |
 | TASK-011 | 50 hand-labelled reports (reviewed by Obidit) | C · human | — | 5 | `eval/data/labelled.jsonl` reviewed by Obidit | `todo` | | |
 | TASK-039 (scaffold) | Eval harness scaffold; dev split only | C · Codex + `mle-reviewer` | TASK-011, 017, 018, 064 | — | Smoke run prints metrics with denominators | `todo` | | |
@@ -167,6 +167,7 @@ Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 ### Obidit
 ### Masnun
 - 2026-10-15 23:25 · Claude Code · masnun-found-log · TASK-026 `todo` → `review`; API-007 + S-007 manual path built and reviewed; TC-008 pending DB + Playwright, free text pending TASK-020
+- 2026-10-15 23:55 · Claude Code · masnun-match-review · TASK-028 `todo` → `review`; S-010 + API-009/010 built and reviewed; TC-010/011 pending matcher, queue, DB and browser
 ### Mahim (lead)
 - 2026-10-14 17:35 · Claude Code · mahim-api · TASK-007 `todo` → `review`; shared API layer and 92 tests at `a33d9af`; in-memory limiter, real principal resolver waits for TASK-006.
 - 2026-10-14 18:40 · Claude Code · mahim-api · TASK-007 stays `review`; fera-review BLOCK (record-route E-004 + denial audit) and WARNs fixed at `a054767`, 179 API tests; re-review pending.
