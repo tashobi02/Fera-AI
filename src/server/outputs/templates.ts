@@ -6,10 +6,10 @@
 //
 // The wording here is not from the spec pack (D7 OQ-016: the official GD field list is
 // open), so it needs a Bangla review. The draft label and the 13219 line reuse D3/D4 copy.
-import { toDhakaIso, type CaseDraft, type Sex } from "@/contracts";
+import { toDhakaIso, type CaseDraft, type OutputType, type Sex } from "@/contracts";
 import { toBanglaDigits } from "@/lib/numerals";
 
-export type TemplateType = "gd" | "poster";
+export type TemplateType = OutputType;
 
 export type TemplateInput = {
   refCode: string;
@@ -91,6 +91,20 @@ function childLines(input: TemplateInput): string[] {
 
 const phoneBn = (d: CaseDraft) => (d.reporter.phone ? toBanglaDigits(d.reporter.phone) : UNKNOWN_BN);
 
+// Free text is cut to 8 words per field, because the helpline limit counts words. Worst case:
+// header 8 + four cut fields (labels 2+2+3+1, values 8 + "(সংক্ষেপিত)" each) 44 + age
+// range/sex 6 + cross-date time range 14 + phone 3 (one token: the DB CHECKs
+// contact_phone '^01[0-9]{9}$') + reference 2 = 77 ≤ 80 (LIMITS.helplineWords). The
+// worst-case test pins 77.
+const HELPLINE_FIELD_WORDS = 8;
+function cutWords(v: string | null): string {
+  const words = (v ?? "").trim().split(/\s+/u).filter(Boolean);
+  if (words.length === 0) return UNKNOWN_BN;
+  if (words.length <= HELPLINE_FIELD_WORDS) return words.join(" ");
+  // Said aloud on the call: a cut can drop a clause-final "না", so the cut must be audible.
+  return `${words.slice(0, HELPLINE_FIELD_WORDS).join(" ")}… (সংক্ষেপিত)`;
+}
+
 function gd(input: TemplateInput): string {
   const { draft } = input;
   return [
@@ -130,4 +144,20 @@ function poster(input: TemplateInput): string {
   ].join("\n");
 }
 
-export const TEMPLATES: Readonly<Record<TemplateType, (input: TemplateInput) => string>> = { gd, poster };
+// FR-010 (TC-007): a short spoken-style summary for a 13219 call, at most 80 words.
+function helpline(input: TemplateInput): string {
+  const { child, event } = input.draft;
+  return [
+    DRAFT_HEADER_BN,
+    `শিশুর নাম: ${cutWords(child.name)}`,
+    `বয়স: ${ageBn(child)}, লিঙ্গ: ${SEX_BN[child.sex]}`,
+    `পরনে ছিল: ${cutWords(child.clothing)}`,
+    `শেষবার দেখা গিয়েছিল: ${cutWords(event.place_text)}`, // D4 §10 neutral wording
+    `জেলা: ${cutWords(input.districtNameBn ?? event.district_text)}`,
+    `সময়: ${whenBn(event)}`,
+    `যোগাযোগের ফোন: ${phoneBn(input.draft)}`,
+    `রেফারেন্স: ${input.refCode}`,
+  ].join("\n");
+}
+
+export const TEMPLATES: Readonly<Record<TemplateType, (input: TemplateInput) => string>> = { gd, poster, helpline };

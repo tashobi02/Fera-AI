@@ -1,6 +1,6 @@
 // TASK-023 templates (COMP-010): TC-005 GD draft, poster text (FR-009), BR-022.
 import { describe, expect, it } from "vitest";
-import { OUTPUT_DRAFT_LABEL_BN, type CaseDraft } from "@/contracts";
+import { OUTPUT_DRAFT_LABEL_BN, countWords, type CaseDraft } from "@/contracts";
 import { exampleMissingDraft, exampleOwnerCaseView } from "@/contracts/examples";
 import { FIELD_MAX_CHARS } from "@/contracts";
 import { findBannedGroup, renderOutput } from "@/server/outputs";
@@ -138,5 +138,52 @@ describe("poster text (FR-009, BR-006)", () => {
     expect(findBannedGroup(poster)).toBeNull();
     expect(findBannedGroup(TEMPLATES.gd(input()))).toBeNull();
     expect(findBannedGroup(TEMPLATES.gd({ ...input(), draft: blank }))).toBeNull();
+  });
+});
+
+describe("helpline summary (TC-007, FR-010)", () => {
+  const helpline = TEMPLATES.helpline(input());
+  // Word-dense values filling each field's character limit, so the worst case counts words, not characters.
+  const dense = (n: number) => "ক ".repeat(Math.floor(n / 2)).trim();
+
+  it("has the draft label, the child's name, age, last-seen place and time", () => {
+    expect(helpline).toContain(OUTPUT_DRAFT_LABEL_BN);
+    expect(helpline).toContain("মিতু");
+    expect(helpline).toContain("৭ বছর");
+    expect(helpline).toContain("বাস টার্মিনালের কাছে");
+    expect(helpline).toContain("১২ অক্টোবর ২০২৬, বিকেল ৩:০০ থেকে সন্ধ্যা ৬:০০-এর মধ্যে (আনুমানিক)");
+    expect(countWords(helpline)).toBeLessThanOrEqual(80);
+  });
+
+  it("stays at most 80 words with every field at its maximum length", () => {
+    const draft: CaseDraft = {
+      ...exampleMissingDraft,
+      child: { ...exampleMissingDraft.child, name: dense(FIELD_MAX_CHARS.child_name), age_years: null, age_min: 6, age_max: 8, height_cm: 150, clothing: dense(FIELD_MAX_CHARS.clothing), marks: dense(FIELD_MAX_CHARS.marks) },
+      event: {
+        ...exampleMissingDraft.event,
+        place_text: dense(FIELD_MAX_CHARS.place_text),
+        district_text: dense(80),
+        thana: dense(FIELD_MAX_CHARS.thana),
+        at: null,
+        at_lower: "2026-10-11T17:30:00Z",
+        at_upper: "2026-10-12T03:00:00+06:00",
+      },
+      reporter: { relation: dense(FIELD_MAX_CHARS.reporter_relation), phone: "0".repeat(32) },
+    };
+    const out = TEMPLATES.helpline({ refCode: "M-7K2Q9A", draft, districtNameBn: dense(80) });
+    expect(countWords(out)).toBe(77); // the derived bound in templates.ts
+    expect(countWords(out)).toBeLessThanOrEqual(80);
+    expect(out).toContain("… (সংক্ষেপিত)"); // a cut is spoken, not only shown
+  });
+
+  it("prints অজানা for missing fields", () => {
+    const out = TEMPLATES.helpline({ ...input(), draft: blank });
+    expect(valueOf(out, "শিশুর নাম")).toBe(UNKNOWN_BN);
+    expect(valueOf(out, "শেষবার দেখা গিয়েছিল")).toBe(UNKNOWN_BN);
+  });
+
+  it("passes the wording guard", () => {
+    expect(findBannedGroup(helpline)).toBeNull();
+    expect(findBannedGroup(TEMPLATES.helpline({ ...input(), draft: blank }))).toBeNull();
   });
 });
