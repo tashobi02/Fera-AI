@@ -93,7 +93,7 @@ WARNs fixed too: zero-width and bidi characters stripped before the typed-word c
 
 WARNs kept open: OD-032-1 (no audit target, needs contracts), OD-032-2, OD-062-4 partial-failure count, OD-032-7 inactive officers can be toggled, per-instance in-memory limits, `generateMetadata` title on the not-found path (not checked at runtime).
 
-Re-run after the fixes: `npm run lint` 0, `npm run typecheck` 0, `npm test` 1024 passed / 128 skipped, `npm run test:db` 128/128 (local Docker, stopped afterwards). `npm run build` and the smoke were not re-run.
+Re-run after the fixes: `npm run lint` 0, `npm run typecheck` 0, `npm test` 1024 passed / 128 skipped, `npm run test:db` 128/128 (local Docker, stopped afterwards), `npm run build` 0 (`.next` removed). The built-app smoke was not re-run. Safeguarding gate re-run on the fix commit: PASS.
 
 ## Open decisions
 
