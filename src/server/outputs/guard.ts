@@ -49,9 +49,11 @@ const NOT_WORD = /[^\p{L}\p{M}\p{N}]/gu;
 
 const nfkc = (text: string) => text.normalize("NFKC").replace(IGNORABLE, "").toLowerCase();
 
-// NFKC again after the removals, so a vowel sign split by junk ("পে-ৗঁছে") recomposes (ৌ).
+// Decompose first (NFKD) so accents become separate marks ("rúnaway"), strip them, then
+// recompose (NFKC) so a Bangla vowel sign split by junk ("পে-ৗঁছে") becomes ৌ again.
 export function normaliseForGuard(text: string): string {
-  return nfkc(text).replace(DECORATION, "").replace(NOT_WORD, "").normalize("NFKC");
+  return text.normalize("NFKD").replace(IGNORABLE, "").toLowerCase()
+    .replace(DECORATION, "").replace(NOT_WORD, "").normalize("NFKC");
 }
 
 const NORMALISED = Object.entries(BANNED_TERMS).flatMap(([group, terms]) =>

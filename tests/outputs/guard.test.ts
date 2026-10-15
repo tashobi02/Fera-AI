@@ -48,6 +48,9 @@ describe("wording guard", () => {
     expect(findBannedGroup("পে-ৗঁছে গেছে")).toBe("delivered");
     expect(findBannedGroup("run\u0332away child")).toBe("runaway");
     expect(findBannedGroup("al\u0332ert")).toBe("alert");
+    // Codex fourth review: precomposed Latin accents.
+    expect(findBannedGroup("rúnaway child")).toBe("runaway");
+    expect(findBannedGroup("RÉSCUE")).toBe("rescue");
     expect(findBannedGroup("৮৭％ মিল")).toBe("probability");
   });
 
