@@ -40,16 +40,16 @@ This is a living tracker. Every agent working on a task in this phase updates it
 
 | Person | Tasks this phase | D6 hours |
 |---|---|---|
-| **Obidit** (lead) | TASK-003 provider keys and prices → TASK-005 phone STT spike · lead duties below | 3 |
+| **Obidit** | TASK-003 provider keys and prices → TASK-005 phone STT spike | 3 |
 | **Masnun** | TASK-004 embedding spike → TASK-009 64 districts | 6 |
-| **Mahim** | KIT → TASK-001 repo, CI, preview → TASK-002 DB host and schema | 5 (+1 KIT, outside D6) |
+| **Mahim** (lead) | KIT → TASK-001 repo, CI, preview → TASK-002 DB host and schema | 5 (+1 KIT, outside D6) |
 
-### Lead duties — Obidit
+### Lead duties — Mahim
 - Chase the decisions below until each has an owner's written answer, and record the organiser cutoff/extension evidence (AMD-PLAN-1).
 - Run `fera-gate G0` at the gate time and link the report; nobody else ticks gate boxes.
 - Lead duties carry no D6 hours; report them at stand-ups if they cost build time.
 
-## Tasks — Obidit (lead)
+## Tasks — Obidit
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | TASK-003 | Provider keys, `.env.example`, real prices in `docs/costs.md` (OQ-004, OQ-022) | Codex | — | 1 | Both LLMs and STT answer a test call | `todo` | | |
@@ -61,7 +61,7 @@ This is a living tracker. Every agent working on a task in this phase updates it
 | TASK-004 | Spike: local embedding model on Vercel (OQ-023, RISK-015) | Codex | TASK-001 | 3 | Report: cold start, size; decision local vs API | `todo` | | |
 | TASK-009 | District data: 64 rows bn/en/centroids + neighbours | Codex | TASK-002 | 3 | `npm run seed` loads 64 districts | `todo` | | |
 
-## Tasks — Mahim
+## Tasks — Mahim (lead)
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | KIT | Commit agent kit: `CLAUDE.md`, `AGENTS.md`, `CODEX.md`, `.claude/`, `.codex/`, `.agents/`, `.specify/` (constitution), `docs/agents/`, `docs/execution/` | any | — | 1 | `bootstrap.sh` runs; `/agents` lists `fera-safeguarding-reviewer`; `$speckit-*` visible in Codex | `review` | 648a60e | Committed on `main` (234 kit files tracked, checked 13 Oct). Assembled and validated 12 Oct: 18 agents, 16 Codex roles, 28 skills per tool, spec-kit 1.1.4.dev0 @0443760. Pending: owners ratify constitution + `fera-*`; `bootstrap.sh` on each laptop |
@@ -83,8 +83,8 @@ Rules for this phase: no app feature code yet; spike scripts only. Never paste p
 | Managed Postgres host (OQ-021) | Mahim | TASK-002 → everything | Decided by Mahim (14 Oct): Supabase (managed) + Supabase CLI local PG16 (Obidit's unmerged `origin/phase0-local-tooling--lane-b` @1960bdc). Pending D2 Part A OQ-021 condition: host must pass `CREATE EXTENSION vector` (pgvector ≥ 0.8.1, A-034) and HNSW index creation in TASK-002; if it fails, the decision reopens | Mahim log, 14 Oct | `review` |
 | Default LLM provider, keys, prices, data terms (OQ-004, OQ-013, OQ-022) | Obidit | TASK-013 | | `docs/costs.md` | `todo` |
 | Local embeddings on Vercel or API (OQ-023) | Masnun | TASK-016 | | TASK-004 report | `todo` |
-| Voice and poster in Round 2 (OQ-001) | Obidit (lead) | — | Team plan: yes, full scope; organiser agreement UNKNOWN (AMD-0-2) | EXECUTION_PLAN | `review` |
-| Organiser cutoff, channel, formats and extension (AMD-PLAN-1) | Obidit (lead) | G5 timing | UNKNOWN | | `todo` |
+| Voice and poster in Round 2 (OQ-001) | Obidit | — | Team plan: yes, full scope; organiser agreement UNKNOWN (AMD-0-2) | EXECUTION_PLAN | `review` |
+| Organiser cutoff, channel, formats and extension (AMD-PLAN-1) | Mahim (lead) | G5 timing | UNKNOWN | | `todo` |
 
 ## G0 exit checklist
 Tick only from the gate report (`fera-gate`), with evidence linked.
@@ -101,12 +101,12 @@ Tick only from the gate report (`fera-gate`), with evidence linked.
 ## Log
 Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
-### Obidit (lead)
+### Obidit
 - 2026-10-12 19:15 · Claude Code · — · created phase files; agent kit found missing (KIT)
 - 2026-10-12 20:10 · Claude Code · — · KIT → review: replaced ECC self-config with pinned Fera kit; drafted constitution, fera-safeguarding-reviewer, fera-review, fera-gate, settings.json (backup ../fera-ecc-kit-backup-2026-10-12.tar.gz)
 - 2026-10-13 · Claude Code · — · tasks split into per-person tables (Obidit lead, Masnun, Mahim); KIT evidence updated: committed on `main`
 ### Masnun
-### Mahim
+### Mahim (lead)
 - 2026-10-14 15:57 · Claude Code · mahim-task001 · OQ-021 decided by Mahim: Supabase; status `review` until TASK-002 proves pgvector + HNSW on the host
 - 2026-10-14 15:57 · Claude Code · mahim-task001 · TASK-001 `todo` → `review`; local checks green, manual Vercel deploy Ready; awaiting PR CI and human merge
 - 2026-10-14 19:20 · Claude Code · mahim-db · TASK-002 `todo` → `review`; local PG16 + pgvector + HNSW evidenced; hosted Supabase apply pending owner go-ahead

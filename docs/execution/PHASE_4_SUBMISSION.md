@@ -37,17 +37,17 @@ This is a living tracker. Every agent working on a task in this phase updates it
 
 | Person | Tasks this phase | D6 hours |
 |---|---|---|
-| **Obidit** (lead) | TASK-045 1–2 min video · lead duties below | 4 |
+| **Obidit** | TASK-045 1–2 min video | 4 |
 | **Masnun** | METRIC-FIGS for the deck · README-EVAL section · LINK-CHECK before and after sending | — (not estimated in D6) |
-| **Mahim** | TASK-044 deck, 5–8 slides → TASK-046 README, Drive folder and the selection-email reply | 5 |
+| **Mahim** (lead) | TASK-044 deck, 5–8 slides → TASK-046 README, Drive folder and the selection-email reply | 5 |
 
-### Lead duties — Obidit
+### Lead duties — Mahim
 - Before anything is sent, confirm the organiser's cutoff, channel and formats (AMD-4-1) and record the source; until then they're UNKNOWN.
 - Approve the final deck text and video script after the wording guard and `fera-safeguarding-reviewer` pass.
-- Give Mahim the go-ahead to send only after Masnun's pre-send LINK-CHECK passes.
+- Send only after Masnun's pre-send LINK-CHECK passes.
 - Run `fera-gate G5` and link the report.
 
-## Tasks — Obidit (lead)
+## Tasks — Obidit
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / link | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | TASK-045 | Round 2 video, 1–2 min, per [D7 §3.1](../spec/D7_Closing_Pack_V2.md#31-round-2-video-proposed-145); English captions over Bangla UI | human | TASK-042 | 4 | Working 1–2 min MP4; compressed/cached timings labelled | `todo` | | |
@@ -59,7 +59,7 @@ This is a living tracker. Every agent working on a task in this phase updates it
 | README-EVAL | README evaluation section | Claude Code + `doc-updater` | TASK-043 | — | Section merged; numbers match the frozen report | `todo` | | |
 | LINK-CHECK | Repo, deck, video and every link open logged-out, in a private window | human | TASK-046 | — | Checked list with timestamps | `todo` | | |
 
-## Tasks — Mahim
+## Tasks — Mahim (lead)
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / link | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | TASK-044 | Round 2 deck, 5–8 slides, incl. metrics slide and [MOCK] items marked | any + `fera-safeguarding-reviewer` | TASK-043 | 4 | Working 5–8-slide deck; honest measured/pending labels | `todo` | | |
@@ -85,15 +85,15 @@ Tick only from the gate report (`fera-gate`), with evidence linked.
 ## Log
 Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
-### Obidit (lead)
+### Obidit
 ### Masnun
-### Mahim
+### Mahim (lead)
 
 ## Audit amendments (2026-10-12)
 
 ### AMD-4-1 — Cutoff, entry and receipt
 **Gap:** “Official cutoff **22:00**” was not supported by the handover.
-**Change:** entry requires G4's measured/explicitly missing evidence report and an identified frozen build; failed Must items remain disclosed blockers. 21:00 is the internal send target and 14 Oct 22:00 the working baseline. The user reports an organiser extension; its new cutoff/date, email and exact formats are **UNKNOWN** until Obidit (lead) records organiser evidence. TEAM_HANDOVER_V2 §10 leaves exact time/channel/formats pending selection email. Do not invent a recipient or mark the email sent.
+**Change:** entry requires G4's measured/explicitly missing evidence report and an identified frozen build; failed Must items remain disclosed blockers. 21:00 is the internal send target and 14 Oct 22:00 the working baseline. The user reports an organiser extension; its new cutoff/date, email and exact formats are **UNKNOWN** until Mahim (lead) records organiser evidence. TEAM_HANDOVER_V2 §10 leaves exact time/channel/formats pending selection email. Do not invent a recipient or mark the email sent.
 G5 exit requires TASK-044/045 deliverables and TC-025/037/066 wording review, TASK-046 actual submission/receipt evidence against the confirmed channel/cutoff, frozen commit identification, and logged-out access checks. Prepare LINK-CHECK before sending; repeat afterward to verify the delivered links. The current table's dependency on TASK-046 is the final recheck, not permission to send unchecked links.
 **Old text corrected:** “Official cutoff **22:00**”.
 **Source:** TEAM_HANDOVER_V2 §§7,10; D6 TASK-044–046, §10; user update 12 Oct.

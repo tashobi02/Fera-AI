@@ -3,11 +3,9 @@
 Written by Mahim's agent so that Obidit and Masnun can work in parallel without waiting for Mahim. Read this file first, then your own prompt (`OBIDIT.md` or `MASNUN.md`).
 
 ## Who is who
-- **Mahim (Sadman Shaharier).** Owns platform, contracts, auth, DB rules, the case service and the S-004/S-005/S-008/S-012/S-013/S-016 screens. He isn't always reachable, so don't wait on him for anything this file already answers.
-- **Obidit.** Owns intake, AI, speech, outputs and the parent screens. Per Mahim, Obidit also manages the GitHub repo and the team Vercel project.
+- **Mahim (Sadman Shaharier), lead.** Owns platform, contracts, auth, DB rules, the case service and the S-004/S-005/S-008/S-012/S-013/S-016 screens. He isn't always reachable, so don't wait on him for anything this file already answers.
+- **Obidit.** Owns intake, AI, speech, outputs and the parent screens. He also manages the GitHub repo and the team Vercel project.
 - **Masnun.** Owns districts, synthetic data, embeddings, matching, duplicates, dashboard and the staff/officer screens.
-
-**Lead is an open decision.** Mahim says he is the project lead. `AGENTS.md` and the phase trackers still say "Lead: Obidit (from 13 Oct)". Changing that needs an AGENTS.md PR agreed by all three owners. Until then, follow the ownership table in AGENTS.md, which nobody disputes.
 
 ## What is already merged into `phase2` (build on it, don't rebuild it)
 | Area | Where | Notes |

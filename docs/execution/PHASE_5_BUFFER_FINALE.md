@@ -37,12 +37,12 @@ This is a living tracker. Every agent working on a task in this phase updates it
 
 | Person | Phase 5 (15 Oct) | Phase 6 (16–24 Oct) | D6 hours |
 |---|---|---|---|
-| **Obidit** (lead) | Converge 002 + 003 · TASK-058 backup-recording plan · lead duties below | TASK-058 backup recording on laptop and Drive | 2 |
+| **Obidit** | Converge 002 + 003 · TASK-058 backup-recording plan | TASK-058 backup recording on laptop and Drive | 2 |
 | **Masnun** | Converge 004, 005, 006 | Rehearsal fixes in their areas | 0 |
-| **Mahim** | Converge 001 + 007 · TASK-053 local finale stack | TASK-055 finale deck · SPARE laptop · TASK-057 only if OQ-019 is cleared · DEP-009 kit record by **23 Oct** | 12 (incl. 4 conditional) |
+| **Mahim** (lead) | Converge 001 + 007 · TASK-053 local finale stack | TASK-055 finale deck · SPARE laptop · TASK-057 only if OQ-019 is cleared · DEP-009 kit record by **23 Oct** | 12 (incl. 4 conditional) |
 | All three | TASK-054 rehearsal #1, internet off | TASK-054 rehearsals 2–5 · QA-PREP | 5 shared |
 
-### Lead duties — Obidit
+### Lead duties — Mahim
 - Triage the carried-over list at the start of 15 Oct: every open item gets its original owner and a date before 20 Oct (AMD-5-1: links only, no ownership transfer).
 - Schedule the five rehearsals and run `fera-gate G6` at 20:00.
 - Ask mentors/faculty about OQ-019 and record the answer before TASK-057 can start.
@@ -66,12 +66,12 @@ Run `/speckit-converge` (Codex `$speckit-converge`) until each feature reports C
 | `006-dashboard-admin` | Masnun | `todo` | `todo` | |
 | `007-quality-release` | Mahim | `todo` | `todo` | |
 
-### Tasks — Obidit (lead)
+### Tasks — Obidit
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | TASK-058 (start) | Backup recording plan | human | TASK-054 | — | Plan written: shots, devices, labels | `todo` | | |
 
-### Tasks — Mahim
+### Tasks — Mahim (lead)
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | TASK-053 | Finale local stack: Docker DB, model cache, fixtures, `DEMO_MODE=1` | Claude Code + `database-reviewer` | TASK-033 | 4 | Laptop runs the journey offline (TC-021, TC-057) | `todo` | | |
@@ -92,12 +92,12 @@ Tick only from the gate report (`fera-gate`), with evidence linked.
 
 ## Phase 6 — 16 → 24 Oct
 
-### Tasks — Obidit (lead)
+### Tasks — Obidit
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | TASK-058 | Backup recording of the finale demo, labelled | human | TASK-054 | 2 | MP4 on laptop **and** Drive | `todo` | | |
 
-### Tasks — Mahim
+### Tasks — Mahim (lead)
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | TASK-055 | Finale deck, timed ≤ 10 min, per [D7 §3.2](../spec/D7_Closing_Pack_V2.md#32-finale-8-minutes-plus-2-minute-qa-buffer) | any + `fera-safeguarding-reviewer` | TASK-043 | 4 | Timed run ≤ 10 min | `todo` | | |
@@ -125,9 +125,9 @@ Reset before each run: `npm run seed -- --reset --set demo`; check `/api/health`
 ## Log
 Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
-### Obidit (lead)
+### Obidit
 ### Masnun
-### Mahim
+### Mahim (lead)
 
 ## Audit amendments (2026-10-12)
 

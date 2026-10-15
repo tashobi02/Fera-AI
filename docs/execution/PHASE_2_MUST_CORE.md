@@ -55,9 +55,9 @@ A fake-backed screen counts as `review`, not `done`. It becomes `done` only once
 
 | Person | Lane A (Codex) | Lane B (Claude Code) | Lane C | D6 hours |
 |---|---|---|---|---|
-| **Obidit** (lead) | TASK-012 normaliser → 013 LLM adapter → 063 counters → 059 spend | TASK-014 speech → 020 orchestrator → 033 demo cache | TASK-023 templates first, then 021 S-001/S-002 → 022 S-003 + submit (impeccable) · evening TASK-040 clip recording | 41 |
+| **Obidit** | TASK-012 normaliser → 013 LLM adapter → 063 counters → 059 spend | TASK-014 speech → 020 orchestrator → 033 demo cache | TASK-023 templates first, then 021 S-001/S-002 → 022 S-003 + submit (impeccable) · evening TASK-040 clip recording | 41 |
 | **Masnun** | TASK-016 embeddings → 017 matcher → 018 duplicates → 019 seed | TASK-026 S-007 → 027 S-009 → 028 S-010 confirm/reject → 030 S-011 map (impeccable) | TASK-011 50 labelled reports (Obidit reviews) · TASK-039 eval scaffold | 37 |
-| **Mahim** | TASK-007 API layer → 062 invariants → 015 case service (**by 12:00**) | TASK-006 auth → 031 S-008/S-016 → 029 S-012 close + audit | TASK-024 S-004 + poster → 025 S-005 → 032 S-013 admin (impeccable) | 34 |
+| **Mahim** (lead) | TASK-007 API layer → 062 invariants → 015 case service (**by 12:00**) | TASK-006 auth → 031 S-008/S-016 → 029 S-012 close + audit | TASK-024 S-004 + poster → 025 S-005 → 032 S-013 admin (impeccable) | 34 |
 
 Lane C for Obidit starts with TASK-023 as soon as TASK-015 lands, because S-001–S-003 wait on the long intake chain (see Schedule reality).
 
@@ -77,14 +77,14 @@ Lane C for Obidit starts with TASK-023 as soon as TASK-015 lands, because S-001�
 
 When one of these merges, tell the waiting person straight away; they rebase and swaps their typed fake for the real call.
 
-### Lead duties — Obidit
+### Lead duties — Mahim
 - Chair the 09:00, 13:00, 18:00 and 23:00 stand-ups and fill the table below with `fera-gate G2 standup`.
-- At **12:00**, check that TASK-015 is merged; if it isn't, confirm Mahim's Lane C pause and the typed-fake fallback.
+- At **12:00**, check that TASK-015 is merged; if it isn't, confirm the Lane C pause and the typed-fake fallback.
 - At **18:00**, decide on cuts or moves (D6 §11 / AMD-PLAN-4) if G2 can't be met, and log the decision.
 - Record mentor and organiser answers (DEP-010, OQ-003/OQ-010) in the mentor-fix table below.
 - Run `fera-gate G2` at 23:00 and link the report.
 
-## Tasks — Obidit (lead)
+## Tasks — Obidit
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | TASK-012 | Normaliser: Bangla digits, time words, phone, district aliases, romaniser (COMP-008) | A · Codex + `bengali-reviewer` | TASK-009 | 5 | ≥30 unit tests pass | `todo` | | |
@@ -113,7 +113,7 @@ When one of these merges, tell the waiting person straight away; they rebase and
 | TASK-011 | 50 hand-labelled reports (reviewed by Obidit) | C · human | — | 5 | `eval/data/labelled.jsonl` reviewed by Obidit | `todo` | | |
 | TASK-039 (scaffold) | Eval harness scaffold; dev split only | C · Codex + `mle-reviewer` | TASK-011, 017, 018, 064 | — | Smoke run prints metrics with denominators | `todo` | | |
 
-## Tasks — Mahim
+## Tasks — Mahim (lead)
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | TASK-007 | API layer: error envelope E-001–E-024, Zod helpers, request ID, rate limiter (COMP-021) | A · Claude Code | TASK-001 | 4 | Unit tests for envelope and limiter | `review` | branch `phase2--mahim-api`, HEAD `a054767` on contracts `edb6a4d` (no PR yet) | `src/app/api/_shared/` + `/api/health`; `tests/api/` 179 cases (envelope + fallback, E-022/E-024 never sent, E-001 field paths, body/multipart caps, abort → E-001, server request ID, E-002/E-003, record-route E-004 + access.denied audit, audit failure → E-021, per-role strict DTOs, cookie seam, same-origin incl. scheme, limiter window/reset/E-007/E-013/bounded store, address trust, log redaction); lint/typecheck/test (479 pass, 1 skipped)/build exit 0. fera-review round 1 BLOCK fixed; re-review pending. **Gate:** no paid route ships on the memory limiter store (API-OD-1). Open decisions API-OD-1–7 in `specs/001-platform-foundation/contract-notes.md`; resolver waits for TASK-006, audit hook for TASK-015. |
@@ -141,7 +141,7 @@ When one of these merges, tell the waiting person straight away; they rebase and
 |---|---|---|---|
 | | | | |
 
-Obidit (lead) fills this table from the mentor session; each fix goes to the owner of the area it touches.
+Mahim (lead) fills this table from the mentor session; each fix goes to the owner of the area it touches.
 
 ## G2 exit checklist
 Tick only from the gate report (`fera-gate`), with evidence linked. Run on the **preview deploy** with `npm run seed -- --set demo`.
@@ -164,9 +164,9 @@ Tick only from the gate report (`fera-gate`), with evidence linked. Run on the *
 ## Log
 Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
-### Obidit (lead)
+### Obidit
 ### Masnun
-### Mahim
+### Mahim (lead)
 - 2026-10-14 17:35 · Claude Code · mahim-api · TASK-007 `todo` → `review`; shared API layer and 92 tests at `a33d9af`; in-memory limiter, real principal resolver waits for TASK-006.
 - 2026-10-14 18:40 · Claude Code · mahim-api · TASK-007 stays `review`; fera-review BLOCK (record-route E-004 + denial audit) and WARNs fixed at `a054767`, 179 API tests; re-review pending.
 - 2026-10-14 23:55 · Claude Code · mahim-invariants · TASK-062 `todo` → `review`; db/roles.sql + db:reset wiring, test:db (per-run fera_test_* DBs) 59/59 pass, src/server/admin/redact.ts, evidence in platform-db-invariants.md; hosted host and CI db job pending.
@@ -203,5 +203,5 @@ Late tasks retain their original phase, owner and estimate; Phase 5 may link the
 
 ### AMD-2-3 — External dependencies and recordings
 **Gap:** DEP-010 and volunteer availability were assumed.
-**Change:** Obidit (lead) records mentor/organiser answers for OQ-003/OQ-010 (DEP-010 source due 13 Oct); mentor attendance/answers are UNKNOWN without evidence. TASK-040's 60 clips and 2–3 friends are planned, availability UNKNOWN; use invented scripts and consent, and count unique samples separately from repeated runs. Its recording and P3 run share the single D6 3 h estimate; re-estimates require evidence.
+**Change:** Mahim (lead) records mentor/organiser answers for OQ-003/OQ-010 (DEP-010 source due 13 Oct); mentor attendance/answers are UNKNOWN without evidence. TASK-040's 60 clips and 2–3 friends are planned, availability UNKNOWN; use invented scripts and consent, and count unique samples separately from repeated runs. Its recording and P3 run share the single D6 3 h estimate; re-estimates require evidence.
 **Source:** D1 §15; D6 TASK-040/056; handover §§6–8.
