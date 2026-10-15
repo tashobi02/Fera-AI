@@ -53,13 +53,13 @@ const bn = {
   adminIntro: "এখানে শিশু বা সম্ভাব্য মিলের কোনো তথ্য দেখানো হয় না। সব অ্যাকাউন্ট ও রিপোর্ট সিনথেটিক।",
   syntheticLabel: "সিনথেটিক",
   redactTitle: "পরিচয় তথ্য অপসারণ",
-  redactEligible: "উপযুক্ত বন্ধ বা রেফার করা রিপোর্ট",
-  redactKeeps: "যা থেকে যায়: রেফারেন্স ও আইডি, তারিখ, জেলা, অবস্থা ও বয়সের মোটা সীমা। এটি ছদ্মনামকরণ, পূর্ণ বেনামীকরণ নয়।",
-  redactExternal: "ফেরার বাইরের কপি (ব্যাকআপ, ডাউনলোড বা সেবাদাতার কপি) এতে মুছে যায় না।",
-  redactEvidenceRule: "নিশ্চিত মিলের খুঁজে পাওয়া শিশুর রিপোর্ট তার নিখোঁজ রিপোর্ট বন্ধ না হওয়া পর্যন্ত রাখা হয়।",
-  redactConfirmLabel: "নিশ্চিত করতে লিখুন: বেনামী",
+  redactEligible: "উপযুক্ত বন্ধ বা রেফারেল হওয়া রিপোর্ট",
+  redactKeeps: "যা থেকে যায়: রেফারেন্স ও আইডি, তারিখ, জেলা, অবস্থা ও বয়সের মোটামুটি পরিসর। এটি ছদ্মনামকরণ, পূর্ণ বেনামীকরণ নয়।",
+  redactExternal: "ফেরার বাইরের কপি (ব্যাকআপ, ডাউনলোড করা বা সেবাদাতার কাছে থাকা কপি) এই কাজে মুছে ফেলা হয় না।",
+  redactEvidenceRule: "নিশ্চিত মিলের ক্ষেত্রে, খুঁজে পাওয়া শিশুর রিপোর্ট তার নিখোঁজ রিপোর্ট বন্ধ না হওয়া পর্যন্ত রাখা হয়।",
+  redactConfirmLabel: "নিশ্চিত করতে লিখুন: {word}",
   redactConfirmHint: "এই কাজ আর ফেরানো যায় না।",
-  redactConfirmMismatch: "ঠিক এভাবে লিখুন: বেনামী",
+  redactConfirmMismatch: "ঠিক এভাবে লিখুন: {word}",
   redactAction: "বন্ধ কেস বেনামী করুন", // D3 ACT-027
   redacting: "পরিচয় তথ্য অপসারণ চলছে…",
   redactEmpty: "পরিচয় তথ্য অপসারণের জন্য উপযুক্ত রিপোর্ট নেই", // D3 SCREEN-013 empty
@@ -67,8 +67,8 @@ const bn = {
   redactSkipped: "{n}টি রিপোর্ট বাদ পড়েছে, কারণ সেগুলো এখন আর উপযুক্ত নয়।",
   redactCountUnavailable: "উপযুক্ত রিপোর্টের সংখ্যা এখন দেখানো যাচ্ছে না। পরে আবার চেষ্টা করুন।",
   verifyTitle: "কর্মকর্তা যাচাই",
-  verifyMockNote: "সিমুলেশন: এখানে যাচাই মানে শুধু সিড করা অ্যাকাউন্টে একটি চিহ্ন বসানো। বাস্তবে কারও পরিচয় যাচাই হয় না।",
-  usersCaption: "ব্যবহারকারী",
+  verifyMockNote: "সিমুলেশন: এখানে যাচাই মানে শুধু ডেমো অ্যাকাউন্টে একটি চিহ্ন বসানো। বাস্তবে কারও পরিচয় যাচাই করা হয় না।",
+  usersCaption: "ব্যবহারকারীদের তালিকা",
   colRole: "ভূমিকা",
   colStatus: "অবস্থা",
   roleStaff: "স্টাফ",
@@ -81,14 +81,15 @@ const bn = {
   verifyAction: "যাচাই করুন",
   unverifyAction: "যাচাই বাতিল করুন",
   verifySaving: "সংরক্ষণ হচ্ছে…",
-  verifyDone: "{name}: যাচাইকৃত [MOCK]",
+  verifyDone: "{name}: যাচাই করা হয়েছে [MOCK]",
   unverifyDone: "{name}: যাচাই বাতিল হয়েছে [MOCK]",
   usersEmpty: "কোনো ব্যবহারকারী নেই",
   usersLoadMore: "আরও দেখুন",
   usersLoading: "লোড হচ্ছে…",
+  usersLoaded: "আরও {n}জন ব্যবহারকারী দেখানো হলো",
   usersUnavailable: "ব্যবহারকারীর তালিকা এখন দেখানো যাচ্ছে না। পরে আবার চেষ্টা করুন।",
   importTitle: "সিনথেটিক ইমপোর্ট",
-  importPlanned: "এখনো তৈরি হয়নি; পরের একটি কাজে যুক্ত হবে।",
+  importPlanned: "এখনো চালু হয়নি। পরে যুক্ত হবে।",
 } as const;
 
 export type MessageKey = keyof typeof bn;
@@ -145,9 +146,9 @@ const en = {
   redactKeeps: "Kept: reference and IDs, dates, district, status and a coarse age band. This is pseudonymisation, not full anonymisation.",
   redactExternal: "Copies outside Fera (backups, downloads or provider copies) are not removed by this.",
   redactEvidenceRule: "A found report in a confirmed pair is kept until its missing report is closed.",
-  redactConfirmLabel: "Type বেনামী to confirm",
-  redactConfirmHint: "This can't be undone.",
-  redactConfirmMismatch: "Type exactly: বেনামী",
+  redactConfirmLabel: "Type {word} to confirm",
+  redactConfirmHint: "This can't be undone. You can paste the word.",
+  redactConfirmMismatch: "Type exactly: {word}",
   redactAction: "Redact identifying payloads from eligible terminal cases", // D3 ACT-027
   redacting: "Redacting identifying payloads…",
   redactEmpty: "No eligible reports for payload redaction", // D3 SCREEN-013 empty
@@ -156,7 +157,7 @@ const en = {
   redactCountUnavailable: "The eligible report count isn't available right now. Try again later.",
   verifyTitle: "Verify officers",
   verifyMockNote: "Simulation: verifying here only sets a flag on a seeded account. Nobody's real identity is checked.",
-  usersCaption: "Users",
+  usersCaption: "User list",
   colRole: "Role",
   colStatus: "Status",
   roleStaff: "Staff",
@@ -174,9 +175,10 @@ const en = {
   usersEmpty: "No users",
   usersLoadMore: "Show more",
   usersLoading: "Loading…",
+  usersLoaded: "{n} more users shown",
   usersUnavailable: "The user list isn't available right now. Try again later.",
   importTitle: "Synthetic import",
-  importPlanned: "Not built yet; a later task adds it.",
+  importPlanned: "Not available yet. It will be added later.",
 } as const satisfies Record<MessageKey, string>;
 
 export const locales = { bn, en } as const;

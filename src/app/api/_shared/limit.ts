@@ -25,10 +25,10 @@ export const RATE_LIMITS = {
   // generous documented default (300/min per network key).
   preAuthNetwork: { id: "preauth.network", limit: 300, windowMs: 60_000, scope: "network", onStoreError: "allow" },
   // TASK-032 admin writes. Not from the spec pack (OD-032-4): documented defaults. API-016
-  // is destructive and batch-wide, so it is tight and fails closed; API-017 [MOCK] is a
-  // reversible flag change per officer.
+  // is destructive and batch-wide, so it is tight; API-017 [MOCK] is a reversible flag
+  // change per officer. Both grant or remove authority, so both fail closed.
   adminRedaction: { id: "admin.redaction", limit: 5, windowMs: 60_000, scope: "principal", onStoreError: "deny" },
-  adminVerify: { id: "admin.verify", limit: 30, windowMs: 60_000, scope: "principal", onStoreError: "allow" },
+  adminVerify: { id: "admin.verify", limit: 30, windowMs: 60_000, scope: "principal", onStoreError: "deny" },
 } as const satisfies Record<string, RateLimitRule>;
 
 export interface RateLimitStore {

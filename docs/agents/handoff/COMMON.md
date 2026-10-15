@@ -18,6 +18,7 @@ Written by Mahim's agent so that Obidit and Masnun can work in parallel without 
 | Case service (COMP-014/015) | `src/server/case/` and **`src/server/case/README.md`** | `createMissingCase`, `createFoundCase`, `editMissingCase`, `openCase`, `decideCandidate` (one-transaction confirm/reject), `closeCase`, `readCase`. Each takes a server-derived `Principal`, enforces role and ownership, and writes audit rows in the same transaction. Route and page code may import **only** `@/server/case` (ESLint enforces this). Matcher helpers live in `@/server/case/internal`, for `src/server/**` only. |
 | Shell | `src/app/layout.tsx`, `globals.css`, `src/locales/` | DESIGN.md tokens, self-hosted Inter / JetBrains Mono / Noto Sans Bengali, bn/en toggle. New strings go in `src/locales/index.ts` (bn + en), never inline. |
 | Sign-in and not-found | `src/app/(auth)/sign-in/`, `src/app/not-found.tsx` (PR #12) | S-008 and S-016 (TASK-031). Input-border tokens `border-control` / `border-control-strong` (D4 §13, ≥3:1): use them for every text input. |
+| Admin data tools | `src/app/(desk)/admin/`, `src/server/admin/`, `src/app/api/admin/` | S-013 (TASK-032): API-016 redact identifying payloads (runs as `fera_redactor`, needs `FERA_REDACTOR_DATABASE_URL`), API-017 verify officer [MOCK], API-021 user list. The ACT-026 import slot is a planned placeholder for API-015 (TASK-048, Masnun). |
 
 ## Knowledge graph (`graphify-out/`)
 A knowledge graph of this repo, built on `phase2` on 15 Oct. It covers `src/`, `db/`, `scripts/`, `tests/`, `specs/`, `docs/spec/`, `docs/execution/`, the agent guides and the handoff docs. The vendored kits, PDFs and screenshots are excluded; `.graphifyignore` lists the scope.
@@ -50,7 +51,7 @@ Known gaps: SQL files have no AST parser, so the schema and roles were extracted
 
 **Base every new branch on `origin/phase2`.** It is the team's integration branch for Phase 2 and the only branch with the whole platform. As of 15 Oct it is at `8a96b59` and contains:
 - the Phase 1 work (merged in through landing PRs, so the `phase1` branch itself isn't an ancestor): the scaffold and CI (TASK-001), the local DB stack (TASK-002), the contracts (TASK-061, tag `contracts-v1`) and the shell (TASK-008);
-- Mahim's Phase 2 PRs: #4 API layer (TASK-007), #6 DB rules (TASK-062), #9 auth (TASK-006), #10 (lands #4 and #6), #11 case service (TASK-015), #12 sign-in and not-found (TASK-031);
+- Mahim's Phase 2 PRs: #4 API layer (TASK-007), #6 DB rules (TASK-062), #9 auth (TASK-006), #10 (lands #4 and #6), #11 case service (TASK-015), #12 sign-in and not-found (TASK-031), then the admin data tools (TASK-032);
 - Obidit's specs `specs/002-intake-ai` (specify, clarify, plan).
 
 Always `git fetch origin` first, so you branch from the latest `phase2`, not a stale local copy.

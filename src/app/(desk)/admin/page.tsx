@@ -13,7 +13,11 @@ import { createLogger, describeError } from "@/app/api/_shared/log";
 import { getLocale } from "@/lib/locale-server";
 import { locales } from "@/locales";
 import { requireRole } from "@/server/auth/require-role";
-import { countEligibleCases, getRedactorPool, listAdminUsers } from "@/server/admin";
+import {
+  countEligibleCases,
+  getRedactorPool,
+  listAdminUsers,
+} from "@/server/admin";
 import { RedactionForm } from "./redaction-form";
 import { VerifyOfficersForm } from "./verify-officers-form";
 
@@ -27,18 +31,28 @@ async function settle<T>(work: () => Promise<T>): Promise<T | null> {
   try {
     return await work();
   } catch (err) {
-    logger.error({ event: "page.data_unavailable", error_id: "E-021", ...describeError(err) });
+    logger.error({
+      event: "page.data_unavailable",
+      error_id: "E-021",
+      ...describeError(err),
+    });
     return null;
   }
 }
 
 // The dashed "not real yet" chip (DESIGN.md Fera overrides: honest labels).
-function HonestChip({ children, latin = false }: { children: string; latin?: boolean }) {
+function HonestChip({
+  children,
+  latin = false,
+}: {
+  children: string;
+  latin?: boolean;
+}) {
   return (
     <span
       lang={latin ? "en" : undefined}
       translate={latin ? "no" : undefined}
-      className="inline-flex min-h-6 items-center rounded-xs border border-dashed border-hairline-strong px-2 text-caption-md font-medium text-body"
+      className="inline-flex min-h-6 items-center rounded-xs border border-dashed border-hairline-strong px-2 text-caption-md font-medium text-body [&:lang(bn)]:text-body-sm"
     >
       {children}
     </span>
@@ -55,10 +69,15 @@ export default async function AdminPage() {
   ]);
 
   return (
-    <div data-surface="desk" className="flex flex-1 justify-center px-[16px] py-8 sm:px-6 sm:py-12">
+    <div
+      data-surface="desk"
+      className="flex flex-1 justify-center px-[16px] py-8 sm:px-6 sm:py-12"
+    >
       <div className="flex w-full max-w-[52rem] flex-col gap-8">
         <header className="flex flex-col gap-3">
-          <h1 className="text-heading-3 font-semibold text-ink [&:lang(en)]:font-bold [&:lang(en)]:tracking-[-0.25px]">{t.adminTitle}</h1>
+          <h1 className="text-heading-3 font-semibold text-ink [&:lang(en)]:font-bold [&:lang(en)]:tracking-[-0.25px]">
+            {t.adminTitle}
+          </h1>
           <p className="max-w-[65ch] text-body-sm text-mute">{t.adminIntro}</p>
           <p className="flex flex-wrap gap-2">
             <HonestChip>{t.syntheticLabel}</HonestChip>
@@ -67,18 +86,28 @@ export default async function AdminPage() {
         </header>
 
         <RedactionForm locale={locale} eligible={eligible} />
-        <VerifyOfficersForm locale={locale} initial={users} />
+        {/* Re-keyed so a refresh that now has the list (after a failed first load) remounts it. */}
+        <VerifyOfficersForm
+          key={users === null ? "unavailable" : "loaded"}
+          locale={locale}
+          initial={users}
+        />
 
         <section
           aria-labelledby="admin-import-title"
           className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-dashed border-hairline-strong px-4 py-3 sm:px-6"
         >
           <CircleDashedIcon className="size-4 text-faint" />
-          <h2 id="admin-import-title" className="text-body-sm font-medium text-ink">
+          <h2
+            id="admin-import-title"
+            className="text-body-sm font-medium text-ink"
+          >
             {t.importTitle}
           </h2>
           <HonestChip>{t.plannedLabel}</HonestChip>
-          <p className="basis-full text-body-sm text-mute sm:basis-auto">{t.importPlanned}</p>
+          <p className="basis-full text-body-sm text-mute sm:basis-auto">
+            {t.importPlanned}
+          </p>
         </section>
       </div>
     </div>
