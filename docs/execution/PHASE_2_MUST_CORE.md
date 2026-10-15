@@ -87,7 +87,7 @@ When one of these merges, tell the waiting person straight away; they rebase and
 ## Tasks — Obidit
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| TASK-012 | Normaliser: Bangla digits, time words, phone, district aliases, romaniser (COMP-008) | A · Codex + `bengali-reviewer` | TASK-009 | 5 | ≥30 unit tests pass | `todo` | | |
+| TASK-012 | Normaliser: Bangla digits, time words, phone, district aliases, romaniser (COMP-008) | A · Codex + `bengali-reviewer` | TASK-009 | 5 | ≥30 unit tests pass | `review` | branch `phase2--obidit-normaliser` (uncommitted; no PR) | [intake-normaliser.md](evidence/intake-normaliser.md) — 93 normaliser tests pass; computed provenance, contract digits/phones, Dhaka times with clock skew, complete Bangla source ranges and fixture district keys; romanisation unknown (OD-012-1), strict time policy OD-012-5. Claude fera-review round 1 = BLOCK (evidenceForRange derivation) + WARNs, fixed or recorded (time grammar → OD-012-5) in this round; final verdict pending re-review. Full suite: 1,026 pass / one known auth timing failure / 117 DB skipped; auth file alone 11/11; lint/typecheck/build pass. |
 | TASK-013 | LLM adapter: 2 providers, Zod contract, evidence check, retry, fallback (COMP-007) | A · Codex + `silent-failure-hunter` | TASK-003, 012 | 7 | Extracts 10 sample texts; fallback test passes | `todo` | | |
 | TASK-063 | Atomic paid-call counters/reservations, replay handling, price sheet | A · Codex | TASK-003, 062 | 2 | Replay/concurrency/budget checks; manual path survives paid refusal | `todo` | | |
 | TASK-059 | `npm run spend` + spend cap check (DECISION-017) | A · Codex | TASK-013, 063 | 1 | TC-036 passes | `todo` | | |
@@ -165,6 +165,7 @@ Tick only from the gate report (`fera-gate`), with evidence linked. Run on the *
 Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
 ### Obidit
+- 2026-10-15 20:05 · Codex · obidit-normaliser · TASK-012 stays `review`; 93/93 normaliser tests. Claude fera-review round 1 = BLOCK (evidenceForRange derivation) + WARNs, fixed or recorded (time grammar → OD-012-5) in this round; earlier self-recorded PASS replaced with final verdict pending re-review. Full suite: 1,026 pass / one known `tests/auth/sign-in.test.ts` timing failure / 117 DB skipped; isolated auth file 11/11 pass; lint/typecheck/build exit 0 (build run after the failed chain). Evidence in intake-normaliser.md; OD-012-1–5 recorded, TASK-009 integration pending; changes uncommitted on `phase2--obidit-normaliser`.
 ### Masnun
 ### Mahim (lead)
 - 2026-10-14 17:35 · Claude Code · mahim-api · TASK-007 `todo` → `review`; shared API layer and 92 tests at `a33d9af`; in-memory limiter, real principal resolver waits for TASK-006.
