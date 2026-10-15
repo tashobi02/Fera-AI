@@ -93,6 +93,37 @@ describe("buildFoundRequest", () => {
   });
 });
 
+describe("input edge cases found in the cross-check", () => {
+  it("accepts Bangla digits in age, range and height", () => {
+    const r = buildFoundRequest(filled({ ageYears: "৭", heightCm: "১২০" }), { clientSubmissionId: ID, nowMs: NOW });
+    expect(r.ok && r.request.draft.child).toMatchObject({ age_years: 7, height_cm: 120 });
+    const range = buildFoundRequest(filled({ ageMin: "৬", ageMax: "৯" }), { clientSubmissionId: ID, nowMs: NOW });
+    expect(range.ok && range.request.draft.child).toMatchObject({ age_min: 6, age_max: 9 });
+  });
+
+  it("accepts a +880 or 880 country-code phone and sends the local 01… form", () => {
+    for (const phone of ["+8801700000001", "8801700000001", "+880 1700-000001", "+৮৮০১৭০০০০০০০১"]) {
+      const r = buildFoundRequest(filled({ phone }), { clientSubmissionId: ID, nowMs: NOW });
+      expect(r.ok && r.request.draft.reporter.phone, phone).toBe("01700000001");
+    }
+    expect(buildFoundRequest(filled({ phone: "+8801" }), { clientSubmissionId: ID, nowMs: NOW }).ok).toBe(false);
+  });
+
+  it("an invisible description (zero-width or whitespace only) is not a description", () => {
+    for (const circumstances of ["\u200B\u200B\u200B", "   ", "\u200C\u200D\u2060", "\uFEFF\u00AD ."]) {
+      const r = buildFoundRequest(filled({ circumstances, clothing: "", marks: "" }), { clientSubmissionId: ID, nowMs: NOW });
+      expect(r, JSON.stringify(circumstances)).toEqual({ ok: false, fields: { circumstances: "description" } });
+    }
+  });
+
+  it("keeps ZWNJ inside a Bangla word and still counts the visible letters", () => {
+    const r = buildFoundRequest(filled({ circumstances: "র\u200Cশ", clothing: "", marks: "" }), { clientSubmissionId: ID, nowMs: NOW });
+    expect(r.ok).toBe(false); // only 2 visible characters
+    const ok = buildFoundRequest(filled({ circumstances: "রাস্তায় একা", clothing: "", marks: "" }), { clientSubmissionId: ID, nowMs: NOW });
+    expect(ok.ok).toBe(true);
+  });
+});
+
 describe("valuesFromFormData", () => {
   it("reads known fields, defaults the rest and coerces an unknown sex", () => {
     const fd = new FormData();

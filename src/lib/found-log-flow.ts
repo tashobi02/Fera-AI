@@ -16,7 +16,8 @@ import {
   type CreateFoundRequest,
   type CreateFoundResponse,
 } from "@/contracts";
-import { localizeDigits } from "@/lib/numerals";
+import { localizeDigits, toLatinDigits } from "@/lib/numerals";
+import { visibleLength } from "@/lib/visible-text";
 import { retryAfterSeconds } from "@/lib/sign-in-errors";
 import { locales, type Locale, type MessageKey } from "@/locales";
 
@@ -75,11 +76,19 @@ export function valuesFromFormData(data: FormData, nowMs: number): FoundLogValue
 }
 
 const intOrNull = (v: string): number | null | "bad" => {
-  const t = v.trim();
+  const t = toLatinDigits(v).trim(); // staff in Bangla mode type Bangla digits
   if (t === "") return null;
   return /^\d{1,3}$/.test(t) ? Number(t) : "bad";
 };
 const textOrNull = (v: string) => (v.trim() === "" ? null : v.trim());
+
+// +8801XXXXXXXXX / 8801XXXXXXXXX (country code) → 01XXXXXXXXX. Anything else is left for the
+// contract's own phone rule to accept or refuse.
+export function localPhone(raw: string): string {
+  const digits = toLatinDigits(raw).replace(/[\s().-]/g, "");
+  const m = /^\+?88(01[0-9]{9})$/.exec(digits);
+  return m ? m[1]! : raw;
+}
 
 export type BuildResult =
   | { ok: true; request: CreateFoundRequest }
@@ -88,8 +97,9 @@ export type BuildResult =
 export function buildFoundRequest(values: FoundLogValues, ids: { clientSubmissionId: string; nowMs: number }): BuildResult {
   // Keep callers honest: the id is always supplied, never invented here.
   const fields: FieldErrors = {};
-  const description = [values.circumstances, values.clothing, values.marks].map((s) => s.trim()).join(" ").trim();
-  if ([...description].length < 3) fields.circumstances = "description";
+  // Visible characters only: zero-width spaces must not satisfy the description rule.
+  const description = [values.circumstances, values.clothing, values.marks].join(" ");
+  if (visibleLength(description) < 3) fields.circumstances = "description";
 
   if (values.place.trim() === "") fields.place = "required";
   if (values.district.trim() === "") fields.district = "required";
@@ -146,7 +156,7 @@ export function buildFoundRequest(values: FoundLogValues, ids: { clientSubmissio
         thana: textOrNull(values.thana),
         circumstances: textOrNull(values.circumstances),
       },
-      reporter: { relation: textOrNull(values.relation), phone: values.phone },
+      reporter: { relation: textOrNull(values.relation), phone: localPhone(values.phone) },
       evidence: {},
     },
     confirmed: true,
