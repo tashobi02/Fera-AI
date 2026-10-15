@@ -55,6 +55,15 @@ OD-023-1 to OD-023-6 in `specs/001-platform-foundation/contract-notes.md` ("Outp
 
 Reviewers: fera-safeguarding-reviewer (PASS; reran `npm test` and `npm run test:db`, outputs 4/4), database-reviewer (round-1 BLOCK resolved, no new BLOCK). Its WARN about a missing race test is answered by the two-session test above. Noted for the TASK-006 owner: in one safeguarding run, `tests/auth/sign-in.test.ts` "unknown user and wrong password take about the same time" failed (ratio 2.43 < 2) while a DB run overlapped, and passed on rerun. It is outside this diff and looks load-dependent.
 
-## Cross-tool second opinion (Codex, gpt-6.1-sol, read-only)
+## Wording-guard hardening (cross-tool reviews)
 
-Verdict BLOCK: a reviewed field such as `marks` = "পলায়নকারী শিশু" or "run-away child" passed the guard and would appear on the poster (BR-003, FR-034). Fixed: the পলায়ন stem is banned, and hyphens/dashes are read as spaces before matching ("run-away", "ran\u2011away"). Regression tests render a poster with each value and expect E-016 (`tests/outputs/templates.test.ts`), plus guard tests. `npm test` after the fix: 1013 passed, 121 skipped; lint and typecheck exit 0.
+| Round | Reviewer | Bypass found | Fix (commit) |
+|---|---|---|---|
+| 1 | Codex gpt-6.1-sol | A reviewed marks value such as "পলায়নকারী শিশু" or "run-away child" passed the wording guard and would be rendered on the poster | Ban the পলায়ন stem and read hyphens and dashes as spaces before matching (`0dc1d55`) |
+| 2 | Codex gpt-6.1-sol | "run/away", "r u n a w a y", fullwidth "ＲＵＮＡＷＡＹ", "পলা-য়ন" and default-ignorable characters (U+034F, U+2063) split banned terms | Compare on NFKC text with default-ignorables removed, lower-cased, letters/marks/digits only; symbol-only terms ("%") use the NFKC text (`3d72a9c`) |
+| 3 | Codex gpt-6.1-sol | "পে-ৗঁছে" (a split ৌ) and "run̲away" (decorative combining marks) passed the guard | NFKC again after the removals so split Bangla vowel signs recompose, and drop combining marks outside the Bengali block (`0fac4b0`) |
+| 4 | Codex gpt-6.1-sol | "rúnaway child" passed because NFKC composed the accent before decorative marks were stripped | Build the skeleton from NFKD, strip default-ignorables and non-Bengali marks, then recompose with NFKC (`6380464`) |
+| 5 | Haiku verification | "ফেরৎ দেওয়া" (khanda-ta spelling of ফেরত) passed the returned group | Fold ৎ→ত, dotless ı→i and small-capital ɴ→n in the skeleton; add Arabic percent "٪"; match "deliver" (catches "delivery") (`49b5601`) |
+
+- Known limits (documented in guard.ts): cross-script homoglyphs; inserted Bangla marks such as candrabindu or hasanta inside a word.
+- Every round adds regression tests in tests/outputs/guard.test.ts and keeps the locale and error-catalogue false-positive scan green.
