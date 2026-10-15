@@ -34,7 +34,7 @@ const bn = {
   signInErrorGeneric: "কিছু একটা ভুল হয়েছে। আবার চেষ্টা করুন।", // D2B §13 E-021
   demoAccountsTitle: "ডেমো অ্যাকাউন্ট",
   mockLabel: "[MOCK]", // honest label, same in both languages
-  demoAccountsNote: "সিনথেটিক অ্যাকাউন্ট। পাসওয়ার্ড এখানে দেখানো হয় না।",
+  demoAccountsNote: "সিনথেটিক অ্যাকাউন্ট। নামে চাপ দিলে ইউজারনেম বসবে; পাসওয়ার্ড এখানে দেখানো হয় না।",
   demoAccountFill: "ইউজারনেম বসান:",
   demoRoleStaff: "স্টাফ",
   demoRoleOfficer: "যাচাইকৃত কর্মকর্তা",
@@ -84,7 +84,7 @@ const en = {
   signInErrorGeneric: "Something went wrong. Please try again.", // D2B §13 E-021
   demoAccountsTitle: "Demo accounts",
   mockLabel: "[MOCK]",
-  demoAccountsNote: "Synthetic accounts. Passwords are not shown here.",
+  demoAccountsNote: "Synthetic accounts. Tap a name to fill the username; passwords are not shown here.",
   demoAccountFill: "Fill username:",
   demoRoleStaff: "Staff",
   demoRoleOfficer: "Verified officer",

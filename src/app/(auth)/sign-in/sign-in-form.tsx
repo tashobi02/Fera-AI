@@ -13,6 +13,7 @@ import { useId, useRef, useState, type FormEvent } from "react";
 import {
   CircleAlertIcon,
   ClockIcon,
+  CornerDownLeftIcon,
   EyeIcon,
   EyeOffIcon,
   LoaderCircleIcon,
@@ -281,14 +282,18 @@ export function SignInForm({
                   onClick={() => fillUsername(account.username)}
                   className={[
                     "flex min-h-11 w-full cursor-pointer flex-wrap items-center justify-between gap-x-3 gap-y-0.5",
-                    "rounded-sm px-2 py-1.5 text-start transition-colors duration-(--duration-fast) ease-out hover:bg-hover",
+                    "group rounded-sm px-2 py-1.5 text-start transition-colors duration-(--duration-fast) ease-out",
+                    "hover:bg-hover focus-visible:bg-hover",
                   ].join(" ")}
                 >
                   <span className="sr-only">{t.demoAccountFill} </span>
                   <span lang="en" translate="no" className="font-mono text-body-sm text-ink">
                     {account.username}
                   </span>
-                  <span className="text-caption-md text-mute">{t[DEMO_ROLE_KEY[account.role]]}</span>
+                  <span className="inline-flex items-center gap-2 text-caption-md text-mute">
+                    {t[DEMO_ROLE_KEY[account.role]]}
+                    <CornerDownLeftIcon className="size-3.5 text-faint group-hover:text-ink group-focus-visible:text-ink" />
+                  </span>
                 </button>
               </li>
             ))}
