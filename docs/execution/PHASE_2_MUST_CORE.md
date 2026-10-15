@@ -94,7 +94,7 @@ When one of these merges, tell the waiting person straight away; they rebase and
 | TASK-014 | Speech adapter + API-001 (COMP-006) | B · Claude Code | TASK-005, 007 | 3 | TC-001 steps 1–3 pass | `todo` | | |
 | TASK-020 | Intake orchestrator + API-002 + question templates (COMP-009) | B · Claude Code | TASK-013 | 4 | TC-003 passes | `todo` | | |
 | TASK-033 | Demo-safe cache + fixtures for 3 cases + cached badge (COMP-017/048) | B · Claude Code | TASK-020, 019 | 3 | TC-021 passes on laptop | `todo` | | |
-| TASK-023 | Output templates GD/poster + wording guard + API-006 (COMP-010/016) | C · Claude Code | TASK-015 | 4 | TC-005, TC-024 pass | `todo` | | |
+| TASK-023 | Output templates GD/poster + wording guard + API-006 (COMP-010/016) | C · Claude Code | TASK-015 | 4 | TC-005, TC-024 pass | `review` | branch `phase2--obidit-templates` | [outputs-templates.md](evidence/outputs-templates.md): `src/server/outputs/` (fixed bn GD/poster templates, wording guard bn+en, cache per case/type/version with FOR SHARE re-check against redaction) and API-006 route; TC-005 and TC-024 pass at service level; npm test 1009 / test:db 121 (outputs 4, incl. a two-session lock race); OD-023-1–6 in `specs/001-platform-foundation/contract-notes.md`. |
 | TASK-021 | S-001/S-002 intake chat + recorder (COMP-024–027) | C · Claude Code + `impeccable` | TASK-008, 014, 020 | 7 | Voice and text paths work on phone | `todo` | | |
 | TASK-022 | S-003 review + API-003 + draft persistence (review-before-submit) | C · Claude Code + `impeccable` | TASK-015, 021 | 5 | TC-004, TC-031 pass | `todo` | | |
 | TASK-040 (record) | 60 WER clips recorded, 19:00–22:00, with 2–3 friends | human | TASK-014 | — | 60 clips stored with consent note; run happens in Phase 3 | `todo` | | |
@@ -165,6 +165,7 @@ Tick only from the gate report (`fera-gate`), with evidence linked. Run on the *
 Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
 ### Obidit
+- 2026-10-15 19:24 · Claude Code · obidit-templates · TASK-023 `todo` → `review`; templates + wording guard + API-006, TC-005/TC-024 pass at service level; test 1009 / test:db 121; fera-review round 1 BLOCKs (redaction race, decision-log accuracy) fixed; OD-023-1–6 for owner review; unblocks Mahim TASK-024 on merge.
 ### Masnun
 ### Mahim (lead)
 - 2026-10-14 17:35 · Claude Code · mahim-api · TASK-007 `todo` → `review`; shared API layer and 92 tests at `a33d9af`; in-memory limiter, real principal resolver waits for TASK-006.
