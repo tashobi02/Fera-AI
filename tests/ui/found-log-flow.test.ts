@@ -1,12 +1,19 @@
 // TASK-026 / TC-008 (client half): the S-007 found-child form logic. Synthetic values only.
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  buildFoundRequest, classifyFoundLogFailure, createSaveGuard, dhakaLocalInput, emptyValues, foundLogReducer,
-  initialFoundLogState, requestFoundLog, valuesFromFormData, type FoundLogValues,
+  buildFoundRequest, classifyFoundLogFailure, createSaveGuard, dhakaLocalInput, emptyValues, foundLogFailureText,
+  foundLogReducer, initialFoundLogState, newClientId, requestFoundLog, submissionFor, valuesFromFormData,
+  type FoundLogValues,
 } from "@/lib/found-log-flow";
 import { exampleCreateFoundResponse } from "@/contracts/examples";
 
 const NOW = Date.parse("2026-10-15T17:30:00+06:00");
+// The contract compares against the real clock; pin it so these tests do not age.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(NOW);
+});
+afterEach(() => vi.useRealTimers());
 const ID = "11111111-1111-4111-8111-111111111111";
 
 function filled(over: Partial<FoundLogValues> = {}): FoundLogValues {
@@ -16,7 +23,7 @@ function filled(over: Partial<FoundLogValues> = {}): FoundLogValues {
     clothing: "লাল জামা",
     place: "কমলাপুর রেলস্টেশন",
     district: "14",
-    phone: "01712345678",
+    phone: "01700000001",
     ...over,
   };
 }
@@ -68,8 +75,21 @@ describe("buildFoundRequest", () => {
     expect(buildFoundRequest(filled({ ageYears: "7", ageMin: "5", ageMax: "9" }), { clientSubmissionId: ID, nowMs: NOW }).ok).toBe(false);
   });
 
+  it("rejects any time after now (zero skew, same as the contract's at_lower rule) as 'future'", () => {
+    expect(buildFoundRequest(filled({ foundAt: "2026-10-15T17:31" }), { clientSubmissionId: ID, nowMs: NOW })).toEqual({ ok: false, fields: { foundAt: "future" } });
+    expect(buildFoundRequest(filled({ foundAt: "2026-10-15T17:30" }), { clientSubmissionId: ID, nowMs: NOW }).ok).toBe(true);
+    expect(buildFoundRequest(filled({ foundAt: "2026-10-15T16:00" }), { clientSubmissionId: ID, nowMs: NOW }).ok).toBe(true);
+  });
+
+  it("sends the Dhaka offset and exact bounds for the single found time", () => {
+    const r = buildFoundRequest(filled({ foundAt: "2026-10-15T16:05" }), { clientSubmissionId: ID, nowMs: NOW });
+    expect(r.ok && r.request.draft.event).toMatchObject({
+      at: "2026-10-15T16:05:00+06:00", at_lower: "2026-10-15T16:05:00+06:00", at_upper: "2026-10-15T16:05:00+06:00", at_approx: false,
+    });
+  });
+
   it("accepts Bangla digits in the phone (the contract normalises them)", () => {
-    expect(buildFoundRequest(filled({ phone: "০১৭১২৩৪৫৬৭৮" }), { clientSubmissionId: ID, nowMs: NOW }).ok).toBe(true);
+    expect(buildFoundRequest(filled({ phone: "০১৭০০০০০০০১" }), { clientSubmissionId: ID, nowMs: NOW }).ok).toBe(true);
   });
 });
 
@@ -86,15 +106,39 @@ describe("valuesFromFormData", () => {
   });
 });
 
+describe("submissionFor / newClientId", () => {
+  it("keeps the id for the same values and renews it when anything changed", () => {
+    let n = 0;
+    const make = () => `id-${++n}`;
+    const first = submissionFor(null, filled(), make);
+    const same = submissionFor(first, filled(), make);
+    const edited = submissionFor(same, filled({ clothing: "নীল শার্ট" }), make);
+    expect(same.id).toBe(first.id);
+    expect(edited.id).not.toBe(first.id);
+    expect(n).toBe(2);
+  });
+
+  it("falls back to a v4 UUID when crypto.randomUUID is missing (plain-http LAN origin)", () => {
+    const c = { getRandomValues: <T extends ArrayBufferView>(a: T): T => { new Uint8Array(a.buffer).fill(7); return a; } };
+    expect(newClientId(c as never)).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(newClientId({ ...c, randomUUID: () => "fixed" } as never)).toBe("fixed");
+  });
+});
+
 describe("classifyFoundLogFailure", () => {
   it("maps statuses and envelope ids to a safe failure kind", () => {
     const body = (id: string) => ({ error: { id } });
     expect(classifyFoundLogFailure({ status: 429, retryAfter: "12" })).toEqual({ kind: "rate-limited", seconds: 12 });
     expect(classifyFoundLogFailure({ status: 409, body: body("E-006") })).toEqual({ kind: "conflict" });
+    // E-005 is a same-key race, not "different data": the report may exist, a retry is safe.
+    expect(classifyFoundLogFailure({ status: 409, body: body("E-005") })).toEqual({ kind: "uncertain" });
+    expect(classifyFoundLogFailure({ status: 503, body: "<html>" })).toEqual({ kind: "uncertain" });
+    expect(classifyFoundLogFailure({ status: 500, body: body("E-021") })).toEqual({ kind: "uncertain" });
+    expect(classifyFoundLogFailure({ status: 404, body: "x" })).toEqual({ kind: "generic" });
     expect(classifyFoundLogFailure({ status: 400, body: body("E-001") })).toEqual({ kind: "validation" });
     expect(classifyFoundLogFailure({ status: 401, body: body("E-002") })).toEqual({ kind: "session" });
     expect(classifyFoundLogFailure({ status: 404, body: body("E-004") })).toEqual({ kind: "forbidden" });
-    expect(classifyFoundLogFailure({ status: 500, body: "not json" })).toEqual({ kind: "generic" });
+    expect(classifyFoundLogFailure({ status: 418, body: "not json" })).toEqual({ kind: "generic" });
   });
 });
 
@@ -117,9 +161,12 @@ describe("requestFoundLog", () => {
     expect(out).toEqual({ kind: "failure", failure: { kind: "uncertain" } });
   });
 
-  it("separates offline from a timeout", async () => {
-    const offline = (async () => { throw new TypeError("fetch failed"); }) as unknown as typeof fetch;
-    expect(await requestFoundLog(request, { fetchImpl: offline })).toEqual({ kind: "failure", failure: { kind: "offline" } });
+  it("says offline only when the browser is offline; any other rejection may follow a commit", async () => {
+    const reject = (async () => { throw new TypeError("fetch failed"); }) as unknown as typeof fetch;
+    expect(await requestFoundLog(request, { fetchImpl: reject })).toEqual({ kind: "failure", failure: { kind: "uncertain" } });
+    vi.stubGlobal("navigator", { onLine: false });
+    expect(await requestFoundLog(request, { fetchImpl: reject })).toEqual({ kind: "failure", failure: { kind: "offline" } });
+    vi.unstubAllGlobals();
     const timeout = (async () => { throw new DOMException("timed out", "TimeoutError"); }) as unknown as typeof fetch;
     expect(await requestFoundLog(request, { fetchImpl: timeout })).toEqual({ kind: "failure", failure: { kind: "uncertain" } });
   });
@@ -160,11 +207,36 @@ describe("foundLogReducer and guard", () => {
     expect(s).toMatchObject({ status: "idle", failure: { kind: "offline" } });
   });
 
+  it("an interrupted save (bfcache restore) becomes 'uncertain', and does not touch other states", () => {
+    const saving = foundLogReducer(initialFoundLogState, { type: "save" });
+    expect(foundLogReducer(saving, { type: "interrupted" })).toMatchObject({ status: "idle", failure: { kind: "uncertain" } });
+    expect(foundLogReducer(initialFoundLogState, { type: "interrupted" })).toBe(initialFoundLogState);
+  });
+
+  it("bumps the attempt on every save and invalid press so a repeated error is announced again", () => {
+    let s = foundLogReducer(initialFoundLogState, { type: "invalid", fields: { phone: "required" } });
+    const a = s.attempt;
+    s = foundLogReducer(s, { type: "invalid", fields: { phone: "required" } });
+    expect(s.attempt).toBe(a + 1);
+    s = foundLogReducer(s, { type: "save" });
+    expect(s.attempt).toBe(a + 2);
+    expect(s.fields).toEqual({});
+  });
+
   it("ignores a second press while one save is in flight", () => {
     const g = createSaveGuard();
     expect(g.enter()).toBe(true);
     expect(g.enter()).toBe(false);
     g.leave();
     expect(g.enter()).toBe(true);
+  });
+});
+
+describe("failure copy", () => {
+  it("never shows server text and localises the wait", () => {
+    expect(foundLogFailureText({ kind: "rate-limited", seconds: 12 }, "bn")).toContain("১২");
+    expect(foundLogFailureText({ kind: "rate-limited", seconds: 12 }, "en")).toContain("12");
+    expect(foundLogFailureText({ kind: "uncertain" }, "en")).toMatch(/If you change nothing/);
+    expect(foundLogFailureText({ kind: "conflict" }, "en")).not.toMatch(/reload/i);
   });
 });

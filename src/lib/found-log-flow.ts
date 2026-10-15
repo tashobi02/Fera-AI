@@ -5,12 +5,14 @@
 // - The staff's own entries are the review: Save is the explicit confirmation, so the
 //   request always carries confirmed: true only from that action (BR-004, ACT-019).
 // - Unknown stays unknown: blank age, name, height and marks are sent as null, never guessed.
-// - The client submission UUID is kept across retries (the server replays the same report)
-//   and renewed only after a success, when the next child is logged.
+// - The client submission UUID is kept for a retry of the SAME payload (the server replays
+//   the same report) and renewed when the payload changed or after a success, so an edited
+//   retry is a new submission, never a permanent E-006 (see submissionFor).
 // - No photo, no exact coordinates: district and a free-text place only (BR-006, DECISION-013).
 import {
   createFoundRequestSchema,
   createFoundResponseSchema,
+  toDhakaIso,
   type CreateFoundRequest,
   type CreateFoundResponse,
 } from "@/contracts";
@@ -44,7 +46,7 @@ export type FoundLogField = keyof FoundLogValues;
 export type FieldReason = "required" | "invalid" | "description" | "future";
 export type FieldErrors = Partial<Record<FoundLogField, FieldReason>>;
 
-const DHAKA_OFFSET_MS = 6 * 3_600_000;
+const DHAKA_OFFSET_MS = 6 * 3_600_000; // Bangladesh has no DST
 const pad = (n: number) => String(n).padStart(2, "0");
 
 // "2026-10-15T23:30" in Asia/Dhaka (no DST) for a datetime-local input.
@@ -79,9 +81,12 @@ const intOrNull = (v: string): number | null | "bad" => {
 };
 const textOrNull = (v: string) => (v.trim() === "" ? null : v.trim());
 
-export type BuildResult = { ok: true; request: CreateFoundRequest } | { ok: false; fields: FieldErrors };
+export type BuildResult =
+  | { ok: true; request: CreateFoundRequest }
+  | { ok: false; fields: FieldErrors; unmapped?: string[] }; // unmapped: contract paths no form field owns
 
 export function buildFoundRequest(values: FoundLogValues, ids: { clientSubmissionId: string; nowMs: number }): BuildResult {
+  // Keep callers honest: the id is always supplied, never invented here.
   const fields: FieldErrors = {};
   const description = [values.circumstances, values.clothing, values.marks].map((s) => s.trim()).join(" ").trim();
   if ([...description].length < 3) fields.circumstances = "description";
@@ -95,7 +100,8 @@ export function buildFoundRequest(values: FoundLogValues, ids: { clientSubmissio
   else {
     atMs = Date.parse(`${values.foundAt}:00+06:00`);
     if (Number.isNaN(atMs)) fields.foundAt = "invalid";
-    else if (atMs > ids.nowMs + 5 * 60_000) fields.foundAt = "future";
+    // Zero skew on purpose: the contract rejects at_lower later than now, and at_lower = at here.
+    else if (atMs > ids.nowMs) fields.foundAt = "future";
   }
 
   const years = intOrNull(values.ageYears);
@@ -114,7 +120,7 @@ export function buildFoundRequest(values: FoundLogValues, ids: { clientSubmissio
   if (Object.keys(fields).length > 0) return { ok: false, fields };
 
   const district = Number(values.district);
-  const at = new Date(atMs + DHAKA_OFFSET_MS).toISOString().replace("Z", "+06:00");
+  const at = toDhakaIso(atMs);
   const parsed = createFoundRequestSchema.safeParse({
     draft: {
       kind: "found",
@@ -147,22 +153,58 @@ export function buildFoundRequest(values: FoundLogValues, ids: { clientSubmissio
     client_submission_id: ids.clientSubmissionId,
   });
   if (parsed.success) return { ok: true, request: parsed.data };
-  // Anything the contract rejects that the checks above did not name: point at the field it names.
+  // Anything the contract rejects that the checks above did not name is mapped by EXACT
+  // path. An issue with no mapped field is a contract mismatch, not something the staff can
+  // fix by editing the description, so it is reported as such (never blamed on a field).
   const mapped: FieldErrors = {};
+  const unmapped: string[] = [];
   for (const issue of parsed.error.issues) {
     const path = issue.path.join(".");
-    const field: FoundLogField | null =
-      path.includes("phone") ? "phone"
-      : path.includes("district") ? "district"
-      : path.includes("place_text") ? "place"
-      : path.includes("circumstances") ? "circumstances"
-      : path.includes("height") ? "heightCm"
-      : path.includes("age") ? "ageYears"
-      : path.includes("event.at") ? "foundAt"
-      : null;
-    if (field && !mapped[field]) mapped[field] = path.includes("phone") ? "invalid" : "invalid";
+    const field = ISSUE_FIELD[path];
+    if (!field) unmapped.push(path === "" ? "(root)" : path);
+    else if (!mapped[field]) mapped[field] = path.endsWith("event.at") || path.endsWith("event.at_lower") ? "future" : "invalid";
   }
-  return { ok: false, fields: Object.keys(mapped).length > 0 ? mapped : { circumstances: "invalid" } };
+  return { ok: false, fields: mapped, ...(unmapped.length > 0 ? { unmapped } : {}) };
+}
+
+const ISSUE_FIELD: Record<string, FoundLogField> = {
+  "draft.child.sex": "sex",
+  "draft.child.age_years": "ageYears",
+  "draft.child.age_min": "ageMin",
+  "draft.child.age_max": "ageMax",
+  "draft.child.height_cm": "heightCm",
+  "draft.child.clothing": "clothing",
+  "draft.child.marks": "marks",
+  "draft.event.at": "foundAt",
+  "draft.event.at_lower": "foundAt",
+  "draft.event.at_upper": "foundAt",
+  "draft.event.place_text": "place",
+  "draft.event.district_code": "district",
+  "draft.event.thana": "thana",
+  "draft.event.circumstances": "circumstances",
+  "draft.reporter.phone": "phone",
+  "draft.reporter.relation": "relation",
+};
+
+/* ---------- submission id (idempotency key) ---------- */
+
+// Browsers without crypto.randomUUID (plain-http LAN origins, older engines) still get a v4.
+export function newClientId(c: Pick<Crypto, "getRandomValues"> & { randomUUID?: () => string } = globalThis.crypto): string {
+  if (typeof c.randomUUID === "function") return c.randomUUID();
+  const b = c.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6]! & 0x0f) | 0x40;
+  b[8] = (b[8]! & 0x3f) | 0x80;
+  const h = [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+
+export type SubmissionMemo = { id: string; fingerprint: string } | null;
+
+// Same payload as the last attempt → the same id (a safe replay). Changed payload → a new id,
+// because the server would otherwise answer E-006 for ever (same key, different payload).
+export function submissionFor(memo: SubmissionMemo, draft: unknown, makeId: () => string = newClientId): { id: string; fingerprint: string } {
+  const fingerprint = JSON.stringify(draft);
+  return memo && memo.fingerprint === fingerprint ? memo : { id: makeId(), fingerprint };
 }
 
 /* ---------- API call and outcome ---------- */
@@ -189,10 +231,12 @@ function errorIdOf(body: unknown): string | null {
 export function classifyFoundLogFailure(input: { status: number; body?: unknown; retryAfter?: string | null }): FoundLogFailure {
   const id = errorIdOf(input.body);
   if (id === "E-007" || input.status === 429) return { kind: "rate-limited", seconds: retryAfterSeconds(input.retryAfter) };
-  if (id === "E-006" || input.status === 409) return { kind: "conflict" };
+  if (id === "E-006") return { kind: "conflict" }; // E-005 (same-key race) is not "different data"
   if (id === "E-001" || input.status === 400) return { kind: "validation" };
   if (id === "E-002" || input.status === 401) return { kind: "session" };
-  if (id === "E-003" || id === "E-004" || input.status === 403 || input.status === 404) return { kind: "forbidden" };
+  if (id === "E-003" || id === "E-004" || input.status === 403) return { kind: "forbidden" };
+  // The write may have committed before a gateway or server error: say so; a retry is safe.
+  if (input.status >= 500 || id === "E-005" || id === "E-021") return { kind: "uncertain" };
   return { kind: "generic" };
 }
 
@@ -201,6 +245,9 @@ export async function requestFoundLog(
   opts: { fetchImpl?: typeof fetch; timeoutMs?: number } = {},
 ): Promise<FoundLogOutcome> {
   const fetchImpl = opts.fetchImpl ?? fetch;
+  const timeoutMs = opts.timeoutMs ?? FOUND_LOG_TIMEOUT_MS;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(new DOMException("timed out", "TimeoutError")), timeoutMs);
   let res: Response;
   try {
     res = await fetchImpl(FOUND_LOG_API, {
@@ -209,12 +256,18 @@ export async function requestFoundLog(
       body: JSON.stringify(request),
       credentials: "same-origin",
       cache: "no-store",
-      signal: AbortSignal.timeout(opts.timeoutMs ?? FOUND_LOG_TIMEOUT_MS),
+      signal: controller.signal,
     });
   } catch (err) {
+    clearTimeout(timer);
     const name = err instanceof Error ? err.name : "";
-    return { kind: "failure", failure: { kind: name === "TimeoutError" || name === "AbortError" ? "uncertain" : "offline" } };
+    const timedOut = name === "TimeoutError" || name === "AbortError";
+    // "Offline" only when the browser itself says so; any other rejection may have followed a
+    // committed write (connection reset, proxy drop), so it is "uncertain" (a retry is safe).
+    const offline = !timedOut && typeof navigator !== "undefined" && navigator.onLine === false;
+    return { kind: "failure", failure: { kind: offline ? "offline" : "uncertain" } };
   }
+  clearTimeout(timer);
   let body: unknown = null;
   try {
     body = await res.json();
@@ -223,7 +276,11 @@ export async function requestFoundLog(
   }
   if (res.ok) {
     const parsed = createFoundResponseSchema.safeParse(body);
-    return parsed.success ? { kind: "saved", response: parsed.data } : { kind: "failure", failure: { kind: "uncertain" } };
+    if (parsed.success) return { kind: "saved", response: parsed.data };
+    // The report is probably saved but the confirmation is unreadable: a contract mismatch,
+    // not a flaky network. Log the field paths only (never values) so it is not invisible.
+    console.error("found-log: unreadable API-007 response", parsed.error.issues.map((i) => i.path.join(".")));
+    return { kind: "failure", failure: { kind: "uncertain" } };
   }
   return { kind: "failure", failure: classifyFoundLogFailure({ status: res.status, body, retryAfter: res.headers.get("retry-after") }) };
 }
@@ -244,6 +301,7 @@ export type FoundLogAction =
   | { type: "save" }
   | { type: "outcome"; outcome: FoundLogOutcome }
   | { type: "input"; field: FoundLogField }
+  | { type: "interrupted" } // a bfcache restore while saving: the result is unknown
   | { type: "another" };
 
 export function foundLogReducer(state: FoundLogState, action: FoundLogAction): FoundLogState {
@@ -262,6 +320,8 @@ export function foundLogReducer(state: FoundLogState, action: FoundLogAction): F
       delete rest[action.field];
       return { ...state, fields: rest };
     }
+    case "interrupted":
+      return state.status === "saving" ? { ...state, status: "idle", failure: { kind: "uncertain" } } : state;
     case "another":
       return { ...initialFoundLogState, attempt: state.attempt + 1 };
   }

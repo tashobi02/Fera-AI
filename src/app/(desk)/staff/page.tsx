@@ -8,7 +8,12 @@ import { locales } from "@/locales";
 import { requireRole } from "@/server/auth/require-role";
 import { FoundLogForm, type DistrictOption } from "./found-log-form";
 
-const districts: DistrictOption[] = districtData.districts.map(({ code, name_en, name_bn }) => ({ code, name_en, name_bn }));
+const all: DistrictOption[] = districtData.districts.map(({ code, name_en, name_bn }) => ({ code, name_en, name_bn }));
+// Sorted once here, per locale, so server and client render the same option order.
+const sortFor = (locale: "bn" | "en"): DistrictOption[] =>
+  [...all].sort((a, b) =>
+    locale === "bn" ? a.name_bn.localeCompare(b.name_bn, "bn") : a.name_en.localeCompare(b.name_en, "en"),
+  );
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: locales[await getLocale()].foundLogPageTitle };
@@ -26,11 +31,11 @@ export default async function FoundLogPage() {
         </h1>
         <p className="text-body-sm text-mute">{t.foundLogIntro}</p>
         <p className="mt-1 flex w-fit items-baseline gap-x-2 rounded-md border border-dashed border-hairline-strong px-3 py-2 text-body-sm text-body">
-          <span className="rounded-xs border border-dashed border-hairline-strong px-2 text-caption-md font-medium">{t.mockLabel}</span>
+          <span className="rounded-xs border border-dashed border-hairline-strong px-2 text-caption-md font-medium [&:lang(bn)]:text-body-sm">{t.mockLabel}</span>
           <span>{t.foundLogSyntheticNote}</span>
         </p>
       </div>
-      <FoundLogForm locale={locale} districts={districts} />
+      <FoundLogForm locale={locale} districts={sortFor(locale)} />
     </div>
   );
 }

@@ -106,7 +106,7 @@ When one of these merges, tell the waiting person straight away; they rebase and
 | TASK-017 | Matcher: BR-017 filters, national cosine, bonuses, qualify-or-abstain, template reasons (COMP-012) | A · Codex + `mle-reviewer` | TASK-015, 016 | 7 | TC-009 passes; first recall@5 printed (dev split only) | `todo` | | |
 | TASK-018 | Duplicate detector; shared phone only a weak cue (COMP-013) | A · Codex | TASK-016 | 3 | TC-013 passes | `todo` | | |
 | TASK-019 | Seed loader with synthetic labels and 3 demo cases | A · Codex | TASK-010 | 2 | `npm run seed -- --set demo` < 2 min | `todo` | | |
-| TASK-026 | S-007 found-child log + API-007 (COMP-034) | B · Claude Code + `impeccable` | TASK-015, 020 | 3 | TC-008 passes | `todo` | | |
+| TASK-026 | S-007 found-child log + API-007 (COMP-034) | B · Claude Code + `impeccable` | TASK-015, 020 | 3 | TC-008 passes | `review` | branch `phase2--masnun-found-log` (PR pending; depends on TASK-009) | Manual-field path only (TASK-020 free text not built). Lint/typecheck/test/build green, fera-review done. **TC-008 not passed**: no DB run (no Docker here), no Playwright. See [evidence](evidence/found-log.md). |
 | TASK-027 | S-009 queue + API-008 (COMP-035/036) | B · Claude Code + `impeccable` | TASK-017 | 3 | Queue lists seeded candidates | `todo` | | |
 | TASK-028 | S-010 match review + API-009/010, one-transaction confirm, reject with reason | B · Claude Code + `database-reviewer` | TASK-017, 027 | 6 | TC-010 (confirm part), TC-011 pass | `todo` | | |
 | TASK-030 | S-011 map + table + API-012 (COMP-040/041) | B · Claude Code + `impeccable` | TASK-009, 029 | 5 | TC-012 passes | `todo` | | |
@@ -166,6 +166,7 @@ Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
 ### Obidit
 ### Masnun
+- 2026-10-15 23:25 · Claude Code · masnun-found-log · TASK-026 `todo` → `review`; API-007 + S-007 manual path built and reviewed; TC-008 pending DB + Playwright, free text pending TASK-020
 ### Mahim (lead)
 - 2026-10-14 17:35 · Claude Code · mahim-api · TASK-007 `todo` → `review`; shared API layer and 92 tests at `a33d9af`; in-memory limiter, real principal resolver waits for TASK-006.
 - 2026-10-14 18:40 · Claude Code · mahim-api · TASK-007 stays `review`; fera-review BLOCK (record-route E-004 + denial audit) and WARNs fixed at `a054767`, 179 API tests; re-review pending.

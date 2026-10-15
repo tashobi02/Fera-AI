@@ -4,6 +4,8 @@
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { ERROR_CATALOGUE, createFoundRequestSchema, createFoundResponseSchema, errorEnvelopeSchema } from "@/contracts";
+import { ApiError } from "@/app/api/_shared";
+import type { LogFoundDeps } from "@/server/found/log-found";
 import { exampleCreateFoundRequest, exampleFoundRow } from "@/contracts/examples";
 import type { CaseRow } from "@/contracts/server";
 import { Reply } from "@/app/api/_shared";
@@ -15,13 +17,15 @@ const staffId = randomUUID();
 const request = createFoundRequestSchema.parse(exampleCreateFoundRequest);
 const rowFor = (ownerId: string, over: Partial<CaseRow> = {}): CaseRow => ({ ...exampleFoundRow, created_by_user_id: ownerId, ...over });
 
-function fakeCreate(row: CaseRow, replayed = false) {
-  const calls: Array<{ principal: unknown; body: unknown; ctx: unknown }> = [];
-  const createFoundCase = async (principal: unknown, body: unknown, ctx: unknown) => {
+function fakeCreate(row: CaseRow, replayed = false, fail?: Error) {
+  type Args = Parameters<LogFoundDeps["createFoundCase"]>;
+  const calls: Array<{ principal: Args[0]; body: Args[1]; ctx: Args[2] }> = [];
+  const createFoundCase: LogFoundDeps["createFoundCase"] = async (principal, body, ctx) => {
     calls.push({ principal, body, ctx });
+    if (fail) throw fail;
     return { case: row, replayed };
   };
-  return { calls, deps: { createFoundCase } as never };
+  return { calls, deps: { createFoundCase } satisfies LogFoundDeps };
 }
 
 describe("logFoundCase (API-007)", () => {
@@ -38,6 +42,7 @@ describe("logFoundCase (API-007)", () => {
     expect(f.calls).toHaveLength(1);
     expect(f.calls[0]?.ctx).toEqual({ requestId: "req-1" });
     expect(f.calls[0]?.body).toBe(request);
+    expect(f.calls[0]?.principal).toBe(staff);
   });
 
   it("reports a replay without creating anything new", async () => {
@@ -61,15 +66,15 @@ describe("logFoundCase (API-007)", () => {
 
   it("does not call the case service for a parent principal", async () => {
     const f = fakeCreate(rowFor(staffId));
-    await expect(logFoundCase(testParent(randomUUID()), request, {}, f.deps)).rejects.toThrow();
+    await expect(logFoundCase(testParent(randomUUID()), request, {}, f.deps)).rejects.toMatchObject({ id: "E-003" });
     expect(f.calls).toHaveLength(0);
   });
 });
 
 describe("API-007 route contract (defineRoute + the same schemas)", () => {
-  function route(principal: ReturnType<typeof testUser> | ReturnType<typeof testParent> | null, replayed = false) {
+  function route(principal: ReturnType<typeof testUser> | ReturnType<typeof testParent> | null, replayed = false, fail?: Error) {
     const t = testFactory(principal);
-    const f = fakeCreate(rowFor(staffId), replayed);
+    const f = fakeCreate(rowFor(staffId), replayed, fail);
     const handler = t.defineRoute({
       api: "API-007",
       body: createFoundRequestSchema,
@@ -107,6 +112,34 @@ describe("API-007 route contract (defineRoute + the same schemas)", () => {
     const bad = { ...exampleCreateFoundRequest, draft: { ...exampleCreateFoundRequest.draft, kind: "missing" } };
     const res = await r.handler(post(bad), noParams);
     expect(res.status).toBe(400);
+    expect(r.f.calls).toHaveLength(0);
+  });
+
+  it("E-006 (409) when the case service reports a changed payload under the same id", async () => {
+    const r = route(testUser(staffId, "staff"), false, new ApiError("E-006"));
+    const res = await r.handler(post(exampleCreateFoundRequest), noParams);
+    expect(res.status).toBe(409);
+    expect(errorEnvelopeSchema.parse(await res.json()).error.id).toBe("E-006");
+  });
+
+  it("never lets the client set owner, role, status or is_synthetic", async () => {
+    // The top-level request object is not strict, so unknown keys are dropped by Zod and
+    // never reach the case service; the draft itself is strict and rejects extras (E-001).
+    const r = route(testUser(staffId, "staff"));
+    const extras = { role: "officer", owner: randomUUID(), status: "confirmed", is_synthetic: false, created_by_user_id: randomUUID() };
+    const ok = await r.handler(post({ ...exampleCreateFoundRequest, ...extras }), noParams);
+    expect(ok.status).toBe(201);
+    expect(Object.keys(r.f.calls[0]?.body ?? {}).sort()).toEqual(["client_submission_id", "confirmed", "draft"]);
+    const inDraft = { ...exampleCreateFoundRequest, draft: { ...exampleCreateFoundRequest.draft, created_by_user_id: randomUUID() } };
+    const bad = await r.handler(post(inDraft), noParams);
+    expect(bad.status).toBe(400);
+    expect(r.f.calls).toHaveLength(1);
+  });
+
+  it("refuses a cross-origin POST before reading the body", async () => {
+    const r = route(testUser(staffId, "staff"));
+    const res = await r.handler(jsonPost("/api/found-cases", exampleCreateFoundRequest, { host: "fera.test", "sec-fetch-site": "cross-site" }), noParams);
+    expect(res.status).toBe(403);
     expect(r.f.calls).toHaveLength(0);
   });
 

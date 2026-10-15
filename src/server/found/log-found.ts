@@ -25,6 +25,8 @@ export async function logFoundCase(
   // have no "own found report" view for officers, and API-007 promises StaffOwnCaseView.
   // The case service already checked ownership, so projecting as the same user with the
   // staff role cannot reveal anything the creator did not just submit.
+  // Follow-up (OD-026-1): add an own-found-report projection to src/contracts (frozen; needs
+  // an all-owner PR) and delete this re-projection.
   const asStaff = userPrincipal({ id: principal.userId, role: "staff", verified: false, is_active: principal.isActive });
   const view = projectCaseFor(asStaff, row, { districtNameBn: null, duplicateOf: [] });
   if (view?.view !== "staff_own") throw new Error("found report is not the caller's own");
