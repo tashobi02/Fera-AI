@@ -152,7 +152,7 @@ describe("requireRole", () => {
     const audit = vi.fn(async () => {
       throw new Error("audit down");
     });
-    await expect(requireRole(["officer"], "/officer", { auditDenied: audit })).rejects.toThrow("audit down");
+    await expect(requireRole(["officer"], "/officer", { auditDenied: audit })).rejects.toBeInstanceOf(PageAuditUnavailableError);
   });
 
   it("shows not-found on a parent-only page without a parent session, without audit", async () => {

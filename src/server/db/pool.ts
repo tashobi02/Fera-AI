@@ -12,6 +12,10 @@ import { Pool } from "pg";
 import { createLogger, describeError } from "@/app/api/_shared/log";
 
 const CONNECT_TIMEOUT_MS = 5_000;
+// Client-side backstop just above the fera_app statement_timeout (30 s), so the server
+// cancels first and a dead connection never hangs a request (no client-side value is
+// sent to the server, so the role setting stays authoritative).
+const QUERY_TIMEOUT_MS = 31_000;
 const IDLE_TIMEOUT_MS = 30_000;
 // Per server instance. fera_app has CONNECTION LIMIT 40 across all instances.
 const MAX_CLIENTS = 5;
@@ -36,6 +40,8 @@ export function getPool(env: Record<string, string | undefined> = process.env): 
     max: MAX_CLIENTS,
     connectionTimeoutMillis: CONNECT_TIMEOUT_MS,
     idleTimeoutMillis: IDLE_TIMEOUT_MS,
+    query_timeout: QUERY_TIMEOUT_MS,
+    keepAlive: true,
     application_name: "fera-app",
   });
   // An idle client error (server restart, network drop) must not crash the process.

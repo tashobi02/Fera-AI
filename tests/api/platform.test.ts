@@ -130,7 +130,8 @@ describe("request ID (D2A §5.1)", () => {
     expect(logs.parsed().at(-1)).toMatchObject({ request_id: id, client_request_id: RID });
   });
 
-  it.each([["abc"], [PHONE], ["<script>alert(1)</script>"], [`${RID} extra`], ["x".repeat(500)]])("does not log unsafe client ID %s", async (bad) => {
+  // Non-hex probes: a random server request ID can contain any short hex run (e.g. "abc").
+  it.each([["not-a-uuid"], [PHONE], ["<script>alert(1)</script>"], [`${RID} extra`], ["x".repeat(500)]])("does not log unsafe client ID %s", async (bad) => {
     const res = await route(get("/api/x", { "x-request-id": bad }), noParams);
     expect(res.headers.get("x-request-id")).toMatch(UUID);
     expect(logs.parsed().at(-1).client_request_id).toBeUndefined();
@@ -267,7 +268,8 @@ describe("E-001 field paths (D6 TC-030, CN-15)", () => {
     };
     const body = await expectError(await route(jsonPost("/api/x", bad), noParams), "E-001");
     expect(body.error.fields).toEqual(["child.age_years", "event.at", "event.district_code", "reporter.phone"]);
-    const text = JSON.stringify(body);
+    // Checked on the envelope's error object only, never on a random request ID.
+    const text = JSON.stringify(body.error);
     for (const leak of ["0171", "XYZ", "2099", "Too big", "Invalid"]) expect(text).not.toContain(leak);
   });
 
