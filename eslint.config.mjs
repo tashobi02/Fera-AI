@@ -10,6 +10,14 @@ const CASE_INTERNALS = {
   message: "Import the case service from @/server/case; its internals are for src/server only.",
 };
 
+// Client components and shared helpers never import server modules (TASK-031 review:
+// a client file that reaches @/server/** would pull server code, keys or pg into the
+// browser bundle). Server pages and layouts under src/app may still use them.
+const SERVER_MODULES = {
+  group: ["@/server", "@/server/**", "**/src/server/**"],
+  message: "Client code and src/lib must not import src/server; put shared types and pure helpers in src/lib.",
+};
+
 function contractPatterns({ server, app = false }) {
   const patterns = [
     {
@@ -57,6 +65,15 @@ const eslintConfig = defineConfig([
     ignores: ["src/**/fakes/**", "src/**/*.test.{ts,tsx}"],
     rules: {
       "no-restricted-imports": ["error", { patterns: contractPatterns({ server: true, app: true }) }],
+    },
+  },
+  // Known client-side paths: shared components, client forms and every src/lib helper.
+  // Flat config does not merge options, so this repeats the client patterns.
+  {
+    files: ["src/components/**/*.{ts,tsx}", "src/app/components/**/*.{ts,tsx}", "src/app/**/*-form.tsx", "src/hooks/**/*.{ts,tsx}", "src/lib/**/*.{ts,tsx}"],
+    ignores: ["src/**/fakes/**", "src/**/*.test.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: [...contractPatterns({ server: true, app: true }), SERVER_MODULES] }],
     },
   },
   globalIgnores([

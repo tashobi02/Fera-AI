@@ -33,7 +33,7 @@ describe("locales", () => {
     "showPasswordLabel", "hidePasswordLabel", "signInAction", "signingIn", "signedInRedirecting", "signInErrorCredentials",
     "signInErrorRateLimited", "signInErrorRateLimitedSoon", "signInErrorGeneric", "demoAccountsTitle", "mockLabel",
     "demoAccountsNote", "demoAccountFill", "demoRoleStaff", "demoRoleOfficer", "demoRoleOfficerUnverified", "demoRoleAdmin",
-    "signOutAction", "signingOut", "notFoundTitle", "notFoundHint", "notFoundHome",
+    "signOutAction", "signingOut", "notFoundTitle", "notFoundHome", "demoFilled",
   ] as const)("defines %s in Bangla and English", (key) => {
     expect(locales.bn[key].trim()).not.toBe("");
     expect(locales.en[key].trim()).not.toBe("");
@@ -64,5 +64,24 @@ describe("locales", () => {
       expect(t.showPasswordLabel).toContain(t.showPasswordButton);
       expect(t.hidePasswordLabel).toContain(t.hidePasswordButton);
     }
+  });
+
+  // TASK-031 review round 1 (Bangla): no invisible or non-NFC characters sneak into copy.
+  it("keeps every Bangla string NFC with no zero-width characters or NBSP", () => {
+    for (const [key, value] of Object.entries(locales.bn)) {
+      expect(value, key).toBe(value.normalize("NFC"));
+      expect(value, key).not.toMatch(/[\u200b\u200c\u200d\u2060\ufeff\u00a0\u202f]/);
+    }
+  });
+
+  it("calls the staff role স্টাফ everywhere, never কর্মী", () => {
+    for (const [key, value] of Object.entries(locales.bn)) expect(value, key).not.toMatch(/কর্মী(?!কর্তা)/);
+    expect(locales.bn.homePlaceholder).toBe("অভিভাবক, স্টাফ ও কর্মকর্তার স্ক্রিন পরের কাজগুলোতে যুক্ত হবে।");
+    expect(locales.bn.demoRoleOfficerUnverified).toBe("অযাচাইকৃত কর্মকর্তা · স্টাফের সমান অনুমতি");
+  });
+
+  it("fills the demo announcement in both languages", () => {
+    expect(locales.bn.demoFilled.replace("{u}", "staff.demo")).toBe("ইউজারনেম বসানো হয়েছে: staff.demo");
+    expect(locales.en.demoFilled.replace("{u}", "staff.demo")).toBe("Username set to staff.demo");
   });
 });

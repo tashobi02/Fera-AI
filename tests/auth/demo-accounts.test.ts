@@ -24,10 +24,16 @@ describe("demoAccounts", () => {
     }
   });
 
-  it("follows SEED_ADMIN_USER the way the seed does, and ignores an invalid one", () => {
-    expect(demoAccounts({ DEMO_MODE: "1", SEED_ADMIN_USER: "desk.admin" })?.at(-1)).toEqual({ username: "desk.admin", role: "admin" });
-    expect((seedAccounts({ SEED_ADMIN_USER: "desk.admin" }) as SeedAccount[])[0].username).toBe("desk.admin");
-    expect(demoAccounts({ DEMO_MODE: "1", SEED_ADMIN_USER: "Bad Name!" })?.at(-1)?.username).toBe("admin.demo");
+  it("is off on Vercel even with DEMO_MODE=1 (hosted deploys never list accounts)", () => {
+    expect(demoAccounts({ DEMO_MODE: "1", VERCEL: "1" })).toBeNull();
+  });
+
+  it("never shows a configured SEED_ADMIN_USER: the admin row is the fixed default or absent", () => {
+    expect(demoAccounts({ DEMO_MODE: "1" })?.at(-1)).toEqual({ username: "admin.demo", role: "admin" });
+    expect(demoAccounts({ DEMO_MODE: "1", SEED_ADMIN_USER: "admin.demo" })?.at(-1)).toEqual({ username: "admin.demo", role: "admin" });
+    const renamed = demoAccounts({ DEMO_MODE: "1", SEED_ADMIN_USER: "desk.admin" });
+    expect(JSON.stringify(renamed)).not.toContain("desk.admin");
+    expect(renamed?.some((a) => a.role === "admin")).toBe(false);
   });
 
   it("carries no password, not even the committed local defaults", () => {

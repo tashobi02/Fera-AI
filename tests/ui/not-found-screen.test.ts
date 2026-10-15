@@ -3,8 +3,11 @@
 // through the real principal resolver; next/headers and next/navigation are mocked.
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Pool } from "pg";
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import { errorEnvelope } from "@/contracts";
+import type { Locale } from "@/locales";
+import type { NotFoundView } from "@/lib/not-found";
 
 let cookieHeader: string | null = null;
 let localeCookie: string | undefined;
@@ -12,10 +15,11 @@ vi.mock("next/headers", () => ({
   headers: async () => new Headers(cookieHeader ? { cookie: cookieHeader } : {}),
   cookies: async () => ({ get: (name: string) => (name === "fera-lang" && localeCookie ? { value: localeCookie } : undefined) }),
 }));
-vi.mock("next/navigation", () => ({
-  unstable_rethrow: (err: unknown) => {
-    if (err instanceof Error && err.message.startsWith("NEXT_")) throw err;
-  },
+// The real unstable_rethrow, so the not-found page is checked against Next's own
+// control-flow errors; redirect/notFound are simplified for requireRole.
+const navigation = await vi.importActual<typeof import("next/navigation")>("next/navigation");
+vi.mock("next/navigation", async () => ({
+  unstable_rethrow: (await vi.importActual<typeof import("next/navigation")>("next/navigation")).unstable_rethrow,
   redirect: (url: string) => {
     throw Object.assign(new Error("NEXT_REDIRECT"), { url });
   },
@@ -25,7 +29,8 @@ vi.mock("next/navigation", () => ({
 }));
 
 const { NotFoundScreen } = await import("@/app/components/not-found-screen");
-const { default: NotFound } = await import("@/app/not-found");
+const { default: NotFound, generateMetadata } = await import("@/app/not-found");
+const { setPoolForTests } = await import("@/server/db/pool");
 const { NOT_FOUND_ERROR_IDS, notFoundView, showsNotFoundScreen } = await import("@/lib/not-found");
 const { requireRole } = await import("@/server/auth/require-role");
 const { signSessionToken } = await import("@/server/auth/tokens");
@@ -54,6 +59,8 @@ const screen = (locale: "bn" | "en", role: Parameters<typeof notFoundView>[0]) =
   renderToStaticMarkup(createElement(NotFoundScreen, { locale, view: notFoundView(role) }));
 const rootNotFound = async () => renderToStaticMarkup(await NotFound());
 
+afterEach(() => setPoolForTests(null));
+
 beforeEach(() => {
   cookieHeader = null;
   localeCookie = undefined;
@@ -68,6 +75,24 @@ describe("SCREEN-016 copy and structure", () => {
     expect(bn).toContain("তথ্যটি পাওয়া যায়নি।");
     expect(en).toContain("We couldn&#x27;t find that.");
     expect(errorEnvelope("E-004").error.message_bn).toBe("তথ্যটি পাওয়া যায়নি।");
+  });
+
+  it("is one sentence and one action (D4 COMP-045): no extra paragraph", () => {
+    const html = screen("en", null);
+    expect(html).not.toMatch(/<p[ >]/);
+    expect(html).toMatch(/<h1[^>]*font-semibold[^>]*\[&amp;:lang\(en\)\]:font-bold/); // Bangla headings semibold
+  });
+
+  it("names the page in the tab title, in the current language (SC 2.4.2)", async () => {
+    expect(await generateMetadata()).toEqual({ title: "তথ্যটি পাওয়া যায়নি।" });
+    localeCookie = "en";
+    expect(await generateMetadata()).toEqual({ title: "We couldn't find that." });
+  });
+
+  it("keeps the home link's hover on the pressed action token (>= 4.5:1), not opacity", () => {
+    const link = screen("en", "staff").match(/<a [^>]*>/)?.[0] ?? "";
+    expect(link).toContain("hover:bg-primary-pressed");
+    expect(link).not.toContain("opacity");
   });
 
   it("is a single h1 with tabindex -1 (focus moves to it), plus one home link", () => {
@@ -91,7 +116,14 @@ describe("E-003 and E-004 give one identical response", () => {
     for (const id of ["E-001", "E-002", "E-005", "E-007", "E-021", "e-004", ""]) expect(showsNotFoundScreen(id)).toBe(false);
   });
 
-  it("renders byte-identical markup for E-003 and E-004, though the API envelopes differ", () => {
+  it("structural guarantee: the screen's only inputs are locale and viewer, never an error ID or record", () => {
+    expectTypeOf<Parameters<typeof NotFoundScreen>[0]>().toEqualTypeOf<{ locale: Locale; view: NotFoundView }>();
+    expectTypeOf<NotFoundView>().toEqualTypeOf<{ surface: "desk" | "parent"; home: string }>();
+    expect(NotFound.length).toBe(0); // the App Router not-found receives no props
+    expect(notFoundView.length).toBe(1); // role only
+  });
+
+  it("so both IDs render the same markup per viewer, although their API envelopes differ", () => {
     expect(errorEnvelope("E-003").error.message_en).not.toBe(errorEnvelope("E-004").error.message_en);
     for (const locale of ["bn", "en"] as const) {
       for (const role of [null, "parent", "staff", "officer", "admin"] as const) {
@@ -100,6 +132,23 @@ describe("E-003 and E-004 give one identical response", () => {
         expect(forbidden).not.toMatch(/E-00[34]|permission|অনুমতি/);
       }
     }
+  });
+
+  it("with TASK-015's default audit writer, a wrong-role visit writes access.denied and shows S-016, not a 500", async () => {
+    const inserts: unknown[][] = [];
+    setPoolForTests({
+      async query(text: string, values: unknown[] = []) {
+        if (text.startsWith("INSERT INTO audit_log")) inserts.push(values);
+        return { rows: [{ id: "1" }] };
+      },
+    } as unknown as Pool);
+    cookieHeader = sessionFor(ids.pending);
+    await expect(requireRole(["officer"], "/officer/case/abc")).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(inserts).toHaveLength(1);
+    expect(inserts[0].slice(3, 7)).toEqual(["access.denied", null, null, '{"error_id":"E-004"}']);
+    const html = await rootNotFound();
+    expect(html).toContain('data-surface="desk"');
+    expect(html).toContain('href="/staff"');
   });
 
   it("the page guard's wrong-role denial lands on the same not-found as a missing page", async () => {
@@ -133,12 +182,35 @@ describe("root not-found: the viewer picks surface and home, nothing else", () =
     expect(await rootNotFound()).toContain('data-surface="parent"');
   });
 
-  it("a failed session lookup falls back to the signed-out view, not an error", async () => {
+  it("a failed session lookup falls back to the signed-out view and logs the event only", async () => {
     cookieHeader = sessionFor(ids.staff);
-    vi.spyOn(store, "userById").mockRejectedValue(new Error("db down"));
+    vi.spyOn(store, "userById").mockRejectedValue(Object.assign(new Error("connect timeout to 127.0.0.1"), { code: "ETIMEDOUT" }));
+    const lines: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((chunk: string | Uint8Array) => {
+      lines.push(String(chunk));
+      return true;
+    });
     const html = await rootNotFound();
     expect(html).toContain('data-surface="parent"');
     expect(html).toContain('href="/"');
+    const logged = lines.filter((l) => l.includes("page.viewer_lookup_failed"));
+    expect(logged).toHaveLength(1);
+    const entry = JSON.parse(logged[0]);
+    expect(entry).toMatchObject({ level: 40, event: "page.viewer_lookup_failed", err_name: "Error", err_code: "ETIMEDOUT" });
+    expect(logged[0]).not.toMatch(/fera_session|127\.0\.0\.1|officer|staff|timeout to/);
+  });
+
+  it("rethrows Next's own control-flow errors instead of swallowing them", async () => {
+    let control: unknown;
+    try {
+      navigation.redirect("/elsewhere");
+    } catch (err) {
+      control = err;
+    }
+    expect(control).toBeInstanceOf(Error);
+    cookieHeader = sessionFor(ids.staff);
+    vi.spyOn(store, "userById").mockRejectedValue(control);
+    await expect(NotFound()).rejects.toBe(control);
   });
 
   it("follows the language cookie", async () => {

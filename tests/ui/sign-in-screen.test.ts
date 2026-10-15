@@ -71,7 +71,43 @@ describe("COMP-047 sign-in form", () => {
 
   it("gives every control a 44 px minimum target", () => {
     const html = form("en", demoAccounts({ DEMO_MODE: "1" }));
-    for (const control of html.match(/<(button|input)[^>]*>/g) ?? []) expect(control, control).toContain("min-h-11");
+    const controls = html.match(/<(button|input)[^>]*>/g) ?? [];
+    // 2 inputs + toggle + submit + 4 demo rows: an empty match must not pass vacuously.
+    expect(controls).toHaveLength(8);
+    for (const control of controls) expect(control, control).toContain("min-h-11");
+  });
+
+  it("draws input boundaries with the >= 3:1 control token, hairlines only on the card (D4 §13)", () => {
+    const html = form("en");
+    for (const input of html.match(/<input[^>]*>/g) ?? []) {
+      expect(input).toMatch(/\bborder-control\b/);
+      expect(input).toContain("hover:border-control-strong");
+      expect(input).toContain("focus:border-control-strong");
+      expect(input).not.toMatch(/\bborder-hairline\b/);
+    }
+    expect(html).toMatch(/<form[^>]*border-hairline/);
+  });
+
+  it("lets the password row wrap at 320 px / 200 % text", () => {
+    const html = form("en");
+    const row = html.match(/<div class="flex flex-wrap gap-2">(<input[^>]*>)/)?.[1] ?? "";
+    expect(row).toContain('name="password"');
+    expect(row).toContain("min-w-[min(10rem,100%)] flex-1");
+  });
+
+  it("steps Bangla captions up to 14 px and keeps the [MOCK] label English", () => {
+    const html = form("bn", demoAccounts({ DEMO_MODE: "1" }));
+    expect(html).toMatch(/<span lang="en" translate="no"[^>]*>\[MOCK\]<\/span>/);
+    expect(html.match(/text-caption-md \[&amp;:lang\(bn\)\]:text-body-sm/g)?.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it("demo rows are plain buttons (no aria-controls) with an sr-only verb", () => {
+    const rows = form("en", demoAccounts({ DEMO_MODE: "1" })).match(/<li[^>]*><button[^>]*>/g) ?? [];
+    expect(rows).toHaveLength(4);
+    for (const row of rows) {
+      expect(row).toContain('type="button"');
+      expect(row).not.toContain("aria-controls");
+    }
   });
 
   it("shows no demo hint without demo accounts", () => {
@@ -86,7 +122,7 @@ describe("COMP-047 sign-in form", () => {
     expect(html).toContain("[MOCK]");
     expect(html).toContain("border-dashed");
     for (const u of ["staff.demo", "officer.demo", "officer.pending", "admin.demo"]) expect(html).toContain(u);
-    expect(html).toContain("অযাচাইকৃত কর্মকর্তা · স্টাফের অনুমতি");
+    expect(html).toContain("অযাচাইকৃত কর্মকর্তা · স্টাফের সমান অনুমতি");
     expect(html).not.toMatch(/fera-local-/);
   });
 });
@@ -120,6 +156,9 @@ describe("SCREEN-008 page", () => {
     vi.stubEnv("DEMO_MODE", "");
     expect(await page({})).not.toContain("officer.demo");
     vi.stubEnv("DEMO_MODE", "1");
+    vi.stubEnv("VERCEL", "");
     expect(await page({})).toContain("officer.demo");
+    vi.stubEnv("VERCEL", "1");
+    expect(await page({})).not.toContain("officer.demo");
   });
 });

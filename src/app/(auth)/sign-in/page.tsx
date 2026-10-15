@@ -34,10 +34,10 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
   const titleId = "sign-in-title";
 
   return (
-    <div data-surface="desk" className="flex flex-1 justify-center px-4 py-10 sm:py-16">
+    <div data-surface="desk" className="flex flex-1 justify-center px-[16px] py-10 sm:py-16">
       <div className="flex w-full max-w-[25rem] flex-col gap-6">
         <div className="flex flex-col gap-2">
-          <h1 id={titleId} className="text-heading-3 font-bold text-ink [&:lang(en)]:tracking-[-0.25px]">
+          <h1 id={titleId} className="text-heading-3 font-semibold text-ink [&:lang(en)]:font-bold [&:lang(en)]:tracking-[-0.25px]">
             {t[audience ? TITLE_KEY[audience] : "signInTitle"]}
           </h1>
           <p className="text-body-sm text-mute">{t.signInIntro}</p>

@@ -9,7 +9,7 @@ const bn = {
   skipToContent: "মূল অংশে যান",
   homeLink: "ফেরা — শুরুর পাতা",
   plannedLabel: "পরিকল্পিত",
-  homePlaceholder: "অভিভাবক, কর্মী ও কর্মকর্তার স্ক্রিন পরের কাজগুলোতে যুক্ত হবে।",
+  homePlaceholder: "অভিভাবক, স্টাফ ও কর্মকর্তার স্ক্রিন পরের কাজগুলোতে যুক্ত হবে।",
   // SCREEN-008 sign-in (COMP-047). D3 strings: signInAction, signInErrorCredentials.
   signInTitle: "সাইন ইন",
   signInTitleStaff: "স্টাফ সাইন ইন",
@@ -34,18 +34,18 @@ const bn = {
   signInErrorGeneric: "কিছু একটা ভুল হয়েছে। আবার চেষ্টা করুন।", // D2B §13 E-021
   demoAccountsTitle: "ডেমো অ্যাকাউন্ট",
   mockLabel: "[MOCK]", // honest label, same in both languages
-  demoAccountsNote: "সিনথেটিক অ্যাকাউন্ট। নামে চাপ দিলে ইউজারনেম বসবে; পাসওয়ার্ড এখানে দেখানো হয় না।",
+  demoAccountsNote: "সিনথেটিক অ্যাকাউন্ট। নামে চাপ দিলে ইউজারনেম বসে যাবে। পাসওয়ার্ড এখানে দেখানো হয় না।",
   demoAccountFill: "ইউজারনেম বসান:",
+  demoFilled: "ইউজারনেম বসানো হয়েছে: {u}",
   demoRoleStaff: "স্টাফ",
   demoRoleOfficer: "যাচাইকৃত কর্মকর্তা",
-  demoRoleOfficerUnverified: "অযাচাইকৃত কর্মকর্তা · স্টাফের অনুমতি",
+  demoRoleOfficerUnverified: "অযাচাইকৃত কর্মকর্তা · স্টাফের সমান অনুমতি",
   demoRoleAdmin: "অ্যাডমিন",
   // ACT-029 sign-out (D4 §5 officer nav).
   signOutAction: "সাইন আউট",
   signingOut: "সাইন আউট হচ্ছে…",
   // SCREEN-016 not found / not allowed (COMP-045). notFoundTitle is the D3 copy.
   notFoundTitle: "তথ্যটি পাওয়া যায়নি।",
-  notFoundHint: "লিংকটি আবার দেখুন, অথবা শুরুর পাতা থেকে চালিয়ে যান।",
   notFoundHome: "শুরুর পাতায় ফিরুন",
 } as const;
 
@@ -84,8 +84,9 @@ const en = {
   signInErrorGeneric: "Something went wrong. Please try again.", // D2B §13 E-021
   demoAccountsTitle: "Demo accounts",
   mockLabel: "[MOCK]",
-  demoAccountsNote: "Synthetic accounts. Tap a name to fill the username; passwords are not shown here.",
+  demoAccountsNote: "Synthetic accounts. Tap a name to fill the username. Passwords are not shown here.",
   demoAccountFill: "Fill username:",
+  demoFilled: "Username set to {u}",
   demoRoleStaff: "Staff",
   demoRoleOfficer: "Verified officer",
   demoRoleOfficerUnverified: "Unverified officer · staff permissions",
@@ -93,7 +94,6 @@ const en = {
   signOutAction: "Sign out",
   signingOut: "Signing out…",
   notFoundTitle: "We couldn't find that.",
-  notFoundHint: "Check the link, or carry on from your home page.",
   notFoundHome: "Back to home",
 } as const satisfies Record<MessageKey, string>;
 

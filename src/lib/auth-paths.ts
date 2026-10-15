@@ -17,7 +17,7 @@ export function safeReturnPath(raw: string | null | undefined): string | null {
   if (typeof raw !== "string" || raw.length === 0 || raw.length > RETURN_MAX_CHARS) return null;
   if (!raw.startsWith("/") || raw.startsWith("//") || raw.startsWith("/\\")) return null;
   // Control characters, whitespace and backslashes are refused outright.
-  if (/[\u0000- \u007f\\]/.test(raw)) return null;
+  if (/[\u0000-\u0020\u007f\\]/.test(raw)) return null;
   const path = raw.split(/[?#]/, 1)[0];
   if (path.split("/").some((segment) => DOT_SEGMENT.test(segment))) return null;
   const parsed = new URL(raw, "http://fera.invalid");
@@ -56,18 +56,29 @@ function pathnameOf(safe: string): string {
 
 // The page the visitor opened before sign-in (session expiry, D3 §6), or null when the
 // visit was a plain entry (/, /sign-in or a desk entry root), which lands on the role home.
+// API routes and build assets are never pages to return to.
+const NOT_PAGES = ["/api", "/_next"];
+
 export function returnTarget(next: string | null | undefined): string | null {
   const safe = safeReturnPath(next);
   if (!safe) return null;
   const pathname = pathnameOf(safe);
   if (pathname === "/" || pathname === SIGN_IN_PATH || DESK_ENTRY_PATHS.includes(pathname)) return null;
+  if (NOT_PAGES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))) return null;
   return safe;
 }
 
-// After API-020 succeeds: back to the same URL when there is one, else the role home.
-// A return path the role cannot open gets SCREEN-016 from the page guard, never a loop.
+const firstSegment = (path: string) => pathnameOf(path).split("/")[1] ?? "";
+
+// After API-020 succeeds: back to the same URL (D3 §6) when it sits in the signed-in
+// role's own area (same first segment as its home), else the role home. So an
+// unverified officer whose session expired on /officer/... lands on /staff instead of a
+// SCREEN-016 plus an access.denied row. Admins lose the return to /officer/map and
+// /officer/case/... (OD-031-7).
 export function destinationAfterSignIn(session: SignedInSession, next: string | null | undefined): string {
-  return returnTarget(next) ?? homeForSession(session);
+  const home = homeForSession(session);
+  const target = returnTarget(next);
+  return target && firstSegment(target) === firstSegment(home) ? target : home;
 }
 
 export type SignInAudience = "staff" | "officer" | "admin";

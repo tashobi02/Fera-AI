@@ -16,6 +16,11 @@
   Contrast (D4 §13 wins over DESIGN.md hex values; see the evidence doc):
   Paper --link and --info-text #0075de -> #005bab, Paper --text-faint
   #a39e98 -> #6f6a66, Cockpit --text-faint #6a6b6c -> #8a8b8c.
+
+  Control borders (D4 §6 --color-border and §13 "control-identifying boundaries
+  >= 3:1" win over DESIGN.md's hairline for inputs; TASK-031): --border-control is
+  Paper #6F7D77 and Cockpit #82938B, with a stronger hover/focus step. Hairlines
+  stay for cards and dividers, which are decorative separators.
 */
 
 :root,
@@ -41,6 +46,8 @@
   --border: #e6e6e6;
   --border-subtle: rgba(0, 0, 0, 0.06);
   --border-strong: #dddddd;
+  --border-control: #6f7d77; /* D4 §6 --color-border */
+  --border-control-strong: #4b5752;
 
   --text-strong: #000000;
   --text-body: #31302e;
@@ -93,6 +100,8 @@
   --border: #242728;
   --border-subtle: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.16);
+  --border-control: #82938b; /* D4 §6 --color-border */
+  --border-control-strong: #b3c0ba;
 
   --text-strong: #f4f4f6;
   --text-body: #cdcdcd;
@@ -209,6 +218,8 @@
   --color-hairline: var(--border);
   --color-hairline-soft: var(--border-subtle);
   --color-hairline-strong: var(--border-strong);
+  --color-control: var(--border-control);
+  --color-control-strong: var(--border-control-strong);
 
   --color-ink: var(--text-strong);
   --color-body: var(--text-body);

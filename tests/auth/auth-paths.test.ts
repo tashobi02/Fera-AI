@@ -55,6 +55,21 @@ describe("role → home after sign-in (D3 §1)", () => {
     expect(returnTarget("/officer/queue")).toBe("/officer/queue");
   });
 
+  it("reopens a path only inside the signed-in role's own area (OD-031-7)", () => {
+    expect(destinationAfterSignIn(pendingOfficer, "/officer/case/abc")).toBe("/staff"); // no S-016 + access.denied
+    expect(destinationAfterSignIn(staff, "/admin/users")).toBe("/staff");
+    expect(destinationAfterSignIn(admin, "/officer/map")).toBe("/admin");
+    expect(destinationAfterSignIn(admin, "/admin/users?x=1")).toBe("/admin/users?x=1");
+  });
+
+  it("never returns to an API route or a build asset", () => {
+    for (const next of ["/api", "/api/auth/sign-out", "/_next", "/_next/static/chunks/x.js", "/staff/../api/x"]) {
+      expect(returnTarget(next)).toBeNull();
+      expect(destinationAfterSignIn(staff, next)).toBe("/staff");
+    }
+    expect(returnTarget("/apiary")).toBe("/apiary"); // prefix match is by segment
+  });
+
   it.each([
     "https://evil.example/",
     "//evil.example/x",
