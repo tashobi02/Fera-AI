@@ -38,6 +38,12 @@ describe("wording guard", () => {
     expect(findBannedGroup("run-away child")).toBe("runaway");
     expect(findBannedGroup("ran\u2011away")).toBe("runaway");
     expect(findBannedGroup("পলায়নকারী শিশু")).toBe("runaway");
+    // Codex re-review: separators, fullwidth forms and default-ignorable characters.
+    for (const v of ["run/away child", "r u n a w a y child", "পলা-য়নকারী শিশু", "ＲＵＮＡＷＡＹ child", "run\u034Faway child", "run\u2063away child"]) {
+      expect(findBannedGroup(v), v).toBe("runaway");
+    }
+    expect(findBannedGroup("ＡＬＥＲＴ")).toBe("alert");
+    expect(findBannedGroup("৮৭％ মিল")).toBe("probability");
   });
 
   it("allows Fera's honest copy (D4 §9, §15.1)", () => {

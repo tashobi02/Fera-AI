@@ -8,10 +8,10 @@
 // draft label. A field value that contains a banned term therefore blocks that output
 // (OD-023-5). `circumstances` and `source_text` are never copied in.
 //
-// Matching is substring, case-insensitive, after NFC and removal of invisible joiners,
-// so "পালিয়ে" matches whether য় is typed as U+09DF or য + nukta (NFC decomposes both to
-// the latter), and "re<ZWSP>scue" still matches. Substrings are deliberate: "alert" also
-// catches "alerted". "amber" is not listed on its own ("Chamber Road"); "alert" covers it.
+// Matching is substring on a normalised skeleton (see below), so "পালিয়ে" matches whether
+// য় is typed as U+09DF or য + nukta, and spacing, punctuation, invisible or fullwidth
+// characters cannot split a term. Substrings are deliberate: "alert" also catches
+// "alerted". "amber" is not listed on its own ("Chamber Road"); "alert" covers it.
 import { ApiError } from "@/app/api/_shared/envelope";
 
 // Each group names the rule it enforces. Bangla and English for every concept.
@@ -33,25 +33,37 @@ export const BANNED_TERMS = {
 
 export type BannedGroup = keyof typeof BANNED_TERMS;
 
-// ZWSP, ZWNJ, ZWJ, word joiner, BOM and soft hyphen can hide a term without changing
-// how it reads.
-const INVISIBLE = /[\u200B-\u200D\u2060\uFEFF\u00AD]/gu;
+// Comparison runs on a skeleton of the text: NFKC (fullwidth and compatibility forms fold
+// to plain letters), every Unicode default-ignorable character removed (ZWJ/ZWNJ, CGJ,
+// invisible separators, soft hyphen…), lower-cased, and then only letters, marks and
+// digits kept. "r u n-a/w a y", "ＲＵＮＡＷＡＹ" and "run\u034Faway" all become "runaway".
+// Dropping spaces can over-block across word boundaries; for this guard that is the safe
+// side (OD-023-5). Symbol-only terms ("%") are matched on the NFKC text instead.
+// ponytail: cross-script homoglyphs (Cyrillic "а" in "runаway") are not folded; that needs a
+// confusables table — add one if a reviewed field ever exploits it.
+const IGNORABLE = /\p{Default_Ignorable_Code_Point}/gu;
+const NOT_WORD = /[^\p{L}\p{M}\p{N}]/gu;
 
-// Hyphens and dashes read as a space, so "run-away" and "ran\u2011away" match "run away".
-const DASHES = /[-_\u2010-\u2015\u2212]/gu;
+const nfkc = (text: string) => text.normalize("NFKC").replace(IGNORABLE, "").toLowerCase();
 
 export function normaliseForGuard(text: string): string {
-  return text.normalize("NFC").replace(INVISIBLE, "").replace(DASHES, " ").replace(/\s+/gu, " ").toLowerCase();
+  return nfkc(text).replace(NOT_WORD, "");
 }
 
-const NORMALISED: ReadonlyArray<readonly [BannedGroup, string]> = Object.entries(BANNED_TERMS).flatMap(
-  ([group, terms]) => terms.map((t) => [group as BannedGroup, normaliseForGuard(t)] as const),
+const NORMALISED = Object.entries(BANNED_TERMS).flatMap(([group, terms]) =>
+  terms.map((t) => {
+    const skeleton = normaliseForGuard(t);
+    return { group: group as BannedGroup, term: skeleton || nfkc(t), onSkeleton: skeleton !== "" };
+  }),
 );
 
 // The first banned group found, or null when the text is allowed.
 export function findBannedGroup(text: string): BannedGroup | null {
-  const haystack = normaliseForGuard(text);
-  for (const [group, term] of NORMALISED) if (haystack.includes(term)) return group;
+  const plain = nfkc(text);
+  const skeleton = plain.replace(NOT_WORD, "");
+  for (const { group, term, onSkeleton } of NORMALISED) {
+    if ((onSkeleton ? skeleton : plain).includes(term)) return group;
+  }
   return null;
 }
 
