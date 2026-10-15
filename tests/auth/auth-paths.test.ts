@@ -58,7 +58,13 @@ describe("role → home after sign-in (D3 §1)", () => {
   it("reopens a path only inside the signed-in role's own area (OD-031-7)", () => {
     expect(destinationAfterSignIn(pendingOfficer, "/officer/case/abc")).toBe("/staff"); // no S-016 + access.denied
     expect(destinationAfterSignIn(staff, "/admin/users")).toBe("/staff");
-    expect(destinationAfterSignIn(admin, "/officer/map")).toBe("/admin");
+    // D3 §1: admins read S-011 and S-012 under /officer, but nothing else there.
+    expect(destinationAfterSignIn(admin, "/officer/map")).toBe("/officer/map");
+    expect(destinationAfterSignIn(admin, "/officer/case/abc?tab=audit")).toBe("/officer/case/abc?tab=audit");
+    expect(destinationAfterSignIn(admin, "/officer/queue")).toBe("/admin");
+    expect(destinationAfterSignIn(admin, "/officer/mapping")).toBe("/admin");
+    expect(destinationAfterSignIn(staff, "/officer/map")).toBe("/staff");
+    expect(destinationAfterSignIn(pendingOfficer, "/officer/case/abc")).toBe("/staff");
     expect(destinationAfterSignIn(admin, "/admin/users?x=1")).toBe("/admin/users?x=1");
   });
 

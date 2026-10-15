@@ -3,7 +3,7 @@
 const bn = {
   appName: "ফেরা",
   demoBanner: "সিনথেটিক তথ্য · কর্মকর্তা যাচাই সিমুলেশন", // D4 §15.1 demo banner
-  metaDescription: "নিখোঁজ ও পাওয়া-যাওয়া শিশুর কেস সমন্বয়ের সিনথেটিক তথ্যভিত্তিক প্রোটোটাইপ",
+  metaDescription: "নিখোঁজ ও খুঁজে পাওয়া শিশুর কেস সমন্বয়ের সিনথেটিক তথ্যভিত্তিক প্রোটোটাইপ",
   demoBannerRegion: "ডেমো নোটিশ",
   languageToggleLabel: "ভাষা",
   skipToContent: "মূল অংশে যান",

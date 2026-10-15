@@ -70,15 +70,22 @@ export function returnTarget(next: string | null | undefined): string | null {
 
 const firstSegment = (path: string) => pathnameOf(path).split("/")[1] ?? "";
 
-// After API-020 succeeds: back to the same URL (D3 §6) when it sits in the signed-in
-// role's own area (same first segment as its home), else the role home. So an
-// unverified officer whose session expired on /officer/... lands on /staff instead of a
-// SCREEN-016 plus an access.denied row. Admins lose the return to /officer/map and
-// /officer/case/... (OD-031-7).
+// D3 §1: admins also read S-011 (map) and S-012 (case detail), which live under /officer.
+const ADMIN_READ_PATHS = ["/officer/map", "/officer/case"];
+
+const within = (pathname: string, prefix: string) => pathname === prefix || pathname.startsWith(`${prefix}/`);
+
+// After API-020 succeeds: back to the same URL (D3 §6) when the signed-in role may open
+// it (its own area, plus the admin read pages), else the role home. So an unverified
+// officer whose session expired on /officer/... lands on /staff instead of a SCREEN-016
+// plus an access.denied row (OD-031-7).
 export function destinationAfterSignIn(session: SignedInSession, next: string | null | undefined): string {
   const home = homeForSession(session);
   const target = returnTarget(next);
-  return target && firstSegment(target) === firstSegment(home) ? target : home;
+  if (!target) return home;
+  if (firstSegment(target) === firstSegment(home)) return target;
+  const adminRead = session.role === "admin" && ADMIN_READ_PATHS.some((prefix) => within(pathnameOf(target), prefix));
+  return adminRead ? target : home;
 }
 
 export type SignInAudience = "staff" | "officer" | "admin";

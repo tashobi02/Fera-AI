@@ -99,15 +99,21 @@ Safeguarding, security, react/TS and Bengali reviews were PASS at `9a99610`. No 
 
 ## Open decisions
 
-- **OD-031-1 Role home paths.** D3 §1 names screens, not URLs. This lane keeps TASK-006's `roleHome`: `/staff` (S-007), `/officer` (S-009), `/admin` (S-013). AGENTS.md lists `(desk)/officer/{queue,…}`, so S-009 might live at `/officer/queue`; then `/officer` must redirect there or `roleHome` changes. Masnun/Sadman to confirm.
+- **OD-031-1 Role home paths — closed 2026-10-15 (Mahim):** the officer home is `/officer`. Earlier note: D3 §1 names screens, not URLs. This lane keeps TASK-006's `roleHome`: `/staff` (S-007), `/officer` (S-009), `/admin` (S-013). AGENTS.md lists `(desk)/officer/{queue,…}`, so S-009 might live at `/officer/queue`; then `/officer` must redirect there or `roleHome` changes. Masnun/Sadman to confirm.
 - **OD-031-2 Strings without D3/D4 source**, reviewed by the Bengali reviewer at `9a99610` and revised in round 1: staff/admin titles, intro, return note, required-field messages, show/hide words, busy texts, the wait-a-little E-007 fallback, demo texts and role labels, the demo announcement and the S-016 home label.
 - **OD-031-3 S-016 illustration.** D4 §14 asks for a line illustration; DESIGN.md's Fera overrides allow illustration only on parent screens, and S-016 is shared. A Lucide `search-x` icon tile is used.
 - **OD-031-4 Double session lookup on a wrong-role 404.** `requireRole` resolves the principal, then the not-found page resolves it again for its surface and home link: two user-row reads per denied visit. Not changed.
 - **OD-031-5 E-007 has no live countdown.** The submit stays enabled; attempts while limited are refused before any password check and are not counted (TASK-006 limiter).
 - **OD-031-6 (closed).** The demo hint no longer reads `SEED_ADMIN_USER`; it shows the fixed `admin.demo` or leaves the admin row out.
-- **OD-031-7 Return only within the role's own area.** `next` is reopened only when its first segment matches the role home's. This avoids S-016 + `access.denied` for a role that cannot open the page (an unverified officer whose session expired on `/officer/…`), but admins lose the return to `/officer/map` and `/officer/case/…` (D3 lets admins read S-011/S-012) and land on `/admin`.
+- **OD-031-7 Return only where the role may go — updated 2026-10-15:** admins now also return to `/officer/map` and `/officer/case/…` (the S-011/S-012 read pages D3 §1 gives them); everything else outside a role's own area still lands on the role home. Earlier note: `next` is reopened only when its first segment matches the role home's. This avoids S-016 + `access.denied` for a role that cannot open the page (an unverified officer whose session expired on `/officer/…`), but admins lose the return to `/officer/map` and `/officer/case/…` (D3 lets admins read S-011/S-012) and land on `/admin`.
 - Assumptions made without a human answer (impeccable shape): Operate mode; one column ≤ 400 px; demo usernames clickable to fill the field; the return note only for deep paths.
 
 ## Review round 2 (2026-10-15)
 
 `a11y-architect` re-review of the round-1 fixes: PASS (B1 and W1–W7 fixed; lowest new border contrast 3.96:1, Paper on canvas). `fera-safeguarding-reviewer` re-review: PASS. WARNs fixed in the round-2 commit: the return note now says the page reopens only if the role can open it (OD-031-7); whitespace alone no longer clears the username error; editing the username ends the demo-fill announcement so a repeat fill is read again; the border-token test now requires exactly 2 inputs plus the toggle to carry the base `border-control` class. Still open: OD-031-1 (role home paths), OD-031-7 (admins no longer return to `/officer/...`; needs an owner decision), `metaDescription` wording (Mahim).
+
+## Owner decisions (2026-10-15)
+
+- OD-031-1 closed by Mahim: the officer home stays `/officer`.
+- OD-031-7: admins return to `/officer/map` and `/officer/case/…` after sign-in (D3 §1 read access); tests added in `tests/auth/auth-paths.test.ts`.
+- `metaDescription` (bn) changed by Mahim's decision to "নিখোঁজ ও খুঁজে পাওয়া শিশুর কেস সমন্বয়ের সিনথেটিক তথ্যভিত্তিক প্রোটোটাইপ" (was "পাওয়া-যাওয়া", which reads as "comings and goings").
