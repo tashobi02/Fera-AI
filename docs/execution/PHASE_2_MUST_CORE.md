@@ -165,6 +165,7 @@ Tick only from the gate report (`fera-gate`), with evidence linked. Run on the *
 Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
 ### Obidit
+- 2026-10-15 19:50 · Claude Code (Haiku) · obidit-vercel-framework · TASK-001 note: vercel.json pins framework "nextjs" so previews stop failing with STATIC_BUILD_NO_OUT_DIR (deploy owner Mahim to confirm).
 ### Masnun
 ### Mahim (lead)
 - 2026-10-14 17:35 · Claude Code · mahim-api · TASK-007 `todo` → `review`; shared API layer and 92 tests at `a33d9af`; in-memory limiter, real principal resolver waits for TASK-006.
