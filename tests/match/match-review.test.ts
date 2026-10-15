@@ -93,6 +93,7 @@ describe("buildConfirm / buildReject", () => {
     expect(buildReject(view, "  ")).toEqual({ ok: false, reason: "reason-required" });
     expect(buildReject(view, "ab")).toEqual({ ok: false, reason: "reason-length" });
     expect(buildReject(view, "x".repeat(501))).toEqual({ ok: false, reason: "reason-length" });
+    expect(buildReject(view, "\u200B\u200B\u200B\u200B")).toEqual({ ok: false, reason: "reason-length" });
     const ok = buildReject(view, "পোশাক আলাদা");
     expect(ok.ok && ok.request).toMatchObject({ decision: "reject", reason: "পোশাক আলাদা", expected_missing_version: view.missing.version });
   });

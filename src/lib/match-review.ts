@@ -18,6 +18,7 @@ import {
   type OfficerCaseView,
 } from "@/contracts";
 import { retryAfterSeconds } from "@/lib/sign-in-errors";
+import { visibleLength } from "@/lib/visible-text";
 
 export type Verdict = "agree" | "differ" | "unknown" | "review";
 export type CompareField = "sex" | "age" | "height" | "district" | "place" | "time" | "clothing" | "marks" | "circumstances";
@@ -150,7 +151,8 @@ export function buildReject(view: CandidateDecisionView, reason: string): Decisi
   const trimmed = reason.trim();
   if (trimmed === "") return { ok: false, reason: "reason-required" };
   const length = [...trimmed].length;
-  if (length < REJECT_REASON_MIN || length > REJECT_REASON_MAX) return { ok: false, reason: "reason-length" };
+  // Invisible characters (zero-width spaces) must not satisfy the 3-character minimum.
+  if (visibleLength(trimmed) < REJECT_REASON_MIN || length > REJECT_REASON_MAX) return { ok: false, reason: "reason-length" };
   const parsed = decisionRequestSchema.safeParse({
     decision: "reject",
     reason: trimmed,
