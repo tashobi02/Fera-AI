@@ -2,7 +2,15 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
-function contractPatterns({ server }) {
+// Route and page code reaches the case service only through its barrel (TASK-015):
+// @/server/case/internal and the deep modules (state, lock, tx, candidates…) take an
+// AuditActor rather than a Principal and are for src/server (matcher, tests) only.
+const CASE_INTERNALS = {
+  group: ["@/server/case/*", "**/server/case/*", "!@/server/case/index"],
+  message: "Import the case service from @/server/case; its internals are for src/server only.",
+};
+
+function contractPatterns({ server, app = false }) {
   const patterns = [
     {
       group: ["@/contracts/examples", "**/contracts/examples", "@/contracts/client-examples", "**/contracts/client-examples", "@/contracts/client-examples.json", "**/contracts/client-examples.json"],
@@ -16,6 +24,7 @@ function contractPatterns({ server }) {
       message: "Server-only contracts: import from a route handler or src/server, never UI code. Use @/contracts/access for permission helpers.",
     });
   }
+  if (app) patterns.push(CASE_INTERNALS);
   return patterns;
 }
 
@@ -37,10 +46,17 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    files: ["src/app/**/*.ts"],
+    ignores: ["src/**/fakes/**", "src/**/*.test.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: contractPatterns({ server: false, app: true }) }],
+    },
+  },
+  {
     files: ["src/components/**/*.{ts,tsx}", "src/app/**/*.tsx", "src/hooks/**/*.{ts,tsx}", "src/lib/**/*.client.{ts,tsx}"],
     ignores: ["src/**/fakes/**", "src/**/*.test.{ts,tsx}"],
     rules: {
-      "no-restricted-imports": ["error", { patterns: contractPatterns({ server: true }) }],
+      "no-restricted-imports": ["error", { patterns: contractPatterns({ server: true, app: true }) }],
     },
   },
   globalIgnores([

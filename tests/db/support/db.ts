@@ -162,7 +162,7 @@ export async function insertMissing(app: ClientBase, opts: { status?: string } =
       `[MOCK] raw text for ${ref}`, name, `Synthetic Latin ${ref}`,
       `[MOCK] clothing ${ref}`, `[MOCK] marks ${ref}`, `[MOCK] circumstances ${ref}`, at,
       `[MOCK] place ${ref}`, MOCK_DISTRICT, phone, `GD-${ref}`,
-      JSON.stringify({ "child.name": { source_text: name, start: 0, end: name.length } }),
+      JSON.stringify({ "child.name": { quote: name, start_utf16: 0, end_utf16: name.length, derivation: "direct" } }),
       `[${Array(384).fill(0.01).join(",")}]`,
     ],
   );

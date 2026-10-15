@@ -9,17 +9,21 @@
 //   page-denial hook, then notFound() (SCREEN-016, same as E-004), so a page never
 //   confirms that a record or an area exists (BR-010, D2B E-004). An unverified officer
 //   has staff permissions (BR-024).
-// - The hook is TASK-015's audit writer (setPageAuditDenied, or the `auditDenied` option).
-//   Until one is installed, or when it throws, the guard fails closed: it throws, so the
-//   visitor sees the error page rather than SCREEN-016 — mirroring the API layer, where a
-//   signed-in denial without audit is E-021 (compose.ts).
+// - The hook is TASK-015's audit writer (src/server/audit/denied.ts), installed as the
+//   default below; setPageAuditDenied or the `auditDenied` option replace it. With no
+//   hook (setPageAuditDenied(null)), or when it throws, the guard fails closed: it throws,
+//   so the visitor sees the error page rather than SCREEN-016 — mirroring the API layer,
+//   where a signed-in denial without audit is E-021 (compose.ts). A hook failure is
+//   logged as audit.unavailable and rethrown as PageAuditUnavailableError.
 // - Reads the raw Cookie header, so duplicated cookies are refused exactly as in route
 //   handlers. It never mints a parent session (that happens on API-001/002).
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { effectiveRole, type EffectiveRole, type Principal } from "@/contracts/server";
 import { isProductionEnv, secureCookiesFor } from "@/app/api/_shared/cookies";
+import { createLogger, describeError } from "@/app/api/_shared/log";
 import { safeReturnPath, signInPath } from "@/lib/auth-paths";
+import { auditPageDenied } from "@/server/audit/denied";
 import { defaultAuth } from "./default";
 import { cookieSourceFromHeader } from "./tokens";
 
@@ -55,9 +59,11 @@ export class PageAuditUnavailableError extends Error {
   }
 }
 
-let pageAuditDenied: PageAuditDenied | null = null;
+// TASK-015: the access.denied writer is installed by default (one audit_log row as fera_app).
+let pageAuditDenied: PageAuditDenied | null = auditPageDenied;
+const logger = createLogger();
 
-// TASK-015 installs the audit writer here at server start.
+// Replaces the installed hook; null removes it, so a denial fails closed.
 export function setPageAuditDenied(hook: PageAuditDenied | null): void {
   pageAuditDenied = hook;
 }
@@ -81,7 +87,13 @@ export async function requireRole(
       const hook = opts.auditDenied ?? pageAuditDenied;
       if (!hook) throw new PageAuditUnavailableError();
       const path = safeReturnPath(returnTo)?.split("?", 1)[0] ?? "/";
-      await hook({ principal, role, path, errorId: "E-004", reason: "role", caseId: null });
+      try {
+        await hook({ principal, role, path, errorId: "E-004", reason: "role", caseId: null });
+      } catch (err) {
+        // Safe facts only (class, code, frame), then fail closed to the error page.
+        logger.error({ event: "audit.unavailable", stage: "audit", error_id: "E-021", original_error_id: "E-004", ...describeError(err) });
+        throw new PageAuditUnavailableError();
+      }
     }
     notFound();
   }

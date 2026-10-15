@@ -21,6 +21,8 @@ describe("database pool", () => {
     expect(options.connectionTimeoutMillis).toBe(5000);
     expect(options.max).toBe(5);
     expect(options.statement_timeout).toBeUndefined();
+    expect(options.query_timeout).toBe(31000);
+    expect(options.keepAlive).toBe(true);
     expect(pool.totalCount).toBe(0);
     await closePool();
     expect(() => getPool({})).toThrow(DatabaseConfigError);

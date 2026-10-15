@@ -301,8 +301,10 @@ export function createRouteFactory(deps: RouteDeps) {
           apiError = new ApiError("E-021", { reason: stage === "resolver" ? "resolver" : undefined });
         }
 
-        // Every signed-in guard denial and every E-004 writes access.denied (BR-010).
-        if (principal && effectiveRole(principal) !== null && (guardDenial || apiError.id === "E-004")) {
+        // Every signed-in guard denial and every E-003/E-004 (from the guard or thrown by
+        // a handler or service) writes access.denied (BR-010, API-OD-7).
+        const denial = guardDenial || apiError.id === "E-004" || apiError.id === "E-003";
+        if (principal && effectiveRole(principal) !== null && denial) {
           try {
             await auditDenied({
               principal,
