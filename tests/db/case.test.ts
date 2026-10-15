@@ -31,7 +31,7 @@ import { setPoolForTests } from "@/server/db/pool";
 import { captureLogs } from "../api/fakes";
 import { testParent, testUser } from "../support/principals";
 import {
-  MOCK_DISTRICT, addCandidate, connect, createActors, dbTestsEnabled, expectPgError, fakePhone, one, pool, seedReference, type Actors,
+  MOCK_DISTRICT, addCandidate, connect, createActors, dbTestsEnabled, expectPgError, fakePhone, insertMissing, one, pool, seedReference, type Actors,
 } from "./support/db";
 
 const CHECKLIST = {
@@ -589,6 +589,12 @@ describe.skipIf(!dbTestsEnabled)("case service on PostgreSQL 16 (TASK-015)", () 
       expect(await readCase(await newParent(), m.id, ctx())).toEqual({ kind: "hidden", caseId: m.id });
       expect(await readCase(officer, randomUUID(), ctx())).toEqual({ kind: "hidden", caseId: null });
       expect(await readCase(officer, "not-a-uuid", ctx())).toEqual({ kind: "hidden", caseId: null });
+    });
+
+    it("reads a row seeded with SQL whose provenance follows evidenceSpanSchema (seed/import shape)", async () => {
+      const seeded = await insertMissing(appClient);
+      const read = await readCase(officer, seeded.id, { pool: app, requestId: randomUUID() });
+      expect(read.kind === "ok" && read.view.view).toBe("officer");
     });
   });
 });

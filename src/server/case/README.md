@@ -66,6 +66,9 @@ return result.response; // DecisionResponse: referral_state "recorded", referral
 - Confirm runs one transaction. It locks the officer, then both endpoints plus every report that shares a pending candidate with them (ascending UUID), then the candidates. It records the decision, confirms the candidate and voids competitors. It writes `match.confirm`, the simulated referral record and `referral.recorded`. It moves missing to `confirmed` and found to `referred`, stepping through `matched_pending_review` if an endpoint was still `open`. Every other affected report goes back to `open` when it has no pending candidate left.
 - Reject writes a reasoned decision, sets the candidate to rejected, writes `match.reject`, and reopens the pair when no pending candidate remains. The same pair at the same versions cannot be inserted again (unique key, BR-019).
 - There is no "defer" decision (`decision_t` is confirm | reject). A candidate left pending is deferred.
+- Route and page code may import only `@/server/case`. ESLint refuses `@/server/case/internal` and the deep modules under `src/app/**`, so the matcher lives in `src/server/matching`.
+- Admin-triggered rematch (API-014) must pass `SYSTEM_ACTOR`, not `actorFor(admin)`, to `reconcileQueueState` / `voidPendingCandidates`. Admins may write only `access.denied`, so an admin actor fails closed (E-021).
+- Seed and import rows (TASK-019, COMP-019) must write `provenance` entries that pass `evidenceSpanSchema` (`quote`, `start_utf16`, `end_utf16`, `derivation`). Validate before INSERT: a row with another shape cannot be decoded, and every read, decision and close on it fails with E-021.
 
 ## Mahim — API-011 close, API-013 audit (TASK-029)
 

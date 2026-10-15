@@ -10,6 +10,7 @@
 //
 // E-004 needs no row here: the API layer already writes access.denied for it.
 import { ApiError } from "@/app/api/_shared/envelope";
+import { createLogger, describeError, type Logger } from "@/app/api/_shared/log";
 import { isUuid } from "@/contracts";
 import type { ApiId, Principal } from "@/contracts/server";
 import { actorFor, appendAudit, type CaseAuditAction } from "@/server/audit";
@@ -19,6 +20,8 @@ import { withTransaction } from "./tx";
 
 export const REFUSAL_ERROR_IDS = ["E-005", "E-017", "E-018"] as const;
 type RefusalId = (typeof REFUSAL_ERROR_IDS)[number];
+
+let logger: Logger | undefined;
 
 export class RefusalAuditError extends Error {
   constructor() {
@@ -63,8 +66,10 @@ export async function auditRefusals<T>(
           requestId: ctx.requestId,
           details: { error_id: err.id, api: target.api },
         });
-      }, { pool: ctx.pool, attempts: 1 });
-    } catch {
+      }, { pool: ctx.pool, attempts: 2 });
+    } catch (auditErr) {
+      // tx.ts logs database failures; this also covers AuditWriteError (no SQLSTATE).
+      (logger ??= createLogger()).error({ event: "audit.unavailable", ...describeError(auditErr) });
       throw new RefusalAuditError();
     }
     throw err;

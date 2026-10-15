@@ -175,6 +175,7 @@ Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 - 2026-10-15 01:00 · Claude Code · mahim-auth · TASK-006 stays `review`; fera-review BLOCKs (page-denial audit, open redirect) and WARNs fixed; test 616 / test:db 79 pass; re-review pending.
 - 2026-10-15 05:02 · Claude Code · mahim-case · TASK-015 `todo` → `review`; case service + audit logger + denial hooks at `e0879e8`; test 760 / test:db 113 (case 34) pass; TC-032 and TC-016 pass locally; OD-015-1–13 for owner review; fera-review pending.
 - 2026-10-15 05:26 · Claude Code · mahim-case · TASK-015 stays `review`; fera-review round 1: PASS, WARN fixes at `ada7429` (command-only barrel + internal.ts, officer-only terminal steps, *.refused audits after rollback, handler E-003 audited, safe tx logging, typed row decoding); test 772 ×2 / test:db 116 (case 37) pass; OD-015-14–17 added.
+- 2026-10-15 10:52 · Claude Code · mahim-case · TASK-015 stays `review`; fera-review round 2 (safeguarding + security on the fixes): PASS; lint boundary for case internals, refusal-audit retry/log, seed provenance shape; test 772 / test:db 117 (case 38).
 
 ## Audit amendments (2026-10-12)
 

@@ -44,6 +44,22 @@ All five reviewers returned **PASS**: safeguarding, database, security, TypeScri
 | 12 | Audit actors | `ACTION_ACTORS` in `checkAuditEntry`: `match.*`, `referral.recorded`, `case.closed`, `case.close.refused` and `case.contact_viewed` are officer-only; `case.edited` and `case.edit.refused` are parent-only; admins write only `access.denied`. |
 | nice | 55P03, timestamps, hook test | A lock timeout is retried once, with a 10–40 ms × attempt jittered backoff before each retry. `decided_at` and `closed_at` written by the app use `clock_timestamp()`. The source-grep hook test was replaced by `tests/case/hooks-default.test.ts`, which goes through the real default resolver, `defineRoute` and `requireRole`. `server-only` is not installed, so OD-015-15 applies. |
 
+## Review round 2 (re-review of `9efd0ef..c4bd049`, 2026-10-15)
+
+`fera-safeguarding-reviewer` PASS and `security-reviewer` PASS, no BLOCK. WARNs fixed in the round-2 commit:
+
+| WARN | Fix |
+|---|---|
+| `internal.ts` was a convention only | ESLint `no-restricted-imports` refuses `@/server/case/*` (anything but the barrel) under `src/app/**` |
+| Refusal audit never retried; its cause was lost | `attempts: 2`, and the failure is logged as `audit.unavailable` via `describeError` before `RefusalAuditError` |
+| Strict provenance decoding vs other seed shapes | The decode stays strict (contract shape). The test seed helper is corrected to `evidenceSpanSchema`, a DB test reads a SQL-seeded row through `readCase`, and the README tells the seed/import lanes to validate |
+| Admin rematch actor | README: API-014 uses `SYSTEM_ACTOR` |
+| Audit growth incl. `*.refused` | OD-015-14 extended; per-principal limit needed on API-005/010/011 |
+
+Not changed: a distinct log event for the RowShape/StepAuthority classes (they log `handler.threw` with the class name), and a schema lint against dynamic `RAISE … USING TABLE/CONSTRAINT`.
+
+After round 2: lint, typecheck and build exit 0; `npm test` 772 passed, 117 skipped; `npm run test:db` 117/117 (case 38).
+
 ## Verification (2026-10-15, local, after review round 1 at `ada7429`)
 
 | Command | Exit | Result |
@@ -104,7 +120,7 @@ DB tests (`tests/db/case.test.ts`, 34, as `fera_app`):
 - **No routes or UI.** API-003/005/006/007/010/011/013/004 handlers belong to the consuming tasks. The service is tested directly, not through HTTP. The HTTP-level parts of TC-010/022/052 wait for those routes.
 - **Matching is not triggered.** Create and edit leave `matching_state = 'queued'`. Embedding, duplicate checks and the matcher are TASK-016/017/018. Candidate rows in the tests come from the test helper `addCandidate`, which does no locking and writes no audit.
 - **Redaction-time idempotency gap** (OD-015-4) is open.
-- **Review.** fera-review round 1: PASS, with the WARN items fixed in `ada7429`. A re-review of the fixes has not been run.
+- **Review.** fera-review round 1: PASS (WARNs fixed in `ada7429`); round 2 safeguarding + security re-review of the fixes: PASS (WARNs fixed in the round-2 commit). Typescript, database and silent-failure reviewers did not re-run on the fixes.
 - **Hosted environment.** Hosted Supabase and Vercel behaviour, CI and the multi-instance lock timeout under load are **UNKNOWN**.
 
 ## Open decisions
