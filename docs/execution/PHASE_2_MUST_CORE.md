@@ -96,7 +96,7 @@ When one of these merges, tell the waiting person straight away; they rebase and
 | TASK-033 | Demo-safe cache + fixtures for 3 cases + cached badge (COMP-017/048) | B · Claude Code | TASK-020, 019 | 3 | TC-021 passes on laptop | `todo` | | |
 | TASK-023 | Output templates GD/poster + wording guard + API-006 (COMP-010/016) | C · Claude Code | TASK-015 | 4 | TC-005, TC-024 pass | `todo` | | |
 | TASK-021 | S-001/S-002 intake chat + recorder (COMP-024–027) | C · Claude Code + `impeccable` | TASK-008, 014, 020 | 7 | Voice and text paths work on phone | `todo` | | |
-| TASK-022 | S-003 review + API-003 + draft persistence (review-before-submit) | C · Claude Code + `impeccable` | TASK-015, 021 | 5 | TC-004, TC-031 pass | `todo` | | |
+| TASK-022 | S-003 review + API-003 + draft persistence (review-before-submit) | C · Claude Code + `impeccable` | TASK-015, 021 | 5 | TC-004, TC-031 pass | `in progress` | `phase2--obidit-review-submit` (uncommitted) | [intake-submit-api](evidence/intake-submit-api.md): API-003 server half built (OD-022-1..8 open); S-003 UI pending |
 | TASK-040 (record) | 60 WER clips recorded, 19:00–22:00, with 2–3 friends | human | TASK-014 | — | 60 clips stored with consent note; run happens in Phase 3 | `todo` | | |
 
 ## Tasks — Masnun
@@ -165,6 +165,7 @@ Tick only from the gate report (`fera-gate`), with evidence linked. Run on the *
 Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
 ### Obidit
+- 2026-10-16 00:52 · Codex · obidit-review-submit · TASK-022 stays `in progress`; API-003 accepts and ignores schema-valid draft tokens with one safe log event, malformed tokens remain E-001; OD-022-2 documents same-UUID retry after E-021, OD-022-7/8 added; tests/intake 24 + tests/db/submit 10 pass, test 958 passed/127 skipped, test:db 127/127; lint/typecheck pass; S-003 review UI and device draft persistence pending.
 ### Masnun
 ### Mahim (lead)
 - 2026-10-14 17:35 · Claude Code · mahim-api · TASK-007 `todo` → `review`; shared API layer and 92 tests at `a33d9af`; in-memory limiter, real principal resolver waits for TASK-006.

@@ -80,6 +80,7 @@ export type HandlerInput<A extends ApiId, P, Q, B> = {
   api: A;
   principal: PrincipalFor<A>;
   role: RoleFor<A>;
+  logger: Logger;
   params: P;
   query: Q;
   body: B;
@@ -270,6 +271,7 @@ export function createRouteFactory(deps: RouteDeps) {
           api: spec.api,
           principal: principal as PrincipalFor<A>,
           role: role as RoleFor<A>,
+          logger,
           params,
           query,
           body,
