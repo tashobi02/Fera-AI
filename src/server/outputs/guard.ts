@@ -42,12 +42,16 @@ export type BannedGroup = keyof typeof BANNED_TERMS;
 // ponytail: cross-script homoglyphs (Cyrillic "а" in "runаway") are not folded; that needs a
 // confusables table — add one if a reviewed field ever exploits it.
 const IGNORABLE = /\p{Default_Ignorable_Code_Point}/gu;
+// Combining marks outside the Bengali block are decoration here ("run\u0332away"); Bangla
+// vowel signs, nukta and hasanta carry meaning and stay.
+const DECORATION = /(?![\u0980-\u09FF])\p{M}/gu;
 const NOT_WORD = /[^\p{L}\p{M}\p{N}]/gu;
 
 const nfkc = (text: string) => text.normalize("NFKC").replace(IGNORABLE, "").toLowerCase();
 
+// NFKC again after the removals, so a vowel sign split by junk ("পে-ৗঁছে") recomposes (ৌ).
 export function normaliseForGuard(text: string): string {
-  return nfkc(text).replace(NOT_WORD, "");
+  return nfkc(text).replace(DECORATION, "").replace(NOT_WORD, "").normalize("NFKC");
 }
 
 const NORMALISED = Object.entries(BANNED_TERMS).flatMap(([group, terms]) =>
@@ -60,7 +64,7 @@ const NORMALISED = Object.entries(BANNED_TERMS).flatMap(([group, terms]) =>
 // The first banned group found, or null when the text is allowed.
 export function findBannedGroup(text: string): BannedGroup | null {
   const plain = nfkc(text);
-  const skeleton = plain.replace(NOT_WORD, "");
+  const skeleton = normaliseForGuard(text);
   for (const { group, term, onSkeleton } of NORMALISED) {
     if ((onSkeleton ? skeleton : plain).includes(term)) return group;
   }

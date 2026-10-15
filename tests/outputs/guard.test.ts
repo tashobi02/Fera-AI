@@ -43,6 +43,11 @@ describe("wording guard", () => {
       expect(findBannedGroup(v), v).toBe("runaway");
     }
     expect(findBannedGroup("ＡＬＥＲＴ")).toBe("alert");
+    // Codex third review: a split Bangla vowel sign and decorative combining marks.
+    expect(findBannedGroup("পে\u034Fৗঁছে গেছে")).toBe("delivered");
+    expect(findBannedGroup("পে-ৗঁছে গেছে")).toBe("delivered");
+    expect(findBannedGroup("run\u0332away child")).toBe("runaway");
+    expect(findBannedGroup("al\u0332ert")).toBe("alert");
     expect(findBannedGroup("৮৭％ মিল")).toBe("probability");
   });
 
