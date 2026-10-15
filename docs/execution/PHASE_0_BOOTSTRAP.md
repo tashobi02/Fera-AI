@@ -59,7 +59,7 @@ This is a living tracker. Every agent working on a task in this phase updates it
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | TASK-004 | Spike: local embedding model on Vercel (OQ-023, RISK-015) | Codex | TASK-001 | 3 | Report: cold start, size; decision local vs API | `todo` | | |
-| TASK-009 | District data: 64 rows bn/en/centroids + neighbours | Codex | TASK-002 | 3 | `npm run seed` loads 64 districts | `todo` | | |
+| TASK-009 | District data: 64 rows bn/en/centroids + neighbours | Codex | TASK-002 | 3 | `npm run seed` loads 64 districts | `review` | branch `phase2--masnun-districts` (PR pending) | Unit/lint/typecheck/build green; **`npm run seed` and `test:db` not run (no Docker on this machine)**; data is AI-compiled and UNVERIFIED (DEP-004/A-019 check owner UNKNOWN). See [evidence](evidence/data-districts.md). |
 
 ## Tasks — Mahim (lead)
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
@@ -106,6 +106,7 @@ Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 - 2026-10-12 20:10 · Claude Code · — · KIT → review: replaced ECC self-config with pinned Fera kit; drafted constitution, fera-safeguarding-reviewer, fera-review, fera-gate, settings.json (backup ../fera-ecc-kit-backup-2026-10-12.tar.gz)
 - 2026-10-13 · Claude Code · — · tasks split into per-person tables (Mahim lead, Obidit, Masnun); KIT evidence updated: committed on `main`
 ### Masnun
+- 2026-10-15 23:07 · Claude Code · masnun-districts · TASK-009 `todo` → `review`; 64 districts + 280 directed edges and `npm run seed` implemented, fera-review PASS; DB run pending Docker, data unverified
 ### Mahim (lead)
 - 2026-10-14 15:57 · Claude Code · mahim-task001 · OQ-021 decided by Mahim: Supabase; status `review` until TASK-002 proves pgvector + HNSW on the host
 - 2026-10-14 15:57 · Claude Code · mahim-task001 · TASK-001 `todo` → `review`; local checks green, manual Vercel deploy Ready; awaiting PR CI and human merge
