@@ -2,8 +2,8 @@
 
 **Window:** Wed 14 Oct 2026, 07:00 → 16:00 (Asia/Dhaka) · **Gates:** G3 (13:00), G4 (16:00) · **Plan:** [EXECUTION_PLAN.md](EXECUTION_PLAN.md#phase-3--full-scope-and-quality-wed-14-oct-0700--1600--gates-g3-g4) · **Prev:** [Phase 2](PHASE_2_MUST_CORE.md) · **Next:** [Phase 4](PHASE_4_SUBMISSION.md)
 **Phase status:** `todo`
-**Last updated:** 2026-10-13 · tasks distributed among Obidit, Masnun and Mahim; lead = Obidit
-**Team:** **Obidit** — lead; intake, AI, outputs · **Masnun** — data, matching, officer workflow, dashboard, evaluation · **Mahim** — platform, integration, release (named "Sadman" in AGENTS.md and the spec pack; D6 owner code S). Tasks follow [EXECUTION_PLAN.md](EXECUTION_PLAN.md). The lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`.
+**Last updated:** 2026-10-13 · tasks distributed among Obidit, Masnun and Mahim; lead = Mahim
+**Team:** **Obidit** — intake, AI, outputs · **Masnun** — data, matching, officer workflow, dashboard, evaluation · **Mahim** — lead; platform, integration, release (named "Sadman" in AGENTS.md and the spec pack; D6 owner code S). Tasks follow [EXECUTION_PLAN.md](EXECUTION_PLAN.md). The lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`.
 
 ---
 
@@ -18,7 +18,7 @@ This is a living tracker. Every agent working on a task in this phase updates it
 5. If you are stuck, set the row to `blocked`, say what blocks it in Evidence, and add a log line.
 6. Edit only the rows in **your own person table** and **your log section**, so parallel lanes don't conflict. Never tick a gate box yourself. Gate boxes are ticked from the `fera-gate` report in [docs/gates/](../gates/).
 
-**Status values:** `todo` · `doing` · `review` · `done` · `blocked` · `cut`. Use `cut` only with approval from the lead (Obidit) and in the [D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommendation) cut order. Never cut review-before-submit, officer confirm, referral, audit or redaction.
+**Status values:** `todo` · `doing` · `review` · `done` · `blocked` · `cut`. Use `cut` only with approval from the lead (Mahim) and in the [D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommendation) cut order. Never cut review-before-submit, officer confirm, referral, audit or redaction.
 
 | Action | Claude Code | Codex | Antigravity / any other agent |
 |---|---|---|---|

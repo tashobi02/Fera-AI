@@ -19,6 +19,15 @@ Written by Mahim's agent so that Obidit and Masnun can work in parallel without 
 | Shell | `src/app/layout.tsx`, `globals.css`, `src/locales/` | DESIGN.md tokens, self-hosted Inter / JetBrains Mono / Noto Sans Bengali, bn/en toggle. New strings go in `src/locales/index.ts` (bn + en), never inline. |
 | Sign-in and not-found | `src/app/(auth)/sign-in/`, `src/app/not-found.tsx` (PR #12) | S-008 and S-016 (TASK-031). Input-border tokens `border-control` / `border-control-strong` (D4 §13, ≥3:1): use them for every text input. |
 
+## Knowledge graph (`graphify-out/`)
+A knowledge graph of this repo, built on `phase2` on 15 Oct. It covers `src/`, `db/`, `scripts/`, `tests/`, `specs/`, `docs/spec/`, `docs/execution/`, the agent guides and the handoff docs. The vendored kits, PDFs and screenshots are excluded; `.graphifyignore` lists the scope.
+- `graphify-out/GRAPH_REPORT.md`: start here. It lists the communities (e.g. "Case Commands", "Officer Decision Locks", "API Route Factory", "Contract Zod Schemas"), the god nodes, surprising cross-file links and suggested questions.
+- `graphify-out/graph.html`: interactive view; open it in a browser.
+- `graphify-out/graph.json`: raw graph for agents. With the graphify skill installed, ask `/graphify query "<question>"` before grepping (e.g. "what calls decideCandidate?", "which TCs does TASK-028 need?").
+- After your PR changes code or docs, refresh it with `/graphify . --update`, which re-extracts only changed files. Keep the update as its own commit.
+
+Known gaps: SQL files have no AST parser, so the schema and roles were extracted semantically. About 380 edges point to spec-pack nodes named differently in an older cache; they show as dangling.
+
 ## How to work
 1. **Branch as described in "Where to branch from" below.** Never run two writing agents in one worktree.
 2. **Open PRs into `phase2`,** never `main`. Keep them small, one D6 task each. Use Conventional Commits with IDs, e.g. `feat(intake): templates + wording guard [TASK-023]`.

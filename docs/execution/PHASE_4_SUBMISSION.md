@@ -2,8 +2,8 @@
 
 **Window:** Wed 14 Oct 2026, 16:00 → 21:00 (Asia/Dhaka). Working cutoff baseline **22:00**; organiser extension date/time UNKNOWN · **Gate:** G5 · **Plan:** [EXECUTION_PLAN.md](EXECUTION_PLAN.md#phase-4--submission-wed-14-oct-1600--2100--gate-g5) · **Prev:** [Phase 3](PHASE_3_FULL_SCOPE_QUALITY.md) · **Next:** [Phase 5–6](PHASE_5_BUFFER_FINALE.md)
 **Phase status:** `todo`
-**Last updated:** 2026-10-13 · tasks distributed among Obidit, Masnun and Mahim; lead = Obidit
-**Team:** **Obidit** — lead; intake, AI, outputs · **Masnun** — data, matching, officer workflow, dashboard, evaluation · **Mahim** — platform, integration, release (named "Sadman" in AGENTS.md and the spec pack; D6 owner code S). Tasks follow [EXECUTION_PLAN.md](EXECUTION_PLAN.md). The lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`.
+**Last updated:** 2026-10-13 · tasks distributed among Obidit, Masnun and Mahim; lead = Mahim
+**Team:** **Obidit** — intake, AI, outputs · **Masnun** — data, matching, officer workflow, dashboard, evaluation · **Mahim** — lead; platform, integration, release (named "Sadman" in AGENTS.md and the spec pack; D6 owner code S). Tasks follow [EXECUTION_PLAN.md](EXECUTION_PLAN.md). The lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`.
 
 ---
 
