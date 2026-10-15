@@ -40,7 +40,7 @@ Written by Mahim's agent so that Obidit and Masnun can work in parallel without 
 ## Where to branch from
 
 **Base every new branch on `origin/phase2`.** It is the team's integration branch for Phase 2 and the only branch with the whole platform. As of 15 Oct it is at `8a96b59` and contains:
-- `phase1`: the scaffold and CI (TASK-001), the local DB stack (TASK-002), the contracts (TASK-061, tag `contracts-v1`) and the shell (TASK-008);
+- the Phase 1 work (merged in through landing PRs, so the `phase1` branch itself isn't an ancestor): the scaffold and CI (TASK-001), the local DB stack (TASK-002), the contracts (TASK-061, tag `contracts-v1`) and the shell (TASK-008);
 - Mahim's Phase 2 PRs: #4 API layer (TASK-007), #6 DB rules (TASK-062), #9 auth (TASK-006), #10 (lands #4 and #6), #11 case service (TASK-015), #12 sign-in and not-found (TASK-031);
 - Obidit's specs `specs/002-intake-ai` (specify, clarify, plan).
 
@@ -52,7 +52,7 @@ Always `git fetch origin` first, so you branch from the latest `phase2`, not a s
 - any `phase*--mahim-*` lane branch: they are merged or Mahim's in-flight work;
 - the old `phase0-local-tooling--lane-b` and `phase1-specs--lane-a`: already merged into `phase2`.
 
-`scripts/agents/new-lane.sh` falls back to `main` when no matching feature branch exists, so use the commands below instead.
+`scripts/agents/new-lane.sh phase2 <owner>-<slug>` also works: it creates `phase2--<owner>-<slug>` from `origin/phase2`. Don't call it with any other first argument, though. When no branch matches, it falls back to `main`.
 
 **Naming:** `phase2--<owner>-<slug>`, one D6 task per branch. Examples: `phase2--obidit-templates` (TASK-023), `phase2--masnun-districts` (TASK-009). Spec-kit work gets its own branch, e.g. `phase2--masnun-spec004`.
 
@@ -63,7 +63,7 @@ git fetch origin
 git worktree add -b phase2--<owner>-<slug> ../fera-lanes/<owner>-<slug> origin/phase2
 cd ../fera-lanes/<owner>-<slug>
 npm ci
-cp ../../Fera-AI/.env.local .env.local   # only if you have one; never commit it, never paste it into a prompt
+# human step, only if you have one: cp <your Fera-AI clone>/.env.local .env.local   (never commit it, never open or paste it into a prompt)
 ```
 
 Without worktrees: `git fetch origin && git switch -c phase2--<owner>-<slug> origin/phase2`. Then use only one agent at a time in that clone.
@@ -74,7 +74,8 @@ Without worktrees: `git fetch origin && git switch -c phase2--<owner>-<slug> ori
 - Branch from that branch: `git worktree add -b phase2--masnun-synthetic ../fera-lanes/masnun-synthetic origin/phase2--masnun-districts`.
 - Still open the PR with **base `phase2`**, and write "Depends on #N, merge #N first" at the top.
 - Do **not** set the PR base to the other lane branch. Earlier, stacked PRs merged into lane branches instead of `phase2`, and the work had to be carried over by extra "landing" PRs.
-- Once #N merges, run `git fetch origin && git merge origin/phase2` in the dependent lane and push.
+- Merge #N with **"Create a merge commit"**, not squash or rebase. Then run `git fetch origin && git merge origin/phase2` in the dependent lane and push.
+- If #N was squashed anyway, rebuild the dependent lane on the new `phase2`: `git rebase --onto origin/phase2 <last commit of #N's branch> <dependent branch>`, then push with `--force-with-lease` (your own branch only).
 
 **Keep lanes current:**
 - After any PR merges into `phase2`, run `git fetch origin && git merge origin/phase2` in each open lane.
@@ -84,7 +85,7 @@ Without worktrees: `git fetch origin && git switch -c phase2--<owner>-<slug> ori
 **Finished lanes:** after the PR merges, remove the worktree with `git worktree remove ../fera-lanes/<owner>-<slug>` and delete its `node_modules` to save disk.
 
 ## Hard rules (from AGENTS.md and the constitution; these override any task text)
-- **Never read or print `.env*`** and never commit secrets. Never put provider keys in prompts. The one exception (AMD-CLAUDE-2): `.env.example` is a nonsecret template of variable *names* that you may read and edit. Real keys are typed by a human into `.env.local`, which is never read by an agent or committed.
+- **Never read or print `.env*`** and never commit secrets. Never put provider keys in prompts. The one exception (AMD-CLAUDE-2): `.env.example` is a nonsecret template of variable *names* that you may read and edit. Real keys are typed by a human into `.env.local`, which an agent never opens, prints or commits. The app may load it at runtime.
 - **Never push to `main`.** Never run `db:reset` against a non-local database.
 - **Don't edit** `docs/spec/`, `docs/markdown/`, `docs/code/`, `docs/MANIFEST.json`, `db/schema_v2.sql` or `src/contracts/` in a feature PR.
 - **Synthetic data only.** No photos, faces, ID documents or exact coordinates.

@@ -62,7 +62,7 @@ Do them in this order. Items 2 and 9 unblock Mahim, so treat them as priority.
 2. **TASK-023: output templates (GD + poster), wording guard, API-006 (COMP-010/016). Done when TC-005 and TC-024 pass.**
    - Dependency TASK-015 is **merged**.
    - Read the case with `readCase(principal, caseId, ctx)`. It checks ownership and returns the right projection. Never use raw rows.
-   - BR-022: templates use **only reporter-reviewed fields, plus fixed instructions and 13219**. Outputs are labelled draft ("খসড়া"). The poster export has its own preview/share acknowledgement and a choice about including contact details. Cache by case/type/version.
+   - BR-022: templates use **only reporter-reviewed fields, plus fixed instructions and 13219**. Outputs are labelled as drafts. Take the exact bn/en label from D3/D4 (S-004 and the output templates) or the locale file, and don't invent new copy. If no string exists, add bn + en keys to `src/locales/index.ts` and flag them for a Bangla review. The poster export has its own preview/share acknowledgement and a choice about including contact details. Cache by case/type/version.
    - The wording guard (D4 §2, BR-022) refuses at least: alert/broadcast, runaway/"পালিয়ে", rescue, returned/reunified, delivered, legal-compliance claims, and probability language ("similarity", not probability). Read D4 for the full list and test every banned term in bn and en.
    - **Unblocks Mahim's TASK-024 (S-004 outputs and poster PNG).**
 3. **Spec-kit:**
@@ -137,7 +137,7 @@ Do them in this order. Items 2 and 9 unblock Mahim, so treat them as priority.
 - Any change to `src/contracts/` or `db/schema_v2.sql` needs Mahim and Masnun to review it.
 
 ## Repo and deployments (Obidit runs these)
-- Vercel: keep preview deploys for `phase2` PRs if the Hobby plan allows it. Mahim deploys manually under his own Vercel account (project `fera-ai`) because the team integration fails for him.
+- Vercel: keep preview deploys for `phase2` PRs if the Hobby plan allows it. Mahim deploys manually under his own Vercel account (project `fera-ai`) because the team integration fails for him. This is recorded in the TASK-001 row of `docs/execution/PHASE_0_BOOTSTRAP.md`.
 - Never set `DEMO_MODE=1` on a public deploy: it shows demo usernames on the sign-in page. The code also refuses this on Vercel.
 - Hosted Supabase stays unused until Mahim's tasks are done. Then the team applies the schema and roles together. First check the hosted Postgres major version: the schema requires PG 16 with pgvector ≥ 0.8.1.
 

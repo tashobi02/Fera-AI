@@ -129,7 +129,7 @@ Do them in this order. Item 1 unblocks Obidit, and item 8 unblocks Mahim.
 | Phase 3: TASK-052 S-015 disaster mode | TASK-026 (yours) | Masnun |
 | Phase 3: TASK-036 two Android phones | TASK-030 (yours) | Masnun |
 | Phase 3: TASK-039 held-out run | TASK-011, 017, 018 and 064, plus the manifest/model freeze | Masnun |
-| Phase 3: TASK-060 performance, TASK-043 final evaluation | TASK-042 prod deploy (043 also needs 039, 040, 041) | Mahim, Obidit |
+| Phase 3: TASK-060 performance, TASK-043 final evaluation | TASK-042 prod deploy (Mahim). 043 also needs your TASK-039, Obidit's TASK-040 (WER) and Mahim's TASK-041 (timing study) | Mahim (042, 041), Obidit (040), Masnun (039) |
 
 ## What depends on Mahim
 - **Nothing blocks you today.** TASK-015 (case service and confirm), 007 (API layer), 062 (DB rules) and 006 (auth) are all merged.
