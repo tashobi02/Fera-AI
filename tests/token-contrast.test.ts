@@ -89,6 +89,11 @@ const nonTextPairs: [string, string][] = [
   ["focus-ring", "bg-canvas"],
   ["focus-ring", "bg-surface"],
   ["text-strong", "bg-segment-active"], // selected-language bar
+  // TASK-031: input boundaries (D4 §6 --color-border, §13), rest and hover/focus, on
+  // every surface an input can sit on.
+  ...(["border-control", "border-control-strong"] as const).flatMap((fg) =>
+    (["bg-canvas", "bg-surface", "bg-elevated", "bg-card", "bg-deep"] as const).map((bg): [string, string] => [fg, bg]),
+  ),
 ];
 
 describe.each(Object.entries(themes))("%s token contrast", (_name, t) => {
