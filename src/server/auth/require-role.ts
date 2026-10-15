@@ -19,41 +19,13 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { effectiveRole, type EffectiveRole, type Principal } from "@/contracts/server";
 import { isProductionEnv, secureCookiesFor } from "@/app/api/_shared/cookies";
+import { safeReturnPath, signInPath } from "@/lib/auth-paths";
 import { defaultAuth } from "./default";
 import { cookieSourceFromHeader } from "./tokens";
 
-export const SIGN_IN_PATH = "/sign-in";
-const RETURN_MAX_CHARS = 512;
-
-// Only a same-origin absolute path survives; anything else returns to the role home.
-// Dot segments are refused before parsing (also as %2e), because URL normalisation can
-// turn "/a/..//evil.example" into "//evil.example"; the normalised result must still
-// start with exactly one "/".
-const DOT_SEGMENT = /^(?:\.|%2e){1,2}$/i;
-
-export function safeReturnPath(raw: string | null | undefined): string | null {
-  if (typeof raw !== "string" || raw.length === 0 || raw.length > RETURN_MAX_CHARS) return null;
-  if (!raw.startsWith("/") || raw.startsWith("//") || raw.startsWith("/\\")) return null;
-  // Control characters, whitespace and backslashes are refused outright.
-  if (/[\u0000-\u0020\u007f\\]/.test(raw)) return null;
-  const path = raw.split(/[?#]/, 1)[0];
-  if (path.split("/").some((segment) => DOT_SEGMENT.test(segment))) return null;
-  const parsed = new URL(raw, "http://fera.invalid");
-  if (parsed.origin !== "http://fera.invalid") return null;
-  const out = `${parsed.pathname}${parsed.search}`;
-  if (!out.startsWith("/") || out.startsWith("//") || out.startsWith("/\\")) return null;
-  return out;
-}
-
-export function signInPath(returnTo: string | null | undefined): string {
-  const next = safeReturnPath(returnTo);
-  return next && next !== SIGN_IN_PATH ? `${SIGN_IN_PATH}?next=${encodeURIComponent(next)}` : SIGN_IN_PATH;
-}
-
-// D3 §1 role homes; an unverified officer works the staff desk.
-export function roleHome(role: EffectiveRole): string {
-  return role === "parent" ? "/" : `/${role}`;
-}
+// Return-path and role-home helpers live in src/lib/auth-paths.ts (pure, shared with the
+// SCREEN-008 client form) and are re-exported here for the page guards' callers.
+export { SIGN_IN_PATH, roleHome, safeReturnPath, signInPath } from "@/lib/auth-paths";
 
 export type AccessDecision = { kind: "ok"; principal: Principal; role: EffectiveRole } | { kind: "sign-in" } | { kind: "not-found" };
 
