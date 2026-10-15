@@ -45,18 +45,18 @@ Cut order if short ([D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommenda
 
 | Person | Features (Should/Could) | Quality and release | Hard times | D6 hours |
 |---|---|---|---|---|
-| **Obidit** (lead) | TASK-047 13219 summary · TASK-049 edit after submit + S-006 → TASK-050 status API | TASK-035 Bangla copy for every state · TASK-040 WER run · video shots | Freeze **12:30**, G3 **13:00**, G4 **16:00** (lead calls) | 12 |
+| **Obidit** | TASK-047 13219 summary · TASK-049 edit after submit + S-006 → TASK-050 status API | TASK-035 Bangla copy for every state · TASK-040 WER run · video shots | Freeze **12:30**, G3 **13:00**, G4 **16:00** (lead calls) | 12 |
 | **Masnun** | TASK-048 fixture import · TASK-051 S-014 duplicate review · TASK-052 S-015 disaster mode | TASK-036 two Android phones · TASK-039 eval dev → held-out · TASK-060 perf · TASK-043 final frozen evaluation | TASK-043 **by 15:45** | 19 |
-| **Mahim** | — | TASK-034 a11y · TASK-037 ≥60 unit tests · TASK-038 Playwright · TASK-041 timing study · TASK-042 prod deploy + smoke | TASK-041 **10:00–12:00**, TASK-042 **by 15:00** | 17 |
+| **Mahim** (lead) | — | TASK-034 a11y · TASK-037 ≥60 unit tests · TASK-038 Playwright · TASK-041 timing study · TASK-042 prod deploy + smoke | TASK-041 **10:00–12:00**, TASK-042 **by 15:00** | 17 |
 | All three | TASK-056 mentor fixes, each in their own areas | — | merged and verified before G3 | 5 shared |
 
-### Lead duties — Obidit
+### Lead duties — Mahim
 - Announce the **12:30** feature freeze; after it, approve only fixes for failing TCs.
 - Run `fera-gate G3` at 13:00 and `fera-gate G4` at 16:00, and link both reports.
 - Apply the cut order below if a Should/Could item can't pass by 12:30, and record each cut as an omission against its FR/TC.
 - Own the evidence-backed reschedule in AMD-3-2 once remaining effort and the organiser extension are known.
 
-## Tasks — Obidit (lead)
+## Tasks — Obidit
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | TASK-047 | 13219 summary ≤ 80 words (FR-010) | Codex | TASK-023 | 1 | TC-007 passes | `todo` | | |
@@ -77,7 +77,7 @@ Cut order if short ([D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommenda
 | TASK-060 | Performance check vs D2 Part B §12.1 | Codex | TASK-042 | 2 | TC-034 results in report (met or reported as missed) | `todo` | | |
 | TASK-043 | Final frozen evaluation on the prod build — **by 15:45** | Codex + `mle-reviewer` | TASK-042, 039, 040, 041, 060 | 2 | Cache-disabled report: all metrics, denominators, failures, commit/model/manifest hashes | `todo` | | |
 
-## Tasks — Mahim
+## Tasks — Mahim (lead)
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | TASK-034 | A11y: axe + keyboard + 320 px reflow, 200 % text, 400 % zoom | Claude Code + `a11y-architect` | TASK-030 | 3 | TC-033: 0 serious/critical, light and dark | `todo` | | |
@@ -124,9 +124,9 @@ Tick only from the gate report (`fera-gate`), with evidence linked.
 ## Log
 Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
-### Obidit (lead)
+### Obidit
 ### Masnun
-### Mahim
+### Mahim (lead)
 
 ## Audit amendments (2026-10-12)
 
@@ -137,7 +137,7 @@ Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
 ### AMD-3-2 — Timing and ownership constraints
 **Gap:** TASK-056 allows 18:00 although G3 is 13:00; deploy at 15:00 leaves only 45 minutes for sequential TASK-060 (2 h) and TASK-043 (2 h).
-**Change:** existing times remain internal targets, not a feasible computed schedule. Mentor fixes needed by G3 must be merged and verified before G3; otherwise record failure/rebaseline. D6's deploy→performance→final-evaluation dependencies cannot be bypassed to meet 15:45. Obidit (lead) coordinates an evidence-backed reschedule once remaining effort/availability and organiser extension are known (**UNKNOWN** now). P2/P3 owners retain late scope; P5 receives links only.
+**Change:** existing times remain internal targets, not a feasible computed schedule. Mentor fixes needed by G3 must be merged and verified before G3; otherwise record failure/rebaseline. D6's deploy→performance→final-evaluation dependencies cannot be bypassed to meet 15:45. Mahim (lead) coordinates an evidence-backed reschedule once remaining effort/availability and organiser extension are known (**UNKNOWN** now). P2/P3 owners retain late scope; P5 receives links only.
 **Source:** D6 TASK-042/043/056/060; handover §6; AMD-PLAN-1/4.
 
 ### AMD-3-3 — Held-out integrity and fallback

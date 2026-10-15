@@ -42,23 +42,23 @@ Mark each stage cell `todo` / `done` / `blocked`. After `tasks`, every task line
 | `005-officer-workflow` | Masnun (S-012 tasks: Mahim) | `todo` | `todo` | `todo` | `todo` | `todo` | |
 | `006-dashboard-admin` | Masnun (S-013 tasks: Mahim) | `todo` | `todo` | `todo` | `todo` | `todo` | |
 | `007-quality-release` | Mahim (shared; each task keeps its D6 owner) | `todo` | `todo` | `todo` | `todo` | `todo` | |
-| Cross-feature `/speckit-analyze` at **22:30** | Mahim (findings go to Obidit as lead) | — | — | — | — | `todo` | No critical issues allowed |
+| Cross-feature `/speckit-analyze` at **22:30** | Mahim (lead; decides on the findings) | — | — | — | — | `todo` | No critical issues allowed |
 
 ## Who does what
 
 | Person | Specs (boards above) | Build tasks this phase | D6 hours |
 |---|---|---|---|
-| **Obidit** (lead) | 002 intake-ai, 003 parent-outputs | TASK-012 normaliser tests first (counted in Phase 2's 5 h) · lead duties below | 0 (+ spec writing, not in D6) |
+| **Obidit** | 002 intake-ai, 003 parent-outputs | TASK-012 normaliser tests first (counted in Phase 2's 5 h) | 0 (+ spec writing, not in D6) |
 | **Masnun** | 004 matching-data, 005 officer-workflow, 006 dashboard-admin | TASK-010 generator → TASK-064 manifest, frozen and hashed **before any matcher code** | 9 |
-| **Mahim** | 001 platform-foundation, 007 quality-release, cross-feature analyze at 22:30 | TASK-061 contracts → tag `contracts-v1` · TASK-008 shell | 6 |
+| **Mahim** (lead) | 001 platform-foundation, 007 quality-release, cross-feature analyze at 22:30 | TASK-061 contracts → tag `contracts-v1` · TASK-008 shell | 6 |
 
-### Lead duties — Obidit
+### Lead duties — Mahim
 - Skim each owner's spec between `specify` → `plan` → `tasks` (5 minutes, not 30) and check that every task line names its owner and lane.
-- Decide on any finding from Mahim's 22:30 cross-feature analyze that needs a scope or ownership call.
+- Decide on any finding from the 22:30 cross-feature analyze that needs a scope or ownership call.
 - Approve any change to frozen contracts or schema after G1, together with the other two owners.
 - Run `fera-gate G1` and link the report.
 
-## Tasks — Obidit (lead)
+## Tasks — Obidit
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | TASK-012 (start) | Normaliser tests first: Bangla digits, time words, phone, district aliases, romaniser | A · Codex + `tdd_guide` | TASK-009 (Masnun) | — | Failing test suite committed (≥30 cases planned); implementation in Phase 2 | `blocked` | | Phase 0 TASK-009 is `todo`; 64 district aliases are not loaded. No tests started. |
@@ -69,7 +69,7 @@ Mark each stage cell `todo` / `done` / `blocked`. After `tasks`, every task line
 | TASK-010 | Synthetic set generator: ~200 records, ground truth, duplicates, decoys, no-match | A · Codex | TASK-009 | 6 | Ground-truth file hashed and committed | `blocked` | | Phase 0 TASK-009 is `todo`; `npm run seed` is a fail-fast stub. No ground-truth file started. |
 | TASK-064 | Identity-grouped manifest, frozen split, hashes — **before any matcher code** | A · Codex + `mle-reviewer` | TASK-010 | 3 | Manifest counts/split/hash asserted; hash committed | `blocked` | | TASK-010 is blocked by TASK-009; no frozen source set or manifest exists. |
 
-## Tasks — Mahim
+## Tasks — Mahim (lead)
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | TASK-061 | Contracts in `src/contracts/`: DTOs, Zod, state enums, error envelope E-001–E-024, role projections, idempotency tokens, referral/count semantics | A · Claude Code (lane `mahim-contracts`) | TASK-001 | 3 | Runtime schemas/examples and role projections agree; FV-01–05/10 closed; tag `contracts-v1`. Include one valid example per API DTO, usable as typed fakes by the Phase 2 UI lanes (see Phase 2 "Schedule reality") | `review` | `3cef196`, `131e276`, `795e3ab`, `f759ab7`, `9ba1e8e` on branch `phase1--mahim-contracts` (no PR opened yet) | 2026-10-14, lane worktree, Node local run: `npm run lint` exit 0 (0 problems); `npm run typecheck` exit 0; `npm test` exit 0, 299 passed + 1 skipped (`db/schema_v2.sql` absent) after fera-review round 3 (265 + 1 skipped in `tests/contracts/`, adding E-001 field paths, branded principals, client-safe examples, NUL/year/URL hardening and pinned SQL CHECKs to including role-split API-013 audit, server/client barrel, principal, masked-list, validation-policy, golden-hash and whitespace-tolerant SQL parity checks: examples for API-001–API-023, BR-004/015/016/020/023/024, TC-030 four paths, TC-042–046/055/060, SQL enum/transition parity, D2A/D2B error parity, companion type checks); `npm run build` exit 0. Disagreements and route obligations: [contract-notes.md](../../specs/001-platform-foundation/contract-notes.md) (CN-01–CN-15, OD-1–OD-6). fera-review round 1: safeguarding BLOCK 1 and WARN 2–6 fixed in `795e3ab`. Round 2: safeguarding PASS, no BLOCK from TypeScript/security/database; WARN items A1–E26 fixed in `f759ab7`, F recorded as open decisions. Round 3: no BLOCK, safeguarding PASS; items 1–19 fixed in the round-3 commit; reviewer rerun on the new head pending. Not done: FV-01–05/10 have contract-level checks only (service/DB/HTTP evidence pending), CI not run. **Freeze and tag `contracts-v1` wait for human review and merge.** |
@@ -92,7 +92,7 @@ Tick only from the gate report (`fera-gate`), with evidence linked.
 ## Log
 Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
-### Obidit (lead)
+### Obidit
 - 2026-10-13 11:51 · Codex · Obidit · TASK-012 (start) `todo` → `blocked`; TASK-009 district load has no completion evidence.
 - 2026-10-13 12:12 · Codex · Obidit · 002 specify `todo` → `done`; source-backed intake spec and 15/16 quality checklist written for human skim.
 - 2026-10-13 12:12 · Codex · Obidit · 002 clarify `todo` → `done`; 0 formal questions, provider accounts/prices UNKNOWN and TASK-009 district dependency deferred, Pause A reached.
@@ -100,7 +100,7 @@ Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 ### Masnun
 - 2026-10-13 11:51 · Codex · Masnun · TASK-010 `todo` → `blocked`; TASK-009 is not done.
 - 2026-10-13 11:51 · Codex · Masnun · TASK-064 `todo` → `blocked`; TASK-010 cannot start.
-### Mahim
+### Mahim (lead)
 - 2026-10-13 11:51 · Codex · Mahim · TASK-061 `todo` → `blocked`; TASK-001 CI on main is unverified.
 - 2026-10-13 11:51 · Codex · Mahim · TASK-008 `todo` → `blocked`; TASK-001 app scaffold is absent.
 - 2026-10-13 11:51 · Codex · Mahim · 001 specify `todo` → `done`; spec and 15/16 quality checklist written for human skim.

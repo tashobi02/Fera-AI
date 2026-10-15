@@ -31,7 +31,7 @@ If the spec pack and a spec-kit artifact disagree, the spec pack wins; fix the a
 Next.js App Router + TypeScript strict + Tailwind · Zod · PostgreSQL 16 + pgvector via `pg` and hand-written SQL (`db/schema_v2.sql` is the single source; no ORM) · Auth.js credentials (parents have no account; anonymous cookie) · Whisper STT · provider-agnostic LLM adapter with fallback · Transformers.js `multilingual-e5-small` (384-d) · Leaflet optional, bundled district outlines · Vitest · Playwright + axe · pino with redaction · Vercel (Round 2) + laptop stack with `DEMO_MODE=1` (finale).
 
 ## Repo layout and ownership
-**Names:** Mahim is Sadman's nickname; the execution trackers use Mahim. **Lead: Obidit** (from 13 Oct).
+**Names:** Mahim is Sadman's nickname; the execution trackers use Mahim. **Lead: Mahim.**
 
 One writer per area. Touching another owner's area = small PR tagged for them.
 
