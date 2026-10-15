@@ -26,7 +26,9 @@ A knowledge graph of this repo, built on `phase2` on 15 Oct. It covers `src/`, `
 - `graphify-out/graph.json`: raw graph for agents. With the graphify skill installed, ask `/graphify query "<question>"` before grepping (e.g. "what calls decideCandidate?", "which TCs does TASK-028 need?").
 - After your PR changes code or docs, refresh it with `/graphify . --update`, which re-extracts only changed files. Keep the update as its own commit.
 
-Known gaps: SQL files have no AST parser, so the schema and roles were extracted semantically. About 380 edges point to spec-pack nodes named differently in an older cache; they show as dangling.
+**The graph is a derived index, not a source of truth.** It repeats what each source file says, including statements later decisions overrode (for example Auth.js, replaced by OD-006-1, or PRODUCT.md's interview line, overridden by AMD-AGENTS-6). When it disagrees with the constitution, the spec pack, AGENTS.md/CLAUDE.md or their amendments, those win; check the source file before acting.
+
+Known gaps: SQL files have no AST parser, so the schema and roles were extracted semantically. About 380 extracted edges referenced spec-pack nodes named differently in an older cache and were dropped at build time, so some spec-to-code links are missing.
 
 ## How to work
 1. **Branch as described in "Where to branch from" below.** Never run two writing agents in one worktree.

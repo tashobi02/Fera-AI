@@ -19,3 +19,5 @@ package-lock.json
 src/contracts/client-examples.json
 docs/pdf/
 *.png
+.env*
+!.env.example
