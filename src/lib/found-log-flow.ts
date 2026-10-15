@@ -1,0 +1,336 @@
+// SCREEN-007 found-child log (TASK-026, COMP-034, ACT-019 → API-007). Pure and
+// client-safe: values → request via the frozen contract, outcome mapping and the state
+// machine. The form (found-log-form.tsx) only wires this to the DOM; copy is in src/locales.
+//
+// - The staff's own entries are the review: Save is the explicit confirmation, so the
+//   request always carries confirmed: true only from that action (BR-004, ACT-019).
+// - Unknown stays unknown: blank age, name, height and marks are sent as null, never guessed.
+// - The client submission UUID is kept across retries (the server replays the same report)
+//   and renewed only after a success, when the next child is logged.
+// - No photo, no exact coordinates: district and a free-text place only (BR-006, DECISION-013).
+import {
+  createFoundRequestSchema,
+  createFoundResponseSchema,
+  type CreateFoundRequest,
+  type CreateFoundResponse,
+} from "@/contracts";
+import { localizeDigits } from "@/lib/numerals";
+import { retryAfterSeconds } from "@/lib/sign-in-errors";
+import { locales, type Locale, type MessageKey } from "@/locales";
+
+export const FOUND_LOG_API = "/api/found-cases";
+export const FOUND_LOG_TIMEOUT_MS = 25_000;
+
+export const SEX_OPTIONS = ["unknown", "male", "female", "other"] as const;
+export type FoundLogSex = (typeof SEX_OPTIONS)[number];
+
+export type FoundLogValues = {
+  circumstances: string;
+  clothing: string;
+  marks: string;
+  sex: FoundLogSex;
+  ageYears: string;
+  ageMin: string;
+  ageMax: string;
+  heightCm: string;
+  place: string;
+  thana: string;
+  district: string; // district code as typed in the select; "" = not chosen
+  foundAt: string; // datetime-local, Dhaka wall time
+  phone: string;
+  relation: string;
+};
+export type FoundLogField = keyof FoundLogValues;
+export type FieldReason = "required" | "invalid" | "description" | "future";
+export type FieldErrors = Partial<Record<FoundLogField, FieldReason>>;
+
+const DHAKA_OFFSET_MS = 6 * 3_600_000;
+const pad = (n: number) => String(n).padStart(2, "0");
+
+// "2026-10-15T23:30" in Asia/Dhaka (no DST) for a datetime-local input.
+export function dhakaLocalInput(nowMs: number): string {
+  const d = new Date(nowMs + DHAKA_OFFSET_MS);
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+}
+
+export function emptyValues(nowMs: number): FoundLogValues {
+  return {
+    circumstances: "", clothing: "", marks: "", sex: "unknown", ageYears: "", ageMin: "", ageMax: "",
+    heightCm: "", place: "", thana: "", district: "", foundAt: dhakaLocalInput(nowMs), phone: "", relation: "",
+  };
+}
+
+const FIELDS = Object.keys(emptyValues(0)) as FoundLogField[];
+
+export function valuesFromFormData(data: FormData, nowMs: number): FoundLogValues {
+  const out = emptyValues(nowMs);
+  for (const key of FIELDS) {
+    const raw = data.get(key);
+    if (typeof raw === "string") (out as Record<FoundLogField, string>)[key] = raw;
+  }
+  if (!(SEX_OPTIONS as readonly string[]).includes(out.sex)) out.sex = "unknown";
+  return out;
+}
+
+const intOrNull = (v: string): number | null | "bad" => {
+  const t = v.trim();
+  if (t === "") return null;
+  return /^\d{1,3}$/.test(t) ? Number(t) : "bad";
+};
+const textOrNull = (v: string) => (v.trim() === "" ? null : v.trim());
+
+export type BuildResult = { ok: true; request: CreateFoundRequest } | { ok: false; fields: FieldErrors };
+
+export function buildFoundRequest(values: FoundLogValues, ids: { clientSubmissionId: string; nowMs: number }): BuildResult {
+  const fields: FieldErrors = {};
+  const description = [values.circumstances, values.clothing, values.marks].map((s) => s.trim()).join(" ").trim();
+  if ([...description].length < 3) fields.circumstances = "description";
+
+  if (values.place.trim() === "") fields.place = "required";
+  if (values.district.trim() === "") fields.district = "required";
+  if (values.phone.trim() === "") fields.phone = "required";
+
+  let atMs = NaN;
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(values.foundAt)) fields.foundAt = "required";
+  else {
+    atMs = Date.parse(`${values.foundAt}:00+06:00`);
+    if (Number.isNaN(atMs)) fields.foundAt = "invalid";
+    else if (atMs > ids.nowMs + 5 * 60_000) fields.foundAt = "future";
+  }
+
+  const years = intOrNull(values.ageYears);
+  const min = intOrNull(values.ageMin);
+  const max = intOrNull(values.ageMax);
+  const height = intOrNull(values.heightCm);
+  if (years === "bad") fields.ageYears = "invalid";
+  if (min === "bad") fields.ageMin = "invalid";
+  if (max === "bad") fields.ageMax = "invalid";
+  if (height === "bad" || (typeof height === "number" && (height < 40 || height > 220))) fields.heightCm = "invalid";
+  if (typeof years === "number" && years > 17) fields.ageYears = "invalid";
+  if (typeof years === "number" && (min !== null || max !== null)) fields.ageYears = "invalid";
+  if ((min === null) !== (max === null) && !fields.ageMin && !fields.ageMax) fields[min === null ? "ageMin" : "ageMax"] = "required";
+  if (typeof min === "number" && typeof max === "number" && (min > max || max > 25)) fields.ageMax = "invalid";
+
+  if (Object.keys(fields).length > 0) return { ok: false, fields };
+
+  const district = Number(values.district);
+  const at = new Date(atMs + DHAKA_OFFSET_MS).toISOString().replace("Z", "+06:00");
+  const parsed = createFoundRequestSchema.safeParse({
+    draft: {
+      kind: "found",
+      source_text: "",
+      child: {
+        name: null,
+        name_latin: null,
+        sex: values.sex,
+        age_years: typeof years === "number" ? years : null,
+        age_min: typeof min === "number" ? min : null,
+        age_max: typeof max === "number" ? max : null,
+        height_cm: typeof height === "number" ? height : null,
+        clothing: textOrNull(values.clothing),
+        marks: textOrNull(values.marks),
+      },
+      event: {
+        at,
+        at_lower: at,
+        at_upper: at,
+        at_approx: false,
+        place_text: values.place.trim(),
+        district_code: district,
+        thana: textOrNull(values.thana),
+        circumstances: textOrNull(values.circumstances),
+      },
+      reporter: { relation: textOrNull(values.relation), phone: values.phone },
+      evidence: {},
+    },
+    confirmed: true,
+    client_submission_id: ids.clientSubmissionId,
+  });
+  if (parsed.success) return { ok: true, request: parsed.data };
+  // Anything the contract rejects that the checks above did not name: point at the field it names.
+  const mapped: FieldErrors = {};
+  for (const issue of parsed.error.issues) {
+    const path = issue.path.join(".");
+    const field: FoundLogField | null =
+      path.includes("phone") ? "phone"
+      : path.includes("district") ? "district"
+      : path.includes("place_text") ? "place"
+      : path.includes("circumstances") ? "circumstances"
+      : path.includes("height") ? "heightCm"
+      : path.includes("age") ? "ageYears"
+      : path.includes("event.at") ? "foundAt"
+      : null;
+    if (field && !mapped[field]) mapped[field] = path.includes("phone") ? "invalid" : "invalid";
+  }
+  return { ok: false, fields: Object.keys(mapped).length > 0 ? mapped : { circumstances: "invalid" } };
+}
+
+/* ---------- API call and outcome ---------- */
+
+export type FoundLogFailure =
+  | { kind: "validation" }
+  | { kind: "conflict" } // E-006: same submission id, different payload
+  | { kind: "rate-limited"; seconds: number | null }
+  | { kind: "session" } // E-002: sign in again
+  | { kind: "forbidden" } // E-003 / E-004
+  | { kind: "offline" } // E-024: nothing reached the server
+  | { kind: "uncertain" } // unreadable or timed-out: it may have been saved; a retry is safe
+  | { kind: "generic" };
+
+export type FoundLogOutcome = { kind: "saved"; response: CreateFoundResponse } | { kind: "failure"; failure: FoundLogFailure };
+
+function errorIdOf(body: unknown): string | null {
+  if (typeof body !== "object" || body === null || !("error" in body)) return null;
+  const e = (body as { error: unknown }).error;
+  if (typeof e !== "object" || e === null || !("id" in e)) return null;
+  return typeof (e as { id: unknown }).id === "string" ? (e as { id: string }).id : null;
+}
+
+export function classifyFoundLogFailure(input: { status: number; body?: unknown; retryAfter?: string | null }): FoundLogFailure {
+  const id = errorIdOf(input.body);
+  if (id === "E-007" || input.status === 429) return { kind: "rate-limited", seconds: retryAfterSeconds(input.retryAfter) };
+  if (id === "E-006" || input.status === 409) return { kind: "conflict" };
+  if (id === "E-001" || input.status === 400) return { kind: "validation" };
+  if (id === "E-002" || input.status === 401) return { kind: "session" };
+  if (id === "E-003" || id === "E-004" || input.status === 403 || input.status === 404) return { kind: "forbidden" };
+  return { kind: "generic" };
+}
+
+export async function requestFoundLog(
+  request: CreateFoundRequest,
+  opts: { fetchImpl?: typeof fetch; timeoutMs?: number } = {},
+): Promise<FoundLogOutcome> {
+  const fetchImpl = opts.fetchImpl ?? fetch;
+  let res: Response;
+  try {
+    res = await fetchImpl(FOUND_LOG_API, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify(request),
+      credentials: "same-origin",
+      cache: "no-store",
+      signal: AbortSignal.timeout(opts.timeoutMs ?? FOUND_LOG_TIMEOUT_MS),
+    });
+  } catch (err) {
+    const name = err instanceof Error ? err.name : "";
+    return { kind: "failure", failure: { kind: name === "TimeoutError" || name === "AbortError" ? "uncertain" : "offline" } };
+  }
+  let body: unknown = null;
+  try {
+    body = await res.json();
+  } catch {
+    body = null;
+  }
+  if (res.ok) {
+    const parsed = createFoundResponseSchema.safeParse(body);
+    return parsed.success ? { kind: "saved", response: parsed.data } : { kind: "failure", failure: { kind: "uncertain" } };
+  }
+  return { kind: "failure", failure: classifyFoundLogFailure({ status: res.status, body, retryAfter: res.headers.get("retry-after") }) };
+}
+
+/* ---------- state machine ---------- */
+
+export type FoundLogState = {
+  status: "idle" | "saving" | "saved";
+  failure: FoundLogFailure | null;
+  fields: FieldErrors;
+  saved: CreateFoundResponse | null;
+  attempt: number; // bumped on each save press so a repeated identical error is announced again
+};
+export const initialFoundLogState: FoundLogState = { status: "idle", failure: null, fields: {}, saved: null, attempt: 0 };
+
+export type FoundLogAction =
+  | { type: "invalid"; fields: FieldErrors }
+  | { type: "save" }
+  | { type: "outcome"; outcome: FoundLogOutcome }
+  | { type: "input"; field: FoundLogField }
+  | { type: "another" };
+
+export function foundLogReducer(state: FoundLogState, action: FoundLogAction): FoundLogState {
+  switch (action.type) {
+    case "invalid":
+      return { ...state, status: "idle", failure: null, fields: action.fields, attempt: state.attempt + 1 };
+    case "save":
+      return { ...state, status: "saving", failure: null, fields: {}, attempt: state.attempt + 1 };
+    case "outcome":
+      return action.outcome.kind === "saved"
+        ? { ...state, status: "saved", failure: null, fields: {}, saved: action.outcome.response }
+        : { ...state, status: "idle", failure: action.outcome.failure };
+    case "input": {
+      if (!state.fields[action.field]) return state;
+      const rest = { ...state.fields };
+      delete rest[action.field];
+      return { ...state, fields: rest };
+    }
+    case "another":
+      return { ...initialFoundLogState, attempt: state.attempt + 1 };
+  }
+}
+
+// Same synchronous in-flight guard idea as sign-in: a second press is ignored.
+export function createSaveGuard() {
+  let busy = false;
+  return {
+    get busy() {
+      return busy;
+    },
+    enter() {
+      if (busy) return false;
+      busy = true;
+      return true;
+    },
+    leave() {
+      busy = false;
+    },
+  };
+}
+
+/* ---------- copy ---------- */
+
+const FAILURE_KEY: Record<Exclude<FoundLogFailure["kind"], "rate-limited">, MessageKey> = {
+  validation: "foundLogErrorValidation",
+  conflict: "foundLogErrorConflict",
+  session: "foundLogErrorSession",
+  forbidden: "foundLogErrorForbidden",
+  offline: "foundLogErrorOffline",
+  uncertain: "foundLogErrorUncertain",
+  generic: "foundLogErrorGeneric",
+};
+
+// Server text is never shown; every failure maps to our own bilingual copy (D2B §13).
+export function foundLogFailureText(failure: FoundLogFailure, locale: Locale): string {
+  const t = locales[locale];
+  if (failure.kind === "rate-limited") {
+    return failure.seconds === null
+      ? t.foundLogRateLimitedSoon
+      : t.foundLogRateLimited.replace("{s}", localizeDigits(failure.seconds, locale));
+  }
+  return t[FAILURE_KEY[failure.kind]];
+}
+
+const FIELD_KEY: Record<FieldReason, MessageKey> = {
+  required: "foundLogFieldRequired",
+  invalid: "foundLogFieldInvalid",
+  description: "foundLogFieldDescription",
+  future: "foundLogFieldFuture",
+};
+export const foundLogFieldText = (reason: FieldReason, locale: Locale): string => locales[locale][FIELD_KEY[reason]];
+
+// D3 SCREEN-007: matching state is explicit, never implied (no candidate details).
+const MATCH_KEY: Record<CreateFoundResponse["matching_state"], MessageKey> = {
+  queued: "foundLogMatchQueued",
+  running: "foundLogMatchRunning",
+  complete: "foundLogMatchComplete",
+  failed: "foundLogMatchFailed",
+};
+export const foundLogMatchText = (state: CreateFoundResponse["matching_state"], locale: Locale): string =>
+  locales[locale][MATCH_KEY[state]];
+
+// First field with an error, in on-screen order, for focus after a failed Save.
+export const FIELD_ORDER: readonly FoundLogField[] = [
+  "circumstances", "clothing", "marks", "sex", "ageYears", "ageMin", "ageMax", "heightCm",
+  "place", "thana", "district", "foundAt", "phone", "relation",
+];
+export function firstErrorField(errors: FieldErrors): FoundLogField | null {
+  return FIELD_ORDER.find((f) => errors[f]) ?? null;
+}

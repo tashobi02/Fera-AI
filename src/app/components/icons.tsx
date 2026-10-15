@@ -128,3 +128,12 @@ export function CornerDownLeftIcon({ className }: IconProps) {
     </Icon>
   );
 }
+
+export function CircleCheckIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="m9 12 2 2 4-4" />
+    </Icon>
+  );
+}
