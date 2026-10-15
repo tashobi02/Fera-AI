@@ -19,7 +19,7 @@ export const BANNED_TERMS = {
   // BR-002: no issuing or broadcasting alerts. Bare "সতর্ক" also catches সতর্কবার্তা/সতর্কসংকেত.
   alert: ["সতর্ক", "অ্যালার্ট", "এ্যালার্ট", "এলার্ট", "সম্প্রচার", "alert", "broadcast"],
   // BR-003: no runaway labels, inferred absence reasons or rescue promises.
-  runaway: ["পালিয়ে", "পালায়", "পালাচ্ছে", "পালাল", "পলাতক", "পালাতক", "runaway", "ranaway", "ran away", "run away", "running away"],
+  runaway: ["পালিয়ে", "পালায়", "পালাচ্ছে", "পালাল", "পলাতক", "পালাতক", "পলায়ন", "runaway", "ranaway", "ran away", "run away", "running away"],
   rescue: ["উদ্ধার", "উদ্বার", "রেসকিউ", "rescue"],
   // V2 contract: no physical return or reunification is performed or claimed.
   returned: ["ফিরিয়ে দেওয়া", "ফিরিয়ে দেয়া", "ফিরিয়ে আনা", "ফেরত দেওয়া", "ফেরত দেয়া", "ফেরত পাঠানো", "পুনর্মিলন", "return", "reunit", "reunif"],
@@ -37,8 +37,11 @@ export type BannedGroup = keyof typeof BANNED_TERMS;
 // how it reads.
 const INVISIBLE = /[\u200B-\u200D\u2060\uFEFF\u00AD]/gu;
 
+// Hyphens and dashes read as a space, so "run-away" and "ran\u2011away" match "run away".
+const DASHES = /[-_\u2010-\u2015\u2212]/gu;
+
 export function normaliseForGuard(text: string): string {
-  return text.normalize("NFC").replace(INVISIBLE, "").replace(/\s+/gu, " ").toLowerCase();
+  return text.normalize("NFC").replace(INVISIBLE, "").replace(DASHES, " ").replace(/\s+/gu, " ").toLowerCase();
 }
 
 const NORMALISED: ReadonlyArray<readonly [BannedGroup, string]> = Object.entries(BANNED_TERMS).flatMap(

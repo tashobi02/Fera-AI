@@ -34,6 +34,10 @@ describe("wording guard", () => {
     expect(findBannedGroup("87% match")).toBe("probability");
     expect(findBannedGroup("ran\u200Baway")).toBe("runaway");
     expect(findBannedGroup("এ্যালার্ট দিন")).toBe("alert");
+    // Codex second-opinion review: runaway labels written with a hyphen or the পলায়ন stem.
+    expect(findBannedGroup("run-away child")).toBe("runaway");
+    expect(findBannedGroup("ran\u2011away")).toBe("runaway");
+    expect(findBannedGroup("পলায়নকারী শিশু")).toBe("runaway");
   });
 
   it("allows Fera's honest copy (D4 §9, §15.1)", () => {

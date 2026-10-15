@@ -54,3 +54,7 @@ OD-023-1 to OD-023-6 in `specs/001-platform-foundation/contract-notes.md` ("Outp
 ## fera-review round 2 (on the fixes)
 
 Reviewers: fera-safeguarding-reviewer (PASS; reran `npm test` and `npm run test:db`, outputs 4/4), database-reviewer (round-1 BLOCK resolved, no new BLOCK). Its WARN about a missing race test is answered by the two-session test above. Noted for the TASK-006 owner: in one safeguarding run, `tests/auth/sign-in.test.ts` "unknown user and wrong password take about the same time" failed (ratio 2.43 < 2) while a DB run overlapped, and passed on rerun. It is outside this diff and looks load-dependent.
+
+## Cross-tool second opinion (Codex, gpt-6.1-sol, read-only)
+
+Verdict BLOCK: a reviewed field such as `marks` = "পলায়নকারী শিশু" or "run-away child" passed the guard and would appear on the poster (BR-003, FR-034). Fixed: the পলায়ন stem is banned, and hyphens/dashes are read as spaces before matching ("run-away", "ran\u2011away"). Regression tests render a poster with each value and expect E-016 (`tests/outputs/templates.test.ts`), plus guard tests. `npm test` after the fix: 1013 passed, 121 skipped; lint and typecheck exit 0.

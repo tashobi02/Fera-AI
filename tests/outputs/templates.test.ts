@@ -103,6 +103,14 @@ describe("GD details", () => {
     }
   });
 
+  it.each([["marks", "পলায়নকারী শিশু"], ["marks", "run-away child"], ["clothing", "Runaway T-shirt"]] as const)(
+    "blocks a rendered poster whose reviewed %s says %j (BR-003)",
+    (field, value) => {
+      const draft = { ...exampleMissingDraft, child: { ...exampleMissingDraft.child, [field]: value } } as CaseDraft;
+      expect(() => renderOutput("poster", { refCode: "M-7K2Q9A", draft, districtNameBn: null })).toThrow("E-016");
+    },
+  );
+
   it("blocks the output when a reviewed field value carries a banned term (OD-023-5)", () => {
     const err = (() => {
       try {
