@@ -6,6 +6,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getLocale } from "@/lib/locale-server";
 import { locales } from "@/locales";
+import { newRequestId } from "@/app/api/_shared";
+import { auditPageDenied } from "@/server/audit";
 import { requireRole } from "@/server/auth/require-role";
 import { readCandidate } from "@/server/matching/candidate-read";
 import { MatchReview } from "./match-review";
@@ -16,9 +18,14 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function MatchReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { principal } = await requireRole(["officer"], `/officer/match/${id}`);
-  const result = await readCandidate(principal, id);
-  if (result.kind === "hidden") notFound();
+  const { principal, role } = await requireRole(["officer"], `/officer/match/${id}`);
+  const result = await readCandidate(principal, id, { requestId: newRequestId() });
+  if (result.kind === "hidden") {
+    // Same as the API route (BR-010, TC-052): an absent or unreadable candidate leaves a safe
+    // access.denied row with a null FK. A failing audit throws, so the page fails closed.
+    await auditPageDenied({ principal, role, path: "/officer/match/[id]", errorId: "E-004", reason: "role", caseId: null });
+    notFound();
+  }
   const locale = await getLocale();
   const t = locales[locale];
   return (

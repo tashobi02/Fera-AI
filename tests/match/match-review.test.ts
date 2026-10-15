@@ -1,6 +1,6 @@
 // TASK-028 / TC-010 (confirm part) / TC-011: the S-010 comparison and decision-request logic.
 // Synthetic data only; no database, no browser.
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { decisionResponseSchema, type OfficerCaseView } from "@/contracts";
 import { exampleCandidateDecisionView } from "@/contracts/examples";
 import {
@@ -40,10 +40,11 @@ describe("compareCases", () => {
     expect(row(compareCases(withChild(view.missing, { age_years: 7, age_min: 7, age_max: 7 }), withChild(view.found, { ...base, age_min: 6, age_max: 8 })), "age").verdict).toBe("agree");
   });
 
-  it("district: same code agrees, different differs, missing is unknown (never a hard filter)", () => {
+  it("district: same code agrees, a different district is 'review' (routine for a found child), missing is unknown", () => {
     const m = withChild(view.missing, {}, { district_code: 14, district_name_bn: "ঢাকা" });
     expect(row(compareCases(m, withChild(view.found, {}, { district_code: 14, district_name_bn: "ঢাকা" })), "district").verdict).toBe("agree");
-    expect(row(compareCases(m, withChild(view.found, {}, { district_code: 5, district_name_bn: "ভোলা" })), "district").verdict).toBe("differ");
+    expect(row(compareCases(m, withChild(view.found, {}, { district_code: 5, district_name_bn: "ভোলা" })), "district").verdict).toBe("review");
+    expect(summarise(compareCases(m, withChild(view.found, {}, { district_code: 5, district_name_bn: "ভোলা" }))).differ).not.toContain("district");
     expect(row(compareCases(m, withChild(view.found, {}, { district_code: null, district_name_bn: null })), "district").verdict).toBe("unknown");
   });
 
@@ -102,6 +103,7 @@ describe("classifyDecisionFailure", () => {
   it("E-005 is 'stale': reload the stored state, never retry blindly", () => {
     expect(classifyDecisionFailure({ status: 409, body: body("E-005") })).toEqual({ kind: "stale" });
     expect(classifyDecisionFailure({ status: 404, body: body("E-004") })).toEqual({ kind: "hidden" });
+    expect(classifyDecisionFailure({ status: 403, body: body("E-003") })).toEqual({ kind: "forbidden" });
     expect(classifyDecisionFailure({ status: 400, body: body("E-001") })).toEqual({ kind: "validation" });
     expect(classifyDecisionFailure({ status: 401, body: body("E-002") })).toEqual({ kind: "session" });
     expect(classifyDecisionFailure({ status: 429, retryAfter: "9" })).toEqual({ kind: "rate-limited", seconds: 9 });
@@ -109,6 +111,8 @@ describe("classifyDecisionFailure", () => {
     expect(classifyDecisionFailure({ status: 418 })).toEqual({ kind: "generic" });
   });
 });
+
+afterEach(() => vi.unstubAllGlobals());
 
 describe("requestDecision", () => {
   const request = (() => {
@@ -144,6 +148,42 @@ describe("requestDecision", () => {
   it("an unreadable 2xx is 'uncertain': the decision may be stored, so reload before deciding again", async () => {
     const out = await requestDecision(view.candidate_id, request, { fetchImpl: json(200, { ok: 1 }), parse });
     expect(out).toEqual({ kind: "failure", failure: { kind: "uncertain" } });
+  });
+
+  it("a body that never finishes is cut off by the timeout and reported as uncertain", async () => {
+    const hang = (async (_url: string, init: RequestInit) => {
+      const body = new ReadableStream({
+        start(controller) {
+          init.signal?.addEventListener("abort", () => controller.error(new DOMException("aborted", "AbortError")));
+        },
+      });
+      return new Response(body, { status: 200 });
+    }) as unknown as typeof fetch;
+    const out = await requestDecision(view.candidate_id, request, { fetchImpl: hang, timeoutMs: 20, parse });
+    expect(out).toEqual({ kind: "failure", failure: { kind: "uncertain" } });
+  });
+
+  it("a reply that never starts is also uncertain, and a lost connection is uncertain unless the browser is offline", async () => {
+    const stall = (async (_url: string, init: RequestInit) =>
+      new Promise((_resolve, reject) => init.signal?.addEventListener("abort", () => reject(new DOMException("t", "TimeoutError"))))) as unknown as typeof fetch;
+    expect(await requestDecision(view.candidate_id, request, { fetchImpl: stall, timeoutMs: 20, parse })).toEqual({ kind: "failure", failure: { kind: "uncertain" } });
+    const reset = (async () => { throw new TypeError("fetch failed"); }) as unknown as typeof fetch;
+    expect(await requestDecision(view.candidate_id, request, { fetchImpl: reset, parse })).toEqual({ kind: "failure", failure: { kind: "uncertain" } });
+    vi.stubGlobal("navigator", { onLine: false });
+    expect(await requestDecision(view.candidate_id, request, { fetchImpl: reset, parse })).toEqual({ kind: "failure", failure: { kind: "offline" } });
+    vi.unstubAllGlobals();
+  });
+
+  it("429 carries the wait", async () => {
+    const limited = (async () => new Response("{}", { status: 429, headers: { "retry-after": "7" } })) as unknown as typeof fetch;
+    expect(await requestDecision(view.candidate_id, request, { fetchImpl: limited, parse })).toEqual({
+      kind: "failure", failure: { kind: "rate-limited", seconds: 7 },
+    });
+  });
+
+  it("uses the contract's response schema when no parser is given", async () => {
+    const out = await requestDecision(view.candidate_id, request, { fetchImpl: json(200, response) });
+    expect(out.kind).toBe("decided");
   });
 
   it("E-005 maps to stale", async () => {

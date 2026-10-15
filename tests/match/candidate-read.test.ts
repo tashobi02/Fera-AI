@@ -88,6 +88,17 @@ describe("readCandidate (API-009)", () => {
     expect(r.kind === "ok" && r.view.qualified).toBe(false);
   });
 
+  it("is not qualified when a report has been redacted, and serves no phone or audit for it", async () => {
+    const redacted = {
+      anonymised_at: "2026-10-15T12:00:00+06:00", status: "closed", child_name: null, child_name_latin: null,
+      contact_phone: null, raw_text: null, circumstances: null, clothing: null, marks: null, place_text: null,
+    } as Partial<CaseRow>;
+    seed({}, redacted as Partial<CaseRow>);
+    const r = await readCandidate(officer, candidateId, { requestId: "r3" });
+    expect(r.kind === "ok" && r.view.qualified).toBe(false);
+    expect(audit.every((a) => a.caseId !== exampleMissingRow.id)).toBe(true);
+  });
+
   it("is not qualified once the candidate is no longer pending", async () => {
     seed({ status: "rejected" });
     const r = await readCandidate(officer, candidateId);

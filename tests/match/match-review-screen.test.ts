@@ -43,6 +43,20 @@ describe("COMP-037/038 match review", () => {
     expect(html).toContain("রেফারেল নথিভুক্ত হবে (সিমুলেশন)");
   });
 
+  it("stacks the rows for narrow screens and gives the dialog checklist a legend", () => {
+    const html = render("en");
+    expect(html).toContain("sm:hidden");
+    expect(html).toContain('role="region"');
+    expect(html).toContain("<legend");
+    expect(html).toContain(locales.en.matchReviewChecklistLegend);
+  });
+
+  it("notes that a different district is not unusual instead of calling it a contradiction", () => {
+    const other = { ...view, found: { ...view.found, event: { ...view.found.event, district_code: 61, district_name_bn: "সিলেট" } } };
+    const html = render("en", other);
+    expect(html).toContain(locales.en.matchReviewDifferentDistrictNote);
+  });
+
   it("never claims the child is returned, rescued or that a referral was delivered", () => {
     const keys = Object.keys(locales.en).filter((k) => k.startsWith("matchReview") || k.startsWith("matchField") || k.startsWith("matchVerdict")) as (keyof typeof locales.en)[];
     for (const k of keys) {

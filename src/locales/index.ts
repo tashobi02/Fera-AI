@@ -52,7 +52,7 @@ const bn = {
   matchReviewIntro: "দুটি রিপোর্ট পাশাপাশি দেখুন। মিলের মাত্রা পরিচয়ের প্রমাণ নয়; সিদ্ধান্ত আপনার।",
   matchReviewSimilarity: "মিলের মাত্রা",
   matchReviewSimilarityNote: "১০০-এর মধ্যে। এটি সম্ভাবনা বা পরিচয়ের প্রমাণ নয়।",
-  matchReviewNotQualified: "এই প্রস্তাবটি আর বর্তমান নয়: রিপোর্ট বদলেছে বা সিদ্ধান্ত হয়ে গেছে। সিদ্ধান্ত দেওয়া যাবে না।",
+  matchReviewNotQualified: "এই প্রস্তাবটি আর বর্তমান নয়: রিপোর্ট বদলেছে বা সিদ্ধান্ত হয়ে গেছে। এখন সিদ্ধান্ত নথিভুক্ত করা যাবে না।",
   matchReviewDuplicate: "সম্ভাব্য একই শিশু",
   matchReviewDuplicateNote: "এই রিপোর্টের সঙ্গে আরও রিপোর্ট জড়িত থাকতে পারে:",
   matchReviewMissing: "নিখোঁজ রিপোর্ট",
@@ -73,7 +73,7 @@ const bn = {
   matchVerdictAgree: "মিল",
   matchVerdictDiffer: "অমিল",
   matchVerdictUnknown: "অজানা",
-  matchVerdictReview: "দেখে মিলিয়ে নিন",
+  matchVerdictReview: "নিজে মিলিয়ে দেখুন",
   matchReviewSummary: "সারসংক্ষেপ",
   matchReviewSummaryDiffer: "অমিল আছে:",
   matchReviewSummaryUnknown: "অজানা:",
@@ -114,6 +114,9 @@ const bn = {
   matchReviewSex_female: "মেয়ে",
   matchReviewSex_other: "অন্য",
   matchReviewPageTitle: "মিল যাচাই",
+  matchReviewForbidden: "এই কাজের অনুমতি নেই।",
+  matchReviewChecklistLegend: "নিশ্চিত করার আগে দেখে নিন",
+  matchReviewDifferentDistrictNote: "ভিন্ন জেলা অস্বাভাবিক নয়: খুঁজে পাওয়া শিশু অন্য জেলায় থাকতে পারে।",
 } as const;
 
 export type MessageKey = keyof typeof bn;
@@ -167,7 +170,7 @@ const en = {
   matchReviewIntro: "Compare the two reports side by side. The similarity score is not proof of identity; the decision is yours.",
   matchReviewSimilarity: "Similarity",
   matchReviewSimilarityNote: "Out of 100. This is not a probability and not proof of identity.",
-  matchReviewNotQualified: "This suggestion is no longer current: a report changed or it was already decided. It can't be decided.",
+  matchReviewNotQualified: "This suggestion is no longer current: a report changed or it was already decided. No decision can be recorded.",
   matchReviewDuplicate: "Possible same child",
   matchReviewDuplicateNote: "Other reports may be about the same child:",
   matchReviewMissing: "Missing report",
@@ -185,7 +188,7 @@ const en = {
   matchFieldClothing: "Clothing",
   matchFieldMarks: "Marks",
   matchFieldCircumstances: "What happened",
-  matchVerdictAgree: "Match",
+  matchVerdictAgree: "Agrees",
   matchVerdictDiffer: "Differs",
   matchVerdictUnknown: "Unknown",
   matchVerdictReview: "Compare by eye",
@@ -229,6 +232,9 @@ const en = {
   matchReviewSex_female: "Girl",
   matchReviewSex_other: "Other",
   matchReviewPageTitle: "Review a possible match",
+  matchReviewForbidden: "You don't have permission to do this.",
+  matchReviewChecklistLegend: "Check before confirming",
+  matchReviewDifferentDistrictNote: "A different district is not unusual: a found child can be in another district.",
 } as const satisfies Record<MessageKey, string>;
 
 export const locales = { bn, en } as const;

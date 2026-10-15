@@ -9,7 +9,7 @@
 // - When a raw contact phone is served, `case.contact_viewed` is written for that report in
 //   the same transaction, so the read fails if the audit fails.
 // - `qualified` is true only while the candidate is pending, both reports are still at the
-//   versions it was made for, and both are still in a queue status. An opened but no longer
+//   versions it was made for, both are still in a queue status and neither is redacted. An opened but no longer
 //   qualified candidate is shown as such (CN-09); deciding it is E-005.
 import { isUuid, type CandidateDecisionView } from "@/contracts";
 import { effectiveRole, projectCandidateFor, type Principal } from "@/contracts/server";
@@ -64,7 +64,9 @@ export async function readCandidate(
       missingRow.version === col.int("match_candidates", c, "missing_version") &&
       foundRow.version === col.int("match_candidates", c, "found_version") &&
       QUEUE_STATUSES.includes(missingRow.status) &&
-      QUEUE_STATUSES.includes(foundRow.status);
+      QUEUE_STATUSES.includes(foundRow.status) &&
+      missingRow.anonymised_at === null &&
+      foundRow.anonymised_at === null;
 
     const read = projectCandidateFor(principal, {
       candidateId,

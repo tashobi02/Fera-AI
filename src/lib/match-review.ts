@@ -5,11 +5,13 @@
 //
 // Honesty rules (D4, BR-001/005):
 // - "agree / differs / unknown" is only computed from structured fields where a verdict is
-//   deterministic (sex, age, district). Free text and measurements are shown side by side
+//   deterministic (sex, age, same district). Free text, measurements and a different
+//   district are shown side by side
 //   with the label "compare by eye": no invented tolerance, no similarity of text claimed.
 // - The score is "similarity", never a probability or proof of identity.
 import {
   decisionRequestSchema,
+  decisionResponseSchema,
   type CandidateDecisionView,
   type DecisionRequest,
   type DecisionResponse,
@@ -65,7 +67,9 @@ export function compareCases(missing: OfficerCaseView, found: OfficerCaseView): 
     field: "district",
     missing: dm === null ? null : (missing.event.district_name_bn ?? String(dm)),
     found: df === null ? null : (found.event.district_name_bn ?? String(df)),
-    verdict: dm === null || df === null ? "unknown" : dm === df ? "agree" : "differ",
+    // A found child often turns up in another district than the one reported missing, so a
+    // different district is "review", never a contradiction (district is a bonus, BR-017).
+    verdict: dm === null || df === null ? "unknown" : dm === df ? "agree" : "review",
   });
 
   const pm = text(missing.event.place_text);
@@ -161,6 +165,7 @@ export function buildReject(view: CandidateDecisionView, reason: string): Decisi
 export type DecisionFailure =
   | { kind: "stale" } // E-005: not pending any more, or the reports changed — reload the stored state
   | { kind: "hidden" } // E-004
+  | { kind: "forbidden" } // E-003: signed in, but this role may not decide
   | { kind: "validation" } // E-001
   | { kind: "session" } // E-002
   | { kind: "rate-limited"; seconds: number | null }
@@ -182,7 +187,8 @@ export function classifyDecisionFailure(input: { status: number; body?: unknown;
   const id = errorIdOf(input.body);
   if (id === "E-007" || input.status === 429) return { kind: "rate-limited", seconds: retryAfterSeconds(input.retryAfter) };
   if (id === "E-005" || input.status === 409) return { kind: "stale" };
-  if (id === "E-004" || input.status === 404 || input.status === 403) return { kind: "hidden" };
+  if (id === "E-003" || input.status === 403) return { kind: "forbidden" };
+  if (id === "E-004" || input.status === 404) return { kind: "hidden" };
   if (id === "E-001" || input.status === 400) return { kind: "validation" };
   if (id === "E-002" || input.status === 401) return { kind: "session" };
   if (input.status >= 500 || id === "E-021") return { kind: "uncertain" };
@@ -195,38 +201,53 @@ export const DECISION_TIMEOUT_MS = 25_000;
 export async function requestDecision(
   candidateId: string,
   request: DecisionRequest,
-  opts: { fetchImpl?: typeof fetch; timeoutMs?: number; parse: (body: unknown) => DecisionResponse | null },
+  opts: { fetchImpl?: typeof fetch; timeoutMs?: number; parse?: (body: unknown) => DecisionResponse | null } = {},
 ): Promise<DecisionOutcome> {
   const fetchImpl = opts.fetchImpl ?? fetch;
+  const parse =
+    opts.parse ??
+    ((body: unknown) => {
+      const r = decisionResponseSchema.safeParse(body);
+      return r.success ? r.data : null;
+    });
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(new DOMException("timed out", "TimeoutError")), opts.timeoutMs ?? DECISION_TIMEOUT_MS);
-  let res: Response;
+  // The timer covers the whole exchange including reading the body: a stalled body must not
+  // leave the officer on "submitting" for ever.
   try {
-    res = await fetchImpl(candidateDecisionApi(candidateId), {
-      method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify(request),
-      credentials: "same-origin",
-      cache: "no-store",
-      signal: controller.signal,
-    });
-  } catch (err) {
+    let res: Response;
+    try {
+      res = await fetchImpl(candidateDecisionApi(candidateId), {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json" },
+        body: JSON.stringify(request),
+        credentials: "same-origin",
+        cache: "no-store",
+        signal: controller.signal,
+      });
+    } catch (err) {
+      return { kind: "failure", failure: { kind: offlineOrUncertain(err) } };
+    }
+    let body: unknown = null;
+    try {
+      body = await res.json();
+    } catch {
+      if (controller.signal.aborted) return { kind: "failure", failure: { kind: "uncertain" } };
+      body = null;
+    }
+    if (res.ok) {
+      const response = parse(body);
+      return response ? { kind: "decided", response } : { kind: "failure", failure: { kind: "uncertain" } };
+    }
+    return { kind: "failure", failure: classifyDecisionFailure({ status: res.status, body, retryAfter: res.headers.get("retry-after") }) };
+  } finally {
     clearTimeout(timer);
-    const name = err instanceof Error ? err.name : "";
-    const timedOut = name === "TimeoutError" || name === "AbortError";
-    const offline = !timedOut && typeof navigator !== "undefined" && navigator.onLine === false;
-    return { kind: "failure", failure: { kind: offline ? "offline" : "uncertain" } };
   }
-  clearTimeout(timer);
-  let body: unknown = null;
-  try {
-    body = await res.json();
-  } catch {
-    body = null;
-  }
-  if (res.ok) {
-    const response = opts.parse(body);
-    return response ? { kind: "decided", response } : { kind: "failure", failure: { kind: "uncertain" } };
-  }
-  return { kind: "failure", failure: classifyDecisionFailure({ status: res.status, body, retryAfter: res.headers.get("retry-after") }) };
+}
+
+// "Offline" only when the browser says so; any other lost reply may follow a stored decision.
+function offlineOrUncertain(err: unknown): "offline" | "uncertain" {
+  const name = err instanceof Error ? err.name : "";
+  const timedOut = name === "TimeoutError" || name === "AbortError";
+  return !timedOut && typeof navigator !== "undefined" && navigator.onLine === false ? "offline" : "uncertain";
 }

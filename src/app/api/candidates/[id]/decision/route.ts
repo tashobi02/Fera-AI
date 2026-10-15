@@ -6,17 +6,21 @@
 import { z } from "zod";
 import { decisionRequestSchema, decisionResponseSchema, uuidSchema, type DecisionResponse } from "@/contracts";
 import { decideCandidate } from "@/server/case";
-import { defineRoute } from "../../../_shared";
+import { defineRoute, type RateLimitRule } from "../../../_shared";
 
 export const runtime = "nodejs"; // pg
 
 const params = z.strictObject({ id: uuidSchema });
+
+// Not from the spec pack: a documented default (OD-028-3). In-memory per instance for now.
+const DECISION_WRITES: RateLimitRule = { id: "decision.principal", limit: 30, windowMs: 60_000, scope: "principal", onStoreError: "allow" };
 
 export const POST = defineRoute({
   api: "API-010",
   params,
   body: decisionRequestSchema,
   response: decisionResponseSchema,
+  rateLimit: [DECISION_WRITES],
   handler: async ({ principal, params: p, body, requestId }): Promise<DecisionResponse> => {
     const result = await decideCandidate(principal, p.id, body, { requestId });
     return result.response;

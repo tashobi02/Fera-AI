@@ -76,9 +76,11 @@ function reducer(state: State, action: Action): State {
     case "decided":
       return { status: "decided", response: action.response, failure: null, reasonError: null };
     case "reason":
-      return { status: "idle", failure: null, reasonError: action.error };
+      return { status: "idle", failure: state.status === "idle" ? state.failure : null, reasonError: action.error };
   }
 }
+
+const joinIds = (...parts: (string | false | null | undefined)[]) => parts.filter(Boolean).join(" ") || undefined;
 
 const parseResponse = (body: unknown): DecisionResponse | null => {
   const r = decisionResponseSchema.safeParse(body);
@@ -99,6 +101,7 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
   const [checklist, setChecklist] = useState<Checklist>(emptyChecklist);
   const dialog = useRef<HTMLDialogElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
+  const alertRef = useRef<HTMLDivElement>(null);
   const reasonRef = useRef<HTMLTextAreaElement>(null);
   const noteRef = useRef<HTMLTextAreaElement>(null);
   const busy = useRef(false);
@@ -112,6 +115,12 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
   useEffect(() => {
     if (state.status === "decided") resultRef.current?.focus();
   }, [state.status]);
+
+  // After a failed decision the buttons re-render; focus moves to the message so it is read
+  // and the officer is not left on a control that just changed.
+  useEffect(() => {
+    if (state.status === "idle" && state.failure) alertRef.current?.focus();
+  }, [state.status, state.failure]);
 
   const cellText = (v: string | null, field: CompareField) => {
     if (v === null) return t.matchReviewUnknownValue;
@@ -141,7 +150,9 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
   }
 
   function openDialog() {
+    if (submitting || !decidable) return;
     setChecklist(emptyChecklist());
+    if (noteRef.current) noteRef.current.value = "";
     dialog.current?.showModal();
   }
   async function confirm() {
@@ -152,6 +163,7 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
     await send(build);
   }
   async function reject() {
+    if (submitting || !decidable) return;
     const reason = reasonRef.current?.value ?? "";
     const build = buildReject(view, reason);
     if (!build.ok) {
@@ -166,6 +178,7 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
     switch (f.kind) {
       case "stale": return t.matchReviewStale;
       case "hidden": return t.matchReviewHidden;
+      case "forbidden": return t.matchReviewForbidden;
       case "validation": return t.matchReviewValidation;
       case "session": return t.matchReviewSession;
       case "offline": return t.matchReviewOffline;
@@ -191,7 +204,7 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
       </section>
 
       {!view.qualified && (
-        <p className="flex items-start gap-2 rounded-md bg-warning-soft px-3 py-2.5 text-body-sm text-warning-text">
+        <p id={`${uid}-notq`} className="flex items-start gap-2 rounded-md bg-warning-soft px-3 py-2.5 text-body-sm text-warning-text">
           <CircleAlertIcon className="mt-[0.2em] size-4" />
           <span>{t.matchReviewNotQualified}</span>
         </p>
@@ -210,7 +223,7 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
       )}
 
       {/* COMP-037 evidence table */}
-      <div className="min-w-0 overflow-x-auto">
+      <div className="hidden min-w-0 overflow-x-auto sm:block" tabIndex={0} role="region" aria-label={t.matchReviewTableCaption}>
         <table className="w-full border-collapse text-left text-body-sm">
           <caption className="sr-only">{t.matchReviewTableCaption}</caption>
           <thead>
@@ -241,6 +254,32 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
           </tbody>
         </table>
       </div>
+
+      {/* Below sm the same rows are stacked, so there is no two-axis scrolling at 320 px */}
+      <ul className="flex flex-col gap-4 sm:hidden">
+        {rows.map((r) => {
+          const v = VERDICT[r.verdict];
+          return (
+            <li key={r.field} className="flex flex-col gap-1 border-b border-hairline pb-3 text-body-sm">
+              <span className="font-medium text-body">{t[FIELD_KEY[r.field]]}</span>
+              <span className="text-ink">
+                <span className="text-mute">{t.matchReviewMissing}: </span>{cellText(r.missing, r.field)}
+              </span>
+              <span className="text-ink">
+                <span className="text-mute">{t.matchReviewFound}: </span>{cellText(r.found, r.field)}
+              </span>
+              <span className={`inline-flex items-center gap-1.5 ${v.tone}`}>
+                <v.Icon className="size-4" />
+                <span>{t[v.key]}</span>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+
+      {rows.find((r) => r.field === "district")?.verdict === "review" && (
+        <p className={`text-mute ${CAPTION}`}>{t.matchReviewDifferentDistrictNote}</p>
+      )}
 
       <section aria-labelledby={`${uid}-sum`} className="flex flex-col gap-1 text-body-sm">
         <h2 id={`${uid}-sum`} className="font-medium text-ink">{t.matchReviewSummary}</h2>
@@ -281,21 +320,19 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
       <section aria-labelledby={`${uid}-decision`} className="flex flex-col gap-4 border-t border-hairline pt-6" aria-busy={submitting || undefined}>
         <h2 id={`${uid}-decision`} className="text-body-md font-semibold text-ink">{t.matchReviewDecision}</h2>
 
-        <div role="alert" aria-atomic="true">
+        <div ref={alertRef} tabIndex={-1} role="alert" aria-atomic="true" className="outline-offset-2">
           {state.failure && (
-            <div className="flex flex-col items-start gap-3 rounded-md bg-warning-soft px-3 py-2.5 text-body-sm text-warning-text">
-              <p className="flex items-start gap-2">
-                {state.failure.kind === "offline" || state.failure.kind === "rate-limited" ? <ClockIcon className="mt-[0.2em] size-4" /> : <CircleAlertIcon className="mt-[0.2em] size-4" />}
-                <span>{failureText(state.failure)}</span>
-              </p>
-              {needsReload(state.failure) && (
-                <button type="button" onClick={() => window.location.reload()} className="min-h-11 rounded-md border border-control bg-elevated px-4 font-medium text-ink hover:border-control-strong">
-                  {t.matchReviewReload}
-                </button>
-              )}
-            </div>
+            <p className="flex items-start gap-2 rounded-md bg-warning-soft px-3 py-2.5 text-body-sm text-warning-text">
+              {state.failure.kind === "offline" || state.failure.kind === "rate-limited" ? <ClockIcon className="mt-[0.2em] size-4" /> : <CircleAlertIcon className="mt-[0.2em] size-4" />}
+              <span>{failureText(state.failure)}</span>
+            </p>
           )}
         </div>
+        {state.failure && needsReload(state.failure) && (
+          <button type="button" onClick={() => window.location.reload()} className="min-h-11 self-start rounded-md border border-control bg-elevated px-4 text-body-sm font-medium text-ink hover:border-control-strong">
+            {t.matchReviewReload}
+          </button>
+        )}
 
         {state.status === "decided" ? (
           <div ref={resultRef} tabIndex={-1} className="flex flex-col gap-3 rounded-lg border border-hairline bg-surface p-[16px] shadow-1 sm:p-6">
@@ -316,6 +353,7 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
                 onClick={openDialog}
                 aria-disabled={!decidable || submitting || undefined}
                 disabled={!decidable}
+                aria-describedby={!view.qualified ? `${uid}-notq` : undefined}
                 className="inline-flex min-h-11 items-center gap-2 rounded-md bg-primary px-5 text-body-md font-semibold text-on-primary hover:bg-primary-pressed disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting && <LoaderCircleIcon className="size-4 animate-spin motion-reduce:animate-none" />}
@@ -332,7 +370,7 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
                 maxLength={500}
                 disabled={!decidable}
                 aria-invalid={state.reasonError ? true : undefined}
-                aria-describedby={state.reasonError ? `${uid}-reason-error` : undefined}
+                aria-describedby={joinIds(state.reasonError && `${uid}-reason-error`, !view.qualified && `${uid}-notq`)}
                 className="min-h-11 w-full rounded-md border border-control bg-elevated px-3 py-2 text-body-md text-ink hover:border-control-strong focus:border-control-strong aria-invalid:border-danger"
               />
               {state.reasonError && (
@@ -365,6 +403,7 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
           <h2 id={`${uid}-dlg-title`} className="text-heading-4 font-semibold text-ink">{t.matchReviewDialogTitle}</h2>
           <p className="text-body-md">{t.matchReviewDialogBody}</p>
           <fieldset className="flex flex-col gap-2 border-0 p-0">
+            <legend className="mb-1 text-body-sm font-medium text-ink">{t.matchReviewChecklistLegend}</legend>
             {CHECKLIST_KEYS.map((k) => (
               <label key={k} className="flex min-h-11 items-start gap-3 text-body-sm text-ink">
                 <input
