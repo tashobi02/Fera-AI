@@ -72,6 +72,9 @@ describe("posterShareText", () => {
     "+৮৮০ ১৭১১ ১২৩৪৫৬",
     "+880 1711-123456",
     "০১৭১১.১২৩.৪৫৬",
+    "০১৭১১/১২৩৪৫৬",
+    "01711,123456",
+    "01711_123_456",
     "০১৭১১‌১২৩৪৫৬",
     "０１７１１１２３４５６", // fullwidth
   ])("blocks the poster when a number is still in the text (%s)", (line) => {
@@ -276,6 +279,39 @@ describe("renderPoster (stale runs never publish)", () => {
       status: "stale",
     });
     expect(revoked).toEqual(["blob:3"]);
+  });
+
+  it("neither paints nor encodes a run that went stale during the font wait", async () => {
+    let current = true;
+    const calls: string[] = [];
+    const { d } = deps({
+      family: async () => {
+        current = false;
+        return "Noto";
+      },
+      paint: () => calls.push("paint"),
+      toBlob: async () => {
+        calls.push("toBlob");
+        return new Blob(["png"]);
+      },
+    });
+    expect(await renderPoster(ok, d, () => current)).toEqual({
+      status: "stale",
+    });
+    expect(calls).toEqual([]);
+  });
+
+  it("a run that throws after going stale is stale, not failed", async () => {
+    let current = true;
+    const { d } = deps({
+      toBlob: async () => {
+        current = false;
+        throw new Error("encoder");
+      },
+    });
+    expect(await renderPoster(ok, d, () => current)).toEqual({
+      status: "stale",
+    });
   });
 
   it("maps every failure to a state instead of throwing", async () => {

@@ -5,7 +5,7 @@
 // - posterShareText: the parent's contact choice (OD-023-1). The API-006 poster always
 //   carries the reporter phone on one fixed line; declining removes that line here. The
 //   result is blocked when a Bangladeshi mobile number is still in the text, also when
-//   it is written with spaces, hyphens, dots or a +880 prefix (a number typed into a
+//   it is written with spaces, hyphens, dots, commas, slashes, underscores or a +880 prefix (a number typed into a
 //   free-text field). This is a safety net, not a guarantee: the parent reviews the text.
 // - layoutPoster / paintPoster: a text-only 1080 × 1350 PNG with the draft label at the
 //   top and a draft footer (D4). The context type has no image-drawing method, so a
@@ -19,7 +19,8 @@ export const POSTER_FOOTER_BN = "খসড়া — নিজে জমা দ�
 
 const BN_DIGITS = "০১২৩৪৫৬৭৮৯";
 // Separators people put inside phone numbers, plus invisible format characters.
-const SEPARATORS = /([0-9])[\s\-–—.() ­​-‍⁠﻿]+(?=[0-9])/gu;
+const SEPARATORS =
+  /([0-9])[\s\-–—.,/_()\u00A0\u00AD\u200B-\u200D\u2060\uFEFF]+(?=[0-9])/gu;
 // After normalising: an 11-digit 01… mobile, the same with 880 / +880, or any 10+ digit run.
 const PHONE_LIKE = /(?:\+?880)?01[3-9][0-9]{8}|[0-9]{10,}/u;
 
@@ -127,7 +128,7 @@ export const fontFor = (px: number, weight: number, family: string): string =>
   `${weight} ${px}px ${family}`;
 
 const VIRAMA = "্";
-const JOINERS = /^[‌‍]+$/u;
+const JOINERS = /^[\u200C\u200D]+$/u;
 
 // Grapheme clusters, with a cluster that ends in a hasanta (optionally plus ZWNJ/ZWJ)
 // glued to the next one. Unicode 15.1 engines already keep conjuncts together; older
@@ -145,7 +146,8 @@ export function graphemes(s: string): string[] {
     const last = out[out.length - 1];
     if (
       last !== undefined &&
-      (last.replace(/[‌‍]+$/u, "").endsWith(VIRAMA) || JOINERS.test(g))
+      (last.replace(/[\u200C\u200D]+$/u, "").endsWith(VIRAMA) ||
+        JOINERS.test(g))
     )
       out[out.length - 1] = last + g;
     else out.push(g);

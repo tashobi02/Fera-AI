@@ -38,9 +38,11 @@ import {
   BUTTON_SECONDARY,
   CardShell,
   FailureBox,
+  LIVE_EMPTY,
   OutputText,
+  READ,
 } from "./ui";
-import { useAnnouncer, useOutput } from "./use-output";
+import { useAnnouncer, useOnChange, useOutput } from "./use-output";
 
 type Choice = "include" | "omit" | null;
 type PosterState =
@@ -113,19 +115,22 @@ export function PosterShare({
   const [choice, setChoice] = useState<Choice>(null);
   const [ack, setAck] = useState(false);
   const [tried, setTried] = useState(0);
+  const [lastMissing, setLastMissing] = useState<"choice" | "ack">("choice");
   const [image, setImage] = useState<PosterState>({ status: "none" });
-  const [message, announce] = useAnnouncer();
+  const { message, announce, clear } = useAnnouncer();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const blockRef = useRef<HTMLPreElement>(null);
   const failureRef = useRef<HTMLDivElement>(null);
   const firstRadioRef = useRef<HTMLInputElement>(null);
   const ackRef = useRef<HTMLInputElement>(null);
   const downloadRef = useRef<HTMLAnchorElement>(null);
+  const actionRef = useRef<HTMLButtonElement>(null);
   const urlRef = useRef<string | null>(null);
   const runRef = useRef(0);
 
   function reset() {
     runRef.current += 1;
+    clear(); // "poster ready" no longer holds
     if (urlRef.current) URL.revokeObjectURL(urlRef.current);
     urlRef.current = null;
     canvasRef.current
@@ -142,21 +147,28 @@ export function PosterShare({
     [],
   );
 
-  useEffect(() => {
-    if (state.status === "ready") {
+  // Status changes only: a language toggle re-renders without moving focus.
+  useOnChange(state.status, (status) => {
+    if (status === "ready") {
       announce(t.outputReady);
       blockRef.current?.focus();
-    } else if (state.status === "failed") {
+    } else if (status === "failed") {
+      clear();
       failureRef.current?.focus();
+    } else if (status === "loading") {
+      clear();
+      actionRef.current?.focus(); // a retry unmounts the failure box
     }
-  }, [state.status, announce, t.outputReady]);
-
-  useEffect(() => {
-    if (image.status === "ready") {
+  });
+  useOnChange(image.status, (status) => {
+    if (status === "ready") {
       announce(t.posterReady);
       downloadRef.current?.focus();
     }
-  }, [image.status, announce, t.posterReady]);
+  });
+
+  // A message in the previous language no longer holds after a language toggle.
+  useOnChange(locale, clear);
 
   const share =
     state.status === "ready" && choice
@@ -179,6 +191,7 @@ export function PosterShare({
     if (image.status === "rendering") return;
     if (!choice || !ack || !share) {
       setTried((n) => n + 1);
+      setLastMissing(choice ? "ack" : "choice");
       (choice ? ackRef : firstRadioRef).current?.focus();
       return;
     }
@@ -231,10 +244,15 @@ export function PosterShare({
 
   return (
     <CardShell type="poster" locale={locale} titleId={ids.title}>
-      <div role="status" aria-live="polite" aria-atomic="true">
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className={LIVE_EMPTY}
+      >
         {state.status === "loading" || image.status === "rendering" ? (
-          <p className="flex items-center gap-2 text-body-md text-body">
-            <LoaderCircleIcon className="size-4 animate-spin motion-reduce:animate-none" />
+          <p className={`flex items-center gap-2 ${READ} text-body`}>
+            <LoaderCircleIcon className="size-4 shrink-0 animate-spin motion-reduce:animate-none" />
             <span>
               {state.status === "loading"
                 ? t.outputPreparing
@@ -242,10 +260,10 @@ export function PosterShare({
             </span>
           </p>
         ) : (
-          message && <p className="text-body-md text-body">{message}</p>
+          message && <p className={`${READ} text-body`}>{message}</p>
         )}
       </div>
-      <div role="alert" aria-atomic="true">
+      <div role="alert" aria-atomic="true" className={LIVE_EMPTY}>
         {state.status === "failed" && (
           <FailureBox
             failure={state.failure}
@@ -258,10 +276,11 @@ export function PosterShare({
 
       {(state.status === "idle" || state.status === "loading") && (
         <button
+          ref={actionRef}
           type="button"
           onClick={load}
           aria-disabled={state.status === "loading" || undefined}
-          className={`${BUTTON_PRIMARY} self-start`}
+          className={`${BUTTON_SECONDARY} self-start`}
         >
           {t.outputPoster}
         </button>
@@ -269,12 +288,14 @@ export function PosterShare({
 
       {state.status === "ready" && (
         <>
-          <p className="flex items-start gap-2 rounded-md bg-info-soft px-3 py-2.5 text-body-md text-info-text">
-            <InfoIcon className="mt-[0.35em] size-4" />
+          <p
+            className={`flex items-start gap-2 rounded-md bg-info-soft px-3 py-2.5 ${READ} text-info-text`}
+          >
+            <InfoIcon className="mt-[0.45em] size-4 shrink-0" />
             <span>{t.posterShareNotice}</span>
           </p>
 
-          <h4 id={ids.text} className="text-body-md font-semibold text-ink">
+          <h4 id={ids.text} className={`${READ} font-semibold text-ink`}>
             {t.posterTextHeading}
           </h4>
           <OutputText
@@ -288,7 +309,7 @@ export function PosterShare({
             className="flex flex-col gap-2"
             aria-describedby={missingChoice ? ids.needChoice : undefined}
           >
-            <legend className="mb-1 text-body-md font-medium text-ink">
+            <legend className={`mb-1 ${READ} font-medium text-ink`}>
               {t.posterContactLegend}
             </legend>
             {(["include", "omit"] as const).map((value, i) => (
@@ -306,7 +327,9 @@ export function PosterShare({
                   onChange={() => choose(value)}
                   className="size-5 accent-(--color-primary)"
                 />
-                <span className="text-body-md text-ink">
+                <span
+                  className={`min-w-0 ${READ} text-ink [overflow-wrap:anywhere]`}
+                >
                   {value === "include"
                     ? t.posterContactInclude
                     : t.posterContactOmit}
@@ -316,9 +339,9 @@ export function PosterShare({
             {missingChoice && (
               <p
                 id={ids.needChoice}
-                className="flex items-start gap-2 text-body-md text-ink"
+                className={`flex items-start gap-2 ${READ} text-ink`}
               >
-                <CircleAlertIcon className="mt-[0.35em] size-4 text-mute" />
+                <CircleAlertIcon className="mt-[0.45em] size-4 shrink-0 text-mute" />
                 <span>{t.posterNeedChoice}</span>
               </p>
             )}
@@ -339,29 +362,37 @@ export function PosterShare({
                 }}
                 className="mt-[0.3em] size-5 shrink-0 accent-(--color-primary)"
               />
-              <span className="text-body-md text-ink">{t.posterAckLabel}</span>
+              <span
+                className={`min-w-0 ${READ} text-ink [overflow-wrap:anywhere]`}
+              >
+                {t.posterAckLabel}
+              </span>
             </label>
             {missingAck && (
               <p
                 id={ids.needAck}
-                className="flex items-start gap-2 text-body-md text-ink"
+                className={`flex items-start gap-2 ${READ} text-ink`}
               >
-                <CircleAlertIcon className="mt-[0.35em] size-4 text-mute" />
+                <CircleAlertIcon className="mt-[0.45em] size-4 shrink-0 text-mute" />
                 <span>{t.posterNeedAck}</span>
               </p>
             )}
           </div>
 
-          <div role="alert" aria-atomic="true">
+          <div role="alert" aria-atomic="true" className={LIVE_EMPTY}>
             {imageMessage && (
-              <p className="flex items-start gap-2 rounded-md border border-hairline-strong bg-card px-3 py-2.5 text-body-md text-ink">
-                <CircleAlertIcon className="mt-[0.35em] size-4 text-mute" />
-                <span>{imageMessage}</span>
+              <p
+                className={`flex items-start gap-2 rounded-md border border-hairline-strong bg-card px-3 py-2.5 ${READ} text-ink`}
+              >
+                <CircleAlertIcon className="mt-[0.45em] size-4 shrink-0 text-mute" />
+                <span className="min-w-0">{imageMessage}</span>
               </p>
             )}
             {tried > 0 && (missingChoice || missingAck) && (
               <p key={tried} className="sr-only">
-                {missingChoice ? t.posterNeedChoice : t.posterNeedAck}
+                {lastMissing === "choice"
+                  ? t.posterNeedChoice
+                  : t.posterNeedAck}
               </p>
             )}
           </div>

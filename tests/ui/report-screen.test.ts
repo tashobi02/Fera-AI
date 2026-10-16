@@ -124,6 +124,22 @@ describe("SCREEN-004", () => {
   });
 });
 
+describe("output text", () => {
+  it("marks Latin runs inside Bangla text as English without changing the text", async () => {
+    const { OutputText } = await import("@/app/(parent)/report/[id]/ui");
+    const text = "জেলা: [MOCK] জেলা ২৬\nরেফারেন্স: M-7K2Q9A";
+    const html = renderToStaticMarkup(
+      createElement(OutputText, { text, labelledBy: "h", blockRef: null }),
+    );
+    expect(html).toContain('<span lang="en" translate="no">[MOCK]</span>');
+    expect(html).toContain('<span lang="en" translate="no">M-7K2Q9A</span>');
+    expect(html.replace(/<[^>]+>/g, "")).toBe(text);
+    expect(html).toMatch(
+      /^<pre[^>]*lang="bn"[^>]*role="group"[^>]*aria-labelledby="h"/,
+    );
+  });
+});
+
 describe("COMP-033 status badge", () => {
   it.each([
     ["open", "খোলা"],
