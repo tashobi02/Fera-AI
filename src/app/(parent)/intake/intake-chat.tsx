@@ -45,6 +45,7 @@ import {
   type Busy,
   type Message,
 } from "@/lib/intake/machine";
+import { sweepDrafts } from "@/lib/intake/draft-store";
 import { locales, type Locale, type MessageKey } from "@/locales";
 import {
   ArrowRightIcon,
@@ -136,6 +137,10 @@ export function IntakeChat({ locale, mode }: { locale: Locale; mode: IntakeClien
       invalidateIntakeEpoch();
     };
   }, []);
+
+  // W4: every S-002 mount sweeps readable expired drafts, including attempts.
+  // Active attempts, corrupt attempted identities and unreadable storage survive.
+  useEffect(() => { try { sweepDrafts(); } catch {} }, []);
 
   // Arriving from S-001 by client navigation leaves focus on <body>; start at the title.
   useEffect(() => {
@@ -476,7 +481,7 @@ export function IntakeChat({ locale, mode }: { locale: Locale; mode: IntakeClien
       {state.phase === "complete" && !confirmingDiscard && (
         <Outcome headingId={ids.outcome} focusRef={focusRef} icon={<CircleCheckIcon className="size-5 text-success-text" />} title={t.readyTitle}>
           <p className="text-body-md text-body">{t.beforeSubmit}</p>
-          <PlannedLink href={REVIEW_PATH} onClick={(event) => handTo("review", event)} label={t.reviewAction} planned={t.plannedLabel} />
+          <Link href={REVIEW_PATH} onClick={(event) => handTo("review", event)} className={PRIMARY_BUTTON}>{t.reviewAction}</Link>
         </Outcome>
       )}
 
@@ -492,7 +497,13 @@ export function IntakeChat({ locale, mode }: { locale: Locale; mode: IntakeClien
               </ul>
             </div>
           )}
-          <PlannedLink href={MANUAL_FORM_PATH} onClick={(event) => handTo("manual", event)} label={t.openFormAction} planned={t.plannedLabel} />
+          {state.latest && <Link href={REVIEW_PATH} onClick={(event) => handTo("review", event)} className={PRIMARY_BUTTON}>{t.reviewAction}</Link>}
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="inline-flex min-h-11 items-center gap-2 text-body-md text-mute">
+              {t.openFormAction}
+            </span>
+            <HonestLabel>{t.plannedLabel}</HonestLabel>
+          </div>
         </Outcome>
       )}
 
@@ -527,11 +538,7 @@ export function IntakeChat({ locale, mode }: { locale: Locale; mode: IntakeClien
         </section>
       ) : <div className="flex flex-wrap items-center justify-between gap-2 border-t border-hairline pt-3">
         {state.phase !== "manual" ? (
-          <Link href={MANUAL_FORM_PATH} onClick={(event) => handTo("manual", event)} className={GHOST_BUTTON}>
-            <FileTextIcon />
-            {t.openFormAction}
-            <HonestLabel>{t.plannedLabel}</HonestLabel>
-          </Link>
+          <PlannedLink href={MANUAL_FORM_PATH} onClick={(event) => handTo("manual", event)} label={t.openFormAction} planned={t.plannedLabel} />
         ) : (
           <span />
         )}
@@ -636,15 +643,9 @@ function Outcome({
   );
 }
 
-// S-003 (TASK-022) and S-005 (TASK-025) are not built yet: the link says so.
-function PlannedLink({ href, onClick, label, planned }: { href: string; onClick: (event: MouseEvent<HTMLAnchorElement>) => void; label: string; planned: string }) {
-  return (
-    <div className="flex flex-wrap items-center gap-3">
-      <Link href={href} onClick={onClick} className={PRIMARY_BUTTON}>
-        {label}
-        <ArrowRightIcon className="size-5" />
-      </Link>
-      <HonestLabel>{planned}</HonestLabel>
-    </div>
-  );
+// Only the unbuilt S-005 manual form keeps its Planned label.
+function PlannedLink({ href, onClick, label, planned }: { href: typeof MANUAL_FORM_PATH; onClick: (event: MouseEvent<HTMLAnchorElement>) => void; label: string; planned: string }) {
+  return <Link href={href} onClick={onClick} className={GHOST_BUTTON}>
+    <FileTextIcon />{label}<HonestLabel>{planned}</HonestLabel>
+  </Link>;
 }

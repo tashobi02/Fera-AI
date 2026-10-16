@@ -1,3 +1,4 @@
+import { PRIMARY_BUTTON } from "@/app/(parent)/parent-ui";
 import type { FormEvent, MouseEvent, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { clientExamples } from "@/contracts/client-examples";
@@ -282,5 +283,45 @@ describe("round 2: failures are visible, not silent (W2-W5, B1)", () => {
     changeText(h.tree, "আমার মেয়ে নুসরাত, বয়স ৭ বছর।"); h.render(); submit(h.tree);
     expect(fetchImpl).toHaveBeenCalledOnce();
     recorder.unmount(); h.unmount();
+  });
+
+  it("SC2: manual-exit path reaches S-003 with unknown fields marked 'অজানা'", async () => {
+    const { ReviewScreen } = await import("@/app/(parent)/intake/review/review-screen");
+    const h = mountHooks(() => IntakeChat({ locale: "bn", mode: "fake" }));
+    // Round 1: initial message with name & age
+    changeText(h.tree, "আমার মেয়ে মীম, বয়স ১১ বছর।"); h.render(); submit(h.tree);
+    await vi.advanceTimersByTimeAsync(1000); h.render();
+    // Answer follow-ups until manual exit (rounds = 4)
+    for (let i = 0; i < 4; i++) {
+      changeText(h.tree, "জানি না"); h.render(); submit(h.tree);
+      await vi.advanceTimersByTimeAsync(1000); h.render();
+    }
+    expect(elements(h.tree).some((n) => n.props.title === locales.bn.manualTitle)).toBe(true);
+    expect(elements(h.tree).some((n) => n.props.href === "/intake/review" && content(n) === locales.bn.reviewAction && n.props.className === PRIMARY_BUTTON)).toBe(true);
+    const link = elements(h.tree).find((n) => n.props.href === "/intake/review");
+    expect(link).toBeDefined();
+    (link!.props.onClick as (e: typeof plainClick) => void)(plainClick);
+
+    // Mount S-003 ReviewScreen
+    const hReview = mountHooks(() => ReviewScreen({ locale: "bn" }));
+    expect(content(hReview.tree)).toContain(locales.bn.reviewTitle);
+    const { ReviewFields } = await import("@/app/(parent)/intake/review/review-fields");
+    const fieldNode = elements(hReview.tree).find((n) => n.type === ReviewFields)!;
+    expect(fieldNode).toBeDefined();
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    expect(renderToStaticMarkup(mountHooks(() => ReviewFields(fieldNode.props as Parameters<typeof ReviewFields>[0])).tree)).toContain(locales.bn.unknownValue);
+    h.unmount(); hReview.unmount();
+  });
+});
+
+describe("A8 SC2 handoff requires an extracted draft", () => {
+  it("does not offer S-003 when manual fallback has no extraction to review", async () => {
+    const { h, response } = request();
+    response.resolve(Response.json(errorEnvelope("E-023"), { status: 503 }));
+    await settle(); h.render();
+    expect(elements(h.tree).some((n) => n.props.title === locales.bn.manualTitle)).toBe(true);
+    expect(elements(h.tree).some((n) => n.props.href === "/intake/review")).toBe(false);
+    expect(content(h.tree)).toContain(locales.bn.openFormAction);
+    h.unmount();
   });
 });

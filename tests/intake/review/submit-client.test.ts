@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { clientExamples } from "@/contracts/client-examples";
 import { caseDraftSchema, errorEnvelope } from "@/contracts";
-import { clearDraft, createDeviceDraft, loadDraft, saveDraft } from "@/lib/intake/draft-store";
+import { clearDraft, createDeviceDraft, loadDraft, readSubmittedReference, saveDraft } from "@/lib/intake/draft-store";
 import { buildSubmission, createSubmitter, editField, newSubmission, validateReview } from "@/lib/intake/review";
 import { memoryStorage } from "./storage";
 
@@ -57,15 +57,24 @@ describe("TC-004/031 explicit submit client", () => {
     const result = await createSubmitter(fetcher, storage)(r, true);
     expect(result).toMatchObject({ ok: true, data: { id: clientExamples.createMissingResponse.id, ref_code: clientExamples.createMissingResponse.ref_code } });
     expect(loadDraft(storage)).toBeNull();
+    expect(readSubmittedReference(storage)).toEqual({ id: clientExamples.createMissingResponse.id, ref: clientExamples.createMissingResponse.ref_code });
     expect(JSON.parse(fetcher.mock.calls[0][1].body)).toEqual(buildSubmission(r, true));
     expect(fetcher.mock.calls[0][0]).toBe("/api/cases");
   });
-  it.each(["E-001", "E-006", "E-019", "E-002", "E-021", "E-024"] as const)("maps %s to catalogue copy and retains local data and UUID", async (id) => {
+  it.each(["E-001", "E-006", "E-002", "E-021", "E-024"] as const)("maps %s to catalogue copy and retains local data and UUID", async (id) => {
     const storage = memoryStorage(); const r = record();
     const response = errorEnvelope(id, id === "E-001" ? { fields: ["reporter.phone"] } : {});
     const result = await createSubmitter(vi.fn().mockResolvedValue(Response.json(response, { status: 400 })), storage)(r, true);
     expect(result).toEqual({ ok: false, error: response });
     expect(loadDraft(storage)?.client_submission_id).toBe(r.client_submission_id);
+  });
+  it("OD-022-10: E-019 clears the device record while mapping the catalogue copy", async () => {
+    const storage = memoryStorage(); const r = record();
+    const response = errorEnvelope("E-019");
+    const result = await createSubmitter(vi.fn().mockResolvedValue(Response.json(response, { status: 401 })), storage)(r, true);
+    expect(result).toEqual({ ok: false, error: response });
+    expect(loadDraft(storage)).toBeNull();
+    expect(storage.getItem("fera.intake.review.v1")).toBeNull();
   });
   it("reuses the same UUID and payload after E-021 and E-024, including after reload", async () => {
     const storage = memoryStorage(); const r = record();
@@ -125,5 +134,52 @@ describe("TC-004/031 explicit submit client", () => {
     const storage = memoryStorage(); const r = record();
     const result = await createSubmitter(vi.fn().mockResolvedValue(Response.json({ secret: "payload" }, { status: 201 })), storage)(r, true);
     expect(result).toEqual({ ok: false, error: errorEnvelope("E-021") }); expect(loadDraft(storage)).not.toBeNull();
+  });
+});
+
+describe("A8 Sol reference persistence", () => {
+  it("keeps the frozen retry record when persisting a 2xx reference fails", async () => {
+    const backing = memoryStorage(); const r = record(); saveDraft(r, backing);
+    const storage = { ...backing, setItem(key: string, value: string) {
+      if (key === "fera.intake.submitted.v1") throw Error("quota");
+      backing.setItem(key, value);
+    } };
+    const result = await createSubmitter(vi.fn().mockResolvedValue(Response.json(clientExamples.createMissingResponse)), storage)(r, true, true);
+    expect(result).toMatchObject({ ok: true, cleared: false });
+    expect(loadDraft(backing)?.client_submission_id).toBe(r.client_submission_id);
+    expect(loadDraft(backing)?.attempted).toBe(true);
+  });
+});
+
+describe("A8 Sol dispatch identity guard", () => {
+  it("a memory-only caller cannot dispatch over a corrupt attempted stored identity", async () => {
+    const storage = memoryStorage(); const r = record();
+    storage.setItem("fera.intake.review.v1", JSON.stringify({ ...record(), version: 2, attempted: true }));
+    const fetcher = vi.fn();
+    expect(await createSubmitter(fetcher, storage)(r, true, false)).toMatchObject({ ok: false, dispatched: false });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+});
+
+describe("A8 Sol cleanup reporting", () => {
+  it("reports retained payload when freeze succeeds from empty storage but reference save fails", async () => {
+    const backing = memoryStorage(); const r = record();
+    const storage = { ...backing, setItem(key: string, value: string) {
+      if (key === "fera.intake.submitted.v1") throw Error("quota");
+      backing.setItem(key, value);
+    } };
+    const result = await createSubmitter(vi.fn().mockResolvedValue(Response.json(clientExamples.createMissingResponse)), storage)(r, true);
+    expect(result).toMatchObject({ ok: true, cleared: false });
+    expect(loadDraft(backing)?.attempted).toBe(true);
+  });
+});
+
+describe("A8 Sol unreadable storage", () => {
+  it("does not dispatch over storage whose existing identity cannot be read", async () => {
+    const backing = memoryStorage(); saveDraft({ ...record(), attempted: true }, backing);
+    const storage = { ...backing, getItem() { throw Error("unavailable"); } };
+    const fetcher = vi.fn();
+    expect(await createSubmitter(fetcher, storage)(record(), true)).toMatchObject({ok:false,dispatched:false});
+    expect(fetcher).not.toHaveBeenCalled();
   });
 });

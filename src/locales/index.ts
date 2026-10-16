@@ -164,7 +164,7 @@ const bn = {
   reviewAgeInvalid: "বয়স ০ থেকে ১৭-এর মধ্যে দিন", // D4 §11
   reviewPhoneInvalid: "০১ দিয়ে শুরু ১১ সংখ্যার নম্বর দিন", // D4 §11
   reviewTimeInvalid: "সঠিক সময় ও সীমা দিন। ভবিষ্যতের সময় দেওয়া যাবে না।",
-  reviewTimeHint: "সময় লিখুন: YYYY-MM-DDTHH:mm:ss+০৬:০০। সঠিক সময় হলে নিচের দুই সীমাতেও একই সময় দিন।",
+  reviewTimeHint: "তারিখ: বছর-মাস-দিন। সময়: ঘণ্টা:মিনিট (২৪ ঘণ্টা)। সঠিক সময় হলে দুই সীমাতেও একই সময় দিন।", // needs human Bangla review
   reviewDistrictCode: "জেলার নম্বর (সিনথেটিক নমুনা)",
   reviewDistrictHint: "জেলার নামের তালিকা এখনও যুক্ত হয়নি। নমুনার জেলার নম্বর জানা থাকলে দিন (১–৬৪)। আন্দাজ করবেন না।",
   reviewAgeMin: "বয়সের নিচের সীমা (বছর)",
@@ -175,10 +175,42 @@ const bn = {
   reviewConflict: "এই জমার নম্বরে ভিন্ন তথ্য আগে জমা হয়েছে। আবার দেখে নতুন নম্বরে জমা দিতে পারেন। এতে আলাদা রিপোর্ট হতে পারে।",
   reviewNewId: "আবার দেখে নতুন নম্বরে জমা দিন",
   reviewSession: "সেশনের সময় শেষ হয়েছে। খসড়া এই ডিভাইসে আছে। আপনার কথার পাতায় ফিরে সেশন শুরু করুন।",
+  reviewSessionExpired: "আপনার খসড়ার সময় শেষ। নতুন করে শুরু করুন।", // D3:333 / catalogue E-019, needs human Bangla review
   reviewRetryFrozen: "ফল জানা যায়নি। একই তথ্য ও জমার নম্বর রেখে আবার চেষ্টা করুন।",
-  reviewPlannedManual: "পরিকল্পিত: নিজে পূরণ করার ফর্ম",
-  reviewPlannedReport: "পরিকল্পিত: জমা দেওয়া রিপোর্টের পাতা",
-  reviewExpired: "খসড়ার সময় শেষ হয়েছে। আপনার কথার পাতায় ফিরে শুরু করুন।",
+  reviewPlannedManual: "নিজে পূরণ করার ফর্ম", // planned label wraps it; needs human Bangla review
+  reviewPlannedReport: "জমা দেওয়া রিপোর্টের পাতা", // planned label wraps it; needs human Bangla review
+  reviewExpired: "আপনার খসড়ার সময় শেষ। নতুন করে শুরু করুন।", // D3:333 / catalogue E-019, needs human Bangla review
+  reviewUnknownAdd: "অজানা — যোগ করুন", // needs human Bangla review
+  reviewDiscardWarn: "এই খসড়া জমা দেওয়ার চেষ্টা হয়েছে। সার্ভারে ইতিমধ্যে পৌঁছে থাকতে পারে — মুছলে আর ডিভাইসে খুঁজে পাবেন না।", // needs human Bangla review
+  reviewMockSubmit: "[MOCK] পূর্বপ্রস্তুত: জমা দেওয়া সক্রিয় নয়, আসল API যুক্ত হলে কাজ করবে", // needs human Bangla review
+  reviewMockSubmitButton: "[MOCK] জমা দিন (অকার্যকর)", // needs human Bangla review
+  reviewSourceExcerpt: "উৎসের অংশ", // needs human Bangla review
+  reviewSourceLink: "পুরো লেখায় দেখুন", // needs human Bangla review
+  reviewAgeMode: "বয়স কীভাবে জানাবেন?", // needs human Bangla review
+  reviewAgeEstimate: "আনুমানিক বয়সের সীমা", // needs human Bangla review
+  reviewAgeExactHint: "সঠিক বয়স জানা থাকলে বছরে লিখুন।", // needs human Bangla review
+  reviewAgeRangeHint: "আনুমানিক বয়সের নিচের ও উপরের সীমা বছরে লিখুন।", // needs human Bangla review
+  reviewClockLabel: "সময় (২৪ ঘণ্টা)", // needs human Bangla review
+  reviewDateNotApplied: "এই তারিখ এখনো প্রয়োগ হয়নি। সময়ের অংশ বাছুন, অথবা নিচে প্রতিটি সময়ের তারিখ বদলান।", // needs human Bangla review
+  reviewFutureClamped: "ভবিষ্যতের অংশ বাদ দিয়ে উপরের সীমা বর্তমান সময় পর্যন্ত রাখা হয়েছে। তারিখ ও সময় যাচাই করুন।", // needs human Bangla review
+  reviewDateHint: "তারিখ লিখুন: ২০২৫-১২-৩১। একটি সময়ের অংশ বাছলে সীমা পূরণ হবে; পরে বদলাতে পারবেন।", // needs human Bangla review
+  reviewDateInvalid: "সঠিক তারিখ লিখুন: বছর-মাস-দিন।", // needs human Bangla review
+  reviewTimeBoundHint: "তারিখ: বছর-মাস-দিন। সময়: ঘণ্টা:মিনিট (২৪ ঘণ্টা)। সঠিক সময় হলে তিনটি সময় একই রাখুন।", // needs human Bangla review
+  ageExact: "সঠিক বয়স", // needs human Bangla review
+  timeExact: "সঠিক সময়", // needs human Bangla review
+  // Part-of-day time chips (D4 §11)
+  timePartMorning: "সকাল", // needs human Bangla review
+  timePartMidday: "দুপুর", // needs human Bangla review
+  timePartAfternoon: "বিকেল", // needs human Bangla review
+  timePartEvening: "সন্ধ্যা", // needs human Bangla review
+  timePartNight: "রাত", // needs human Bangla review
+  timeDateLabel: "শেষবার দেখার তারিখ", // needs human Bangla review
+  timeDateHint: "সঠিক তারিখ জানা না থাকলে খালি রাখুন।", // needs human Bangla review
+  timePartLabel: "দিনের কোন সময়", // needs human Bangla review
+  earlierDraftFound: "আগের খসড়া পাওয়া গেছে — চালিয়ে যাবেন?", // D3:309; needs human Bangla review
+  earlierDraftContinue: "আগের খসড়া চালিয়ে যান", // needs human Bangla review
+  earlierDraftReplace: "নতুন তথ্য দিয়ে শুরু করুন", // needs human Bangla review
+  reviewCorruptAttempted: "পূর্বের জমার চেষ্টা পড়া যায়নি, তবে জমার নম্বর রাখা হয়েছে।", // needs human Bangla review
   // SCREEN-013 admin data tools (TASK-032, COMP-043). D3 strings: redactAction (ACT-027),
   // redactEmpty, redactSuccess. "[MOCK]" stays in every verification label (BR-024).
   adminTitle: "অ্যাডমিন ডেটা টুল",
@@ -383,7 +415,7 @@ const en = {
   reviewAgeInvalid: "Enter an age from 0 to 17",
   reviewPhoneInvalid: "Enter an 11-digit number starting 01",
   reviewTimeInvalid: "Enter a valid time and bounds. The time cannot be in the future.",
-  reviewTimeHint: "Use YYYY-MM-DDTHH:mm:ss+06:00. For an exact time, enter the same time in both bounds below.",
+  reviewTimeHint: "Date: year-month-day. Time: HH:mm (24-hour). For an exact time, use the same time in both bounds.", // needs human Bangla review
   reviewDistrictCode: "District number (synthetic sample)",
   reviewDistrictHint: "The district name list is not connected yet. Enter the sample’s district number if known (1–64). Do not guess.",
   reviewAgeMin: "Lower age bound (years)",
@@ -394,10 +426,41 @@ const en = {
   reviewConflict: "Different details were already submitted under this submission ID. You can review and submit with a new ID. This may create a separate report.",
   reviewNewId: "Review and submit with a new ID",
   reviewSession: "Your session has expired. The draft is kept on this device. Open your words to start a session.",
+  reviewSessionExpired: "Your draft has expired. Please start again.", // D3:333 / catalogue E-019
   reviewRetryFrozen: "The result is unknown. Retry with the same details and submission ID.",
-  reviewPlannedManual: "Planned: manual form",
-  reviewPlannedReport: "Planned: submitted report page",
-  reviewExpired: "This draft has expired. Open your words to start again.",
+  reviewPlannedManual: "Manual form", // planned label wraps it; needs human Bangla review
+  reviewPlannedReport: "Submitted report page", // planned label wraps it; needs human Bangla review
+  reviewExpired: "Your draft has expired. Please start again.", // D3:333 / catalogue E-019
+  reviewUnknownAdd: "Unknown — add",
+  reviewDiscardWarn: "This draft was already attempted. The server may have received it — deleting it removes the device copy.",
+  reviewMockSubmit: "[MOCK] prepared: submit is not active, it will work once the real API is connected",
+  reviewMockSubmitButton: "[MOCK] submit (inactive)",
+  reviewSourceExcerpt: "Source excerpt",
+  reviewSourceLink: "See in full text",
+  reviewAgeMode: "How will you enter the age?",
+  reviewAgeEstimate: "Estimated age range",
+  reviewAgeExactHint: "Enter the known exact age in years.",
+  reviewAgeRangeHint: "Enter both the lower and upper estimated ages in years.",
+  reviewClockLabel: "Time (24-hour)", // needs human Bangla review
+  reviewDateNotApplied: "This date has not been applied. Choose a part of day, or change each time’s date below.", // needs human Bangla review
+  reviewFutureClamped: "The future part of this period was removed: the upper bound is now the current time. Check the date and time.", // needs human Bangla review
+  reviewDateHint: "Use year-month-day. Choose a part of day to fill the bounds; you can edit them afterwards.", // needs human Bangla review
+  reviewDateInvalid: "Enter a valid date as year-month-day.",
+  reviewTimeBoundHint: "Date: year-month-day. Time: HH:mm (24-hour). For an exact time, keep all three times equal.", // needs human Bangla review
+  ageExact: "Exact age",
+  timeExact: "Exact time",
+  timePartMorning: "Morning",
+  timePartMidday: "Midday",
+  timePartAfternoon: "Afternoon",
+  timePartEvening: "Evening",
+  timePartNight: "Night",
+  timeDateLabel: "Date last seen",
+  timeDateHint: "Leave empty if you are not sure of the date.",
+  timePartLabel: "Part of day",
+  earlierDraftFound: "Earlier draft found — continue?", // D3:309
+  earlierDraftContinue: "Continue earlier draft",
+  earlierDraftReplace: "Start with new details",
+  reviewCorruptAttempted: "Previous submission attempt could not be read, but its submission ID has been kept.",
   adminTitle: "Admin data tools",
   adminIntro: "No child or candidate details are shown here. All accounts and reports are synthetic.",
   syntheticLabel: "Synthetic",

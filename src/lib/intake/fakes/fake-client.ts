@@ -219,6 +219,7 @@ export function fakeExtract(body: ExtractRequestInput, aiCallsUsed: number, skip
     next_question,
     ai_calls_used: Math.min(LIMITS.aiCallsPerDraft, aiCallsUsed),
     cached: false,
+    expires_at: new Date(Date.now() + (24 + 6) * 60 * 60 * 1000).toISOString().replace("Z", "+06:00"),
   });
 }
 

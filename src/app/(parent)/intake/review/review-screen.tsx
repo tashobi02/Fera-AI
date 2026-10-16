@@ -7,11 +7,10 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { errorEnvelope, type DraftFieldPath, type ErrorEnvelope } from "@/contracts";
 import { CircleAlertIcon, InfoIcon, LoaderCircleIcon } from "@/app/components/icons";
 import { FocusHeading } from "@/app/components/focus-heading";
-import { clearSubmittedDraft, createDeviceDraft, readDraft, saveDraft, type DeviceDraft } from "@/lib/intake/draft-store";
-import { clearIntakeMemory, INTAKE_PATH, isPlainClick, MANUAL_FORM_PATH, takeHandoff, type IntakeHandoff } from "@/lib/intake/handoff";
+import { clearSubmittedDraft, clearSubmittedReference, createDeviceDraft, readDraft, readSubmittedReference, saveDraft, type DeviceDraft } from "@/lib/intake/draft-store";
+import { clearIntakeMemory, INTAKE_PATH, takeHandoff, type IntakeHandoff } from "@/lib/intake/handoff";
 import { buildSubmission, createSubmitter, editField, newSubmission, validateReview } from "@/lib/intake/review";
 import { localizeDigits } from "@/lib/numerals";
-import { textLang } from "@/lib/intake/draft-summary";
 import { locales, type Locale } from "@/locales";
 import { CircleCheckIcon, HonestLabel, TERTIARY_BUTTON, TrashIcon } from "../../parent-ui";
 import { ConfirmBar, ReviewFields, reviewLabel } from "./review-fields";
@@ -32,54 +31,138 @@ export function ReviewScreen({ locale }: { locale: Locale }) {
   const submitting = useRef(false);
   const submitter = useRef<ReturnType<typeof createSubmitter> | null>(null);
   const summary = useRef<HTMLDivElement>(null);
+  const focusNewId = useRef(false);
+  const focusContinued = useRef(false);
   const [record, setRecord] = useState<DeviceDraft | null>(null);
+  const [pendingHandoff, setPendingHandoff] = useState<IntakeHandoff | null>(null);
   const [ready, setReady] = useState(false);
   const [checked, setChecked] = useState(false);
   const [busy, setBusy] = useState(false);
   const [expired, setExpired] = useState(false);
   const [storageFailed, setStorageFailed] = useState(false);
   const [storageUnreadable, setStorageUnreadable] = useState(false);
+  const [corruptAttemptedNotice, setCorruptAttemptedNotice] = useState<string | null>(null);
   const [clearFailed, setClearFailed] = useState(false);
   const [error, setError] = useState<ErrorEnvelope | null>(null);
   const [fields, setFields] = useState<DraftFieldPath[]>([]);
-  const [success, setSuccess] = useState<{ id: string; ref: string } | null>(null);
+  const [success, setSuccess] = useState<{ id: string; ref: string; mock?: boolean; cached?: boolean } | null>(null);
 
-  /* eslint-disable react-hooks/set-state-in-effect -- synchronize the external device store once after hydration */
   useEffect(() => {
     active.current = true;
-    if (!restored.current) {
-      restored.current = true;
-      const stored = readDraft();
-      const next = stored.draft?.attempted ? stored.draft : handoff ? createDeviceDraft(handoff) : stored.draft;
-      everSaved.current = stored.draft !== null;
-      // Synchronize an external device store after hydration, never during SSR.
-      setRecord(next);
-      setReady(true);
-      setFields(next ? validateReview(next) : []);
-      setStorageUnreadable(!stored.available);
-      if (next) {
-        const saved = saveDraft(next, undefined, stored.draft?.client_submission_id ?? null, { requireExisting: stored.draft !== null });
-        everSaved.current ||= saved;
-        setStorageFailed(!saved);
+    const restore = () => {
+      if (!restored.current) {
+        restored.current = true;
+        const stored = readDraft();
+        const submitted = readSubmittedReference();
+        if (submitted && !handoff && !stored.draft && !stored.corruptAttemptedId) {
+          setSuccess(submitted);
+          setReady(true);
+          return;
+        }
+        if (stored.corruptAttemptedId) {
+          setCorruptAttemptedNotice(stored.corruptAttemptedId);
+          setReady(true);
+          return;
+        }
+        // OD-022-10 (fix round 2, lead-authorised 2026-10-16): the stored record was
+        // swept on read because it was past expiresAt. Show the expired notice
+        // instead of the empty state so a parent who returns on the same device
+        // sees why their draft disappeared.
+        if (stored.expiredId && !handoff) {
+          setExpired(true);
+          setClearFailed(!stored.available);
+          setReady(true);
+          setStorageUnreadable(!stored.available);
+          return;
+        }
+        if (handoff) clearSubmittedReference();
+        if (stored.draft?.attempted && handoff?.response) {
+          setPendingHandoff(handoff);
+          setRecord(stored.draft);
+          everSaved.current = true;
+          setReady(true);
+          setFields(validateReview(stored.draft));
+          setStorageUnreadable(!stored.available);
+          return;
+        }
+        const next = stored.draft?.attempted ? stored.draft : handoff ? createDeviceDraft(handoff) : stored.draft;
+        everSaved.current = stored.draft !== null;
+        // Synchronize an external device store after hydration, never during SSR.
+        setRecord(next);
+        setReady(true);
+        setFields(next ? validateReview(next) : []);
+        setStorageUnreadable(!stored.available);
+        if (next) {
+          const saved = saveDraft(next, undefined, stored.draft?.client_submission_id ?? null, { requireExisting: stored.draft !== null });
+          everSaved.current ||= saved;
+          setStorageFailed(!saved);
+        }
       }
-    }
+    };
+    restore();
     return () => { active.current = false; };
   }, [handoff]);
-  /* eslint-enable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (error || expired) summary.current?.focus();
   }, [error, expired]);
   useEffect(() => {
     if (!record) return;
-    const timer = setTimeout(() => setExpired(true), Math.max(0, record.expiresAt - Date.now()));
-    return () => clearTimeout(timer);
-  }, [record?.expiresAt, record]);
+    const onExpire = () => {
+      // OD-022-10 (fix round 2, lead-authorised 2026-10-16): drop the record from
+      // React state and from storage. The screen renders only the expired notice
+      // and the back link, so no fields remain visible.
+      setClearFailed(!clearSubmittedDraft(record.client_submission_id));
+      setRecord(null);
+      setPendingHandoff(null);
+      setExpired(true);
+    };
+    const check = () => {
+      if (Date.now() >= record.expiresAt) onExpire();
+    };
+    check();
+    if (record.expiresAt <= Date.now()) return;
+    const MAX_TIMEOUT_MS = 2_147_483_647; // 2**31 - 1
+    const delay = Math.min(MAX_TIMEOUT_MS, Math.max(0, record.expiresAt - Date.now()));
+    const timer = setTimeout(onExpire, delay);
+    // visibilitychange: a tab returning from hidden should run the expiry check
+    // at once so a clock advance during a hidden tab does not leave the page on
+    // an expired draft. The Node test harness does not provide addEventListener,
+    // so guard the call.
+    const onVisibility = () => { if (document.visibilityState === "visible") check(); };
+    if (typeof document.addEventListener === "function") {
+      document.addEventListener("visibilitychange", onVisibility);
+    }
+    return () => {
+      clearTimeout(timer);
+      if (typeof document.removeEventListener === "function") {
+        document.removeEventListener("visibilitychange", onVisibility);
+      }
+    };
+  // record re-creates when its fields change; the timer would also re-run, which is
+  // safe: a freshly edited record still has the same expiresAt and the same UUID.
+  }, [record]);
 
   const id = error?.error.id;
-  const sessionExpired = id === "E-019" || id === "E-002";
+  // OD-022-10 (fix round 2, lead-authorised 2026-10-16): E-019 from /api/cases clears
+  // the device record (handled in review.ts submit) and uses the catalogue copy,
+  // different from E-002 (staff JWT). Update #3 sets a separate display flag so
+  // E-002 keeps the older "session expired" copy until refresh, while E-019
+  // explicitly drops the device state.
+  const e019FromApi = id === "E-019";
+  const sessionExpired = e019FromApi || id === "E-002";
   const conflict = id === "E-006";
   const locked = busy || Boolean(record?.attempted) || sessionExpired || expired;
   const valid = record !== null && buildSubmission(record, true) !== null;
+  useEffect(() => {
+    if (focusNewId.current && !locked) {
+      focusNewId.current = false;
+      (document.getElementById("review-child.name") ?? summary.current)?.focus();
+    }
+    if (focusContinued.current && !pendingHandoff) {
+      focusContinued.current = false;
+      (document.getElementById("review-frozen") ?? summary.current)?.focus();
+    }
+  }, [record?.client_submission_id, locked, pendingHandoff]);
   function persist(next: DeviceDraft, transition?: "payload-conflict") {
     const saved = saveDraft(next, undefined, record?.client_submission_id ?? next.client_submission_id, { transition, requireExisting: everSaved.current });
     everSaved.current ||= saved;
@@ -90,6 +173,11 @@ export function ReviewScreen({ locale }: { locale: Locale }) {
     persist(editField(record, path, value)); setChecked(false); setError(null);
     setFields((old) => old.filter((field) => field !== path));
   }
+  function changeBatch(edits: Partial<Record<DraftFieldPath, string>>, approximate?: boolean) {
+    if (!record || locked) return;
+    persist({ ...record, edits: { ...record.edits, ...edits }, ...(approximate === undefined ? {} : { approximate }) });
+    setChecked(false); setError(null); setFields([]);
+  }
   function blur(path: DraftFieldPath) {
     if (!record || locked) return;
     setFields(validateReview(record));
@@ -97,8 +185,8 @@ export function ReviewScreen({ locale }: { locale: Locale }) {
   }
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (!record || submitting.current || success || conflict || sessionExpired || expired) return;
-    if (record.expiresAt <= Date.now()) { setExpired(true); summary.current?.focus(); return; }
+    if (!record || record.mock || submitting.current || success || conflict || sessionExpired || expired || pendingHandoff) return;
+    if (record.expiresAt <= Date.now()) { setClearFailed(!clearSubmittedDraft(record.client_submission_id)); setRecord(null); setPendingHandoff(null); setExpired(true); summary.current?.focus(); return; }
     const invalid = validateReview(record);
     if (!checked || !buildSubmission(record, checked)) {
       setFields(invalid); setError(errorEnvelope("E-001", { fields: invalid })); return;
@@ -114,61 +202,125 @@ export function ReviewScreen({ locale }: { locale: Locale }) {
       clearIntakeMemory();
       setBusy(false); setRecord(null); setChecked(false);
       setClearFailed(!result.cleared);
-      setSuccess({ id: result.data.id, ref: result.data.ref_code });
-      // S-004 belongs to Mahim's TASK-024 / PR #26; target is planned on this base.
-      if (result.cleared) router.push(`/report/${result.data.id}`);
+      setSuccess({ id: result.data.id, ref: result.data.ref_code, mock: record.mock, cached: record.cached });
     } else if (active.current) {
       setBusy(false);
       if (result) {
         setError(result.error); setFields(result.error.error.fields ?? []);
         if (result.dispatched === false) { setRecord(record); setStorageFailed(true); setChecked(false); }
         else if (result.error.error.id === "E-001") { setRecord({ ...record, attempted: false }); setChecked(false); }
+        // OD-022-10: E-019 means the server has confirmed the draft is over; the
+        // submit handler has already cleared the device record. Drop React state so
+        // the expired notice and back link are the only thing on screen.
+        else if (result.error.error.id === "E-019") { setClearFailed(result.cleared === false); setRecord(null); setChecked(false); setExpired(true); }
       }
     }
   }
   function discard() {
-    if (submitting.current || !window.confirm(t.discardConfirm)) return;
-    const cleared = record ? clearSubmittedDraft(record.client_submission_id) : true; clearIntakeMemory(); setRecord(null); setChecked(false); setError(null);
+    if (submitting.current) return;
+    const isAttempted = Boolean(record?.attempted || corruptAttemptedNotice);
+    const prompt = isAttempted ? t.reviewDiscardWarn : t.discardConfirm;
+    if (!window.confirm(prompt)) return;
+    const cleared = record ? clearSubmittedDraft(record.client_submission_id) : corruptAttemptedNotice ? clearSubmittedDraft(corruptAttemptedNotice) : true;
+    clearSubmittedReference();
+    clearIntakeMemory();
+    setRecord(null); setChecked(false); setError(null);
     if (!cleared) { setClearFailed(true); return; }
     router.push(INTAKE_PATH);
   }
 
   return <div data-surface="parent" lang={locale} className="mx-auto flex w-full max-w-[30rem] flex-col gap-6 px-4 pt-6 pb-12">
     <FocusHeading className="text-heading-2 font-semibold text-ink">{t.reviewTitle}</FocusHeading>
-    <div className="flex flex-wrap gap-2"><HonestLabel>{t.syntheticBadge}</HonestLabel>{record?.mock && <HonestLabel lang="en">{t.mockLabel}</HonestLabel>}{record?.cached && <HonestLabel>{t.cachedBadge}</HonestLabel>}</div>
+    <div className="flex flex-wrap gap-2"><HonestLabel>{t.syntheticBadge}</HonestLabel>{(success?.mock ?? record?.mock) && <HonestLabel lang="en">{t.mockLabel}</HonestLabel>}{(success?.cached ?? record?.cached) && <HonestLabel>{t.cachedBadge}</HonestLabel>}</div>
     <p role="status" aria-live="polite" aria-atomic="true" className="flex items-start gap-2 text-body-lg text-body">
       {busy ? <><LoaderCircleIcon className="mt-1 size-5" />{t.reviewSubmitting}</> : success ? <><CircleCheckIcon className="mt-1 size-5 text-success-text" />{t.reviewSubmitted.replace("{ref}", localizeDigits(success.ref, locale))}</> : !ready ? <><InfoIcon className="mt-1 size-5" />{t.stillWorking}</> : null}
     </p>
-    {storageUnreadable && <p role="status" className="text-body-lg text-body">{t.reviewStorageUnreadable}</p>}
-    {clearFailed && <p role="alert" className="text-body-lg text-body">{t.reviewClearFailed}</p>}
-    {success ? <Link className={TERTIARY_BUTTON} href={`/report/${success.id}`}>{t.reviewPlannedReport}</Link> : ready && !record ? <>
-      <p className="text-body-lg text-body">{t.reviewEmpty}</p><Link className={TERTIARY_BUTTON} href={INTAKE_PATH}>{t.reviewBack}</Link>
+    {storageUnreadable && <p role="status" className="flex items-start gap-2 text-body-lg text-body"><InfoIcon className="mt-1 size-5 text-info" />{t.reviewStorageUnreadable}</p>}
+    {corruptAttemptedNotice && <p role="status" className="flex items-start gap-2 text-body-lg text-body"><InfoIcon className="mt-1 size-5 text-info" />{t.reviewCorruptAttempted}</p>}
+    {clearFailed && <p role="alert" className="flex items-start gap-2 text-body-lg text-body"><InfoIcon className="mt-1 size-5 text-info" />{t.reviewClearFailed}</p>}
+    {success ? (
+      <div className="flex flex-col gap-4">
+        <span className="inline-flex min-h-11 items-center gap-2 text-body-lg text-mute">
+          {t.reviewPlannedReport}
+          <HonestLabel>{t.plannedLabel}</HonestLabel>
+        </span>
+        <Link className={TERTIARY_BUTTON} href={INTAKE_PATH} onClick={() => { clearSubmittedReference(); }}>
+          {t.reviewBack}
+        </Link>
+      </div>
+    ) : expired ? (
+      // OD-022-10 (fix round 2, lead-authorised 2026-10-16): the record has been
+      // dropped; show only the catalogue E-019 notice and the back link, with no
+      // fields left on screen.
+      <div ref={summary} tabIndex={-1} role="alert" aria-atomic="true" className="flex flex-col gap-3 rounded-lg border border-control bg-card p-4 text-body-lg text-body">
+        <p className="flex items-start gap-2"><CircleAlertIcon className="mt-1 size-5 text-info" />{t.reviewExpired}</p>
+        <Link href={INTAKE_PATH} className={TERTIARY_BUTTON}>{t.reviewBack}</Link>
+      </div>
+    ) : ready && !record ? <>
+      <p className="text-body-lg text-body">{t.reviewEmpty}</p>
+      {corruptAttemptedNotice && <button type="button" className={TERTIARY_BUTTON} onClick={discard}><TrashIcon />{t.reviewDiscardDevice}</button>}
+      <Link className={TERTIARY_BUTTON} href={INTAKE_PATH}>{t.reviewBack}</Link>
     </> : record && <>
+      {pendingHandoff && (
+        <section role="alert" className="flex flex-col gap-3 rounded-lg border border-control bg-card p-4 text-body-lg text-body">
+          <p className="flex items-start gap-2 font-medium text-ink">
+            <InfoIcon className="mt-1 size-5 text-info" />
+            <span>{t.earlierDraftFound}</span>
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <button type="button" disabled={busy} className={TERTIARY_BUTTON} onClick={() => { if (submitting.current) return; focusContinued.current = true; setPendingHandoff(null); }}>
+              {t.earlierDraftContinue}
+            </button>
+            <button type="button" disabled={busy} className={TERTIARY_BUTTON} onClick={() => {
+              if (submitting.current) return;
+              const fresh = createDeviceDraft(pendingHandoff);
+              if (fresh && window.confirm(t.discardConfirm)) {
+                const saved = saveDraft(fresh, undefined, record.client_submission_id, { transition: "discard-replace", requireExisting: true });
+                if (!saved) { setStorageFailed(true); return; }
+                focusNewId.current = true;
+                setPendingHandoff(null);
+                setRecord(fresh); setStorageFailed(false); setExpired(false);
+                setChecked(false); setError(null);
+                setFields(validateReview(fresh));
+              }
+            }}>
+              {t.earlierDraftReplace}
+            </button>
+          </div>
+        </section>
+      )}
       <p className="text-body-lg text-body">{t.reviewIntro}</p>
       <p className="flex items-start gap-2 text-body-lg text-body"><InfoIcon className="mt-1 size-5" />{t.reviewLocal}</p>
-      {storageFailed && <p role="status" className="text-body-lg text-body">{t.reviewStorageFailed}</p>}
-      {record.sourceText !== record.draft.source_text && <section className="border-y border-hairline py-4">
-        <h2 className="text-body-lg font-semibold text-ink">{t.reviewExtraSource}</h2><p lang={textLang(record.sourceText)} className="whitespace-pre-wrap break-words text-body-lg text-body">{record.sourceText}</p>
-      </section>}
+      {storageFailed && <p role="status" className="flex items-start gap-2 text-body-lg text-body"><InfoIcon className="mt-1 size-5 text-info" />{t.reviewStorageFailed}</p>}
       <div id="review-required" ref={summary} tabIndex={-1} role="alert" aria-atomic="true" className={error || expired || fields.length > 0 ? "rounded-lg border border-control bg-card p-4 text-body-lg text-body" : "sr-only"}>
         {(error || expired || fields.length > 0) && <>
-          <p className="flex items-start gap-2"><CircleAlertIcon className="mt-1 size-5" />{expired ? t.reviewExpired : id === "E-001" ? t.reviewErrorSummary : conflict ? t.reviewConflict : sessionExpired ? t.reviewSession : error ? (locale === "bn" ? error.error.message_bn : error.error.message_en) : t.reviewRequiredSummary}</p>
-          {fields.length > 0 && <ul className="mt-3 list-inside list-disc">{fields.map((path) => <li key={path}><a href={`#review-${path}`} className="inline-flex min-h-11 items-center" onClick={(e) => { e.preventDefault(); document.getElementById(`review-${path}`)?.focus(); }}>{reviewLabel(path, locale)}</a></li>)}</ul>}
-          {conflict && <button type="button" className={`${TERTIARY_BUTTON} mt-3`} onClick={() => { persist(newSubmission(record), "payload-conflict"); setError(null); setChecked(false); setFields([]); }}>{t.reviewNewId}</button>}
+          <p className="flex items-start gap-2"><CircleAlertIcon className="mt-1 size-5 text-info" />{expired ? t.reviewExpired : id === "E-001" ? t.reviewErrorSummary : conflict ? t.reviewConflict : e019FromApi ? t.reviewSessionExpired : id === "E-002" ? t.reviewSession : error ? (locale === "bn" ? error.error.message_bn : error.error.message_en) : t.reviewRequiredSummary}</p>
+          {fields.length > 0 && <ul className="mt-3 list-inside list-disc">{fields.map((path) => <li key={path}><a href={`#${path.startsWith("child.age_") ? "review-age-exact" : `review-${path}`}`} className="inline-flex min-h-11 items-center" onClick={(e) => { e.preventDefault(); document.getElementById(path.startsWith("child.age_") ? "review-age-exact" : `review-${path}`)?.focus(); }}>{reviewLabel(path, locale)}</a></li>)}</ul>}
+          {conflict && <button type="button" className={`${TERTIARY_BUTTON} mt-3`} onClick={() => {
+            const fresh = newSubmission(record);
+            const saved = saveDraft(fresh, undefined, record.client_submission_id, { transition: "payload-conflict", requireExisting: everSaved.current });
+            if (!saved && everSaved.current) { setStorageFailed(true); return; }
+            everSaved.current ||= saved;
+            setRecord(fresh); setStorageFailed(!saved);
+            setError(null);
+            setChecked(false);
+            setFields([]);
+            focusNewId.current = true;
+          }}>{t.reviewNewId}</button>}
           {(sessionExpired || expired) && <Link href={INTAKE_PATH} className={`${TERTIARY_BUTTON} mt-3`}>{t.reviewBack}</Link>}
         </>}
       </div>
-      {record.attempted && !conflict && !sessionExpired && <p className="text-body-lg text-body">{t.reviewRetryFrozen}</p>}
+      {record.attempted && !conflict && !sessionExpired && <p id="review-frozen" tabIndex={-1} className="flex items-start gap-2 text-body-lg text-body"><InfoIcon className="mt-1 size-5 text-info" />{t.reviewRetryFrozen}</p>}
       <form noValidate onSubmit={submit} className="flex flex-col gap-6" aria-busy={busy}>
-        <ReviewFields record={record} locale={locale} errors={fields} onEdit={change} onBlur={blur} locked={locked}
+        <ReviewFields key={record.client_submission_id} record={record} locale={locale} errors={fields} onEdit={change} onBatch={changeBatch} onBlur={blur} locked={locked}
           onApprox={(value) => { if (!locked) { persist({ ...record, approximate: value }); setChecked(false); setError(null); } }} />
-        <ConfirmBar locale={locale} checked={checked} valid={valid} busy={busy} blocked={conflict || sessionExpired || expired} describedBy={!valid ? "review-required" : undefined} onCheck={setChecked} />
+        <ConfirmBar locale={locale} checked={checked} valid={valid} busy={busy} blocked={conflict || sessionExpired || expired || Boolean(pendingHandoff)} mock={record.mock} describedBy={!valid ? "review-required" : undefined} onCheck={setChecked} />
       </form>
       <Link className={TERTIARY_BUTTON} href={INTAKE_PATH} aria-disabled={busy || undefined} onClick={(e) => { if (busy) e.preventDefault(); }}>{t.reviewBack}</Link>
-      <Link className="inline-flex min-h-11 items-center text-body-lg" href={MANUAL_FORM_PATH} aria-disabled={locked || undefined} onClick={(e) => {
-        if (!isPlainClick(e) || locked) { if (locked) e.preventDefault(); return; }
-        setStorageFailed(!saveDraft(record));
-      }}>{t.reviewPlannedManual}</Link>
+      <span className="inline-flex min-h-11 items-center gap-2 text-body-lg text-mute">
+        {t.reviewPlannedManual}
+        <HonestLabel>{t.plannedLabel}</HonestLabel>
+      </span>
       <button type="button" disabled={busy} className={TERTIARY_BUTTON} onClick={discard}><TrashIcon />{t.reviewDiscardDevice}</button>
     </>}
   </div>;

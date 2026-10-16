@@ -3,11 +3,15 @@
 // reload, so a reloaded S-002 asks for the notice again and a draft never outlives
 // the tab. Durable device-local draft persistence is TASK-022's decision.
 import type { DraftFieldPath, ExtractResponse } from "@/contracts";
+import { sweepDrafts } from "./draft-store";
 
 let acknowledged = false;
 // Consent epoch: bumped on every acknowledgement and every discard. A recording or
 // request started under an older epoch is dropped unsent (review round 1, item 14).
 let epoch = 0;
+
+// Entry components sweep on mount. S-003 owns its read so it can render the
+// expired notice on a cold reload before discarding the record.
 
 // Called by SCREEN-001 "শুরু করুন" (or S-002's own notice) after the notice is shown.
 // Only call it from a client event handler (a click), never during render or on the
@@ -15,6 +19,7 @@ let epoch = 0;
 export function acknowledgeNotice(): void {
   acknowledged = true;
   epoch++;
+  try { sweepDrafts(); } catch {}
 }
 export function intakeEpoch(): number {
   return epoch;
@@ -71,6 +76,7 @@ export function clearIntakeMemory(): void {
   pending = null;
   acknowledged = false;
   epoch++;
+  try { sweepDrafts(); } catch {}
 }
 
 // Hand-off links act only on a plain primary click; a middle or modified click opens a
