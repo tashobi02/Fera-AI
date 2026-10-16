@@ -1,8 +1,8 @@
 # TASK-063 — atomic paid-call counters, replay refusal and price sheet
 
-Owner: Obidit · Lead: Mahim · Tools: Codex Sol (implementation, continuation audit, post-G6 review/fixes and measured verification), Claude Code (review fixes, T2 verification, round 3), Antigravity gemini-3.8-flash-high helpers G1/G6 (polish; G6 could not run commands) · Branch: `phase2--obidit-spend-counters` · Base/HEAD: `0617b4c73eb51ce7610bb29f642244974e063a21` (all task changes uncommitted) · Last verified: 2026-10-16 (Asia/Dhaka). Links: TASK-063, BR-004/023/024, COMP-009, D2A API-001/002 and reserve/settle functions, D2B §12/15, TC-036/043/065.
+Owner: Obidit · Lead: Mahim · Tools: Codex Sol (implementation, continuation audit, post-G6 review/fixes and measured verification), Claude Code (review fixes, T2 verification, round 3), Antigravity gemini-3.8-flash-high helpers G1/G6 (polish; G6 could not run commands) · Branch: `phase2--obidit-spend-counters` · Base `0617b4c`; committed as `5cecbc0` plus a WARN-fix commit on branch `phase2--obidit-spend-counters`; PR into phase2 being opened · Last verified: 2026-10-16 (Asia/Dhaka). Links: TASK-063, BR-004/023/024, COMP-009, D2A API-001/002 and reserve/settle functions, D2B §12/15, TC-036/043/065.
 
-Synthetic data and fake providers only. No provider calls, dependency changes, deployment, commit, push or PR. All database tests use isolated throwaway databases on 127.0.0.1:54322; application behaviour runs as `fera_app`. Frozen contracts, schema, roles and spec copies are unchanged.
+Synthetic data and fake providers only. No provider calls, dependency changes or deployment. All database tests use isolated throwaway databases on 127.0.0.1:54322; application behaviour runs as `fera_app`. Frozen contracts, schema, roles and spec copies are unchanged.
 
 ## Status against the D6 done-when
 
@@ -171,10 +171,12 @@ Fallback tests-first evidence: `npm test -- tests/spend/paid-call.test.ts` exite
 
 Coverage percentage remains **not measured**; no coverage provider/dependency was added. Scoped security/diff inspection found no raw payload/provider-message logging or paid provider calls. The spend console fallback is an intentional best-effort write with only a fixed marker, an allowlisted failed event and a validated reservation UUID. Frozen contracts/schema/roles, dependencies, and Mahim's shared logger were unchanged by this Sol pass.
 
-Sol changed only `src/server/spend/safe-log.ts`, `tests/spend/paid-call.test.ts`, this evidence document and `docs/execution/PHASE_2_MUST_CORE.md`. All other lane changes were preserved uncommitted.
+Sol changed only `src/server/spend/safe-log.ts`, `tests/spend/paid-call.test.ts`, this evidence document and `docs/execution/PHASE_2_MUST_CORE.md`. All other lane changes were committed.
 
 ### Current review gate
 
 **FERA-REVIEW: PASS.** Read-only review of the 19 task-owned tracked/untracked files against base/HEAD `0617b4c73eb51ce7610bb29f642244974e063a21`: safeguarding PASS, TypeScript PASS, silent-failure PASS, security PASS, database PASS, React PASS/N/A. No applicable reviewer omitted; no BLOCK findings. Existing safeguarding/operational WARNs remain the route notice/token/anti-reset obligations, uncertain-billing reconciliation and draft FK retention (OD-063-4–7). No reviewer edits or test reruns; measured commands above were run by Sol. Reviewers were instructed to exclude `.env*` and `.serena/`.
+
+Final safeguarding delta gate on 5cecbc0 (2026-10-16): PASS with 3 WARNs; the null-input guard and the commit-state wording were fixed in the WARN-fix commit; the lead difference between main and phase2 AGENTS.md is noted for the OD-063-8 approver.
 
 Open items remain OD-063-1–8: Mahim's PR review of the existing shared-logger extension; verified pricing/loader (TASK-003); provider/notice/token/anti-reset and manual-screen wiring (TASK-013/014/020/025); spend reporting/reconciliation (TASK-059), uncertain-COMMIT reservations and schema-owner FK cleanup. No live billing, hosted/CI execution or full browser acceptance is claimed.

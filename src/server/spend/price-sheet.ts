@@ -56,10 +56,10 @@ export function estimateUpperUsd(sheet: PriceSheet, input: EstimateInput, ctx: {
   } catch (err) {
     if (err instanceof ApiError && err.id === "E-023") throw err;
     // Identifier token and error class only: sheet values and messages never leave.
-    safeLogger(ctx.logger ?? createLogger()).error({
+    safeLogger(ctx?.logger ?? createLogger()).error({
       event: "spend.price_sheet_invalid",
       error_id: "E-023",
-      price_id: input.priceId,
+      price_id: input?.priceId,
       err_name: describeError(err).err_name,
     });
     // Unknown or malformed pricing is a paid refusal; the device draft remains usable.

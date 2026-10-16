@@ -1,6 +1,6 @@
 // TASK-063: all rates and identities here are injected synthetic test inputs.
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
-import { estimateUpperUsd, UNKNOWN_PRICE_SHEET, type Price, type PriceSheet, type UpperUsdEstimate } from "@/server/spend/price-sheet";
+import { estimateUpperUsd, UNKNOWN_PRICE_SHEET, type EstimateInput, type Price, type PriceSheet, type UpperUsdEstimate } from "@/server/spend/price-sheet";
 
 import { ApiError } from "@/app/api/_shared/envelope";
 import type { ReservationRequest } from "@/server/spend";
@@ -107,5 +107,9 @@ describe("price sheet upper bounds (TASK-063)", () => {
   it("refuses a zero-cost or overflowing reservation estimate", () => {
     expectRefusal(() => estimateUpperUsd(sheet, { priceId: "mock-extract", operation: "extract", inputTokens: 0, maxOutputTokens: 0 }));
     expectRefusal(() => estimateUpperUsd(sheet, { priceId: "mock-extract", operation: "extract", inputTokens: Number.MAX_SAFE_INTEGER, maxOutputTokens: 1 }));
+  });
+
+  it("refuses a null input defensively with E-023", () => {
+    expectRefusal(() => estimateUpperUsd(sheet, null as unknown as EstimateInput));
   });
 });
