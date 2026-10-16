@@ -58,6 +58,17 @@ describe("getOutput (API-006)", () => {
     expect(db.sent(/FOR SHARE$/)[0].values).toEqual([IDS.missingCase, 3, ["submitted", "open", "matched_pending_review"]]);
   });
 
+  it("helpline (TC-007, FR-010): renders a summary that passes outputResponseSchema", async () => {
+    mockedRead.mockResolvedValue(owner({ version: 2 }));
+    const db = fakePool([live(), select(() => []), district, insert((v) => [{ text_bn: v[2], created_at: CREATED }])]);
+    const out = await getOutput(parent, IDS.missingCase, "helpline", { pool: db.pool });
+
+    expect(outputResponseSchema.parse(out)).toEqual(out);
+    expect(out).toMatchObject({ type: "helpline", label_bn: "খসড়া" });
+    expect(out.word_count).toBeLessThanOrEqual(80);
+    expect(db.sent(/^INSERT/)[0].values).toEqual([IDS.missingCase, "helpline", out.text_bn, 2]);
+  });
+
   it("serves the cached row for the same version without rendering again", async () => {
     mockedRead.mockResolvedValue(owner());
     const db = fakePool([live(), select(() => [{ text_bn: "খসড়া · আগের লেখা", created_at: CREATED }])]);
