@@ -97,3 +97,5 @@ Safeguarding warnings are integration handoffs: absent shared speech event regis
 **pre-release internal review (Sol run): Verdict: PASS — ready for a PR for TASK-014 part 1 only.** Full TASK-014 and the acceptance TCs listed above remain unverified.
 
 fera-safeguarding-reviewer release gate 2026-10-16: PASS with 9 WARNs; WARN 1-8 fixed in G12; WARN 9 (tracker row) fixed in G11.
+
+Post-merge 2026-10-16: the code was right (a throwing sink falls back to console.error with event names only); the test still spied process.stderr.write, so it now spies console.error and asserts the two speech.log_failed lines. lint 0, typecheck 0, tests/speech 36/36, npm test 1262 passed/142 skipped (54 files passed, 7 skipped), build 0.

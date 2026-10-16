@@ -399,7 +399,7 @@ describe("COMP-006 Speech Adapter (TASK-014 / FR-002 / BR-023)", () => {
   });
 
   it("a throwing log sink cannot retry or destroy a successful transcription", async () => {
-    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const stderr = vi.spyOn(console, "error").mockImplementation(() => {});
     const primary = fakeSttProvider("primary", ["[MOCK] synthetic transcript"]);
     const fallback = fakeSttProvider("fallback", ["[MOCK] unused"]);
     const adapter = createSttAdapter({
@@ -410,7 +410,10 @@ describe("COMP-006 Speech Adapter (TASK-014 / FR-002 / BR-023)", () => {
     expect(await adapter.transcribe(sampleAudio())).toEqual({ ok: true, text: "[MOCK] synthetic transcript" });
     expect(primary.transcribe).toHaveBeenCalledOnce();
     expect(fallback.transcribe).not.toHaveBeenCalled();
-    expect(stderr).toHaveBeenCalledTimes(2);
+    expect(stderr.mock.calls.map(([line]) => JSON.parse(String(line)))).toEqual([
+      { event: "speech.log_failed", failed_event: "speech.attempt" },
+      { event: "speech.log_failed", failed_event: "speech.summary" },
+    ]);
     expect(String(stderr.mock.calls)).not.toContain("[MOCK]");
   });
 
