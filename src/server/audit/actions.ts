@@ -23,6 +23,9 @@ export const CASE_AUDIT_ACTIONS = {
   matchRefused: "match.refused", // API-010 decision refused (E-005)
   caseCloseRefused: "case.close.refused", // API-011 closure refused (E-005/E-017)
   caseEditRefused: "case.edit.refused", // API-005 owner edit refused (E-005/E-018)
+  // TASK-032 admin code. Payload redaction needs none: redact_case() writes its own
+  // case.payload_redacted row per case, inside the same transaction.
+  userVerificationChanged: "user.verification_changed", // API-017 verify officer [MOCK] (seeded authority, BR-024)
 } as const;
 
 export type CaseAuditAction = (typeof CASE_AUDIT_ACTIONS)[keyof typeof CASE_AUDIT_ACTIONS];
@@ -32,7 +35,8 @@ export const WRITABLE_AUDIT_ACTIONS: readonly CaseAuditAction[] = Object.values(
 
 // Which actor types may author each action (checkAuditEntry). Decisions, referrals,
 // closures and contact views are verified-officer acts (BR-001/024); owner edits are the
-// parent's; pipeline steps may be `system`. Admins write only access.denied here.
+// parent's; pipeline steps may be `system`. Admins write access.denied and the API-017
+// verification change only.
 export const ACTION_ACTORS: Record<CaseAuditAction, readonly ActorType[]> = {
   "match.confirm": ["officer"],
   "match.reject": ["officer"],
@@ -48,6 +52,7 @@ export const ACTION_ACTORS: Record<CaseAuditAction, readonly ActorType[]> = {
   "case.edit.refused": ["parent"],
   "case.state_changed": ["parent", "staff", "officer", "system"],
   "access.denied": ["parent", "staff", "officer", "admin"],
+  "user.verification_changed": ["admin"],
 };
 
 export function isWritableAuditAction(action: unknown): action is CaseAuditAction {

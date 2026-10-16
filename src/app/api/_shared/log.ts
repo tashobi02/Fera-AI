@@ -10,8 +10,8 @@ const LEVELS = { info: 30, warn: 40, error: 50 } as const;
 export type LogLevel = keyof typeof LEVELS;
 
 export const LOG_EVENTS = [
-  "request", "handler.threw", "response.invalid", "envelope.fallback", "audit.unavailable",
-  "auth.principal_invalid", "auth.resolver_stub", "page.viewer_lookup_failed", "auth.dev_secret", "auth.insecure_cookies", "db.pool_error",
+  "request", "handler.threw", "response.invalid", "envelope.fallback", "audit.unavailable", "submit.draft_token_unverified",
+  "auth.principal_invalid", "auth.resolver_stub", "page.viewer_lookup_failed", "page.data_unavailable", "auth.dev_secret", "auth.insecure_cookies", "db.pool_error",
   "db.refusal", "db.rollback_failed", "db.client_error", "db.tx_failed",
   "ratelimit.limited", "ratelimit.unavailable", "ratelimit.degraded", "ratelimit.memory_store", "ratelimit.unknown_address",
   "speech.attempt", "speech.summary",
