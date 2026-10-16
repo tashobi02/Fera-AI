@@ -13,6 +13,8 @@ export const LOG_EVENTS = [
   "request", "handler.threw", "response.invalid", "envelope.fallback", "audit.unavailable", "submit.draft_token_unverified",
   "auth.principal_invalid", "auth.resolver_stub", "page.viewer_lookup_failed", "page.data_unavailable", "auth.dev_secret", "auth.insecure_cookies", "db.pool_error",
   "db.refusal", "db.rollback_failed", "db.client_error", "db.tx_failed",
+  "spend.settled", "spend.retained", "spend.late_result", "spend.late_failure",
+  "spend.price_sheet_invalid", "spend.refused", "spend.commit_uncertain", "spend.bad_input", "spend.error_remapped",
   "ratelimit.limited", "ratelimit.unavailable", "ratelimit.degraded", "ratelimit.memory_store", "ratelimit.unknown_address",
 ] as const;
 export type LogEvent = (typeof LOG_EVENTS)[number];
@@ -26,6 +28,9 @@ export type LogIssue = { code: string; path: string };
 export const TX_STAGES = ["connect", "begin", "callback", "constraints", "commit", "rollback"] as const;
 export type TxStage = (typeof TX_STAGES)[number];
 
+const SPEND_REASONS = ["timeout", "unknown_billing", "settle_failed", "bad_actual"] as const;
+type SpendReason = (typeof SPEND_REASONS)[number];
+
 export type LogEntry = {
   event: LogEvent;
   request_id?: string;
@@ -37,7 +42,7 @@ export type LogEntry = {
   duration_ms?: number;
   error_id?: ErrorId;
   original_error_id?: ErrorId;
-  reason?: ErrorReason;
+  reason?: ErrorReason | SpendReason;
   stage?: LogStage;
   rule?: string;
   err_name?: string;
@@ -49,6 +54,13 @@ export type LogEntry = {
   table?: string;
   routine?: string;
   tx_stage?: TxStage;
+  // TASK-063 reconciliation facts: UUIDs, exact USD decimals and identifier tokens only.
+  reservation_id?: string;
+  draft_id?: string;
+  upper_usd?: string;
+  actual_usd?: string;
+  provider_error_id?: Extract<ErrorId, "E-012" | "E-013" | "E-014">;
+  price_id?: string;
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -72,7 +84,7 @@ const CHECKS: { [K in keyof LogEntry]-?: (v: unknown) => unknown } = {
   duration_ms: (v) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.round(v) : undefined),
   error_id: has(ERROR_IDS),
   original_error_id: has(ERROR_IDS),
-  reason: has(ERROR_REASONS),
+  reason: has([...ERROR_REASONS, ...SPEND_REASONS]),
   stage: has(LOG_STAGES),
   rule: matches(/^[a-z.]{1,40}$/),
   err_name: matches(/^[A-Za-z0-9_.]{1,60}$/),
@@ -82,6 +94,12 @@ const CHECKS: { [K in keyof LogEntry]-?: (v: unknown) => unknown } = {
   table: matches(/^[a-z_][a-z0-9_]{0,62}$/),
   routine: matches(/^[A-Za-z_][A-Za-z0-9_]{0,62}$/),
   tx_stage: has(TX_STAGES),
+  reservation_id: matches(UUID),
+  draft_id: matches(UUID),
+  upper_usd: matches(/^(0|[1-9][0-9]{0,3})(\.[0-9]{1,6})?$/),
+  actual_usd: matches(/^(0|[1-9][0-9]{0,3})(\.[0-9]{1,6})?$/),
+  provider_error_id: has(["E-012", "E-013", "E-014"]),
+  price_id: matches(/^[A-Za-z0-9_.:-]{1,80}$/),
   issues: (v) => {
     if (!Array.isArray(v)) return undefined;
     const kept = v
