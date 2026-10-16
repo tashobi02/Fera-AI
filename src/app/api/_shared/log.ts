@@ -14,6 +14,7 @@ export const LOG_EVENTS = [
   "auth.principal_invalid", "auth.resolver_stub", "page.viewer_lookup_failed", "auth.dev_secret", "auth.insecure_cookies", "db.pool_error",
   "db.refusal", "db.rollback_failed", "db.client_error", "db.tx_failed",
   "ratelimit.limited", "ratelimit.unavailable", "ratelimit.degraded", "ratelimit.memory_store", "ratelimit.unknown_address",
+  "speech.attempt", "speech.summary",
 ] as const;
 export type LogEvent = (typeof LOG_EVENTS)[number];
 

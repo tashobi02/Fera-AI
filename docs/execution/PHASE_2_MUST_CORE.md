@@ -91,7 +91,7 @@ When one of these merges, tell the waiting person straight away; they rebase and
 | TASK-013 | LLM adapter: 2 providers, Zod contract, evidence check, retry, fallback (COMP-007) | A · Codex + `silent-failure-hunter` | TASK-003, 012 | 7 | Extracts 10 sample texts; fallback test passes | `todo` | | |
 | TASK-063 | Atomic paid-call counters/reservations, replay handling, price sheet | A · Codex | TASK-003, 062 | 2 | Replay/concurrency/budget checks; manual path survives paid refusal | `todo` | | |
 | TASK-059 | `npm run spend` + spend cap check (DECISION-017) | A · Codex | TASK-013, 063 | 1 | TC-036 passes | `todo` | | |
-| TASK-014 | Speech adapter + API-001 (COMP-006) | B · Claude Code | TASK-005, 007 | 3 | TC-001 steps 1–3 pass | `todo` | | |
+| TASK-014 | Speech adapter + API-001 (COMP-006) | B · Claude Code | TASK-005, 007 | 3 | TC-001 steps 1–3 pass | `in progress` | | Part 1 (COMP-006 STT adapter library on [MOCK] fakes; no route, draft or token) on branch phase2--obidit-speech; evidence docs/execution/evidence/speech-adapter.md; Sol review PASS 2026-10-16 (speech 29/29, full suite 963 passed); API-001 route pending decisions (draft creation/signing, fresh-draft bound, notice signal; OD-014-1..7). |
 | TASK-020 | Intake orchestrator + API-002 + question templates (COMP-009) | B · Claude Code | TASK-013 | 4 | TC-003 passes | `todo` | | |
 | TASK-033 | Demo-safe cache + fixtures for 3 cases + cached badge (COMP-017/048) | B · Claude Code | TASK-020, 019 | 3 | TC-021 passes on laptop | `todo` | | |
 | TASK-023 | Output templates GD/poster + wording guard + API-006 (COMP-010/016) | C · Claude Code | TASK-015 | 4 | TC-005, TC-024 pass | `todo` | | |
@@ -165,6 +165,7 @@ Tick only from the gate report (`fera-gate`), with evidence linked. Run on the *
 Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
 ### Obidit
+- 2026-10-16 — TASK-014 part 1 (STT adapter library) built on fakes; Sol review PASS; PR pending.
 ### Masnun
 ### Mahim (lead)
 - 2026-10-14 17:35 · Claude Code · mahim-api · TASK-007 `todo` → `review`; shared API layer and 92 tests at `a33d9af`; in-memory limiter, real principal resolver waits for TASK-006.
