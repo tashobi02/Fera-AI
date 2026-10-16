@@ -90,9 +90,18 @@ describe("wording guard", () => {
     for (const e of Object.values(ERROR_CATALOGUE)) strings.push(e.bn, e.en);
     expect(strings.length).toBeGreaterThan(100);
     expect(strings.filter((s) => findBannedGroup(s) !== null)).toEqual([]);
-    // The exemption is the only one: every exempt string is exactly the disclaimer, and only welcomeNoAlerts is listed.
+    // The exemption is the only one: only welcomeNoAlerts is listed, exactly matching the D4 §10 negated disclaimer in bn and en.
     expect(NEGATED_DISCLAIMER_KEYS).toEqual(["welcomeNoAlerts"]);
-    expect(exempt.length).toBeGreaterThan(0);
+    expect(exempt).toEqual([
+      locales.locales.bn.welcomeNoAlerts,
+      locales.locales.en.welcomeNoAlerts,
+    ]);
+    expect(locales.locales.bn.welcomeNoAlerts).toBe(
+      "ফেরা পুলিশ বা সিআইডি-কে সতর্কবার্তা পাঠায় না। জরুরি হলে ১৩২১৯-এ কল করুন।",
+    );
+    expect(locales.locales.en.welcomeNoAlerts).toBe(
+      "Fera does not alert police or CID. In an emergency, call 13219.",
+    );
   });
 
   it("throws E-016 for a blocked text and nothing for an allowed one", () => {
