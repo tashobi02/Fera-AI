@@ -50,7 +50,7 @@ export type AiLogEntry = Readonly<{
 
 export type ExtractionResult =
   | { ok: true; draft: CaseDraft; dropped: readonly AiDropped[] }
-  | { ok: false; error: ErrorEnvelope; draft: CaseDraft | null; dropped: readonly AiDropped[]; cause?: unknown; failure?: AiFailure };
+  | { ok: false; error: ErrorEnvelope; draft: CaseDraft | null; dropped: readonly AiDropped[]; cause: Error; failure?: AiFailure };
 
 // Non-contract: why an E-013/E-014 result happened, so TASK-020 can tell an outage from a bug.
 export type AiFailure = "unavailable" | "unexpected" | "timeout";

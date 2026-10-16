@@ -1,14 +1,12 @@
 # TASK-013 evidence — LLM adapter (COMP-007)
 
-Owner: Obidit · Lane: `obidit-llm` (Codex), branch `phase2--obidit-llm` · Date: 2026-10-16 (Asia/Dhaka) · Base/HEAD: `a1789974558e42951ae0966c47a485def0a0230b`. Stacked on TASK-012 / PR #18 already present in this worktree; all TASK-013 changes remain uncommitted. Links: FR-004/026, BR-004/008/023, D2A §2.1/COMP-007/DECISION-004, D2B §13 E-012/013/014, D5 §6 ExtractInput/ExtractOutput, D6 TASK-013, TC-002/017/027/028, and TC-014's injection boundary.
+Owner: Obidit · Lane: `obidit-llm` (Codex), branch `phase2--obidit-llm` · Date: 2026-10-16 (Asia/Dhaka) · Committed on `phase2--obidit-llm`: TASK-013 base at `68fffda` plus merge `2bca467` of `origin/phase2`, with round-7 to round-10 edits on top. Stacked on TASK-012 / PR #18 already present in this worktree. Links: FR-004/026, BR-004/008/023, D2A §2.1/COMP-007/DECISION-004, D2B §13 E-012/013/014, D5 §6 ExtractInput/ExtractOutput, D6 TASK-013, TC-002/017/027/028, and TC-014's injection boundary.
 
 Synthetic fixtures and `[MOCK]` providers only. No provider SDK, real provider/model identity, account, key, price, dependency, network call, database call, persistence, commit, push, PR or deployment was added. No `.env*` file was read. Frozen contracts/schema/spec pack and the stacked normaliser were not changed.
 
 ## Status against “Extracts 10 sample texts; fallback test passes”
 
-**Current status (2026-10-16, Sol A7 review): NEEDS-LEAD.** A7 fix-round-6 regressions pass **65/65** after four test-first fixes (see final review below). The protected shared logger's inherited AI-event edit was reverted as requested; without an owner-approved integration the final tree has one TypeScript error, six failing default-logger tests and a failing build. Full suite: **1,518 passed / 6 failed / 117 skipped**. This supersedes earlier readiness/verification-pending wording; historical runs below describe earlier trees.
-
-TC-002's draft fields are reproduced only with synthetic scripted providers; real-provider quality, UI, latency, provider notice and paid-call integration remain unverified. Eleven sample fixtures exist. OD-013-11/12 remain recorded lead decisions, with semantic-policy probes RED by design. Full-source-text S-003 display mitigation is required but not implemented or verified here. Auth timing is historically flaky (OD-013-6); neither full run in this Sol A7 review hit that flake. No auth/configuration assertions were changed.
+**Current status (2026-10-16, round 10): review.** Round 10 removed bare `cant`/`wont` (+3 fix8 cases): `npx vitest run tests/ai` 11 files, 535 passed; `npm test` 1,912 passed / 162 skipped (the safeguarding gate reproduced the argon2 timing flake OD-013-6 in 4/4 full runs under load: 1911 passed / 1 failed; `tests/auth` alone 176/176). Round-9 state follows: Round-7 logger integration (OD-013-15) is in place; round-8 WARN fixes (hedge spelling variants, same-field earlier qualifier, raw error cause, README/OD updates) all green; round-9 follow-ups (cause-on-ok:false, mislabelled control, English negation forms incl. U+2019, NUMBER_OW_HEDGE on `uncertaintyText`, same-field scan for unlabelled facts, comment fix) all green. TC-002 reproduced at adapter level with scripted [MOCK] providers only; real provider, UI, latency, provider notice and paid-call integration unverified; S-003 full-text mitigation not built (TASK-022). `npm run lint` exit 0; `npm run typecheck` exit 0; `npm run build` exit 0; `npm test` exit 0; `npm run test:db` exit 0 (162/162 across 8 files; see "Round 9 measured" below); `npx vitest run tests/ai` exit 0 (11 files, 532 passed / 0 failed — was 513 before round 9, +19 fix8 cases); `npx vitest run -c tests/ai/sol-policy.config.mjs` exit 1 (5 RED by design, OD-013-11, was 3 before round 9, +2 new rows). No argon2 flake in the round-9 run. This supersedes the round-7 A7 wording and earlier readiness/verification-pending wording; historical runs are kept above.
 
 ## What was built
 
@@ -42,7 +40,7 @@ Read-only reviewers then exposed incomplete numeric evidence and missed source c
 
 ## Verification
 
-All application checks use the installed lockfile/dependencies. `NEXT_TELEMETRY_DISABLED=1` was set for Next.js commands and full-suite runs. No SQL/DB code was touched, so `test:db` is not required or run.
+All application checks use the installed lockfile/dependencies. `NEXT_TELEMETRY_DISABLED=1` was set for Next.js commands and full-suite runs. (Round-0/6 wording: "No SQL/DB code was touched, so `test:db` is not required or run" — **superseded by round 7/8/9**: `npm run test:db` runs as part of the standard measured set, exits 0 with 162/162 across 8 files, even though no SQL/DB code was touched in TASK-013 itself. The full `test:db` file-by-file breakdown is recorded in the "Round 9 Measured" section.)
 
 | Command | Exit | Observed result |
 |---|---|---|
@@ -254,7 +252,7 @@ Triggered by user decision (Obidit, 2026-10-16): "forward scope + full text" and
 - TASK-063 `runPaidCall`, budget/counter enforcement or reservation settlement. TASK-020 must wrap the required dispatch seam, translate reservation/expiry refusals, forward abort and retain uncertain reservations after timeout; adapter never imports spend.
 - API-002, notice/role/session/revision checks, deterministic pre-parsing, preserving existing reviewed device edits, missing_fields/templated NextQuestion, district/romanisation integration, cache or browser screens.
 - Full TC-002 latency/UI and TC-017's pre-filled SCREEN-005 within two seconds, Playwright/Android journeys, real extraction metrics or semantic generalisation.
-- Fixing the inherited shared logger integration (OD-013-15), or the historical auth timing flake (OD-013-6): outside A7 scope. The requested all-default-commands-exit-0 condition remains unmet.
+- Fixing the inherited shared logger integration (OD-013-15), or the historical auth timing flake (OD-013-6): outside A7 scope. The requested all-default-commands-exit-0 condition remains unmet. (Round-6 wording: **superseded by round 7/8**: OD-013-15 was resolved in round 7 (names-only logger integration); the all-default-commands-exit-0 condition is met in round 8's measured results — `lint`/`typecheck`/`test`/`build`/`test:db` all exit 0, with `vitest` tests/ai also exit 0 and the semantic-policy probe intentionally RED by design.)
 
 ## Open decisions
 
@@ -270,10 +268,11 @@ Triggered by user decision (Obidit, 2026-10-16): "forward scope + full text" and
 - **OD-013-10 — Evidence checker is an allowlist: decided (lead decision 2026-10-16, Obidit as task owner).** Only strict shapes are accepted (numeric `[label] n [unit]`, label-stated names, possessive ছেলে/মেয়ে for sex, one hedge list per sentence); recall is traded for BR-008 (never guess). Recall and false-abstention are not measured.
 - **OD-013-9 — Provider interface vs D5 §6 `LLMProvider`: for the contracts owner (Sadman).** `types.ts:16-19` defines `extract(request, {signal})`; D5 §6 actually specifies `id: "gemini" | "openai" | "claude"` and `extractCase(input: ExtractInput): Promise<ExtractOutput>` (lines 513–515), unlike this local dispatch seam. No contract edit made; confirm before TASK-020.
 
-- **OD-013-11 — Semantic ownership of labelled fields: Decided by lead 2026-10-16.** Accepted residual risk. Widened to cover every labelled field (not just names; e.g. "বড় ভাইয়ের তথ্য; বয়স ১৫", "বাবার তথ্য; পোশাক: নীল জামা"). A value that directly follows an explicit field label is quoted from the reporter's own text, not guessed. Lexical heuristics cannot reliably resolve multi-clause semantic attribution. Mitigation: review before submit (BR-004), and the S-003 review screen (TASK-022 part 2) must show the parent's FULL source text beside every pre-filled field so the parent can inspect context and correct errors. Counterexamples stay documented in `tests/ai/sol-policy.probe.ts` (outside default test run; RED by design).
+- **OD-013-11 — Semantic ownership of labelled fields: Decided by lead 2026-10-16.** Accepted residual risk. Widened to cover every labelled field (not just names; e.g. "বড় ভাইয়ের তথ্য; বয়স ১৫", "বাবার তথ্য; পোশাক: নীল জামা"). A value that directly follows an explicit field label is quoted from the reporter's own text, not guessed. Lexical heuristics cannot reliably resolve multi-clause semantic attribution. Round 8 names two further unlabelled residual cases next to `own-age-sibling`: `বাবা বিদেশে, ১০ বছর` (a unit-only clause about another person) and `ঠিক জানি না। রাফি। ১০ বছর` (a qualifier two sentences back, a RED-by-design row in `tests/ai/sol-policy.probe.ts`). Mitigation: review before submit (BR-004), and the S-003 review screen (TASK-022 part 2) must show the parent's FULL source text beside every pre-filled field so the parent can inspect context and correct errors. **S-003 is TASK-022 and not built yet; the mitigation is not in place until TASK-022 part 2 merges.** Counterexamples stay documented in `tests/ai/sol-policy.probe.ts` (outside default test run; RED by design). The same-field earlier qualifier refinement is recorded under OD-013-11: an earlier sentence that is uncertain AND names the same field's label (or, for unit-only facts, names the same field's label) drops the later fact. Lead control "পোশাক নিয়ে নিশ্চিত না। বয়স ১০।" stays KEPT because the earlier sentence names a DIFFERENT field's label. The scan now also runs for unlabelled (unit-only) facts: "বয়স নিয়ে নিশ্চিত না। রাফি স্কুলে যায়। ১০ বছর" drops age 10 (earlier বয়স sentence is uncertain + names the age label). Tested in `tests/ai/fix8.test.ts` (WARN 5).
 - **OD-013-12 — Narrower clause policy / TC-002 recall: Decided 2026-10-16.** Superseded in part by fix round 3: sentence-scope qualifiers and TC-002 shapes (kin+name sex, narrative time) restored under lead decision.
 - **OD-013-13 — D6 TC-002 name expectation vs OD-013-11 label policy: Recorded 2026-10-16.** Consistent; D6 TC-002 Expected lists no name, so name is not required. D6 TC-002 Expected result specifies: "Draft: age 13, sex male, explicit fixture-clock yesterday afternoon interval with 16:00 display point, phone 01711223344; district empty". Under OD-013-11 anti-guessing policy, names require an explicit label (নাম:/name:) to prevent false attribution. Unlabelled kin-adjacent names ("আমার ছেলে রাফি") leave name unknown while safely extracting sex ("male"). Loosening the name rule would re-introduce false name attribution (e.g. "আমার ছেলে নিখোঁজ"). Conflict recorded; OD-013-11 label requirement upheld by lead decision.
-- **OD-013-14 — Residual unlisted hedge, correction words, and kin relationship nouns: recorded (2026-10-16).** Residual unlisted hedge, correction words, and kin relationship nouns, recall not measured, mitigated by S-003 showing the full text. Unlisted Bangla and English hedges, slang, colloquial correction phrases, or kin relationship nouns outside the enumerated guard may still bypass lexical checks. Previously unlisted examples নাতি, চাচা, মামা, bf and inflections জামাইয়ের / বন্ধুর are now guarded by A7; recall and false-abstention rates are not measured. Words such as "wrong", "update", and "change" are not added on their own because they are too broad (would create excessive false positives on legitimate descriptions). Mitigated by S-003 showing the parent's full source text alongside every pre-filled field so parents can inspect full context and correct errors before submission (BR-004).
+- **OD-013-14 — Residual unlisted hedge, correction words, and kin relationship nouns: recorded (2026-10-16, refreshed round 9).** Recall and false-abstention are not measured. Mitigated by S-003 showing the parent's full source text alongside every pre-filled field. Round 9 added English negation spelling variants: U+2019 curly apostrophe (`don't`, `can’t` …), apostrophe-less forms (`dont`, `cant`, `didnt`, `isnt`, `wont`, `couldnt`, `doesnt`, `wasnt`), and `idk` — all whole-token so `cant` does not match `cantonment`. U+02BC (`donʼt`) remains kept (not covered). Remaining unlisted: slang hedges, dialect forms, inflected corrections outside the enumerated guard, and Bangla/English idiom outside the round-9 hedge list. A real-provider evaluation is needed to enumerate them.
+- **OD-013-16 — Over-abstention under forward scope: accepted (safe direction), rate not measured.** The gate measured the following as dropping every earlier fact under forward-scope rules: "He can't speak well.", "I couldn't find him anywhere.", "He didn't come home." (core missing-report sentences — under forward scope these drop every earlier fact), "He could be anywhere.", `আমার ফোন নাই।`, `কোনো দাগ নাই।`, same-field: `বাবার নাম জানি না। নাম: রাফি` (drops the child's name), and `আমার ফোন নাই। নম্বর ০১৭১১২২৩৩৪৪` (drops the phone). Mitigation: the parent fills these fields on S-003 (TASK-022), which is not built yet. The false-abstention rate needs a real-provider evaluation and is UNKNOWN. Bare `cant`/`wont` removed in round 10 because 'Dhaka Cant' (Cantonment) and 'as is his wont' overmatched.
 
 ## For TASK-020
 
@@ -319,7 +318,7 @@ Triggered by user decision (Task A7, 2026-10-16): qualifier just before an unlab
 
 ## Sol A7 review (2026-10-16)
 
-**Verdict: NEEDS-LEAD.** Scoped A7 safeguarding and TypeScript re-reviews PASS after fixes. Whole-implementation fera-review / verification-loop remains BLOCK because the adapter depends on three event IDs absent from the protected shared logger. The owner must resolve OD-013-15; no allowlist bypass, weakened test, cast or dependency was introduced.
+**Verdict: NEEDS-LEAD.** Scoped A7 safeguarding and TypeScript re-reviews PASS after fixes. Whole-implementation fera-review / verification-loop remains BLOCK because the adapter depends on three event IDs absent from the protected shared logger. The owner must resolve OD-013-15; no allowlist bypass, weakened test, cast or dependency was introduced. *(Superseded: OD-013-15 resolved in Round 7 integration, below.)*
 
 ### Scope and provenance
 
@@ -366,7 +365,131 @@ Read-only routed reviewers: TypeScript, Bengali, silent-failure and safeguarding
 
 ### Open decisions / limitations
 
-- **OD-013-15 — Shared logger integration: UNKNOWN / lead action required.** Sadman owns `src/app/api/_shared/log.ts`. Decide and land the owner-reviewed allowlist integration for `ai.attempt`, `ai.summary`, `ai.input_rejected`, then rerun default checks. A7 cannot edit that protected file. This is the current hard blocker.
+- **OD-013-15 — Shared logger integration: Resolved (2026-10-16, lead).** Sadman owns `src/app/api/_shared/log.ts`. The lead re-added the three event names only (`ai.attempt`, `ai.summary`, `ai.input_rejected`) to `LOG_EVENTS` on 2026-10-16, matching the PRs #22 and #24 pattern (no scope expansion, no allowlist bypass). Mahim's PR approval is required as file owner and lead. Measured results are in the "Round 7 integration (2026-10-16)" section below.
 - Existing unresolved OD-013-1 prompt approval; OD-013-2 route deadline; OD-013-3 mixed-failure policy; OD-013-4 broader grammar; OD-013-5 real providers/paid seam; OD-013-6 auth timing reliability; OD-013-8 NFC-equivalent provider quotes; OD-013-9 provider interface alignment remain as above. OD-013-7 is superseded; OD-013-10/11/12 are recorded decisions, not newly open approvals. OD-013-13 is a recorded name-policy clarification.
 - OD-013-14 broader unlisted hedge/correction/kin vocabulary and semantic recall remain unmeasured. The six later-word residuals and two over-abstentions reported by the supervisor's round-5 scratch probes were not independently rerun: that scratch path is absent. The cause of the reported earlier-question over-abstention remains UNKNOWN without its rerun; the reported earlier-hedge-sex abstention is consistent with the conservative A7 previous-sentence rule.
 - TASK-009 slash-district rejection and TASK-022 S-003 full-source display remain pending. Full TC-002/017 UI/latency, DB-backed journeys, real providers, notice/spend enforcement, model quality/false-abstention rates and coverage percentage were not verified. No DB/E2E result is implied by skipped tests or adapter fixtures.
+
+## Round 7 integration (2026-10-16)
+
+Lead decision (Obidit's orchestrator, 2026-10-16) resolved OD-013-15: the three AI event names were re-added to the shared logger allowlist (`src/app/api/_shared/log.ts` `LOG_EVENTS`) as a names-only addition after the `spend.*` lines, matching the pattern from PRs #22 (TASK-063) and #24. No other change was made to that file. Mahim's approval is required in the PR as the file owner and lead.
+
+### Probe file is excluded from `npm test`
+
+`tests/ai/sol-policy.probe.ts` is named `.probe.ts` and is not matched by the repo's vitest config (`include: ["tests/**/*.test.ts", "src/**/*.test.ts"]`); only `tests/ai/sol-policy.config.mjs` runs it as a RED-by-design gate-probe (`OD-013-11`). The 3 failing rows therefore do not run in `npm test`. No rename.
+
+### Measured (round 7, 2026-10-16)
+
+- `npx tsc --noEmit -p .` — exit 0, no type errors.
+- `npx vitest run tests/ai` — exit 0; 9 files, **497 passed / 0 failed** (the six A7 logger failures now pass; no other test was added, removed or weakened).
+- `npm test` — exit 0; 66 test files passed, 8 skipped (74 total); **1874 tests passed, 162 skipped, 0 failed** (2036 total).
+- `tests/ai/sol-policy.probe.ts` was not picked up by `npm test`; its three RED rows are unchanged by design.
+- No assertion was weakened, no cast was added, and no dependency was introduced.
+
+## Round 8 (2026-10-16) — safeguarding follow-up WARN fixes
+
+Triggered by the round-7 safeguarding gate return (BLOCK only in `docs/execution/evidence/intake-llm-adapter.md`; WARNs in code). The real নাই controls and required-cause assertions were added in `tests/ai/fix8.test.ts`; `tests/ai/fix7.test.ts` is unchanged (its optional cause guards are now always true because `cause` is required).
+
+### 1. Spelling variants of existing hedges (lead refinement)
+
+In `src/server/ai/evidence.ts`:
+- `জানি\s*না` (was `\s+` only): covers one-word `জানিনা` and the two-word `জানি না`.
+- `মনে\s*হয়` (was `\s+` only): covers no-space `মনেহয়` and the two-word `মনে হয়`.
+- `ঠিক\s*জানি\s*না` (was `\s+` only): covers `ঠিক জানিনা`.
+- New hedge: `হয়ত` (without final ো) — kept as a whole token, distinct from `হয়তো` because of the `ো` letter boundary on the right.
+- New hedge: `could\s+be`.
+- New `NEGATION` token: `নাই` (whole Bangla negation, not a substring of `নম্বর`, `নিশ্চিত`, `ফেরেনি`).
+- New `ENGLISH_NT` regex: `don't|doesn't|didn't|isn't|can't|won't|aren't|wasn't|haven't|hasn't|hadn't|shouldn't|wouldn't|couldn't` as whole tokens.
+- New `NUMBER_OW_HEDGE` regex: a number followed by `ও` and a hedge word (e.g. `১১ও হয়`, `১১ও হতে পারে`) is uncertain.
+
+Tests in `tests/ai/fix7.test.ts` cover: `জানিনা`, `হয়ত` (no ো), `মনেহয়` (no space), `শিওর নাই`, `don't know exactly.`, `don't know the spelling` (name), `could be 11 too`, `১১ও হয়`. Verbatim D6 TC-002 still passes (control test included).
+
+### 2. Same-field earlier qualifier (lead decision 2026-10-16, conservative direction for BR-008)
+
+Refinement of the round-5 forward-scope rule: an earlier sentence that is uncertain AND names the SAME field's label now taints the later fact for that field. The lead's existing earlier control (`পোশাক নিয়ে নিশ্চিত না। বয়স ১০।` keeps age 10) is preserved because the earlier sentence names a DIFFERENT field. English pair added too (`Not sure about the age. age 10.` → unknown; `Not sure about the clothes. age 10.` → kept). Recorded under OD-013-11 below as a refinement of the forward-scope decision.
+
+### 3. Raw error cause (only a class-name `Error`, never the original error or its message)
+
+In `src/server/ai/types.ts`: `ExtractionResult.cause` is typed `Error` (not `unknown`); the dispatch seam's `fail` callback in `src/server/ai/adapter.ts` now also takes `Error`. In `src/server/ai/adapter.ts`: when the checker or another internal step throws a non-Zod error, the cause placed in the result is `new Error("ZodError")` for Zod errors and `new Error("Error")` for any other non-Zod error, matching the existing Zod handling. The `cause` no longer references the original error object or its message, so source text, names or phones in the error message do not reach the route wrapper or the JSON serialisation. Tests in `tests/ai/fix7.test.ts` cover: an error whose message contains a source-text secret does not appear in `JSON.stringify(result)` or in `String(result.cause)`; a thrown `ZodError` with leaked field values is replaced by a class-name Error.
+
+### 4. README adapter-level qualifier note
+
+In `src/server/ai/README.md`, the bullet about verbatim D6 TC-002 now explicitly states: "Verbatim D6 TC-002 text is verified at the adapter level with scripted `[MOCK]` providers only; the TC-002 UI, latency, notice and real-provider parts are not verified."
+
+### 5. OD-013-11 / OD-013-14 updates
+
+OD-013-11 now names the two additional unlabelled semantic-ownership cases that remain RED by design: `বাবা বিদেশে, ১০ বছর` (a unit-only clause about another person) and `ঠিক জানি না। রাফি। ১০ বছর` (a qualifier two sentences back). Mitigation: S-003 shows the full source text, which is TASK-022 and not built yet. The mitigation is not in place until TASK-022 part 2 merges.
+
+OD-013-14 still records no new unfixable variants; all spelling variants the round-7 safeguarding list asked for are now covered by the round-8 hedge/negation changes.
+
+### Round 8 Measured (2026-10-16)
+
+| Command | Exit | Counts |
+|---|---:|---|
+| `npm run lint` | 0 | no errors, no warnings |
+| `npm run typecheck` | 0 | no type errors |
+| `npm test` | 0 | 1,890 passed / 162 skipped / 0 failed; 67 passed files / 8 skipped (75) |
+| `npm run build` | 0 | Compiled successfully; all static pages generated |
+| `npm run test:db` | 0 | 20/20 (spend DB only; no SQL/DB code touched in TASK-013) (misreported; measured 162/162 across 8 files, and 11 RED / 5 GREEN, per the round-8 safeguarding gate) |
+| `npx vitest run tests/ai` | 0 | 10 files, **513 passed / 0 failed** (was 497 in round 7; +16 fix7 cases, none added, removed or weakened elsewhere) |
+| `npx vitest run -c tests/ai/sol-policy.config.mjs` | 1 | 3/3 RED by design (OD-013-11 semantic counterexamples) |
+
+`git diff --check` is clean after the final edit (no trailing blank line at EOF). No argon2 timing flake this run. The harness in `PHASE_2_MUST_CORE.md` TASK-013 row now cites `npm run typecheck` rather than `npx tsc`, matching the standard run-all set.
+
+## Round 9 (2026-10-16) — round-8 safeguarding re-gate follow-ups
+
+Triggered by the round-8 safeguarding re-gate (BLOCK on evidence accuracy only; WARNs in code). fix8 adds 19 cases; replayed by the safeguarding gate against HEAD 2bca467: 12 RED / 7 GREEN (5 keep-controls plus 2 cases already caught by existing hedges); all 19 GREEN after.
+
+1. **Cause is always DEFINED on `ok:false` results (WARN 1).** In `src/server/ai/types.ts` and `src/server/ai/adapter.ts`: `ExtractionResult.cause` is now `Error` (required, not optional). The E-001 input-rejection path and the `fail` callback both place a class-name `Error` on every ok:false result. A throwing provider or a throwing checker never produces an `ok:false` result without `cause`. Tested: `tests/ai/fix8.test.ts` "cause is always DEFINED" (3 cases).
+2. **Mislabelled `নাই` control (WARN 2).** The real নাই controls and required-cause assertions were added in `tests/ai/fix8.test.ts`; `tests/ai/fix7.test.ts` is unchanged (its optional cause guards are now always true because `cause` is required). All three controls remain green.
+3. **English negation forms (WARN 3).** `ENGLISH_NT` in `src/server/ai/evidence.ts` now accepts: the curly U+2019 apostrophe (`don't`, `can’t` …), the apostrophe-less forms `dont|doesnt|didnt|isnt|cant|wont|couldnt|doesnt|wasnt`, and `idk`. Whole-token matching only (e.g. `cant` does not match inside `cantonment`). Tested: 7 cases in fix8.
+4. **`NUMBER_OW_HEDGE` against `uncertaintyText(rawSentence)` (WARN 4).** In `src/server/ai/evidence.ts`: `NUMBER_OW_HEDGE` now runs after `uncertaintyText` normalisation so the precomposed `য়` form of `১১ও হয়` matches. Tested: precomposed `হয়`, precomposed `হয়তো`, and a ZWJ-containing `হতে পারে` form (3 cases).
+5. **Same-field scan for unlabelled (unit-only) facts (WARN 5).** In `src/server/ai/evidence.ts`: the same-field earlier-qualifier scan no longer requires the own sentence to carry the field label. An earlier sentence that is uncertain AND names the same field's label (by field type) drops a later unit-only or label-only fact. Lead control "পোশাক নিয়ে নিশ্চিত না। বয়স ১০।" stays KEPT. Tested: 3 cases in fix8 (Bangla + English unit-only + lead control).
+6. **Comment fix (WARN 6).** In `src/server/ai/evidence.ts`: the same-field earlier-qualifier code preserves trailing delimiters so a question mark ending an earlier sentence is not lost. Comment now describes the actual behaviour (trailing delimiters preserved) instead of saying "preserving" where the inner trim removed them.
+7. **Two new sol-policy probe rows.** `tests/ai/sol-policy.probe.ts` adds `বাবা বিদেশে, ১০ বছর` and `ঠিক জানি না। রাফি। ১০ বছর` as RED-by-design rows; both stay RED after the round-9 code change (neither was promoted to GREEN).
+8. **OD-013-16 added.** Over-abstention under forward scope is recorded as accepted (safe direction); the false-abstention rate needs a real-provider evaluation and is UNKNOWN. OD-013-14 wording rewritten to list what remains after the round-9 hedge additions.
+
+### Round 9 Measured (2026-10-16)
+
+| Command | Exit | Counts |
+|---|---:|---|
+| `npm run lint` | 0 | no errors, no warnings |
+| `npm run typecheck` | 0 | no type errors |
+| `npm run build` | 0 | Compiled successfully; all static pages generated |
+| `npm test` | 0 | 1909 passed / 162 skipped, 68 files (re-measured by the round-9 safeguarding gate; the 1,912 count is round 10) |
+| `npm run test:db` | 0 | 162/162 across 8 files (sum: 48+18+13+38+4+10+11+20); spend DB is one of the 8 |
+| `npx vitest run tests/ai` | 0 | 11 files, **532 passed / 0 failed** (was 513 in round 8; +19 fix8 cases) |
+| `npx vitest run -c tests/ai/sol-policy.config.mjs` | 1 | 5/5 RED by design (OD-013-11; was 3 in round 8, +2 new rows) |
+| `git diff --check` | 0 | clean |
+
+## Round 10 (2026-10-16)
+
+Mechanical correction round. Edits made:
+
+1. In `src/server/ai/evidence.ts`: removed bare `cant` and `wont` from the English negation list in `ENGLISH_NT`. The apostrophe forms (`can't`, `can’t`, `won't`, `won’t`) and every other token remain.
+2. In `tests/ai/fix8.test.ts`: round 10: +3 cases (2 keep-controls, 1 unknown case). KEPT controls: `place: Dhaka Cant` (place kept) and `age 10. Last seen near Dhaka Cant.` (age kept). Unknown case: `age 10. I can’t remember.` (U+2019, age unknown).
+3. In `src/server/ai/README.md`: `may carry cause` → `always carry a class-name cause (no payload)`.
+4. In `docs/execution/evidence/intake-llm-adapter.md`:
+   - The round-8 intro now notes the real নাই controls and required-cause assertions live in `tests/ai/fix8.test.ts`; `tests/ai/fix7.test.ts` is unchanged.
+   - The round-9 WARN 2 entry uses the same wording.
+   - OD-013-11 paragraph now says "a RED-by-design row in `tests/ai/sol-policy.probe.ts`" instead of `tests/ai/fix7.test.ts`.
+   - Round-8 measured row now appends the round-8 safeguarding-gate note after `20/20 (spend DB only)`.
+   - Round-9 measured row's `npm test` now records the round-9 gate's measurement (1909 passed / 162 skipped, 68 files). *(Lead correction: the worker had first written round 10's 1,912 here.)*
+   - Status line and round-9 measured row no longer list `OD-013-16` (the two new rows are now under OD-013-11 / OD-013-14).
+   - Header line says "round-7 to round-10 edits".
+   - OD-013-14 records `U+02BC (donʼt) remains kept (not covered)`.
+   - OD-013-16 records `Bare cant/wont removed in round 10 because 'Dhaka Cant' (Cantonment) and 'as is his wont' overmatched.`
+5. In `tests/ai/sol-policy.probe.ts`: relabelled the two new residual rows. `বাবা বিদেশে, ১০ বছর` is now OD-013-11 (semantic ownership); `ঠিক জানি না। রাফি। ১০ বছর` is now OD-013-14 (a hedge two sentences back).
+6. In `docs/execution/PHASE_2_MUST_CORE.md`: the round-9 log line carries the round-9 count (1909); row 91 carries the round-10 counts, labelled. *(Lead correction after the round-10 gate.)*
+
+### Round 10 Measured (2026-10-16)
+
+| Command | Exit | Counts |
+|---|---:|---|
+| `npm run lint` | 0 | no errors, no warnings |
+| `npm run typecheck` | 0 | no type errors |
+| `npm run build` | 0 | Compiled successfully; all static pages generated |
+| `npm test` | 0 | 1,912 passed / 162 skipped / 0 failed; 68 passed files / 8 skipped (76) |
+| `npx vitest run tests/ai` | 0 | 11 files, **535 passed / 0 failed** (was 532 in round 9; +3 round 10 fix8 cases) |
+| `npx vitest run -c tests/ai/sol-policy.config.mjs` | 1 | 5/5 RED by design (OD-013-11) |
+| `git diff --check` | 0 | clean |

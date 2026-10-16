@@ -102,7 +102,7 @@ export function createLlmAdapter(options: LlmAdapterOptions) {
       if (!parsed.success || text?.status !== "known" || text.value.normalisedText !== parsed.data.normalisedText) {
         const reason: AiInputReason = !parsed.success ? "zod" : text?.status !== "known" ? "normalise_status" : "normalised_text_mismatch";
         log({ event: "ai.input_rejected", error_id: "E-001", reason });
-        return { ok: false, error: errorEnvelope("E-001"), draft: null, dropped: [] };
+        return { ok: false, error: errorEnvelope("E-001"), draft: null, dropped: [], cause: new Error(reason) };
       }
       const input = parsed.data;
       let partial = emptyDraft(input);
@@ -118,8 +118,8 @@ export function createLlmAdapter(options: LlmAdapterOptions) {
         log({ event: "ai.summary", ok: result.ok, ...(result.ok ? {} : { error_id: result.error.error.id as AiErrorId }), tally });
         return result;
       };
-      const fail = (errorId: AiErrorId | "E-019" | "E-023", cause?: unknown): ExtractionResult =>
-        ({ ok: false, error: errorEnvelope(errorId), draft: partial, dropped: [...dropped.values()], ...(cause === undefined ? {} : { cause }), ...(failure && errorId !== "E-012" ? { failure } : {}) });
+      const fail = (errorId: AiErrorId | "E-019" | "E-023", cause?: Error): ExtractionResult =>
+        ({ ok: false, error: errorEnvelope(errorId), draft: partial, dropped: [...dropped.values()], cause: cause ?? new Error("Error"), ...(failure && errorId !== "E-012" ? { failure } : {}) });
       // An abort after a paid attempt still emits the summary, so the tally shows what was spent.
       const abort = () => { aborted = true; return abortError(); };
       const plan = [
@@ -153,7 +153,9 @@ export function createLlmAdapter(options: LlmAdapterOptions) {
           } catch (error) {
             // A bug in the checker must not become a 500 after a paid call: manual form, no further paid call.
             Object.assign(detail, { outcome: "check_bug", error_id: "E-012", ...safeError(error) });
-            done = fail("E-012", instanceOf(error, ZodError) ? new Error("ZodError") : error);
+            // The cause must hold only a class-name Error, never the original error object
+            // (whose message may contain source text, name, phone or other PII).
+            done = fail("E-012", new Error(instanceOf(error, ZodError) ? "ZodError" : "Error"));
           }
         } catch (error) {
           if (signal?.aborted) { detail.outcome = "aborted"; throw abort(); }

@@ -10,14 +10,22 @@ const PHONE_LABEL = "phone\\s+no|phone|number|ফোন|নম্বর";
 const LABEL_SEPARATOR = "(?:\\s*[:=]\\s*|\\s+)";
 // One hedge list, matched as whole tokens (NFC, Unicode boundaries). Bare "no" and "না" are not hedges:
 // "phone no:" is a label; qualifiers now apply sentence-wide (lead decision 2026-10-16, BLOCK 1).
-const HEDGE_WORDS = ["বা", "অথবা", "কিংবা", "নাকি", "সম্ভবত", "বোধহয়", "বোধ\\s+হয়", "মনে\\s+হয়", "মনে\\s+হচ্ছে", "হতে\\s+পারে", "নিশ্চিত\\s+(?:না|নই)", "জানি\\s+না", "ঠিক\\s+জানি\\s+না", "প্রায়", "আনুমানিক", "আনু", "আন্দাজ", "মতো", "মত",
-  "হয়তো", "হবে", "শিওর\\s+না", "sure\\s+না", "ধারণা", "or", "maybe", "may\\s+be", "probably", "prob", "perhaps", "likely", "approximately", "approx", "ca", "c", "est", "abt",
+// Spelling variants (round 7/8 follow-ups): হয়ত without final ো, মনেহয় without space, জানিনা one word.
+const HEDGE_WORDS = ["বা", "অথবা", "কিংবা", "নাকি", "সম্ভবত", "বোধহয়", "বোধ\\s+হয়", "মনে\\s*হয়", "মনে\\s+হচ্ছে", "হতে\\s+পারে", "হতে\\s+পারে", "নিশ্চিত\\s+(?:না|নই)", "জানি\\s*না", "ঠিক\\s*জানি\\s*না", "প্রায়", "আনুমানিক", "আনু", "আন্দাজ", "মতো", "মত",
+  "হয়তো", "হয়ত", "হবে", "শিওর\\s+না", "sure\\s+না", "ধারণা", "or", "maybe", "may\\s+be", "could\\s+be", "probably", "prob", "perhaps", "likely", "approximately", "approx", "ca", "c", "est", "abt",
   "roughly", "about", "around", "guess", "think", "might", "unsure", "uncertain", "not\\s+sure", "possibly", "believe", "certain"];
 const TOKEN_EDGE = "(?<![\\p{L}\\p{M}\\p{N}_])";
 const TOKEN_END = "(?![\\p{L}\\p{M}\\p{N}_])";
 const HEDGE = new RegExp(`${TOKEN_EDGE}(?:${HEDGE_WORDS.join("|")})${TOKEN_END}`.normalize("NFC"), "iu");
 const CORRECTION_WORDS = ["মানে", "actually", "sorry", "I\\s+mean", "I\\s+meant", "না\\s+না", "আসলে", "দুঃখিত", "ভুল\\s+বললাম", "ভুল(?:ে|ভাবে|ই)?", "নাহ", "wait", "oops", "correction", "শুধরে", "scratch\\s+that", "my\\s+mistake", "rather"];
 const CORRECTION = new RegExp(`${TOKEN_EDGE}(?:${CORRECTION_WORDS.join("|")})${TOKEN_END}`.normalize("NFC"), "iu");
+// English negation forms: "n't" with ASCII or curly U+2019 apostrophe, or apostrophe-less spelling.
+// Whole-token boundaries keep "cant" out of "cantonment". `idk` is slang. Bare "cant"/"wont" are
+// excluded from the apostrophe-less list (round 10): they overmatched "Dhaka Cant" (Cantonment)
+// and "as is his wont". The apostrophe forms (`can't`, `won't`, `can’t`, `won’t`) and every
+// other token are kept.
+const APOS = "(?:'|’)";
+const ENGLISH_NT = new RegExp(`${TOKEN_EDGE}(?:don't|doesn't|didn't|isn't|can't|won't|aren't|wasn't|haven't|hasn't|hadn't|shouldn't|wouldn't|couldn't|don${APOS}t|doesn${APOS}t|didn${APOS}t|isn${APOS}t|can${APOS}t|won${APOS}t|aren${APOS}t|wasn${APOS}t|haven${APOS}t|hasn${APOS}t|hadn${APOS}t|shouldn${APOS}t|wouldn${APOS}t|couldn${APOS}t|dont|doesnt|didnt|isnt|arent|wasnt|havent|hasnt|hadnt|shouldnt|wouldnt|couldnt|idk)${TOKEN_END}`.normalize("NFC"), "iu");
 const SEX: Readonly<Record<string, string>> = { male: "male", boy: "male", ছেলে: "male", female: "female", girl: "female", মেয়ে: "female", other: "other" };
 const SEX_WORD = /(?<![\p{L}\p{M}\p{N}_])(?:male|female|boy|girl|ছেলে|মেয়ে|other)(?![\p{L}\p{M}\p{N}_])/giu;
 const TIMES = ["event.at", "event.at_lower", "event.at_upper"] as const;
@@ -32,7 +40,12 @@ const KIN_WITH_RELATION = new RegExp(`(?:ছেলে|মেয়ে|son|daught
 // Possessive kin word may be followed directly by a name word (letters only, no digits, BLOCK 4).
 const SEX_CLAUSE = new RegExp(`^(?:${POSSESSIVE}\\s+(?:ছেলে|মেয়ে|boy|girl)(?:\\s+[\\p{L}\\p{M}\\u200c\\u200d]+)?|(?:(?:sex|লিঙ্গ)${LABEL_SEPARATOR})?(?:male|female|boy|girl|other))$`.normalize("NFC"), "iu");
 // Negation applies sentence-wide (lead decision 2026-10-16, BLOCK 1). Bare "no" is not a hedge (phone no).
-const NEGATION = new RegExp(`${TOKEN_EDGE}(?:no|not|never|না|নয়|নই|নেই)${TOKEN_END}`.normalize("NFC"), "iu");
+// নাই is a whole token (not a substring of নম্বর / নিশ্চিত / ফেরেনি) and is a real Bangla negation.
+const NEGATION = new RegExp(`${TOKEN_EDGE}(?:no|not|never|না|নয়|নই|নেই|নাই)${TOKEN_END}`.normalize("NFC"), "iu");
+// A Bangla or ASCII number followed by ও ("also") and then a hedge word is uncertain (e.g. "১১ও হয়", "১১ও হতে পারে").
+// Tested against `uncertaintyText(rawSentence)`, the NFC-normalised text, so the precomposed য়
+// form of `১১ও হয়` and the decomposed য+virama+া+য় form both match.
+const NUMBER_OW_HEDGE = /(?:[\d০-৯]+)\s*ও\s*(?:হয়|হতে\s*পারে|হবে|হয়তো)/iu;
 const grammarClause = (s: string) => s.normalize("NFC").replace(/^\s*(?:\[MOCK\]\s*)+/u, "").trim();
 // Ignore default-ignorable characters only for uncertainty detection; source spans and accepted values stay untouched.
 const uncertaintyText = (s: string) => s.replace(/\p{Default_Ignorable_Code_Point}/gu, "").normalize("NFC");
@@ -136,9 +149,10 @@ function isSentenceUncertain(rawSentence: string, delimiter = ""): boolean {
   if (delimiter === "?" || delimiter === "？" || delimiter === "…" || rawSentence.includes("?") || rawSentence.includes("？") || rawSentence.includes("…")) return true;
   if (NUMBER_SLASH.test(rawSentence)) return true;
   const sentence = uncertaintyText(rawSentence);
+  if (NUMBER_OW_HEDGE.test(sentence)) return true;
   // "no" is a negation in a value, but part of the explicit "phone no" label.
   const assertion = grammarClause(sentence).replace(/(?<![\p{L}\p{N}_])phone\s+no(?=\s*[:=]|\s)/giu, "phone");
-  return HEDGE.test(sentence) || NEGATION.test(assertion) || CORRECTION.test(sentence);
+  return HEDGE.test(sentence) || NEGATION.test(assertion) || ENGLISH_NT.test(sentence) || CORRECTION.test(sentence);
 }
 
 function hasOwnFieldLabel(field: ExtractField | undefined, sentence: string): boolean {
@@ -168,8 +182,11 @@ function hasOwnFieldLabel(field: ExtractField | undefined, sentence: string): bo
 
 // Forward scope (user decision 2026-10-16): a fact becomes unknown (drop reason "uncertain")
 // when its own sentence, or ANY later sentence in the same text, contains a hedge, negation,
-// correction token, or question delimiter. Earlier-sentence qualifiers do not taint later facts.
-// If any sentence contains a whole-text reference together with a hedge or negation, the whole text is uncertain.
+// correction token, or question delimiter. Earlier-sentence qualifiers do not taint later facts
+// UNLESS the earlier sentence names the SAME field's label (lead refinement 2026-10-16, BR-008
+// conservative direction: e.g. "বয়স নিয়ে নিশ্চিত না। বয়স ১০ বছর।" drops age 10; "পোশাক নিয়ে
+// নিশ্চিত না। বয়স ১০।" keeps age 10). If any sentence contains a whole-text reference together
+// with a hedge or negation, the whole text is uncertain.
 // Fix round 6: when the fact's own sentence contains no field label (unit-only age/height, bare time, kin-only sex),
 // also run isSentenceUncertain on the immediately previous sentence.
 function hedged(source: string, span: EvidenceSpan, field?: ExtractField): boolean {
@@ -195,6 +212,37 @@ function hedged(source: string, span: EvidenceSpan, field?: ExtractField): boole
     }
     // Preserve trailing spaces and punctuation: trimming "10 years ?" must not hide its question marker.
     if (isSentenceUncertain(source.slice(prevStart, a))) return true;
+  }
+
+  // Same-field earlier qualifier (lead refinement 2026-10-16, extended round 9): if an EARLIER
+  // sentence is uncertain AND names the same field's label, the later fact for that field is
+  // unknown. The scan runs for both labelled and unlabelled (unit-only) facts; the field label
+  // match happens in the earlier sentence. The lead control "পোশাক নিয়ে নিশ্চিত না। বয়স ১০।"
+  // is preserved because the earlier sentence names a DIFFERENT field's label.
+  {
+    let cursor = a;
+    while (cursor > 0) {
+      // Walk back to the previous sentence's text; preserve any trailing delimiters so that
+      // a question mark ending an earlier sentence ("not sure about the age?") is not lost.
+      const sentRight = cursor;
+      let sentEnd = sentRight;
+      while (sentEnd > 0 && (isSentenceDelimiter(source, sentEnd - 1) || /\s/u.test(source[sentEnd - 1]))) {
+        sentEnd--;
+      }
+      let sentStart = sentEnd;
+      while (sentStart > 0 && !isSentenceDelimiter(source, sentStart - 1)) {
+        sentStart--;
+      }
+      if (sentStart >= sentEnd) break;
+      const earlierSentence = source.slice(sentStart, sentRight);
+      if (isSentenceUncertain(earlierSentence) && hasOwnFieldLabel(field, earlierSentence)) return true;
+      cursor = sentStart;
+      // Skip delimiters/spaces between sentences
+      while (cursor > 0 && (isSentenceDelimiter(source, cursor - 1) || /\s/u.test(source[cursor - 1]))) {
+        cursor--;
+      }
+      if (cursor === sentStart) break;
+    }
   }
 
   // Check every later sentence in the text
