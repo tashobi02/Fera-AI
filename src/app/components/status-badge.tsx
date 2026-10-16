@@ -2,7 +2,7 @@
 // D3 labels: খোলা / যাচাই চলছে / বন্ধ. Parent screens have no red (DESIGN.md Fera
 // overrides), so "closed" is neutral, not a success or danger tone.
 import type { StatusGroup } from "@/contracts";
-import { STATUS_KEY } from "@/lib/outputs-client";
+import { STATUS_KEY } from "@/lib/status-labels";
 import { locales, type Locale } from "@/locales";
 import { CircleCheckIcon, CircleDotIcon, GitCompareIcon } from "./icons";
 

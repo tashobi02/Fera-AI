@@ -3,10 +3,16 @@ import { describe, expect, it } from "vitest";
 import { ApiError } from "@/app/api/_shared";
 import { ERROR_CATALOGUE } from "@/contracts";
 import * as locales from "@/locales";
-import { BANNED_TERMS, assertAllowedWording, findBannedGroup } from "@/server/outputs";
+import {
+  BANNED_TERMS,
+  assertAllowedWording,
+  findBannedGroup,
+} from "@/server/outputs";
 
 describe("wording guard", () => {
-  const all = Object.entries(BANNED_TERMS).flatMap(([group, terms]) => terms.map((t) => [group, t] as const));
+  const all = Object.entries(BANNED_TERMS).flatMap(([group, terms]) =>
+    terms.map((t) => [group, t] as const),
+  );
 
   it.each(all)("blocks %s term %j inside a sentence", (group, term) => {
     expect(findBannedGroup(`শিশুটির বিষয়ে ${term} লেখা`)).toBe(group);
@@ -14,8 +20,14 @@ describe("wording guard", () => {
 
   it("covers every concept in both Bangla and English", () => {
     for (const [group, terms] of Object.entries(BANNED_TERMS)) {
-      expect(terms.some((t) => /[ঀ-৿]/u.test(t)), `${group} bn`).toBe(true);
-      expect(terms.some((t) => /[a-z%]/u.test(t)), `${group} en`).toBe(true);
+      expect(
+        terms.some((t) => /[ঀ-৿]/u.test(t)),
+        `${group} bn`,
+      ).toBe(true);
+      expect(
+        terms.some((t) => /[a-z%]/u.test(t)),
+        `${group} en`,
+      ).toBe(true);
     }
   });
 
@@ -39,7 +51,14 @@ describe("wording guard", () => {
     expect(findBannedGroup("ran\u2011away")).toBe("runaway");
     expect(findBannedGroup("পলায়নকারী শিশু")).toBe("runaway");
     // Codex re-review: separators, fullwidth forms and default-ignorable characters.
-    for (const v of ["run/away child", "r u n a w a y child", "পলা-য়নকারী শিশু", "ＲＵＮＡＷＡＹ child", "run\u034Faway child", "run\u2063away child"]) {
+    for (const v of [
+      "run/away child",
+      "r u n a w a y child",
+      "পলা-য়নকারী শিশু",
+      "ＲＵＮＡＷＡＹ child",
+      "run\u034Faway child",
+      "run\u2063away child",
+    ]) {
       expect(findBannedGroup(v), v).toBe("runaway");
     }
     expect(findBannedGroup("ＡＬＥＲＴ")).toBe("alert");

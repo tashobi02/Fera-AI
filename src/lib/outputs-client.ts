@@ -1,17 +1,15 @@
-// SCREEN-004 client helpers (TASK-024, COMP-030/033): the API-006 call, error mapping,
-// the output card state machine and the status badge mapping. Pure (no DOM, no server
-// modules), so they are unit-tested in Node. Error copy comes from the contract
-// catalogue, never from the response body.
+// SCREEN-004 client helpers (TASK-024, COMP-030): the API-006 call, error mapping and
+// the output card state machine. Pure (no DOM, no server modules), so they are
+// unit-tested in Node. Error copy comes from the contract catalogue, never from the
+// response body; an expired parent cookie gets S-004's own copy (OD-024-2).
 import {
   ERROR_CATALOGUE,
   outputResponseSchema,
-  type MatchingState,
   type OutputResponse,
   type OutputType,
-  type StatusGroup,
 } from "@/contracts";
 import { localizeDigits } from "@/lib/numerals";
-import { locales, type Locale, type MessageKey } from "@/locales";
+import { locales, type Locale } from "@/locales";
 
 /* ---------- failures ---------- */
 
@@ -44,6 +42,11 @@ function errorIdOf(body: unknown): string | null {
   return typeof id === "string" ? id : null;
 }
 
+const isOutputErrorId = (id: string | null): id is OutputErrorId =>
+  id !== null &&
+  id !== "E-024" &&
+  (OUTPUT_ERROR_IDS as readonly string[]).includes(id);
+
 function retryAfter(header: string | null | undefined): number | null {
   if (typeof header !== "string" || !/^\s*\d{1,6}\s*$/.test(header))
     return null;
@@ -57,11 +60,8 @@ export function classifyOutputFailure(input: {
   retryAfter?: string | null;
 }): OutputFailure {
   const fromBody = errorIdOf(input.body);
-  const known =
-    (OUTPUT_ERROR_IDS as readonly string[]).includes(fromBody ?? "") &&
-    fromBody !== "E-024";
-  const id = known
-    ? (fromBody as OutputErrorId)
+  const id = isOutputErrorId(fromBody)
+    ? fromBody
     : (BY_STATUS[input.status] ?? "E-021");
   return { id, seconds: id === "E-007" ? retryAfter(input.retryAfter) : null };
 }
@@ -72,6 +72,8 @@ export function outputFailureText(
 ): string {
   if (failure.id === "E-007" && failure.seconds === null)
     return locales[locale].signInErrorRateLimitedSoon;
+  // The report is already submitted: "start again" would invite a duplicate (OD-024-2).
+  if (failure.id === "E-019") return locales[locale].outputsSessionExpired;
   const entry = ERROR_CATALOGUE[failure.id];
   const text = locale === "bn" ? entry.bn : entry.en;
   return failure.seconds === null
@@ -80,9 +82,9 @@ export function outputFailureText(
 }
 
 // E-020 (reserved) and E-007 are "limit reached" (COMP-030); E-004/E-019 cannot be retried.
-export const isLimit = (f: OutputFailure) =>
+export const isLimit = (f: OutputFailure): boolean =>
   f.id === "E-020" || f.id === "E-007";
-export const canRetry = (f: OutputFailure) =>
+export const canRetry = (f: OutputFailure): boolean =>
   !["E-004", "E-019", "E-020"].includes(f.id);
 
 /* ---------- API-006 ---------- */
@@ -95,6 +97,15 @@ export type FetchLike = (
   init?: RequestInit,
 ) => Promise<Response>;
 export const OUTPUT_TIMEOUT_MS = 15_000;
+
+// AbortSignal.timeout is missing on older Safari and Android WebViews; without this
+// fallback every call there would fail as E-021.
+export function timeoutSignal(ms: number): AbortSignal {
+  if (typeof AbortSignal.timeout === "function") return AbortSignal.timeout(ms);
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), ms);
+  return controller.signal;
+}
 
 export async function requestOutput(
   caseId: string,
@@ -120,7 +131,7 @@ export async function requestOutput(
         body: JSON.stringify({ type }),
         credentials: "same-origin",
         cache: "no-store",
-        signal: AbortSignal.timeout(opts.timeoutMs ?? OUTPUT_TIMEOUT_MS),
+        signal: timeoutSignal(opts.timeoutMs ?? OUTPUT_TIMEOUT_MS),
       },
     );
   } catch {
@@ -184,26 +195,9 @@ export function cardReducer(state: CardState, event: CardEvent): CardState {
   }
 }
 
-/* ---------- COMP-033 status badge and matching line ---------- */
-
-// D3 SCREEN-006 status labels: খোলা / যাচাই চলছে / বন্ধ.
-export const STATUS_KEY: Record<StatusGroup, MessageKey> = {
-  open: "statusGroupOpen",
-  matched: "statusGroupMatched",
-  closed: "statusGroupClosed",
-};
-
-// D4 §10: never promise an outcome ("মিল খোঁজা হবে"); D4 §15.1 matching failure.
-export const MATCHING_KEY: Record<MatchingState, MessageKey> = {
-  queued: "matchingWillCheck",
-  running: "matchingWillCheck",
-  complete: "matchingChecked",
-  failed: "matchingFailed",
-};
-
 // OD-023-2: an edit-locked or redacted report has no owner draft; API-006 would answer
 // E-016, so the output actions are hidden instead.
 export const outputsAvailable = (view: {
   editable: boolean;
   hasDraft: boolean;
-}) => view.editable && view.hasDraft;
+}): boolean => view.editable && view.hasDraft;

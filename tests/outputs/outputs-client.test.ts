@@ -1,11 +1,9 @@
 // TASK-024: API-006 client call, error mapping (D3 S-004: E-016, E-020, E-024), the
 // output card state machine (COMP-030) and the status/matching mappings (COMP-033).
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ERROR_CATALOGUE, MATCHING_STATES, STATUS_GROUPS } from "@/contracts";
 import { exampleOutputResponse } from "@/contracts/examples";
 import {
-  MATCHING_KEY,
-  STATUS_KEY,
   canRetry,
   cardReducer,
   classifyOutputFailure,
@@ -14,11 +12,14 @@ import {
   outputFailureText,
   outputsAvailable,
   requestOutput,
+  timeoutSignal,
   type FetchLike,
 } from "@/lib/outputs-client";
+import { MATCHING_KEY, STATUS_KEY } from "@/lib/status-labels";
 import { locales } from "@/locales";
 
 const CASE = "6b1f3c2a-4d5e-4f60-8a71-0000000000a1";
+const gd = { ...exampleOutputResponse, type: "gd" as const };
 const poster = { ...exampleOutputResponse, type: "poster" as const };
 
 function fakeFetch(
@@ -36,15 +37,16 @@ function fakeFetch(
   };
   return { impl, calls };
 }
+const online = () => true;
+
+afterEach(() => vi.useRealTimers());
 
 describe("requestOutput (API-006)", () => {
   it("POSTs { type } same-origin with no cache, and parses the strict response", async () => {
     const f = fakeFetch(200, poster);
-    const r = await requestOutput(CASE, "poster", {
-      fetchImpl: f.impl,
-      online: () => true,
-    });
-    expect(r).toEqual({ kind: "ok", data: poster });
+    expect(
+      await requestOutput(CASE, "poster", { fetchImpl: f.impl, online }),
+    ).toEqual({ kind: "ok", data: poster });
     expect(f.calls[0]!.url).toBe(`/api/cases/${CASE}/outputs`);
     expect(f.calls[0]!.init).toMatchObject({
       method: "POST",
@@ -66,16 +68,24 @@ describe("requestOutput (API-006)", () => {
     expect(f.calls).toHaveLength(0);
   });
 
-  it("is E-021 for a network rejection or timeout while online", async () => {
+  it("is E-024 when the connection drops during the request, E-021 when it fails while online", async () => {
+    let up = true;
+    const drop: FetchLike = async () => {
+      up = false;
+      throw new TypeError("network");
+    };
+    expect(
+      await requestOutput(CASE, "gd", { fetchImpl: drop, online: () => up }),
+    ).toMatchObject({ failure: { id: "E-024" } });
     const reject: FetchLike = async () => {
       throw new TypeError("fetch failed");
     };
     expect(
-      await requestOutput(CASE, "gd", {
-        fetchImpl: reject,
-        online: () => true,
-      }),
+      await requestOutput(CASE, "gd", { fetchImpl: reject, online }),
     ).toMatchObject({ failure: { id: "E-021" } });
+  });
+
+  it("is E-021 after the timeout", async () => {
     const hang: FetchLike = (_url, init) =>
       new Promise((_, rej) =>
         init?.signal?.addEventListener("abort", () =>
@@ -85,57 +95,75 @@ describe("requestOutput (API-006)", () => {
     expect(
       await requestOutput(CASE, "gd", {
         fetchImpl: hang,
-        online: () => true,
+        online,
         timeoutMs: 5,
       }),
     ).toMatchObject({ failure: { id: "E-021" } });
   });
 
-  it("refuses a response that is not the contract shape or not the requested type", async () => {
+  it("refuses an extra key even when the type matches (strict contract)", async () => {
     expect(
       await requestOutput(CASE, "gd", {
-        fetchImpl: fakeFetch(200, { ...poster, extra: 1 }).impl,
-        online: () => true,
+        fetchImpl: fakeFetch(200, { ...gd, extra: 1 }).impl,
+        online,
       }),
     ).toMatchObject({ failure: { id: "E-021" } });
     expect(
       await requestOutput(CASE, "gd", {
+        fetchImpl: fakeFetch(200, { ...gd, label_bn: "draft" }).impl,
+        online,
+      }),
+    ).toMatchObject({ failure: { id: "E-021" } });
+  });
+
+  it("refuses a valid output of another type, and an unreadable body", async () => {
+    expect(
+      await requestOutput(CASE, "gd", {
         fetchImpl: fakeFetch(200, poster).impl,
-        online: () => true,
+        online,
       }),
     ).toMatchObject({ failure: { id: "E-021" } });
     expect(
       await requestOutput(CASE, "gd", {
         fetchImpl: fakeFetch(200, undefined).impl,
-        online: () => true,
+        online,
       }),
     ).toMatchObject({ failure: { id: "E-021" } });
   });
 
   it.each([
-    [422, { error: { id: "E-016" } }, "E-016"],
-    [429, { error: { id: "E-020" } }, "E-020"],
-    [404, { error: { id: "E-004" } }, "E-004"],
-    [401, { error: { id: "E-002" } }, "E-019"], // parents have no account: an expired cookie
-    [500, { error: { id: "E-099" } }, "E-021"],
-    [503, undefined, "E-021"],
-  ])("maps HTTP %i to %s… → %s", async (status, body, id) => {
+    ["422 E-016", 422, { error: { id: "E-016" } }, "E-016"],
+    ["429 E-020", 429, { error: { id: "E-020" } }, "E-020"],
+    ["404 E-004", 404, { error: { id: "E-004" } }, "E-004"],
+    [
+      "401 E-002 (expired parent cookie)",
+      401,
+      { error: { id: "E-002" } },
+      "E-019",
+    ],
+    ["500 unknown ID", 500, { error: { id: "E-099" } }, "E-021"],
+    ["503 not JSON", 503, undefined, "E-021"],
+  ])("maps %s", async (_label, status, body, id) => {
     expect(
       await requestOutput(CASE, "gd", {
         fetchImpl: fakeFetch(status, body).impl,
-        online: () => true,
+        online,
       }),
     ).toEqual({ kind: "failed", failure: { id, seconds: null } });
   });
 
-  it("keeps a valid Retry-After for E-007 and ignores a bad one", () => {
+  it("reads Retry-After from the response for E-007", async () => {
+    const f = fakeFetch(
+      429,
+      { error: { id: "E-007" } },
+      { "retry-after": "30" },
+    );
     expect(
-      classifyOutputFailure({
-        status: 429,
-        body: { error: { id: "E-007" } },
-        retryAfter: "30",
-      }),
-    ).toEqual({ id: "E-007", seconds: 30 });
+      await requestOutput(CASE, "gd", { fetchImpl: f.impl, online }),
+    ).toEqual({ kind: "failed", failure: { id: "E-007", seconds: 30 } });
+  });
+
+  it("ignores a bad Retry-After and never takes E-024 from a body", () => {
     expect(
       classifyOutputFailure({
         status: 429,
@@ -145,7 +173,29 @@ describe("requestOutput (API-006)", () => {
     expect(
       classifyOutputFailure({ status: 400, body: { error: { id: "E-024" } } })
         .id,
-    ).toBe("E-021"); // client-only ID never from a body
+    ).toBe("E-021");
+  });
+});
+
+describe("timeoutSignal", () => {
+  it("falls back to AbortController when AbortSignal.timeout is missing", () => {
+    vi.useFakeTimers();
+    const original = AbortSignal.timeout;
+    Object.defineProperty(AbortSignal, "timeout", {
+      value: undefined,
+      configurable: true,
+    });
+    try {
+      const signal = timeoutSignal(1000);
+      expect(signal.aborted).toBe(false);
+      vi.advanceTimersByTime(1000);
+      expect(signal.aborted).toBe(true);
+    } finally {
+      Object.defineProperty(AbortSignal, "timeout", {
+        value: original,
+        configurable: true,
+      });
+    }
   });
 });
 
@@ -162,6 +212,15 @@ describe("failure copy", () => {
     );
     expect(outputFailureText({ id: "E-007", seconds: null }, "en")).toBe(
       locales.en.signInErrorRateLimitedSoon,
+    );
+  });
+
+  it("does not tell a parent with a submitted report to start again (OD-024-2)", () => {
+    expect(outputFailureText({ id: "E-019", seconds: null }, "bn")).toBe(
+      locales.bn.outputsSessionExpired,
+    );
+    expect(outputFailureText({ id: "E-019", seconds: null }, "en")).not.toMatch(
+      /start again/i,
     );
   });
 
@@ -184,10 +243,9 @@ describe("output card state machine", () => {
     const ready = cardReducer(loading, { type: "outcome", outcome: ok });
     expect(ready).toEqual({ status: "ready", output: poster, copies: 0 });
     expect(cardReducer(ready, { type: "request" })).toBe(ready);
-    const copied = cardReducer(cardReducer(ready, { type: "copied" }), {
-      type: "copied",
-    });
-    expect(copied).toMatchObject({ copies: 2 });
+    expect(
+      cardReducer(cardReducer(ready, { type: "copied" }), { type: "copied" }),
+    ).toMatchObject({ copies: 2 });
   });
 
   it("records a failure, allows a retry, and ignores a stray outcome", () => {
@@ -224,12 +282,12 @@ describe("status badge and matching line", () => {
       "Being checked",
       "Closed",
     ]);
-    for (const m of MATCHING_STATES)
-      expect(locales.bn[MATCHING_KEY[m]]).toBeTruthy();
-    expect(locales.bn[MATCHING_KEY.queued]).toBe("মিল খোঁজা হবে");
-    expect(locales.bn[MATCHING_KEY.failed]).toBe(
+    expect(MATCHING_STATES.map((m) => locales.bn[MATCHING_KEY[m]])).toEqual([
+      "মিল খোঁজা হবে",
+      "মিল খোঁজা চলছে",
+      "মিল খোঁজা হয়েছে",
       "প্রতিবেদন জমা হয়েছে। মিল খোঁজা সম্পূর্ণ হয়নি; আবার চেষ্টা করুন।",
-    );
+    ]);
   });
 
   it("offers outputs only while the owner view is editable and still has its draft (OD-023-2)", () => {

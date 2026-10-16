@@ -3,32 +3,58 @@
 // canvas context.
 //
 // - posterShareText: the parent's contact choice (OD-023-1). The API-006 poster always
-//   carries the reporter phone on one fixed line; declining removes that line here, and
-//   the result fails closed if a phone number is still anywhere in the text.
-// - layoutPoster / paintPoster: a text-only 1080 × 1350 PNG. The context type has no
-//   image-drawing method, so a photo cannot be drawn (BR-006: no image input exists).
-//   Bangla shaping is the browser's (canvas text uses the page's Noto Sans Bengali).
-//   Text that does not fit even at the smallest size is "too-long": the parent copies the
-//   text instead, nothing is cut silently.
+//   carries the reporter phone on one fixed line; declining removes that line here. The
+//   result is blocked when a Bangladeshi mobile number is still in the text, also when
+//   it is written with spaces, hyphens, dots or a +880 prefix (a number typed into a
+//   free-text field). This is a safety net, not a guarantee: the parent reviews the text.
+// - layoutPoster / paintPoster: a text-only 1080 × 1350 PNG with the draft label at the
+//   top and a draft footer (D4). The context type has no image-drawing method, so a
+//   photo cannot be drawn (BR-006: no image input exists). Bangla shaping is the
+//   browser's. Text that does not fit even at the smallest size, or a single unbreakable
+//   cluster wider than the page, is "too-long": nothing is cut silently.
 
 // The fixed contact line of the API-006 poster template (src/server/outputs/templates.ts).
 export const POSTER_CONTACT_PREFIX_BN = "তথ্য থাকলে যোগাযোগ করুন: ";
+export const POSTER_FOOTER_BN = "খসড়া — নিজে জমা দিন";
 
-// A Bangladeshi mobile number in Bangla or Latin digits (contact_phone is ^01[0-9]{9}$).
-const PHONE_LIKE = /[০0][১1][০-৯0-9]{9}/u;
+const BN_DIGITS = "০১২৩৪৫৬৭৮৯";
+// Separators people put inside phone numbers, plus invisible format characters.
+const SEPARATORS = /([0-9])[\s\-–—.() ­​-‍⁠﻿]+(?=[0-9])/gu;
+// After normalising: an 11-digit 01… mobile, the same with 880 / +880, or any 10+ digit run.
+const PHONE_LIKE = /(?:\+?880)?01[3-9][0-9]{8}|[0-9]{10,}/u;
 
-export type ShareText = { kind: "ok"; text: string } | { kind: "blocked" };
+// Bangla → Latin digits, compatibility forms folded, separators between digits removed.
+export function normaliseDigits(text: string): string {
+  const latin = Array.from(text.normalize("NFKC"), (ch) => {
+    const i = BN_DIGITS.indexOf(ch);
+    return i >= 0 ? String(i) : ch;
+  }).join("");
+  let out = latin;
+  for (let prev = ""; prev !== out;) {
+    prev = out;
+    out = out.replace(SEPARATORS, "$1");
+  }
+  return out;
+}
+
+export const hasPhoneNumber = (text: string): boolean =>
+  PHONE_LIKE.test(normaliseDigits(text));
+
+export type ShareText =
+  { kind: "ok"; text: string } | { kind: "blocked"; text: string };
 
 export function posterShareText(
   text: string,
   includeContact: boolean,
 ): ShareText {
   if (includeContact) return { kind: "ok", text };
-  const kept = text
+  const out = text
     .split("\n")
-    .filter((line) => !line.startsWith(POSTER_CONTACT_PREFIX_BN));
-  const out = kept.join("\n");
-  return PHONE_LIKE.test(out) ? { kind: "blocked" } : { kind: "ok", text: out };
+    .filter((line) => !line.startsWith(POSTER_CONTACT_PREFIX_BN))
+    .join("\n");
+  return hasPhoneNumber(out)
+    ? { kind: "blocked", text: out }
+    : { kind: "ok", text: out };
 }
 
 /* ---------- layout ---------- */
@@ -61,9 +87,10 @@ export function posterLines(text: string): PosterLine[] {
 
 type Style = { px: number; weight: 400 | 600; lineHeight: number };
 
-function styleFor(role: LineRole, body: number): Style {
+function styleFor(role: LineRole | "footer", body: number): Style {
   switch (role) {
     case "label":
+    case "footer":
       return { px: Math.round(body * 0.7), weight: 600, lineHeight: 1.6 };
     case "heading":
       return { px: Math.round(body * 2), weight: 600, lineHeight: 1.4 };
@@ -96,19 +123,39 @@ export type DrawOp = DrawText | DrawRect;
 export type PosterLayout =
   { kind: "ok"; ops: DrawOp[]; bodyPx: number } | { kind: "too-long" };
 
-export const fontFor = (px: number, weight: number, family: string) =>
+export const fontFor = (px: number, weight: number, family: string): string =>
   `${weight} ${px}px ${family}`;
 
-const graphemes = (s: string): string[] =>
-  typeof Intl !== "undefined" && "Segmenter" in Intl
-    ? Array.from(
-        new Intl.Segmenter("bn", { granularity: "grapheme" }).segment(s),
-        (g) => g.segment,
-      )
-    : Array.from(s);
+const VIRAMA = "্";
+const JOINERS = /^[‌‍]+$/u;
+
+// Grapheme clusters, with a cluster that ends in a hasanta (optionally plus ZWNJ/ZWJ)
+// glued to the next one. Unicode 15.1 engines already keep conjuncts together; older
+// ones (and the no-Segmenter fallback) would otherwise split ক্ষ into ক্ + ষ.
+export function graphemes(s: string): string[] {
+  const raw =
+    typeof Intl !== "undefined" && "Segmenter" in Intl
+      ? Array.from(
+          new Intl.Segmenter("bn", { granularity: "grapheme" }).segment(s),
+          (g) => g.segment,
+        )
+      : (s.match(/\P{M}\p{M}*|\p{M}+/gu) ?? []);
+  const out: string[] = [];
+  for (const g of raw) {
+    const last = out[out.length - 1];
+    if (
+      last !== undefined &&
+      (last.replace(/[‌‍]+$/u, "").endsWith(VIRAMA) || JOINERS.test(g))
+    )
+      out[out.length - 1] = last + g;
+    else out.push(g);
+  }
+  return out;
+}
 
 // Wraps on spaces; a single word wider than the line is split between graphemes, so a
-// conjunct or a vowel sign is never separated from its consonant.
+// conjunct or a vowel sign is never separated from its consonant. A row can still be
+// wider than maxWidth when one cluster alone is; the layout then reports too-long.
 export function wrapText(
   text: string,
   maxWidth: number,
@@ -154,6 +201,15 @@ function layoutAt(
 ): DrawOp[] | null {
   const { width, height, margin } = POSTER;
   const maxWidth = width - margin * 2;
+  const footer = styleFor("footer", body);
+  const footerFont = fontFor(footer.px, footer.weight, family);
+  const footerTop = height - margin - Math.round(footer.px * footer.lineHeight);
+  const fits = (row: string, font: string, room: number) => {
+    const w = measure(row, font);
+    return Number.isFinite(w) && w <= room;
+  };
+  if (!fits(POSTER_FOOTER_BN, footerFont, maxWidth)) return null;
+
   const ops: DrawOp[] = [];
   let y = margin;
   for (const line of lines) {
@@ -165,11 +221,13 @@ function layoutAt(
     const font = fontFor(s.px, s.weight, family);
     const step = Math.round(s.px * s.lineHeight);
     const pad = line.role === "label" ? Math.round(s.px * 0.6) : 0;
-    const rows = wrapText(line.text, maxWidth - pad * 2, font, measure);
+    const room = maxWidth - pad * 2;
+    const rows = wrapText(line.text, room, font, measure);
+    if (!rows.every((r) => fits(r, font, room))) return null;
     if (line.role === "label") {
       const w = Math.min(
         maxWidth,
-        Math.max(...rows.map((r) => measure(r, font))) + pad * 2,
+        Math.max(0, ...rows.map((r) => measure(r, font))) + pad * 2,
       );
       ops.push({
         kind: "label-box",
@@ -194,7 +252,17 @@ function layoutAt(
     if (line.role === "label")
       y += Math.round(pad / 2) + Math.round(body * 0.6);
   }
-  return y <= height - margin ? ops : null;
+  // The body must end above the footer, with a gap.
+  if (y > footerTop - Math.round(body * 0.6)) return null;
+  ops.push({
+    kind: "text",
+    text: POSTER_FOOTER_BN,
+    x: margin,
+    y: footerTop,
+    font: footerFont,
+    color: MUTE,
+  });
+  return ops;
 }
 
 // Largest body size from 40 px down to 24 px that fits the page.
@@ -214,17 +282,18 @@ export function layoutPoster(
 /* ---------- paint ---------- */
 
 // The subset of CanvasRenderingContext2D the poster uses: text and rectangles only.
-export type PosterCtx = {
-  font: string;
-  fillStyle: string;
-  strokeStyle: string;
-  lineWidth: number;
-  textBaseline: CanvasTextBaseline;
-  fillRect(x: number, y: number, w: number, h: number): void;
-  strokeRect(x: number, y: number, w: number, h: number): void;
-  setLineDash(segments: number[]): void;
-  fillText(text: string, x: number, y: number): void;
-};
+export type PosterCtx = Pick<
+  CanvasRenderingContext2D,
+  | "font"
+  | "fillStyle"
+  | "strokeStyle"
+  | "lineWidth"
+  | "textBaseline"
+  | "fillRect"
+  | "strokeRect"
+  | "setLineDash"
+  | "fillText"
+>;
 
 // White background regardless of UI theme (D4: export stays light and readable).
 export function paintPoster(
@@ -250,5 +319,5 @@ export function paintPoster(
 }
 
 // "M-7K3Q2A" → "fera-poster-M-7K3Q2A-draft.png" (no child data in the file name).
-export const posterFileName = (refCode: string) =>
+export const posterFileName = (refCode: string): string =>
   `fera-poster-${refCode.replace(/[^A-Za-z0-9-]/g, "")}-draft.png`;

@@ -13,7 +13,8 @@ import type { Metadata } from "next";
 import { CircleDashedIcon, InfoIcon, PhoneIcon } from "@/app/components/icons";
 import { StatusBadge } from "@/app/components/status-badge";
 import { getLocale } from "@/lib/locale-server";
-import { MATCHING_KEY, outputsAvailable } from "@/lib/outputs-client";
+import { outputsAvailable } from "@/lib/outputs-client";
+import { MATCHING_KEY } from "@/lib/status-labels";
 import { locales } from "@/locales";
 import { requireOwnCase } from "@/server/auth/require-own-case";
 import { OutputCard } from "./output-card";
@@ -107,7 +108,7 @@ export default async function ReportPage({
 
       <a
         href="tel:13219"
-        className="inline-flex min-h-12 items-center justify-center gap-2 self-start rounded-md border border-hairline-strong bg-surface px-5 py-2 text-body-lg font-semibold text-ink hover:bg-hover"
+        className="inline-flex min-h-12 items-center justify-center gap-2 self-start rounded-md border border-control bg-surface px-5 py-2 text-body-lg font-semibold text-ink hover:border-control-strong hover:bg-hover"
       >
         <PhoneIcon className="size-5" />
         <span>{t.callHelpline}</span>

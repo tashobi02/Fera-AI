@@ -97,6 +97,21 @@ describe("requireOwnCase", () => {
     expect(d.audits[0]).toMatchObject({ caseId: CASE });
   });
 
+  it("checks the parent role before reading anything", async () => {
+    const reads: unknown[] = [];
+    const denied = requireOwnCase(CASE, "/report/x", {
+      role: (async () => {
+        throw new Error("NEXT_NOT_FOUND");
+      }) as never,
+      read: (async (...args: unknown[]) => {
+        reads.push(args);
+        return { kind: "hidden", caseId: null };
+      }) as never,
+    });
+    await expect(denied).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(reads).toEqual([]);
+  });
+
   it("fails closed when the denial cannot be audited", async () => {
     const d = deps({ kind: "hidden", caseId: null }, async () => {
       throw new Error("db down");
