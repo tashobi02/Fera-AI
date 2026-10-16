@@ -16,6 +16,7 @@ export const LOG_EVENTS = [
   "spend.settled", "spend.retained", "spend.late_result", "spend.late_failure",
   "spend.price_sheet_invalid", "spend.refused", "spend.commit_uncertain", "spend.bad_input", "spend.error_remapped",
   "ratelimit.limited", "ratelimit.unavailable", "ratelimit.degraded", "ratelimit.memory_store", "ratelimit.unknown_address",
+  "speech.attempt", "speech.summary",
 ] as const;
 export type LogEvent = (typeof LOG_EVENTS)[number];
 
