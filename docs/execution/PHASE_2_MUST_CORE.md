@@ -95,7 +95,7 @@ When one of these merges, tell the waiting person straight away; they rebase and
 | TASK-020 | Intake orchestrator + API-002 + question templates (COMP-009) | B · Claude Code | TASK-013 | 4 | TC-003 passes | `todo` | | |
 | TASK-033 | Demo-safe cache + fixtures for 3 cases + cached badge (COMP-017/048) | B · Claude Code | TASK-020, 019 | 3 | TC-021 passes on laptop | `todo` | | |
 | TASK-023 | Output templates GD/poster + wording guard + API-006 (COMP-010/016) | C · Claude Code | TASK-015 | 4 | TC-005, TC-024 pass | `todo` | | |
-| TASK-021 | S-001/S-002 intake chat + recorder (COMP-024–027) | C · Claude Code + `impeccable` | TASK-008, 014, 020 | 7 | Voice and text paths work on phone | `todo` | | |
+| TASK-021 | S-001/S-002 intake chat + recorder (COMP-024–027) | C · Claude Code + Codex + `impeccable` | TASK-008, 014, 020 | 7 | Voice and text paths work on phone | `review` | branch `phase2--obidit-intake-ui` (uncommitted, no PR) | [intake-ui.md](evidence/intake-ui.md): Round 4 safeguarding PASS, impeccable finish & G13 polish. Finite synthetic-name/full-message allowlist, strict phone tokens, conflicts/uncertainty stay unknown, unsupported follow-ups offer manual entry, single visible busy sending state with stable label, error-name-only diagnostics. 460 intake tests / 15 files; lint/typecheck/test/build exit 0 (full suite 1,394 pass, 117 DB skips). Round-3 captures are pre-Sol evidence in `fera-lanes/_orchestration/shots/shots-r3/`; no fresh browser run. **Phone voice test NOT MET:** no real phone/voice test; API-001/002 pending. OD-021-1–13. |
 | TASK-022 | S-003 review + API-003 + draft persistence (review-before-submit) | C · Claude Code + `impeccable` | TASK-015, 021 | 5 | TC-004, TC-031 pass | `todo` | | |
 | TASK-040 (record) | 60 WER clips recorded, 19:00–22:00, with 2–3 friends | human | TASK-014 | — | 60 clips stored with consent note; run happens in Phase 3 | `todo` | | |
 
@@ -165,6 +165,11 @@ Tick only from the gate report (`fera-gate`), with evidence linked. Run on the *
 Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
 ### Obidit
+- 2026-10-16 · Antigravity + Sonnet · obidit-intake-ui · TASK-021 round 4: safeguarding PASS after unlabelled age restriction (BR-008), fallback words moved to locales, name interpolation (D3 COMP-009). Impeccable finish & G13 polish: single visible busy message in VoiceRecorder with stable accessible label, live region status preserved, normal body token. 460 intake tests in 15 files; lint/typecheck/test/build exit 0; full suite 1,394 passed (117 DB skipped). Still `review`; Phone voice test NOT MET; OD-021-13 added.
+- 2026-10-16 · Codex Sol · obidit-intake-ui · TASK-021 Sol review PASS, ready for safeguarding gate; 71 new adversarial/privacy tests (378 intake total), finite synthetic-name/full-message fake, corrections/manual fallback and Zod diagnostic payload fix. lint/typecheck/test/build exit 0; full suite 1312 passed, 117 DB skipped. Still `review`; Phone voice test NOT MET; gate re-reviews pending; OD-021-12 added.
+- 2026-10-16 · Claude · obidit-intake-ui · TASK-021 round 3: fake switched to a clause allowlist (safeguarding BLOCK), retry/focus/hidden-tab fixes, 307 intake tests, checks exit 0, captures r3 recorded; still `review`, re-reviews pending, done-when not met.
+- 2026-10-16 01:11 · Codex · obidit-intake-ui · TASK-021 remains `review`; completed review-round items 1–14 and follow-up regressions (200 intake tests); lint/types/build pass, sole full-suite auth timing flake passes in isolation; phone/live API acceptance still unmet. Refreshed screenshot confirmation pending.
+- 2026-10-15 19:59 · Claude Code · obidit-intake-ui · TASK-021 `todo` → `review`; S-001/S-002 on typed `[MOCK]` fake, 140 new tests, lint/typecheck/build exit 0, test 1074 pass (argon2 timing tests flaky under load); headless 360/320 px checks; phone/voice check and API wiring pending (TASK-014/020); OD-021-1–6; uncommitted.
 ### Masnun
 ### Mahim (lead)
 - 2026-10-14 17:35 · Claude Code · mahim-api · TASK-007 `todo` → `review`; shared API layer and 92 tests at `a33d9af`; in-memory limiter, real principal resolver waits for TASK-006.
