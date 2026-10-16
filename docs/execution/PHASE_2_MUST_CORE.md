@@ -87,16 +87,16 @@ When one of these merges, tell the waiting person straight away; they rebase and
 ## Tasks — Obidit
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| TASK-012 | Normaliser: Bangla digits, time words, phone, district aliases, romaniser (COMP-008) | A · Codex + `bengali-reviewer` | TASK-009 | 5 | ≥30 unit tests pass | `todo` | | |
+| TASK-012 | Normaliser: Bangla digits, time words, phone, district aliases, romaniser (COMP-008) | A · Codex + `bengali-reviewer` | TASK-009 | 5 | ≥30 unit tests pass | `review` | branch `phase2--obidit-normaliser` (uncommitted; no PR) | [intake-normaliser.md](evidence/intake-normaliser.md) — 93 normaliser tests pass; computed provenance, contract digits/phones, Dhaka times with clock skew, complete Bangla source ranges and fixture district keys; romanisation unknown (OD-012-1), strict time policy OD-012-5. Claude fera-review round 1 = BLOCK (evidenceForRange derivation) + WARNs, fixed or recorded (time grammar → OD-012-5) in this round; final verdict pending re-review. Full suite: 1,026 pass / one known auth timing failure / 117 DB skipped; auth file alone 11/11; lint/typecheck/build pass. |
 | TASK-013 | LLM adapter: 2 providers, Zod contract, evidence check, retry, fallback (COMP-007) | A · Codex + `silent-failure-hunter` | TASK-003, 012 | 7 | Extracts 10 sample texts; fallback test passes | `todo` | | |
 | TASK-063 | Atomic paid-call counters/reservations, replay handling, price sheet | A · Codex | TASK-003, 062 | 2 | Replay/concurrency/budget checks; manual path survives paid refusal | `todo` | | |
 | TASK-059 | `npm run spend` + spend cap check (DECISION-017) | A · Codex | TASK-013, 063 | 1 | TC-036 passes | `todo` | | |
 | TASK-014 | Speech adapter + API-001 (COMP-006) | B · Claude Code | TASK-005, 007 | 3 | TC-001 steps 1–3 pass | `todo` | | |
 | TASK-020 | Intake orchestrator + API-002 + question templates (COMP-009) | B · Claude Code | TASK-013 | 4 | TC-003 passes | `todo` | | |
 | TASK-033 | Demo-safe cache + fixtures for 3 cases + cached badge (COMP-017/048) | B · Claude Code | TASK-020, 019 | 3 | TC-021 passes on laptop | `todo` | | |
-| TASK-023 | Output templates GD/poster + wording guard + API-006 (COMP-010/016) | C · Claude Code | TASK-015 | 4 | TC-005, TC-024 pass | `todo` | | |
+| TASK-023 | Output templates GD/poster + wording guard + API-006 (COMP-010/016) | C · Claude Code | TASK-015 | 4 | TC-005, TC-024 pass | `review` | branch `phase2--obidit-templates` | [outputs-templates.md](evidence/outputs-templates.md): `src/server/outputs/` (fixed bn GD/poster templates, wording guard bn+en, cache per case/type/version with FOR SHARE re-check against redaction) and API-006 route; TC-005 and TC-024 pass at service level; npm test 1009 / test:db 121 (outputs 4, incl. a two-session lock race); OD-023-1–6 in `specs/001-platform-foundation/contract-notes.md`. |
 | TASK-021 | S-001/S-002 intake chat + recorder (COMP-024–027) | C · Claude Code + `impeccable` | TASK-008, 014, 020 | 7 | Voice and text paths work on phone | `todo` | | |
-| TASK-022 | S-003 review + API-003 + draft persistence (review-before-submit) | C · Claude Code + `impeccable` | TASK-015, 021 | 5 | TC-004, TC-031 pass | `todo` | | |
+| TASK-022 | S-003 review + API-003 + draft persistence (review-before-submit) | C · Claude Code + `impeccable` | TASK-015, 021 | 5 | TC-004, TC-031 pass | `in progress` | `phase2--obidit-review-submit` (uncommitted) | [intake-submit-api](evidence/intake-submit-api.md): API-003 server half built (OD-022-1..8 open); S-003 UI pending |
 | TASK-040 (record) | 60 WER clips recorded, 19:00–22:00, with 2–3 friends | human | TASK-014 | — | 60 clips stored with consent note; run happens in Phase 3 | `todo` | | |
 
 ## Tasks — Masnun
@@ -124,7 +124,7 @@ When one of these merges, tell the waiting person straight away; they rebase and
 | TASK-029 | S-012 case detail, close, audit + API-011/013 | B · Claude Code | TASK-028 | 5 | TC-010 full passes | `todo` | | |
 | TASK-024 | S-004 outputs + poster PNG (COMP-030/031) | C · Claude Code + `impeccable` | TASK-023 | 3 | TC-006 passes | `todo` | | |
 | TASK-025 | S-005 manual form fallback (COMP-032) | C · Claude Code + `impeccable` | TASK-022 | 2 | TC-017 passes | `todo` | | |
-| TASK-032 | S-013 admin: redact payloads + verify [MOCK] + API-016/017 | C · Claude Code | TASK-015 | 3 | TC-015 passes | `todo` | | |
+| TASK-032 | S-013 admin: redact payloads + verify [MOCK] + API-016/017 | C · Claude Code | TASK-015 | 3 | TC-015 passes | `review` | branch `phase2--mahim-admin` | [platform-admin.md](evidence/platform-admin.md): S-013 (COMP-043) at `/admin` (admin only): eligible summary, typed "বেনামী" confirmation, D3 empty/success states with Bangla numerals, `[MOCK]` officer verification list, planned import slot. API-016 via existing `redactCases` (fera_redactor; `redact_case` audits each case), API-017 [MOCK] one transaction + `user.verification_changed` audit, API-021 AdminUserView + signed cursor. **TC-015 passes locally** (`tests/db/admin.test.ts`: 2 redacted, 1 active linked evidence skipped, related payload cleared, counts unchanged). fera-review: safeguarding, security, database, bengali PASS; a11y and react BLOCKs fixed (focus, announcements, `lang="bn"`, 70 s redaction wait, refresh after every outcome). After fixes: lint/typecheck/build 0, `npm test` 1024 pass, `test:db` 128/128; safeguarding re-run PASS. PR #19. Open decisions OD-032-1–12 (OD-032-1: verification audit has no target, needs contracts). |
 
 **Reviewer focus today:** `database-reviewer` + `fera-safeguarding-reviewer` on every case-service and confirm PR; `bengali-reviewer` on the normaliser and intake copy; `silent-failure-hunter` on the AI adapter and fallbacks; Codex second-opinion review on Claude-written confirm, permission and extraction PRs.
 
@@ -165,6 +165,10 @@ Tick only from the gate report (`fera-gate`), with evidence linked. Run on the *
 Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
 ### Obidit
+- 2026-10-15 19:50 · Claude Code (Haiku) · obidit-vercel-framework · TASK-001 note: vercel.json pins framework "nextjs" so previews stop failing with STATIC_BUILD_NO_OUT_DIR (deploy owner Mahim to confirm).
+- 2026-10-15 20:05 · Codex · obidit-normaliser · TASK-012 stays `review`; 93/93 normaliser tests. Claude fera-review round 1 = BLOCK (evidenceForRange derivation) + WARNs, fixed or recorded (time grammar → OD-012-5) in this round; earlier self-recorded PASS replaced with final verdict pending re-review. Full suite: 1,026 pass / one known `tests/auth/sign-in.test.ts` timing failure / 117 DB skipped; isolated auth file 11/11 pass; lint/typecheck/build exit 0 (build run after the failed chain). Evidence in intake-normaliser.md; OD-012-1–5 recorded, TASK-009 integration pending; changes uncommitted on `phase2--obidit-normaliser`.
+- 2026-10-15 19:24 · Claude Code · obidit-templates · TASK-023 `todo` → `review`; templates + wording guard + API-006, TC-005/TC-024 pass at service level; test 1009 / test:db 121; fera-review round 1 BLOCKs (redaction race, decision-log accuracy) fixed; OD-023-1–6 for owner review; unblocks Mahim TASK-024 on merge.
+- 2026-10-16 00:52 · Codex · obidit-review-submit · TASK-022 stays `in progress`; API-003 accepts and ignores schema-valid draft tokens with one safe log event, malformed tokens remain E-001; OD-022-2 documents same-UUID retry after E-021, OD-022-7/8 added; tests/intake 24 + tests/db/submit 10 pass, test 958 passed/127 skipped, test:db 127/127; lint/typecheck pass; S-003 review UI and device draft persistence pending.
 ### Masnun
 ### Mahim (lead)
 - 2026-10-14 17:35 · Claude Code · mahim-api · TASK-007 `todo` → `review`; shared API layer and 92 tests at `a33d9af`; in-memory limiter, real principal resolver waits for TASK-006.
@@ -179,6 +183,8 @@ Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 - 2026-10-15 11:21 · Claude Code · mahim-signin · TASK-031 `todo` → `review`; S-008 sign-in + S-016 not-found, test 803 pass (101 new), lint/typecheck/build exit 0; impeccable finish review `fix` applied; TC-022 waits for API-004/009 + TASK-015, browser steps TASK-038; test:db blocked by unresponsive local DB.
 - 2026-10-15 11:56 · Claude Code · mahim-signin · TASK-031 stays `review`; merged origin/phase2 (TASK-015 audit hook is the default: wrong-role page → S-016 + 404); fera-review round 1: a11y BLOCK fixed, WARNs fixed; test 932 / test:db 117 pass; re-review pending.
 - 2026-10-15 12:03 · Claude Code · mahim-signin · TASK-031 stays `review`; fera-review round 2 (a11y + safeguarding on the fixes): PASS; return-note wording (OD-031-7), whitespace/demo-fill reducer fixes, stricter border-token test.
+- 2026-10-15 17:29 · Claude Code · mahim-admin · TASK-032 `todo` → `review`; S-013 + API-016/017/021 at `0bbb798`; TC-015 passes locally; test 1021 (87 new) / test:db 128 (admin 11) pass; lint/typecheck/build exit 0; fera-review and Playwright pending.
+- 2026-10-15 21:19 · Claude Code · mahim-admin · TASK-032 rebased onto `0617b4c` (code `6213a07`); fera-review BLOCKs (a11y 2, react 3) fixed; test 1024 / test:db 128 pass; PR into `phase2` opened; Playwright pending.
 
 ## Audit amendments (2026-10-12)
 
