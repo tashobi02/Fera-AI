@@ -59,7 +59,7 @@ Cut order if short ([D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommenda
 ## Tasks — Obidit
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| TASK-047 | 13219 summary ≤ 80 words (FR-010) | Codex | TASK-023 | 1 | TC-007 passes | `todo` | | |
+| TASK-047 | 13219 summary ≤ 80 words (FR-010) | Codex | TASK-023 | 1 | TC-007 passes | `review` | `phase2--obidit-helpline` (stacked on #15) | TC-007 passes at service level: ≤80 words incl. worst case; tests in tests/outputs/ |
 | TASK-049 | Edit after submit + API-005 + S-006 (FR-029, BR-025) | Claude Code + `impeccable` | TASK-022 | 4 | TC-018 passes | `todo` | | |
 | TASK-050 | Parent status API-018 (FR-030) | Codex | TASK-049 | 1 | TC-019 passes | `todo` | | |
 | TASK-035 | Bangla copy review; every empty/error/loading state | Claude Code + `bengali-reviewer` | TASK-030 | 3 | Every E-xxx shows bn + en text | `todo` | | |
@@ -125,6 +125,7 @@ Tick only from the gate report (`fera-gate`), with evidence linked.
 Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
 ### Obidit
+- 2026-10-15 19:52 · Claude Code (Haiku) · obidit-helpline · TASK-047 `todo` → `review`; helpline template (≤80 words, worst case 77) and API-006 accepts `helpline`; TC-007 passes at service level; stacked on #15
 ### Masnun
 ### Mahim (lead)
 
