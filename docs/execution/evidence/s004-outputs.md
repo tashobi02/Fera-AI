@@ -15,7 +15,7 @@ Evidence:
 - **Built-app smoke (below).** Two 1080 × 1350 PNGs, with and without the phone. Bangla conjuncts and vowel signs are shaped correctly (শিশু, শনাক্তকরণ, টার্মিনাল, সন্ধ্যা) and no boxes replace missing glyphs.
 - **Unit and server-render tests:**
   - `tests/outputs/poster.test.ts`: template pin, share text, layout, paint.
-  - `tests/ui/report-screen.test.ts`: the screen, plus a static scan for file or camera inputs, `<img>`, image drawing and `getUserMedia` across `src/app/(parent)`, `src/lib/poster.ts` and `src/lib/outputs-client.ts`.
+  - `tests/ui/report-screen.test.ts`: the screen, plus a static scan for file or camera inputs, `<img>`, image drawing and `getUserMedia` across `src/app/(parent)`, `src/lib/poster.ts`, `src/lib/poster-render.ts` and `src/lib/outputs-client.ts`.
 - **Not automated:** the browser part (canvas, fonts, download). A Playwright journey belongs to TASK-038.
 
 ## What was built
@@ -27,7 +27,7 @@ Evidence:
 | COMP-030 output cards | `output-card.tsx`, `ui.tsx`, `use-output.ts`, `copy.ts`, `src/lib/outputs-client.ts` | GD draft, poster and 13219 summary. Each card has a descriptive title and the D3 action label on its (secondary) button, plus the draft label "খসড়া — নিজে জমা দিন". API-006 is called only on tap. Focus moves only on a status change (a language toggle neither moves focus nor re-announces): to the text block when ready, to the failure when it fails, to the card's button on retry. Text goes in a focusable `<pre lang="bn" role="group">` named by its title, with Latin runs (`[MOCK]`, the reference) marked `lang="en"`. Progress, "লেখা তৈরি হয়েছে" and "কপি হয়েছে" share one polite region, re-announced per copy and cleared on a language change. Failures go to an always-mounted alert region. Without the Clipboard API (plain HTTP), the text is selected and the card says "copy it yourself". Errors use catalogue copy on a neutral surface; E-004, E-019 (S-004 copy, OD-024-2) and E-020 have no retry. In English mode the GD and 13219 cards note that the draft text is in Bangla. |
 | COMP-031 poster | `poster-share.tsx`, `src/lib/poster.ts`, `src/lib/poster-render.ts` | Preview text, then the D4 §15.1 share notice. The contact radios have no default, and a separate acknowledgement (naming the phone) follows. Pressing "prepare" without them moves focus to the first missing control, with its own message. Declining removes the fixed contact line, and the poster is blocked if a phone number remains in any form: Bangla, Latin or fullwidth digits, with spaces, hyphens, dots, commas, slashes, underscores, brackets or invisible characters between them, or with `880` / `+880` (OD-023-1). Each render is a numbered run (`renderPoster`). Changing the choice, unticking the acknowledgement, a second run or leaving the page makes it stale, so it never publishes. Fonts: `document.fonts.load` for both Bangla weights and the Latin face, with a 5 s timeout; both Bangla loads must return a face, otherwise no image. Body text runs from 40 px down to 24 px under a draft header and footer; an over-wide cluster or text that does not fit is "too long, copy the text". The context type has no image-drawing method. Download: `fera-poster-<ref>-draft.png`. The canvas is `role="img"`, described by the poster text above it. "Prepare" and "download" are the screen's only primary buttons. |
 | Locked reports | `page.tsx` | When the report is not editable or the owner view has no draft, the output actions are hidden and a neutral note plus `tel:13219` are shown (OD-023-2). |
-| Copy | `src/locales/index.ts` | 45 keys in bn and en. From the spec: status labels, matching lines (D3 S-007 "মিল খোঁজা হয়েছে", D4 §10, §15.1), draft label, ACT-009/010/011 labels, "তৈরি হচ্ছে…", "কপি হয়েছে", the poster share line, the no-filing line, "১৩২১৯-এ কল করুন". Without a source: OD-024-4. Parent-facing poster labels avoid "ছবি" (photo). The outputs guard test scans every locale string and finds no banned term. |
+| Copy | `src/locales/index.ts` | 46 keys in bn and en. From the spec: status labels, matching lines (D3 S-007 "মিল খোঁজা হয়েছে", D4 §10, §15.1), draft label, ACT-009/010/011 labels, "তৈরি হচ্ছে…", "কপি হয়েছে", the poster share line, the no-filing line, "১৩২১৯-এ কল করুন". Without a source: OD-024-4. Parent-facing poster labels avoid "ছবি" (photo). The outputs guard test scans every locale string and finds no banned term. |
 | Icons | `src/app/components/icons.tsx` | Lucide Copy, Download, Phone, CircleDot, GitCompare, FileText, LayoutTemplate, inlined. |
 
 ## Verification (2026-10-16, local)
@@ -154,6 +154,12 @@ Re-run after the fixes:
 - `npm test` 1323 passed
 - `npm run build` 0
 
+After the finish re-review, two small changes were made:
+- Labels and buttons now break inside a word only as a last resort (`break-word`, not `anywhere`).
+- The English-mode Bangla note was added to the poster card too.
+
+These were checked with lint, typecheck and the screen and outputs tests, but **not re-measured in the browser**.
+
 ### Built-app smoke, third round (final code, same setup)
 
 - **Language toggle:** focus stays on the toggle; after the switch the page is English and the status region is empty.
@@ -176,7 +182,6 @@ Re-run after the fixes:
 - **Not connected yet:** nothing links to `/report/<id>`. S-003 (Obidit, TASK-022 part 2) should open it after API-003 succeeds, as should the duplicate-submission replay (D3 row 4).
 - **D4 "clear-device" step (OD-024-6):** belongs to the intake local store (Obidit), which isn't built; UNKNOWN here.
 - **Human review:** a person still needs to review the template wording (OD-023-3) and the new strings without a source (OD-024-4).
-- **Latin runs in Bangla output text:** `[MOCK]` and the reference code are not wrapped in `lang="en"`, because the text is one `<pre>` from API-006 (a11y WARN, kept).
 - **No jsdom or Playwright test of the client cards.** The render-run rules are unit-tested through `renderPoster`, and focus and announcements were checked in the browser smoke.
 
 ## Open decisions

@@ -328,7 +328,7 @@ export function PosterShare({
                   className="size-5 accent-(--color-primary)"
                 />
                 <span
-                  className={`min-w-0 ${READ} text-ink [overflow-wrap:anywhere]`}
+                  className={`min-w-0 ${READ} text-ink [overflow-wrap:break-word]`}
                 >
                   {value === "include"
                     ? t.posterContactInclude
@@ -363,7 +363,7 @@ export function PosterShare({
                 className="mt-[0.3em] size-5 shrink-0 accent-(--color-primary)"
               />
               <span
-                className={`min-w-0 ${READ} text-ink [overflow-wrap:anywhere]`}
+                className={`min-w-0 ${READ} text-ink [overflow-wrap:break-word]`}
               >
                 {t.posterAckLabel}
               </span>

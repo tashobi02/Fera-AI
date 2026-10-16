@@ -36,7 +36,7 @@ const ICON: Record<OutputType, typeof FileTextIcon> = {
 // DESIGN.md Fera overrides: parent reading text is 18 px with line-height 1.7.
 export const READ = "text-body-lg leading-[1.7]";
 
-const BUTTON_BASE = `inline-flex min-h-11 max-w-full cursor-pointer items-center justify-center gap-2 rounded-md px-5 py-2 text-start ${READ} font-medium [overflow-wrap:anywhere]`;
+const BUTTON_BASE = `inline-flex min-h-11 max-w-full cursor-pointer items-center justify-center gap-2 rounded-md px-5 py-2 text-start ${READ} font-medium [overflow-wrap:break-word]`;
 
 // One primary per decision (DESIGN Principle 2): only "prepare poster" / "download".
 export const BUTTON_PRIMARY = [
@@ -93,8 +93,8 @@ export function CardShell({
           {t.outputDraftLabel}
         </span>
       </div>
-      {locale === "en" && type !== "poster" && (
-        <p className={`text-body-sm text-mute`}>{t.outputBanglaNote}</p>
+      {locale === "en" && (
+        <p className={`${READ} text-mute`}>{t.outputBanglaNote}</p>
       )}
       {children}
     </div>
@@ -119,7 +119,7 @@ export function FailureBox({
     <div
       ref={focusRef}
       tabIndex={-1}
-      className="flex flex-col items-start gap-3 rounded-md border border-hairline-strong bg-card px-3 py-3 outline-none"
+      className="flex flex-col items-start gap-3 rounded-md border border-hairline-strong bg-card px-3 py-3"
     >
       <p className={`flex items-start gap-2 ${READ} text-ink`}>
         <CircleAlertIcon className="mt-[0.45em] size-4 shrink-0 text-mute" />

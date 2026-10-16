@@ -35,6 +35,7 @@ export function useAnnouncer() {
     cancelAnimationFrame(frame.current);
     setMessage("");
   }, []);
+  useEffect(() => () => cancelAnimationFrame(frame.current), []);
   const announce = useCallback((next: string) => {
     cancelAnimationFrame(frame.current);
     setMessage("");
