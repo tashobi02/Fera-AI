@@ -6,6 +6,8 @@
 
 **Status**: draft for human skim (spec-kit stop point before /speckit-clarify). Generated 2026-10-16 by an agent; not reviewed.
 
+> **Hand-off note (2026-10-16, added after the safeguarding gate):** three statements below need correction before this spec is used. (1) The `matched_pending_review` to "যাচাই চলছে" mapping is not settled; D3:148 gives only the labels, and `s006-strings-draft.md` OQ-B1-2 keeps it open. (2) The poster contact is an explicitly chosen option with no default (D4:187; #26 implements no default), not a toggle. (3) "Confirmed missing case" means confirmed by the reporter; it is not the terminal `confirmed` state.
+
 **Input**: Feature 003 brief in `docs/agents/SPECKIT_PROMPTS.md` and the V2 spec pack (`docs/spec/`)
 **Owners**: Obidit (intake/outputs backend, templates, wording guard, APIs, post-submit edit/status), Mahim (S-004 outputs UI + poster PNG, S-005 manual form UI — D6 owner S (Sadman); labelled Mahim per AGENTS.md:34 ("Names"))
 

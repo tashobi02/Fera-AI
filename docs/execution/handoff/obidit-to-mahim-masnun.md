@@ -7,7 +7,7 @@ All work here is a synthetic-data prototype. Nothing was tested on real provider
 
 ## 1. What this branch is, and how to merge it
 
-This branch contains every open Obidit PR, merged into one tree, plus the hand-off documents. **Merge this PR instead of the separate ones; do not merge both.** After it merges, GitHub shows the others as merged because their commits are inside it.
+This branch contains every open Obidit PR, merged into one tree, plus the hand-off documents. **Merge this PR instead of the separate ones; do not merge both.** After it merges, GitHub shows the others as merged because their commits are inside it. **Use "Create a merge commit".** A squash or rebase merge would leave #25 and #28 to #30 open, and merging them afterwards would apply the same changes twice.
 
 | Included | PR | What it is |
 |---|---|---|
@@ -16,7 +16,7 @@ This branch contains every open Obidit PR, merged into one tree, plus the hand-o
 | LLM adapter | #28 | TASK-013. |
 | `npm run spend` | #29 | TASK-059. |
 
-If you prefer to merge the PRs one by one, the order is #25, then #30, then #28 and #29. Skip #27: it shows a tracker conflict, but #30 contains it and merges cleanly. Each merge touches `docs/execution/PHASE_2_MUST_CORE.md`, so expect a small tracker conflict after the first.
+If you prefer to merge the PRs one by one, the order is #25, then #30, then #28 and #29. Skip #27: it shows a tracker conflict, but #30 contains it and merges cleanly. #30 merges cleanly after #25. #28 and #29 each conflict only in `docs/execution/PHASE_2_MUST_CORE.md` (task rows and log lines). This branch already holds those resolutions.
 
 Not in this branch: Mahim's #26 (S-004 outputs, TASK-024).
 
@@ -66,7 +66,7 @@ The parent journey does not work end to end yet. These tests are met only at ada
 | TASK-049, TASK-050 (S-006, status API) | Not started. A string draft exists: `obidit/s006-strings-draft.md`. It leaves open the destination after save (ACT-017), the badge-to-status mapping, and whether offline edits are kept. |
 | TASK-035 Bangla copy for every state | A work list exists: `obidit/state-copy-audit.md`. S-004 was not audited, and the S-003 section predates the last S-003 fixes. |
 | TASK-040 WER run, video shots | Human work. |
-| Specs | `specs/002-intake-ai/tasks.md` and `specs/003-parent-outputs/` are drafts in their own commit. **Obidit has not skimmed them.** Drop that commit if you do not want them. |
+| Specs | `specs/002-intake-ai/tasks.md` and `specs/003-parent-outputs/` are drafts in their own commit. **Obidit has not skimmed them.** Drop that commit if you do not want them. Known issues are noted at the top of each file: `tasks.md` has a stale "work already in flight" section and sends the four-round exit to S-005 while the implemented decision (OD-021-7) sends it to S-003; spec 003 treats the badge mapping as settled (it is open, OQ-B1-2), describes the poster contact as a toggle (D4:187 requires an explicit choice with no default), and uses "confirmed" ambiguously. |
 
 Mahim's tasks that depend on this work: TASK-024 (S-004) is in #26. TASK-025 (S-005, `/intake/form`) can start now that S-003 exists. S-002 links to `/intake/form`, labelled "planned", until it exists. S-003 shows the manual form as a planned label with no link.
 
@@ -75,6 +75,7 @@ Mahim's tasks that depend on this work: TASK-024 (S-004) is in #26. TASK-025 (S-
 **Approvals (shared files you own):**
 1. `src/app/api/_shared/log.ts`: three event names only (`ai.attempt`, `ai.summary`, `ai.input_rejected`). Same pattern as #22 and #24. OD-013-15.
 2. `scripts/db/guard.mjs`: an optional `label` parameter so the spend command's messages do not say "db:reset". The default keeps every message byte-for-byte. AGENTS.md lists no owner for `scripts/db/`. Also `scripts/db/test-db.mjs` (one entry in `FILES`) and the `spend` script in `package.json`.
+   Also in your area, from #27: `src/app/page.tsx` (your TASK-008 shell) is deleted because `src/app/(parent)/page.tsx` now serves `/`, and `src/locales/index.ts` gains 325 lines (S-001 to S-003 strings) and loses none. Approval by the file owner is UNKNOWN.
 
 **Blockers for TASK-014/020 part 2:**
 3. `DRAFT_SIGNING_KEY` is in D2B §15.1 (line 193), but `src/server/auth/secrets.ts` only knows `AUTH_SECRET` and `PARENT_COOKIE_KEY`. Part 2 will fail closed until it is added; there is no fallback to `AUTH_SECRET`.
@@ -85,7 +86,7 @@ Mahim's tasks that depend on this work: TASK-024 (S-004) is in #26. TASK-025 (S-
 - OD-022-10: drafts expire at 24 h with no grace period, including drafts the parent tried to submit. Cost: if a submit reached the server but the parent never saw the confirmation, the device loses its retry reference after 24 h. The server copy is unaffected.
 - OD-022-17: the part-of-day chips use working hour ranges (06–12, 12–15, 15–18, 18–20, 20–06 next day). They need human review.
 - OD-013-10/11/14/16: the evidence checker is an allowlist and forward scope; some misreads are accepted. **Their mitigation is that S-003 shows the parent's full text beside every prefilled field. That only holds once S-003 is merged.** Over-abstention is accepted (a sentence like "He didn't come home." makes earlier facts unknown); the rate is not measured.
-- OD-021-7: the four-round exit also offers S-003 (D1 STORY-003 AC2). D3 lines 69 and 483 disagree. Changing the spec needs both copies and the manifest.
+- OD-021-7: the four-round exit also offers S-003 (D1 STORY-003 AC2). D3:69 and D1 STORY-003 AC2 send it to S-003; D3:483 sends it to S-005. Changing the spec needs both copies and the manifest.
 - OD-059-1/2/3: no warning threshold (the pack defines none). The database cap is the enforced one; if `AI_SPEND_CAP_USD` is set and differs, the command exits 4. The app does not read that variable (DECISION-017's "raise cap via env" is not implemented).
 
 **Other:**
@@ -106,7 +107,7 @@ In `docs/execution/handoff/obidit/`. Local file paths inside them point at Obidi
 
 | File | What it is | Status |
 |---|---|---|
-| `open-decisions-index.md` | Every open-decision line found in the evidence docs, copied verbatim by a script | Generated at this branch's head |
+| `open-decisions-index.md` | Every open-decision definition line found in the evidence docs, specs and phase trackers, copied in full by a script, one row per line | Generated by script; its header names the commit. Decisions added afterwards are not in it |
 | `state-copy-audit.md` | TASK-035 work list | Reviewed by a second agent; S-004 unaudited; S-003 section stale |
 | `s006-strings-draft.md` | bn/en strings for S-006 | Draft; new Bangla needs human review |
 | `bangla-review-sheet.md` | Bangla strings for a human reviewer | 329 rows; reviewer column blank; 85 rows are backend strings, not locale keys |
@@ -116,4 +117,4 @@ Bangla strings added in these PRs are marked "needs human Bangla review". None h
 
 ## 7. How the work was checked
 
-Each PR was built by an AI worker (Codex, Antigravity or puku), reviewed by a second agent, and passed the `fera-safeguarding-reviewer` gate. Several workers wrote counts or "done" claims that were false, so the gate re-measured the numbers. The bodies of #23, #24, #28, #29 and #30 say who measured each number; the older PRs give counts without saying. This is still all agent-checked. No human has reviewed the code line by line, run it on a phone, or run Playwright/axe.
+Each PR was built by an AI worker (Codex, Antigravity or puku), reviewed by a second agent, and (for the Obidit PRs) passed the `fera-safeguarding-reviewer` gate. Several workers wrote counts or "done" claims that were false, so the gate re-measured the numbers. The bodies of #23, #24, #28, #29 and #30 say who measured each number; the older PRs give counts without saying. This is still all agent-checked. No human has reviewed the code line by line, run it on a phone, or run Playwright/axe.

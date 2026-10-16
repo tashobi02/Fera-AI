@@ -2,6 +2,8 @@
 
 Status: draft for human skim (spec-kit stop point before /speckit-analyze). Generated 2026-10-16 by an agent; not reviewed.
 
+> **Hand-off note (2026-10-16, added after the safeguarding gate):** the "Work already in flight" section below is stale. It was written before #15, #18, #20 and #22 merged; see `docs/execution/PHASE_2_MUST_CORE.md` for current state. The note that T029 is blocked on the route-writer decision also predates #20 merging. The four-round exit here goes to SCREEN-005 (D3:483); the implemented decision OD-021-7 sends it to S-003 (D1 STORY-003 AC2, D3:69). The spec pack disagrees with itself here; this is recorded, not resolved.
+
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/intake-contract.md](contracts/intake-contract.md), [quickstart.md](quickstart.md), [clarification-review.md](clarification-review.md), `docs/spec/D6_Implementation_Plan_V2.md`, `docs/agents/handoff/OBIDIT.md`, `docs/execution/PHASE_2_MUST_CORE.md`.
 
 **Owner**: Obidit (intake, AI, speech, normaliser, parent screens S-001–S-003, spend, cache). Cross-person handoffs explicitly labeled: S-004 and S-005 lines are Mahim's (owner: Mahim); district dataset and demo seed fixtures are Masnun's (owner: Masnun).
