@@ -215,3 +215,72 @@ export function ChevronDownIcon({ className }: IconProps) {
     </Icon>
   );
 }
+
+export function CopyIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+    </Icon>
+  );
+}
+
+export function DownloadIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M12 15V3" />
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <path d="m7 10 5 5 5-5" />
+    </Icon>
+  );
+}
+
+export function PhoneIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+    </Icon>
+  );
+}
+
+export function CircleDotIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="1" />
+    </Icon>
+  );
+}
+
+export function GitCompareIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <circle cx="18" cy="18" r="3" />
+      <circle cx="6" cy="6" r="3" />
+      <path d="M13 6h3a2 2 0 0 1 2 2v7" />
+      <path d="M11 18H8a2 2 0 0 1-2-2V9" />
+    </Icon>
+  );
+}
+
+export function FileTextIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+      <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+      <path d="M10 9H8" />
+      <path d="M16 13H8" />
+      <path d="M16 17H8" />
+    </Icon>
+  );
+}
+
+export function LayoutTemplateIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <rect width="18" height="7" x="3" y="3" rx="1" />
+      <rect width="9" height="7" x="3" y="14" rx="1" />
+      <rect width="5" height="7" x="16" y="14" rx="1" />
+    </Icon>
+  );
+}

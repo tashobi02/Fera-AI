@@ -239,3 +239,12 @@ These come from the output generator and wording guard in `src/server/outputs/` 
 
 - **OD-022-1 Draft token on API-003 (proposed, needs all-owner acknowledgement)**: until TASK-014/020 add token signing, API-003 accepts a schema-valid draft_token and ignores it (not persisted; logged as submit.draft_token_unverified without the value). This departs from the Draft token note above, which expects a verified token to match the principal, kind and revision (E-019/E-001). Reason: E-019 shows the parent "draft expired" and clears a reviewed draft. Safeguards are unchanged: BR-004 rests on confirmed=true; the cases table has no link to intake_drafts; API-003 makes no paid call. Details: docs/execution/evidence/intake-submit-api.md.
 
+
+## SCREEN-004 open decisions (TASK-024)
+
+Evidence: `docs/execution/evidence/s004-outputs.md`. OD-023-1 (contact choice applied client-side, fail closed if a number remains) and OD-023-2 (output actions hidden when the owner view is not editable or has no draft) are implemented as proposed; Obidit still to acknowledge.
+
+- **OD-024-1 Parent route `/report/<id>`**: no spec document names the S-004 URL. `/report/<id>` uses the parent copy's word "রিপোর্ট" and stays apart from `/officer/case/<id>`. S-003 (TASK-022 part 2) and the duplicate-submission replay (D3 row 4) should navigate there after API-003 succeeds. Owners: Mahim and Obidit.
+- **OD-024-2 Expired parent cookie on API-006**: a request without a usable parent cookie gets E-002 ("Please sign in again"), which does not fit a parent who has no account. S-004 shows E-019 copy instead ("your draft has expired, start again"), with no retry. The page itself answers SCREEN-016 when the cookie is missing. Owner: Mahim.
+- **OD-024-3 Poster image needs the bundled Bangla font**: the PNG is drawn in the browser (canvas) because the server image renderer would not shape Bangla. If Noto Sans Bengali has not loaded within 5 s, no image is made and the parent copies the text instead, so a poster never shows boxes for missing glyphs. Owner: Mahim.
+- **OD-024-4 New strings without a D3/D4 source**, for Bengali review: reportTitle, reportReference, outputsHeading, copyAction, copyManual, retry, callHelpline, outputsLocked, posterContactLegend/Include/Omit, posterAckLabel, posterChooseFirst, posterMake, posterRendering, posterReady, posterDownload, posterCopyText, posterTextHeading, posterImageLabel, posterFontError, posterTooLong, posterBlocked.

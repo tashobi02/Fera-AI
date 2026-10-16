@@ -1,0 +1,148 @@
+// TASK-024: SCREEN-004 markup, server-rendered in Node (no browser here). Reference card,
+// COMP-033 badge (icon + text + colour), the three output cards with the draft label,
+// tel:13219, the locked state (OD-023-2), parent-surface rules (no red, 44 px) and TC-006's
+// "no image input exists". The PNG itself needs a browser (Playwright, TASK-038).
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { OwnerCaseView } from "@/contracts";
+import { exampleOwnerCaseView } from "@/contracts/examples";
+
+let localeCookie: string | undefined;
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: (name: string) =>
+      name === "fera-lang" && localeCookie
+        ? { value: localeCookie }
+        : undefined,
+  }),
+}));
+
+const guard = vi.hoisted(() => ({
+  view: null as unknown,
+  calls: [] as unknown[][],
+}));
+vi.mock("@/server/auth/require-own-case", () => ({
+  requireOwnCase: async (...args: unknown[]) => {
+    guard.calls.push(args);
+    return { principal: { kind: "parent" }, view: guard.view };
+  },
+}));
+
+const { default: ReportPage } = await import("@/app/(parent)/report/[id]/page");
+const { StatusBadge } = await import("@/app/components/status-badge");
+
+async function render(view: OwnerCaseView, locale?: "bn" | "en") {
+  guard.view = view;
+  localeCookie = locale;
+  return renderToStaticMarkup(
+    await ReportPage({ params: Promise.resolve({ id: view.id }) }),
+  );
+}
+
+afterEach(() => {
+  guard.calls = [];
+  localeCookie = undefined;
+});
+
+describe("SCREEN-004", () => {
+  it("reads the parent's own report through requireOwnCase", async () => {
+    await render(exampleOwnerCaseView);
+    expect(guard.calls).toEqual([
+      [exampleOwnerCaseView.id, `/report/${exampleOwnerCaseView.id}`],
+    ]);
+  });
+
+  it("shows the reference large and in Latin mono, with the status badge and matching line", async () => {
+    const html = await render(exampleOwnerCaseView);
+    expect(html).toContain('data-surface="parent"');
+    expect(html).toMatch(
+      new RegExp(
+        `lang="en" translate="no" class="font-mono[^"]*">${exampleOwnerCaseView.ref_code}<`,
+      ),
+    );
+    expect(html).toMatch(/bg-info-soft text-info-text[^>]*>[^]*?<svg[^]*?খোলা/);
+    expect(html).toContain("মিল খোঁজা হয়েছে");
+    expect(html).toContain("ফেরা পুলিশে জিডি জমা দেয় না।");
+  });
+
+  it("has the three output cards, each with the draft label and its D3 action", async () => {
+    const html = await render(exampleOwnerCaseView);
+    expect(html.match(/খসড়া — নিজে জমা দিন/g)).toHaveLength(3);
+    for (const action of ["জিডি খসড়া", "পোস্টার", "১৩২১৯ সারাংশ"])
+      expect(html).toMatch(new RegExp(`<button[^>]*>${action}</button>`));
+    expect(html).not.toContain(exampleOwnerCaseView.draft!.child.name!); // the draft is never in the page
+    expect(html).not.toContain("01700000001");
+  });
+
+  it("renders English when chosen", async () => {
+    const html = await render(exampleOwnerCaseView, "en");
+    expect(html).toContain("Report submitted");
+    expect(html).toContain("Draft — submit it yourself");
+    expect(html).toMatch(/<button[^>]*>GD draft<\/button>/);
+  });
+
+  it("keeps the 13219 call link, ≥ 44 px", async () => {
+    const html = await render(exampleOwnerCaseView);
+    expect(html).toMatch(/<a href="tel:13219" class="[^"]*min-h-12/);
+  });
+
+  it("hides the outputs when the report is locked or has no draft (OD-023-2)", async () => {
+    for (const view of [
+      { ...exampleOwnerCaseView, editable: false },
+      { ...exampleOwnerCaseView, draft: null },
+    ]) {
+      const html = await render(view);
+      expect(html).not.toContain("<button");
+      expect(html).toContain("এই রিপোর্টের খসড়া এখন আর দেখানো যায় না");
+      expect(html).toContain('href="tel:13219"');
+    }
+  });
+
+  it("has no red and no target under 44 px on the parent surface", async () => {
+    const html = await render(exampleOwnerCaseView);
+    expect(html).not.toMatch(/danger/);
+    for (const b of html.match(/<button[^>]*>/g) ?? [])
+      expect(b).toMatch(/min-h-1[12]/);
+    expect(html.match(/<button/g)?.length).toBe(3);
+  });
+});
+
+describe("COMP-033 status badge", () => {
+  it.each([
+    ["open", "খোলা"],
+    ["matched", "যাচাই চলছে"],
+    ["closed", "বন্ধ"],
+  ] as const)("%s → icon + %s", (group, label) => {
+    const html = renderToStaticMarkup(
+      createElement(StatusBadge, { group, locale: "bn" }),
+    );
+    expect(html).toMatch(new RegExp(`<svg[^]*</svg>${label}`));
+    expect(html).toContain('<span class="sr-only">অবস্থা: </span>');
+    expect(html).not.toMatch(/danger/);
+  });
+});
+
+describe("TC-006: no image input exists", () => {
+  const files = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? files(join(dir, e.name)) : [join(dir, e.name)],
+    );
+  const sources = [
+    ...files("src/app/(parent)"),
+    "src/lib/poster.ts",
+    "src/lib/outputs-client.ts",
+  ];
+
+  it.each(sources)(
+    "%s has no file/camera input, image element or drawImage",
+    (path) => {
+      const src = readFileSync(path, "utf8");
+      expect(src).not.toMatch(
+        /type=["']file["']|accept=["']image|capture=|drawImage|<img\b|getUserMedia/,
+      );
+    },
+  );
+});
