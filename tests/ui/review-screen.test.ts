@@ -115,11 +115,82 @@ it("district is labelled MOCK and every unknown card invites adding a value", ()
   const html = renderToStaticMarkup(createElement(ReviewFields, { record: r, locale: "bn", errors: [], onEdit: noop, onBatch: noop, onApprox: noop, onBlur: noop, locked: false }));
   expect(html.split('id="review-event.district_code-label"')[1]?.split("</label>")[0]).toContain("[MOCK]");
   expect(html.split('for="review-child.height_cm"')[1]?.split("<input")[0]).toContain("অজানা — যোগ করুন");
-  expect(html.split('id="review-child.sex"')[1]?.split("</label>")[0]).toContain("অজানা — যোগ করুন");
+  // Polish round: the sex radio's empty option now uses the plain "অজানা" label
+  // (item 1), not the "add" copy that empty text inputs keep.
+  const sexEmpty = html.split('id="review-child.sex"')[1]?.split("</label>")[0];
+  expect(sexEmpty).toContain("অজানা");
+  expect(sexEmpty).not.toContain("অজানা — যোগ করুন");
 });
 
 it("estimated age has full source beside both unedited bounds", () => {
   const r = record(); r.draft.child.age_years = null; r.draft.child.age_min = 7; r.draft.child.age_max = 9;
   const html = renderToStaticMarkup(createElement(ReviewFields, { record: r, locale: "en", errors: [], onEdit: noop, onBatch: noop, onApprox: noop, onBlur: noop, locked: false }));
   for (const path of ["child.age_min", "child.age_max"]) expect(html.split(`data-field-source="${path}"`)[1]?.split("</div>")[0].replace(/<[^>]+>/g, "")).toContain(r.draft.source_text);
+});
+
+describe("Polish round 2026-10-16 (TASK-022)", () => {
+  it("PR1: sex radio unknown option is plain অজানা / Unknown, not অজানা — যোগ করুন", () => {
+    for (const locale of ["bn", "en"] as const) {
+      const r = record(); r.draft.child.sex = "unknown" as typeof r.draft.child.sex;
+      const html = renderToStaticMarkup(createElement(ReviewFields, { record: r, locale, errors: [], onEdit: noop, onBatch: noop, onApprox: noop, onBlur: noop, locked: false }));
+      const sexBlock = html.split('id="review-child.sex"')[1]?.split("</fieldset>")[0];
+      expect(sexBlock, locale).toBeDefined();
+      const label = locale === "bn" ? "অজানা" : "Unknown";
+      const wrong = locale === "bn" ? "অজানা — যোগ করুন" : "Unknown — add";
+      expect(sexBlock).toContain(`>${label}<`);
+      expect(sexBlock).not.toContain(wrong);
+    }
+  });
+  it("PR2: chip date label is the long form, group dates use the short label exactly once each", () => {
+    for (const locale of ["bn", "en"] as const) {
+      const r = record();
+      const html = renderToStaticMarkup(createElement(ReviewFields, { record: r, locale, errors: [], onEdit: noop, onBatch: noop, onApprox: noop, onBlur: noop, locked: false }));
+      const longLabel = locale === "bn" ? "শেষবার দেখার তারিখ" : "Date last seen";
+      const shortLabel = locale === "bn" ? "তারিখ" : "Date";
+      // The chip date label precedes `for="review-event.date"`.
+      const chipLabelMatch = new RegExp(`<label[^>]*for="review-event\\.date"[^>]*>${longLabel}</label>`).exec(html);
+      expect(chipLabelMatch, locale).not.toBeNull();
+      // Each of the three group dates uses the short label inside its fieldset.
+      for (const path of ["event.at", "event.at_lower", "event.at_upper"]) {
+        const shortLabelMatch = new RegExp(`<label[^>]*for="review-${path.replace(/\./g, "\\.")}"[^>]*>${shortLabel}</label>`).exec(html);
+        expect(shortLabelMatch, `${path} ${locale}`).not.toBeNull();
+      }
+      // The long label appears only for the chip date.
+      expect(html.match(new RegExp(longLabel, "g"))?.length ?? 0).toBe(1);
+      // The short label appears at least three times for the three group dates.
+      expect(html.match(new RegExp(`>${shortLabel}<`, "g"))?.length ?? 0).toBeGreaterThanOrEqual(3);
+    }
+  });
+  it("PR3: name, phone, place, district render as <input> not <textarea>; phone has inputMode=tel and autoComplete=tel", () => {
+    const r = record();
+    const html = renderToStaticMarkup(createElement(ReviewFields, { record: r, locale: "en", errors: [], onEdit: noop, onBatch: noop, onApprox: noop, onBlur: noop, locked: false }));
+    for (const path of ["child.name", "reporter.phone", "event.place_text", "event.district_code"]) {
+      const tag = new RegExp(`<(input|textarea)[^>]*id="review-${path.replace(/\./g, "\\.")}"`).exec(html);
+      expect(tag, path).toBeDefined();
+      expect(tag![1], path).toBe("input");
+    }
+    // The phone input is a self-closing tag; renderToStaticMarkup expands it to <input ...></input>.
+    const phoneBlock = html.match(/<input\b[^>]*id="review-reporter\.phone"[^>]*>(?:<\/input>)?/)?.[0];
+    expect(phoneBlock).toBeDefined();
+    expect(phoneBlock).toMatch(/inputmode="tel"/i);
+    expect(phoneBlock).toMatch(/autocomplete="tel"/i);
+  });
+  it("PR4: one responsive submit bar escapes the confirmation card; checkbox stays in flow", () => {
+    const html = renderToStaticMarkup(createElement(ConfirmBar, { locale: "en", checked: true, valid: true, busy: false, blocked: false, onCheck: noop }));
+    const sticky = html.split('data-review-sticky-bar')[1]?.split("</div>")[0];
+    expect(sticky).toBeDefined();
+    expect(html.match(/<button[^>]*type="submit"/g)).toHaveLength(1);
+    // display:contents removes the short containing box only below 600px.
+    expect(html.split('data-review-sticky-bar')[0]).toContain("max-[599px]:contents");
+    expect(sticky).toContain("max-[599px]:sticky");
+    expect(sticky).toContain("max-[599px]:bottom-0");
+    expect(sticky).toContain("min-[600px]:contents");
+    expect(sticky).toContain("safe-area-inset-bottom");
+    expect(sticky).not.toContain('type="checkbox"');
+    expect(sticky).not.toContain("I have checked");
+    expect(html.indexOf('type="checkbox"')).toBeLessThan(html.indexOf('data-review-sticky-bar'));
+    const submit = html.match(/<button[^>]*type="submit"[^>]*>/)![0];
+    expect(submit).toMatch(/min-h-(?:11|12)\b/);
+    expect(submit).not.toContain("min-[600px]:block");
+  });
 });

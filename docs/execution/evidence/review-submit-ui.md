@@ -20,18 +20,18 @@ Submission remains an explicit confirmed POST. Mounting, editing or confirming a
 | B3 review links | Completed and extracted-manual outcomes use plain primary `Link` to S-003 with no Planned label. `PlannedLink` is restricted to `/intake/form`. No-extraction manual fallback cannot offer an empty review. | `tests/intake-ui/chat-lifecycle.test.ts`: four-round review handoff and primary-link assertions; no-extraction manual fallback regression. |
 | B3 provenance | Every non-empty unedited field shows the complete canonical `source_text` with its original span highlighted, including exact/estimated age and every time field. The separate top block is removed. Extra/unsent handoff words still appear once below the fields. | `tests/ui/review-screen.test.ts`: full source for all populated visible fields and both estimated-age bounds; explicit TASK-013 residuals `ঠিক জানি না। রাফি। ১০ বছর` in age and `বাবার তথ্য। পোশাক: নীল জামা` in clothing. Existing extra-source-once regression retained. |
 | B3 mock dispatch | Handler refuses direct mock form submission after confirmation; storage never becomes attempted. Button/notice remain visibly `[MOCK]` and disabled. | Lifecycle handoff regression and R4 “mounting a stored mock:true draft and submitting never fetches”; browser `requestSubmit()` observes no POST. |
-| Labels | District label has the existing honest `[MOCK]` badge; all unknown cards use `reviewUnknownAdd`; the success synthetic badge renders once. | Static district/unknown-add regression; lifecycle “synthetic badge appears once on success”; browser success badge count. |
+| Labels | District label has the existing honest `[MOCK]` badge; unknown text fields use `reviewUnknownAdd`; the sex radio uses `unknownValue` after polish; the success synthetic badge renders once. | Static district/unknown-add regression; lifecycle “synthetic badge appears once on success”; browser success badge count. |
 | W1 fresh handoff | Expired-record branch applies only without a handoff. | “a fresh handoff supersedes an expired stored draft”. |
 | W2 expiry | Pre-submit expiry checks attempted and non-attempted records. | “pre-submit expiry refuses an attempted retry before its timer fires”. |
 | W3 expiry rendering | Timer and visible-tab recheck remove fields and the form, clear readable storage, and show expiry recovery. Cold reload lets S-003 read expiry before cleanup. | Timer parameterization, `visibilitychange` regression, `tests/intake-ui/handoff-entry.test.ts`; browser checks cold-load expiry and focused replacement notice. |
 | W5 accessibility | Descriptions resolve; age/time errors and edited statuses use icon, text and colour; sex summary focuses the first radio; expired alert receives focus after fields disappear. Storage/mock/frozen notices also have icons. | Static description/error/edited tests, lifecycle sex-summary activation and expired-focus-target regression, plus browser description/focus checks. |
 | Cleanup failures | Timer, pre-submit and API E-019 deletion failures remove visible fields, retain inaccessible storage, and show the cleanup warning. | Parameterized “timer/submit/E-019 expiry reports failed storage deletion…” regression. |
 
-Test paths in that table are under `tests/intake/review/` unless qualified. Tests were written before the fixes. RED evidence: `/tmp/s003-r4-red.log` and `/tmp/s003-r4-clock-red.log`. GREEN evidence: `/tmp/s003-r4-{targeted,lint,typecheck,test,build,diffcheck}.log`. Reviewer feedback exposed suffix leakage during incremental HH:mm entry; the new clearing/typing regression reproduced it before the fix. No tests were disabled. Round 2’s excerpt assertions were replaced because the lead reversed that design in round 4.
+Test paths in that table are under `tests/intake/review/` unless qualified. Tests were written before the fixes. RED evidence: `/home/obidit/secondBrain/coding/fera-lanes/_orchestration/shots/s003-r4/logs/s003-r4-red.log` and `/home/obidit/secondBrain/coding/fera-lanes/_orchestration/shots/s003-r4/logs/s003-r4-clock-red.log`. GREEN evidence: `/home/obidit/secondBrain/coding/fera-lanes/_orchestration/shots/s003-r4/logs/s003-r4-{targeted,lint,typecheck,test,build,diffcheck}.log`. Reviewer feedback exposed suffix leakage during incremental HH:mm entry; the new clearing/typing regression reproduced it before the fix. No tests were disabled. Round 2’s excerpt assertions were replaced because the lead reversed that design in round 4.
 
-## Measured checks
+## Measured checks (archived round-4 run)
 
-Final commands are repeated after the last source, test and evidence edits; logs use `/tmp/s003-r4-*.log`.
+Archived round-4 command logs use `/home/obidit/secondBrain/coding/fera-lanes/_orchestration/shots/s003-r4/logs/s003-r4-*.log`.
 
 | Command | Exit | Measured result |
 |---|---|---|
@@ -42,15 +42,15 @@ Final commands are repeated after the last source, test and evidence edits; logs
 | `npx vitest run tests/intake tests/intake-ui tests/ui/review-screen.test.ts` | 0 | 666 passed; 24 files |
 | `git diff --check` | 0 | No whitespace errors |
 
-An earlier concurrent full run hit the existing auth timing assertion in `tests/auth/password.test.ts` (unknown/wrong-password ratio below its threshold); `/tmp/s003-r4-test-pre.log` retains the failure. The unchanged default suite passed on rerun (`/tmp/s003-r4-test-rerun.log`). No out-of-scope auth files were edited. Skipped DB tests do not establish database acceptance. Coverage percentage was not measured; no coverage dependency was installed.
+An earlier concurrent full run hit the existing auth timing assertion in `tests/auth/password.test.ts` (unknown/wrong-password ratio below its threshold); `/home/obidit/secondBrain/coding/fera-lanes/_orchestration/shots/s003-r4/logs/s003-r4-test-pre.log` retains the failure. The unchanged default suite passed on rerun (`/home/obidit/secondBrain/coding/fera-lanes/_orchestration/shots/s003-r4/logs/s003-r4-test-rerun.log`). No out-of-scope auth files were edited. Skipped DB tests do not establish database acceptance. Coverage percentage was not measured; no coverage dependency was installed.
 
-## Browser evidence
+## Browser evidence (archived round-4 run)
 
-Installed Playwright and isolated headless Chromium, serving the production build only at localhost. Script: `/tmp/s003-r4-browser.cjs`. Captures and `results.json`: `/home/obidit/secondBrain/coding/fera-lanes/_orchestration/shots/s003-r4/`.
+The reviewer used a locally available Playwright; no project dependency changed. Isolated headless Chromium, serving the production build only at localhost. Script: `/home/obidit/secondBrain/coding/fera-lanes/_orchestration/shots/s003-r4/logs/s003-r4-browser.cjs`. Captures and `results.json`: `/home/obidit/secondBrain/coding/fera-lanes/_orchestration/shots/s003-r4/`.
 
 The script produced **23 state captures**: empty, incomplete, valid, attempted, expired, mock-preview and mock-success at **320 px bn, 360 px bn and 1280 px en**, plus incomplete/valid at **320 px bn with 200% text enlargement**. The latter doubles computed text size and line height, including form controls, while keeping the viewport and layout spacing fixed; it is a headless text-only enlargement emulation, not a physical-browser zoom setting.
 
-Every capture was inspected for overflow and clipped values. DOM checks found no horizontal document/element overflow, no clipped input/textarea values, no missing description targets and no mismatched full-source text. Screenshots/contact sheets and scoped visual review found no material clipping. **0 page errors and 0 external requests** were observed. Wrapping, content-sized textareas keep date/text/phone values visible under text enlargement.
+Every capture was inspected for overflow and clipped values. DOM checks found no horizontal document/element overflow, no clipped input/textarea values, no missing description targets and no mismatched full-source text. Screenshots/contact sheets and scoped visual review found no material clipping. **0 page errors and 0 external requests** were observed. These archived captures predate the polish single-line inputs and do not validate the current mobile submit bar.
 
 “mock-success” means an intercepted synthetic HTTP 201 from a submit-enabled fixture (`mock:false`, `cached:true`); a `mock:true` draft cannot submit. Browser interactions also verify estimated-age entry, Bangla digits, chip-date unapplied notice, night year rollover, incremental HH:mm typing, submitted payload, single success badge, no auto-navigation and mock dispatch refusal. Expiry removes fields and focuses its replacement notice.
 
@@ -76,3 +76,31 @@ Round-4 verdict: **Sol self-review (not the release gate); release gate pending*
 - **OD-022-17:** `PART_OF_DAY_RANGES` is defined once in code, with the requested `ponytail:` comment marking lead working ranges pending human review: morning 06:00–12:00; midday 12:00–15:00; afternoon 15:00–18:00; evening 18:00–20:00; night 20:00–06:00 next day. Working mappings are implemented and tested; final human range/copy review remains pending. Physical phone/voice, screen reader, full client-to-DB TC-004/031 and S-004/manual acceptance remain unverified.
 
 Changed files are limited to the brief's allowed intake runtime, locale, tests, evidence and TASK-021/TASK-022 tracker surfaces. No dependency, contract or spec changes; no commit or push.
+
+## Polish round (2026-10-16)
+
+PA4 scope only: review components, locale, scoped tests, this evidence and the worker's single Obidit tracker log entry. No tracker row, dependency, contract, API, server or spec change. No commit or push. Current review prepares the implementation for the lead's gate; it does not pass the release gate.
+
+| Brief item | Result and regression evidence |
+|---|---|
+| Sex picker | Done. Unknown radio uses `unknownValue` in Bangla and English; empty text fields keep `reviewUnknownAdd`. `tests/ui/review-screen.test.ts`: “PR1: sex radio unknown option…” checks both locales. |
+| Date labels | Done. `timeDateShort` is “তারিখ” / “Date”; group date labels use it while the chip date keeps `timeDateLabel`. The Bangla key is marked `needs human Bangla review`. Static “PR2: chip date label…” checks labels and legends remain unchanged in source. |
+| Single-line fields | Done. Name, phone, place and district use inputs; phone keeps tel input mode/autocomplete. CR/LF are removed from edit values; long text fields retain textareas. Static PR3 and `tests/intake/review/review-fields-regressions.test.ts` PR3 cover input types and newline handling. Native text inputs may remove pasted line breaks before React receives them; the guarantee is that line breaks are never stored. |
+| Mobile submit | Done. One submit button in a sticky bar below 600 px (`max-[599px]`, exclusive of the 600 px desktop layout); `display:contents` on the card lets the form contain it, so it needs no extra list padding. Safe-area: `pb-[max(0.75rem,env(safe-area-inset-bottom))]`; checkbox stays in flow outside the bar; target `min-h-11`+. | `tests/ui/review-screen.test.ts` “PR4: one responsive submit bar…”. |
+| Evidence paths | Corrected. Every archived round-4 log citation now retains its actual `s003-r4-` filename under the orchestration logs directory. These historical logs are distinct from the current polish checks. |
+| Tracker | Done. Only the added Obidit log entry changes; the task row remains untouched and in progress. |
+
+## Sonnet takeover review (not the release gate)
+
+Sol's review stopped at its usage limit; its figures in earlier text were not relied on. Changes made in this review: removed the `focusin`/`scrollIntoView` handler (`src/app/globals.css:306` already applies `scroll-padding-block` from `--sticky-bottom`, so native focus scroll clears the bar); removed the form `--review-submit-height` variable and form bottom padding (the sticky bar is the form's last child, so it reserves its own space); `--sticky-bottom` is now written on the root only while the bar is sticky and is restored or removed on unmount; mobile breakpoint changed from `max-[600px]` to `max-[599px]` so it does not overlap `min-[600px]`; newlines in single-line fields are removed, not replaced by a space. The generic textarea branch is kept because marks, clothing, circumstances and thana still need it. Tests: `tests/intake/review/review-fields-regressions.test.ts` (newline strip; `--sticky-bottom` set, tracked, zeroed when not sticky, restored and removed on unmount).
+
+| Check | Exit | Result |
+|---|---|---|
+| `npm run lint` | 0 | no findings |
+| `npm run typecheck` | 0 | no errors |
+| `npm test` | 0 | `Test Files  80 passed | 8 skipped (88)`; `Tests  2027 passed | 162 skipped (2189)` |
+| `npm run build` | 0 | `✓ Compiled successfully in 612ms` |
+| `npx vitest run tests/intake tests/intake-ui tests/ui/review-screen.test.ts` | 0 | `Test Files  24 passed (24)`; `Tests  674 passed (674)` |
+| `git diff --check` | 0 | no output |
+
+The argon2 timing flake did not occur in this run. Not verified: real-browser rendering after these edits (earlier Sol browser captures predate them), physical devices, screen readers.

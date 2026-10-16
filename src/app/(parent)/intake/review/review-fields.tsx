@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DRAFT_FIELD_PATHS, type DraftFieldPath } from "@/contracts";
 import { FIELD_LABEL, textLang } from "@/lib/intake/draft-summary";
 import { fieldValue, NUMBER_FIELDS, TIME_FIELDS, PART_OF_DAY_RANGES, partOfDayEdits, type PartOfDay } from "@/lib/intake/review";
@@ -126,7 +126,7 @@ export function ReviewFields({ record, locale, errors, onEdit, onApprox, onBatch
     return <fieldset className="min-w-0 border-0 p-0" disabled={locked}>
       <legend className="text-body-lg font-medium text-ink">{reviewLabel(path, locale)}</legend>
       {!value && <p className="text-body-lg text-body">{t.reviewUnknownAdd}</p>}
-      <label htmlFor={id} className="block text-body-lg text-body">{t.timeDateLabel}</label>
+      <label htmlFor={id} className="block text-body-lg text-body">{t.timeDateShort}</label>
       <textarea id={id} rows={1} disabled={locked} className={`${INPUT} resize-none [field-sizing:content]`} value={localizeDigits(day, locale)}
         aria-required aria-invalid={invalid || undefined} aria-describedby={describedBy} onBlur={() => onBlur(path)}
         onChange={e => update(e.target.value, time)} />
@@ -198,18 +198,23 @@ export function ReviewFields({ record, locale, errors, onEdit, onApprox, onBatch
     const required = ALWAYS_REQUIRED.has(path);
     const hint = path === "event.district_code" ? t.reviewDistrictHint : null;
     const descriptions = [invalid ? `${id}-error` : null, hint ? `${id}-hint` : null].filter(Boolean).join(" ") || undefined;
+    const singleLine = path === "child.name" || path === "reporter.phone" || path === "event.place_text" || path === "event.district_code";
     return <section key={path} className="min-w-0 rounded-lg border border-hairline bg-surface p-4 shadow-1">
       <label id={`${id}-label`} htmlFor={id} className="flex flex-wrap items-baseline gap-x-2 text-body-lg font-semibold text-ink"><span>{reviewLabel(path, locale)}</span>{path === "event.district_code" && <HonestLabel lang="en">{t.mockLabel}</HonestLabel>}{required && <span className="text-body-md font-normal text-body">{t.reviewRequired}</span>}</label>
       {value === "" && path !== "child.sex" && <p className="mt-1 text-body-lg text-body">{t.reviewUnknownAdd}</p>}
       {path === "child.sex" ? <fieldset disabled={locked} aria-labelledby={`${id}-label`} aria-required={required || undefined} aria-invalid={invalid || undefined} aria-describedby={descriptions} className="flex flex-col gap-2 border-0 p-0">
-        {([["", t.reviewUnknownAdd], ["male", t.sexMale], ["female", t.sexFemale], ["other", t.sexOther]] as const).map(([v, label]) => (
+        {([["", t.unknownValue], ["male", t.sexMale], ["female", t.sexFemale], ["other", t.sexOther]] as const).map(([v, label]) => (
           <label key={v} className="flex min-h-11 items-center gap-3 text-body-lg text-body">
             <input id={v === "" ? id : `${id}-${v}`} type="radio" name={id} value={v} checked={value === v} onBlur={() => onBlur(path)} onChange={() => onEdit(path, v)} className="size-5 accent-primary" />{label}
           </label>
         ))}
-      </fieldset> : <textarea id={id} rows={1} disabled={locked} className={`${INPUT} resize-none [field-sizing:content]`} autoComplete={path === "reporter.phone" ? "tel" : "off"}
+      </fieldset> : singleLine ? <input id={id} disabled={locked} className={INPUT} autoComplete={path === "reporter.phone" ? "tel" : "off"}
         inputMode={NUMBER_FIELDS.has(path) ? "numeric" : path === "reporter.phone" ? "tel" : "text"}
         lang={textLang(value)} value={NUMBER_FIELDS.has(path) || TIME_FIELDS.has(path) || path === "reporter.phone" ? localizeDigits(value, locale) : value}
+        aria-required={required || undefined} aria-invalid={invalid || undefined} aria-describedby={descriptions}
+        onBlur={() => onBlur(path)} onChange={(e) => onEdit(path, e.target.value.replace(/[\r\n]+/g, ""))} />
+        : <textarea id={id} rows={1} disabled={locked} className={`${INPUT} resize-none [field-sizing:content]`} autoComplete="off" inputMode={NUMBER_FIELDS.has(path) ? "numeric" : "text"}
+        lang={textLang(value)} value={NUMBER_FIELDS.has(path) || TIME_FIELDS.has(path) ? localizeDigits(value, locale) : value}
         aria-required={required || undefined} aria-invalid={invalid || undefined} aria-describedby={descriptions}
         onBlur={() => onBlur(path)} onChange={(e) => onEdit(path, e.target.value)} />}
       {hint && <p id={`${id}-hint`} className="mt-2 break-words text-body-lg text-body">{hint}</p>}
@@ -236,11 +241,33 @@ export function ConfirmBar({ locale, checked, valid, busy, blocked, mock, descri
 }) {
   const t = locales[locale];
   const mockDisabled = mock === true;
-  return <div className="flex flex-col gap-4 rounded-lg border border-hairline bg-surface p-4">
+  const barRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const bar = barRef.current;
+    if (!bar) return;
+    const rootStyle = document.documentElement.style;
+    const previous = rootStyle.getPropertyValue("--sticky-bottom");
+    const previousPriority = rootStyle.getPropertyPriority("--sticky-bottom");
+    // globals.css turns this into scroll-padding, so native focus scroll clears the bar (WCAG 2.4.11).
+    const measure = () => rootStyle.setProperty("--sticky-bottom", getComputedStyle(bar).position === "sticky" ? `${bar.getBoundingClientRect().height}px` : "0px");
+    measure();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    observer?.observe(bar, { box: "border-box" });
+    return () => {
+      observer?.disconnect();
+      if (previous) rootStyle.setProperty("--sticky-bottom", previous, previousPriority);
+      else rootStyle.removeProperty("--sticky-bottom");
+    };
+  }, []);
+  // On mobile, contents removes this short box so the form contains the sticky
+  // bar. Desktop keeps the original confirmation card and button layout.
+  return <div className="flex flex-col gap-4 rounded-lg border border-hairline bg-surface p-4 max-[599px]:contents">
     <label className="flex min-h-11 items-center gap-3 text-body-lg text-ink">
       <input type="checkbox" className="size-6 accent-primary" checked={checked} disabled={busy || blocked} onChange={(e) => onCheck(e.target.checked)} />{t.reviewChecked}
     </label>
     {mockDisabled && <p role="status" className="flex items-start gap-2 text-body-lg text-body"><InfoIcon className="mt-1 size-5 text-info" />{t.reviewMockSubmit}</p>}
-    <button type="submit" aria-describedby={describedBy} disabled={!checked || !valid || busy || blocked || mockDisabled} aria-disabled={!checked || !valid || busy || blocked || mockDisabled} className={PRIMARY_BUTTON}>{busy ? t.reviewSubmitting : mockDisabled ? t.reviewMockSubmitButton : t.reviewSubmit}</button>
+    <div ref={barRef} data-review-sticky-bar className="min-[600px]:contents max-[599px]:sticky max-[599px]:bottom-0 max-[599px]:z-10 max-[599px]:border-t max-[599px]:border-hairline max-[599px]:bg-surface max-[599px]:px-4 max-[599px]:pt-3 max-[599px]:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <button type="submit" aria-describedby={describedBy} disabled={!checked || !valid || busy || blocked || mockDisabled} aria-disabled={!checked || !valid || busy || blocked || mockDisabled} className={`${PRIMARY_BUTTON} max-[599px]:w-full`}>{busy ? t.reviewSubmitting : mockDisabled ? t.reviewMockSubmitButton : t.reviewSubmit}</button>
+    </div>
   </div>;
 }

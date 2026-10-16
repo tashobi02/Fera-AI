@@ -7,7 +7,7 @@ import { buildSubmission, editField } from "@/lib/intake/review";
 import { localizeDigits } from "@/lib/numerals";
 import { content, elements, mountHooks } from "../../intake-ui/fakes/hook-harness";
 vi.mock("react", async (original) => ({ ...await original<typeof import("react")>(), ...(await import("../../intake-ui/fakes/hook-harness")).testHooks }));
-const { ReviewFields } = await import("@/app/(parent)/intake/review/review-fields");
+const { ReviewFields, ConfirmBar } = await import("@/app/(parent)/intake/review/review-fields");
 function fixture() {
   const r = createDeviceDraft({ to: "review", response: clientExamples.extractResponse, sourceText: clientExamples.extractResponse.draft.source_text, missing: [], asked: 4, mock: false, cached: false })!;
   r.draft = { ...structuredClone(clientExamples.createMissingRequest.draft), event: { ...clientExamples.createMissingRequest.draft.event, district_text: null } };
@@ -134,4 +134,63 @@ it("entering a date on an empty bound keeps its clock empty until typed", () => 
     expect(input(h.tree, "review-event.at_upper-time").props.value).toBe(value);
   }
   expect(record().edits["event.at_upper"]).toBe("2025-12-31T06:00:00+06:00");
+});
+
+describe("Polish round 2026-10-16 (TASK-022)", () => {
+  it("PR3: a newline typed into name or place is stripped, never stored", () => {
+    const { h, record: get } = harness();
+    change(h.tree, "review-child.name", "রাফি\nমিম"); h.render();
+    expect(get().edits["child.name"]).toBe("রাফিমিম");
+    expect(get().edits["child.name"]).not.toMatch(/[\r\n]/);
+    const { h: h2, record: get2 } = harness();
+    change(h2.tree, "review-event.place_text", "স্কুলের সামনে\nবটতলা"); h2.render();
+    expect(get2().edits["event.place_text"]).toBe("স্কুলের সামনেবটতলা");
+    expect(get2().edits["event.place_text"]).not.toMatch(/[\r\n]/);
+  });
+  it("PR3: name, phone, place, district are <input> with phone carrying inputMode tel and autoComplete tel", () => {
+    const { h } = harness();
+    for (const id of ["review-child.name", "review-reporter.phone", "review-event.place_text", "review-event.district_code"]) {
+      const n = input(h.tree, id);
+      expect(n.type, id).toBe("input");
+    }
+    const phone = input(h.tree, "review-reporter.phone");
+    expect(phone.props.inputMode).toBe("tel");
+    expect(phone.props.autoComplete).toBe("tel");
+  });
+});
+
+it("PR4: publishes the measured bar height as --sticky-bottom, tracks resizes, restores the root style on unmount", () => {
+  const observe = vi.fn(), disconnect = vi.fn(), rootSet = vi.fn(), rootRemove = vi.fn();
+  let position = "sticky", height = 73, resize!: () => void;
+  vi.stubGlobal("document", { documentElement: { style: { setProperty: rootSet, removeProperty: rootRemove, getPropertyValue: () => "8px", getPropertyPriority: () => "" } } });
+  vi.stubGlobal("getComputedStyle", () => ({ position }));
+  vi.stubGlobal("ResizeObserver", class { constructor(cb: () => void) { resize = cb; } observe = observe; disconnect = disconnect; });
+  try {
+    const h = mountHooks(() => ConfirmBar({ locale: "bn", checked: false, valid: true, busy: false, blocked: false, onCheck() {} }));
+    const bar = elements(h.tree).find(n => "data-review-sticky-bar" in n.props)!;
+    const element = { getBoundingClientRect: () => ({ height }) };
+    (bar.props.ref as { current: unknown }).current = element;
+    h.replayEffects();
+    expect(observe).toHaveBeenCalledWith(element, { box: "border-box" });
+    expect(rootSet).toHaveBeenLastCalledWith("--sticky-bottom", "73px");
+    height = 153; resize();
+    expect(rootSet).toHaveBeenLastCalledWith("--sticky-bottom", "153px");
+    position = "static"; resize();
+    expect(rootSet).toHaveBeenLastCalledWith("--sticky-bottom", "0px");
+    h.unmount();
+    expect(disconnect).toHaveBeenCalled();
+    expect(rootSet).toHaveBeenLastCalledWith("--sticky-bottom", "8px", "");
+  } finally { vi.unstubAllGlobals(); }
+});
+
+it("PR4: unmount removes --sticky-bottom when there was no previous value", () => {
+  const rootRemove = vi.fn();
+  vi.stubGlobal("document", { documentElement: { style: { setProperty() {}, removeProperty: rootRemove, getPropertyValue: () => "", getPropertyPriority: () => "" } } });
+  vi.stubGlobal("getComputedStyle", () => ({ position: "sticky" }));
+  try {
+    const h = mountHooks(() => ConfirmBar({ locale: "en", checked: false, valid: true, busy: false, blocked: false, onCheck() {} }));
+    (elements(h.tree).find(n => "data-review-sticky-bar" in n.props)!.props.ref as { current: unknown }).current = { getBoundingClientRect: () => ({ height: 70 }) };
+    h.replayEffects(); h.unmount();
+    expect(rootRemove).toHaveBeenCalledWith("--sticky-bottom");
+  } finally { vi.unstubAllGlobals(); }
 });

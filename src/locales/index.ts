@@ -205,6 +205,7 @@ const bn = {
   timePartEvening: "সন্ধ্যা", // needs human Bangla review
   timePartNight: "রাত", // needs human Bangla review
   timeDateLabel: "শেষবার দেখার তারিখ", // needs human Bangla review
+  timeDateShort: "তারিখ", // needs human Bangla review
   timeDateHint: "সঠিক তারিখ জানা না থাকলে খালি রাখুন।", // needs human Bangla review
   timePartLabel: "দিনের কোন সময়", // needs human Bangla review
   earlierDraftFound: "আগের খসড়া পাওয়া গেছে — চালিয়ে যাবেন?", // D3:309; needs human Bangla review
@@ -455,6 +456,7 @@ const en = {
   timePartEvening: "Evening",
   timePartNight: "Night",
   timeDateLabel: "Date last seen",
+  timeDateShort: "Date",
   timeDateHint: "Leave empty if you are not sure of the date.",
   timePartLabel: "Part of day",
   earlierDraftFound: "Earlier draft found — continue?", // D3:309
