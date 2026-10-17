@@ -20,7 +20,7 @@ import { parentPrincipal, type Principal } from "@/contracts/server";
 import { PATCH } from "@/app/api/cases/[id]/route";
 import { defaultAuth } from "@/server/auth/default";
 import type { Pool, PoolClient } from "pg";
-import { dbTestsEnabled, fakePhone, pool, seedReference } from "./support/db";
+import { closeMissing, dbTestsEnabled, fakePhone, openMissing, pool, seedReference } from "./support/db";
 
 let fixturePool: Pool;
 let appPool: Pool;
@@ -65,11 +65,13 @@ async function insertParentSession(): Promise<string> {
   });
 }
 
-// Transition a case to a specific status under the app pool (the case service
-// is what owns the state machine; we use a single direct UPDATE for fixtures).
-async function forceStatus(caseId: string, status: "open" | "matched_pending_review" | "confirmed" | "closed"): Promise<void> {
+// Prepare an inserted missing case through legal state-machine transitions.
+async function transitionMissingCase(caseId: string, status: "open" | "closed"): Promise<void> {
   const c = await appPool.connect();
-  try { await c.query("UPDATE cases SET status = $1 WHERE id = $2", [status, caseId]); }
+  try {
+    await openMissing(c, caseId);
+    if (status === "closed") await closeMissing(c, caseId, "resolved_outside_fera");
+  }
   finally { c.release(); }
 }
 
@@ -127,11 +129,11 @@ describe.skipIf(!dbTestsEnabled)("API-005 cases edit (P3-102, TC-018)", () => {
     const editable = await insertSubmittedMissingCase(parentSessionId);
     editableCaseId = editable.id;
     editableVersion = editable.version;
-    await forceStatus(editableCaseId, "open");
+    await transitionMissingCase(editableCaseId, "open");
     const closed = await insertSubmittedMissingCase(parentSessionId);
     closedCaseId = closed.id;
     closedVersion = closed.version;
-    await forceStatus(closedCaseId, "closed");
+    await transitionMissingCase(closedCaseId, "closed");
   });
 
   afterEach(() => vi.restoreAllMocks());
@@ -180,7 +182,7 @@ describe.skipIf(!dbTestsEnabled)("API-005 cases edit (P3-102, TC-018)", () => {
     const principal = parentPrincipal({ id: parentSessionId, expires_at: "2099-01-01T00:00:00+06:00", revoked_at: null });
     expect(principal).not.toBeNull();
     const other = await insertSubmittedMissingCase(otherSessionId);
-    await forceStatus(other.id, "open");
+    await transitionMissingCase(other.id, "open");
     const res = await patchAs(principal, other.id, REQUEST(other.version));
     expect(res.status).toBe(404);
     const envelope = errorEnvelopeSchema.parse(await res.json());
