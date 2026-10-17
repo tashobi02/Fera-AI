@@ -31,9 +31,11 @@ import { LIMITS } from "@/contracts/primitives";
 export interface ScoreInput {
   // Two L2-normalised, same-space embedding vectors. The cosine of the
   // embedding pair is the dominant signal (D1 BR-018; A-028). Cosine is the
-  // only feature that is always available for a valid pair.
-  missingEmbedding: readonly number[];
-  foundEmbedding: readonly number[];
+  // only feature that is always available for a valid pair. ArrayLike
+  // accepts plain arrays, Float32Array (Transformers.js) and other
+  // typed arrays; strings are rejected by the guard.
+  missingEmbedding: ArrayLike<number>;
+  foundEmbedding: ArrayLike<number>;
 
   // Text fields used for the name and clothing components. `null` or empty
   // on either side yields a `null` component (BR-018: missing values are
@@ -114,10 +116,11 @@ export const MATCH_CONFIG = {
   // Spec-derived tolerance.
   ageOverlapToleranceYears: 2, // D1 PRD V2 BR-017 ±2-year window
 
-  // Documented default, calibrate on dev split only (AMD-3-3).
-  // D1 BR-018 / A-028: minimum cosine to qualify. Without it, two unrelated
-  // vectors with a high soft-feature run (e.g. a same-district coincidence)
-  // could falsely qualify.
+  // Documented default, calibrate on dev split only (AMD-3-3);
+  // NOT stated in BR-018 or A-028. The spec only constrains the
+  // ±2-year tolerance and the weights; this floor is an
+  // implementation-side guard against unrelated pairs that score
+  // high on the soft features (e.g. a same-district coincidence).
   minCosineToQualify: 0.3,
   // Documented default, calibrate on dev split only (AMD-3-3). Minimum
   // similarity to qualify (0–100 scale). A pair whose weighted score is
@@ -140,13 +143,13 @@ function isFiniteNumber(n: unknown): n is number {
   return typeof n === "number" && Number.isFinite(n);
 }
 
-function l2norm(v: readonly number[]): number {
+function l2norm(v: ArrayLike<number>): number {
   let s = 0;
   for (let i = 0; i < v.length; i++) s += v[i]! * v[i]!;
   return Math.sqrt(s);
 }
 
-function cosineSimilarity(a: readonly number[], b: readonly number[]): number {
+function cosineSimilarity(a: ArrayLike<number>, b: ArrayLike<number>): number {
   if (a.length === 0 || b.length === 0) return 0;
   if (a.length !== b.length) return 0; // different space — refuse
   const na = l2norm(a);
@@ -168,13 +171,16 @@ function cosineSimilarity(a: readonly number[], b: readonly number[]): number {
 function tokenise(s: string): Set<string> {
   // 1. NFC normalise so visually-equivalent Bangla composes identically.
   // 2. Lower-case (safe for both Latin and Bangla script).
-  // 3. Strip punctuation: anything that is not a letter, number or
-  //    whitespace.
+  // 3. Strip punctuation: anything that is not a letter (L), combining
+  //    mark (M), digit (N) or whitespace. Keeping \p{M} preserves
+  //    Bangla vowel signs (ে, ো, ু, etc.) and the hasanta (্) so a
+  //    composite character like "র" + "্" + "হ" + "ি" + "ম" stays as a
+  //    single token, not shredded into separate characters.
   // 4. Collapse internal whitespace runs and trim.
   const normalised = s
     .normalize("NFC")
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]+/gu, " ")
+    .replace(/[^\p{L}\p{M}\p{N}\s]+/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
   if (normalised === "") return new Set();
@@ -197,41 +203,70 @@ function jaccard(a: Set<string>, b: Set<string>): number | null {
 }
 
 function textComponent(
-  a: string | null,
-  b: string | null,
+  a: string | null | undefined,
+  b: string | null | undefined,
 ): number | null {
   // Documented default (AMD-3-3). BR-018: missing values are null.
-  if (a === null || b === null) return null;
+  // Treat undefined the same as null (defensive: callers that
+  // forget to normalise a missing field should not throw).
+  if (a == null || b == null) return null;
   if (a === "" || b === "") return null;
   return jaccard(tokenise(a), tokenise(b));
 }
 
+// NOTE on name-script comparison (TASK-017b / P3-031 round 2):
+// This module compares the parent-reported child_name and the
+// staff-entered child_name token by token after NFC + lowercase +
+// punctuation strip. A Bangla-script name on one side and a
+// Latin-script name on the other are NOT comparable here and so
+// score 0 (whole-token mismatch after tokenisation). This is a
+// known limitation of the present implementation; a Bangla
+// transliteration step against the synthetic child_name_latin
+// field (when present) is on the roadmap as a later improvement
+// and will NOT be tackled in this fix round.
+
 /**
- * District component: 1 same, 0.5 neighbour, 0 otherwise; null if either
- * axis is unknown. Documented default (AMD-3-3).
+ * District component: 1 same, 0.5 neighbour, 0 otherwise; null when
+ * neither axis is known (the parent / staff could not say).
+ * Documented default (AMD-3-3).
+ *
+ * A known "same" dominates a known "neighbour" (1 wins over 0.5).
+ * When only the neighbour axis is known, the score is 0.5 if
+ * neighbour is true, else 0. When only the same axis is known and
+ * it is true, score 1; if it is false, score 0.
  */
 function districtComponent(
   same: boolean | null,
   neighbour: boolean | null,
 ): number | null {
   if (same === null && neighbour === null) return null;
-  // Treat "same" as the dominant signal when both axes are known.
   if (same === true) return 1;
   if (neighbour === true) return 0.5;
   if (same === false || neighbour === false) return 0;
-  // Only one axis known, and it is the unknown one — fall through to
-  // whichever is known; if both still null we already returned above.
-  if (same === null) return neighbour ? 0.5 : 0;
-  if (neighbour === null) return same ? 1 : 0;
+  // Only one axis known and it is the unknown one — i.e. we reach
+  // here with (same=null, neighbour=true) already handled above and
+  // (same=true, neighbour=null) already handled above. The remaining
+  // cases (same=null, neighbour=false) and (same=true, neighbour=null)
+  // both fall through to 0.
   return 0;
 }
 
 /**
- * Age interval-overlap closeness within the BR-017 ±2 year tolerance. The
- * closeness is the length of the intersection (after widening by the
- * tolerance) divided by the length of the smaller widened interval; this
- * yields 1.0 for fully-overlapping intervals and 0 for disjoint ones. Null
- * if either side has any unknown bound. Documented default (AMD-3-3).
+ * Age interval-overlap closeness within the BR-017 ±2 year tolerance.
+ *
+ * Only ONE side is widened by the tolerance — the other stays at
+ * its raw interval — so two intervals that differ by exactly 2
+ * years can still score 1.0 (the widened side reaches the raw
+ * side) but 3 years apart score < 1.0. Widening BOTH sides (the
+ * old behaviour) effectively doubled the band.
+ *
+ * The overlap is computed in INCLUSIVE year arithmetic: an
+ * intersection of [x, y] contains y − x + 1 whole years. A full
+ * overlap yields 1.0; a disjoint pair yields 0. Null if either side
+ * has any unknown bound. The isValidPair guard rejects min > max
+ * and negative bounds upstream, so this function does not re-check.
+ *
+ * Documented default (AMD-3-3).
  */
 function ageComponent(
   aMin: number | null,
@@ -243,13 +278,16 @@ function ageComponent(
     return null;
   }
   const tol = MATCH_CONFIG.ageOverlapToleranceYears;
-  const lo = Math.max(aMin - tol, bMin - tol);
-  const hi = Math.min(aMax + tol, bMax + tol);
-  const spanA = aMax - aMin + 2 * tol;
-  const spanB = bMax - bMin + 2 * tol;
-  if (hi < lo) return 0;
+  // Widen only the b-side by the tolerance; a-side stays raw.
+  const overlapLo = Math.max(aMin, bMin - tol);
+  const overlapHi = Math.min(aMax, bMax + tol);
+  const overlapYears = overlapHi - overlapLo + 1;
+  if (overlapYears <= 0) return 0;
+  // Inclusive span of each raw interval (a single year is span 1).
+  const spanA = aMax - aMin + 1;
+  const spanB = bMax - bMin + 1;
   const denom = Math.max(1, Math.min(spanA, spanB));
-  return Math.min(1, (hi - lo + 1) / denom);
+  return Math.min(1, overlapYears / denom);
 }
 
 /* ---------- scorePair ---------- */
@@ -260,7 +298,12 @@ function invalidComponents(): ScoredCandidate["components"] {
 
 function isValidPair(input: ScoreInput): boolean {
   const { missingEmbedding, foundEmbedding } = input;
-  if (!Array.isArray(missingEmbedding) || !Array.isArray(foundEmbedding)) return false;
+  // Accept ArrayLike<number> so typed arrays (Float32Array from
+  // Transformers.js, etc.) pass the guard. We deliberately do NOT
+  // accept strings here; a string index access would coerce letters
+  // to NaN but the typing of the input field is numeric.
+  if (!isArrayLikeOfNumbers(missingEmbedding)) return false;
+  if (!isArrayLikeOfNumbers(foundEmbedding)) return false;
   if (missingEmbedding.length === 0 || foundEmbedding.length === 0) return false;
   if (missingEmbedding.length !== foundEmbedding.length) return false;
   for (let i = 0; i < missingEmbedding.length; i++) {
@@ -268,16 +311,44 @@ function isValidPair(input: ScoreInput): boolean {
     if (!isFiniteNumber(foundEmbedding[i])) return false;
   }
   if (l2norm(missingEmbedding) === 0 || l2norm(foundEmbedding) === 0) return false;
-  // Age bounds, when present, must be finite.
-  for (const v of [
-    input.missingAgeMin,
-    input.missingAgeMax,
-    input.foundAgeMin,
-    input.foundAgeMax,
-  ]) {
-    if (v !== null && !isFiniteNumber(v)) return false;
+  // Age bounds, when present, must be finite and non-negative; min
+  // must not exceed max; both bounds must be provided together (a
+  // single known bound is not a usable interval).
+  const ageChecks: Array<[number | null, number | null]> = [
+    [input.missingAgeMin, input.missingAgeMax],
+    [input.foundAgeMin, input.foundAgeMax],
+  ];
+  for (const [minV, maxV] of ageChecks) {
+    const hasMin = minV !== null;
+    const hasMax = maxV !== null;
+    // Either both present or both null: a single known bound with
+    // the other null is treated as an invalid pair.
+    if (hasMin !== hasMax) return false;
+    if (hasMin && hasMax) {
+      if (!isFiniteNumber(minV!) || !isFiniteNumber(maxV!)) return false;
+      if (minV! < 0 || maxV! < 0) return false;
+      if (minV! > maxV!) return false;
+    }
   }
   return true;
+}
+
+function isArrayLikeOfNumbers(v: unknown): v is ArrayLike<number> {
+  if (v == null) return false;
+  if (typeof v === "string") return false;
+  // Array.isArray is true for plain arrays AND any object with a
+  // numeric length whose indexed elements are numbers; Float32Array,
+  // Float64Array, Int8Array, etc. all satisfy this.
+  if (Array.isArray(v)) return true;
+  if (typeof v !== "object") return false;
+  const obj = v as { readonly length?: unknown };
+  if (typeof obj.length !== "number" || !Number.isFinite(obj.length)) {
+    return false;
+  }
+  // Typed arrays expose a non-enumerable, but here we only check
+  // that at least one indexed access returns a number. This is
+  // enough to reject plain objects that look array-like by name.
+  return typeof (obj as ArrayLike<unknown>)[0] === "number";
 }
 
 export function scorePair(input: ScoreInput): ScoredCandidate {
@@ -342,11 +413,17 @@ export function scorePair(input: ScoreInput): ScoredCandidate {
     age: age === null ? null : round2(age),
   };
 
+  // Round similarity to 2 decimals FIRST and decide qualification
+  // against the rounded value. The returned value is also the
+  // rounded value, so qualification and ranking agree with what the
+  // caller sees. A raw 59.996 that rounds to 60.00 must qualify.
+  const similarityRounded = round2(similarity);
+
   const qualified =
     cosine >= MATCH_CONFIG.minCosineToQualify &&
-    similarity >= MATCH_CONFIG.qualifySimilarity;
+    similarityRounded >= MATCH_CONFIG.qualifySimilarity;
 
-  return { similarity: round2(similarity), components, qualified };
+  return { similarity: similarityRounded, components, qualified };
 }
 
 function round2(n: number): number {

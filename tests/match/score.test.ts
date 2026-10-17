@@ -143,6 +143,63 @@ describe("scorePair — invalid-pair guard", () => {
     expect(r.qualified).toBe(false);
     expect(r.components.age).toBeNull();
   });
+  it("min > max on any age interval → invalid pair (all-null components)", () => {
+    const r = scorePair(
+      base({ missingAgeMin: 12, missingAgeMax: 10, foundAgeMin: 10, foundAgeMax: 10 }),
+    );
+    expect(r.similarity).toBe(0);
+    expect(r.qualified).toBe(false);
+    expect(r.components.age).toBeNull();
+  });
+  it("negative age bound → invalid pair (all-null components)", () => {
+    const r = scorePair(
+      base({ missingAgeMin: -3, missingAgeMax: 5, foundAgeMin: 5, foundAgeMax: 5 }),
+    );
+    expect(r.similarity).toBe(0);
+    expect(r.qualified).toBe(false);
+    expect(r.components.age).toBeNull();
+  });
+  it("a single known age bound (min known, max null) → invalid pair", () => {
+    // The age contract requires both bounds to be present or both
+    // null. A single known bound is treated as invalid upstream so
+    // downstream code does not invent a value for the missing one.
+    const r = scorePair(
+      base({ missingAgeMin: 10, missingAgeMax: null, foundAgeMin: 10, foundAgeMax: 10 }),
+    );
+    expect(r.similarity).toBe(0);
+    expect(r.qualified).toBe(false);
+    expect(r.components.age).toBeNull();
+  });
+  it("a Float32Array of finite numbers is a valid embedding pair", () => {
+    // Transformers.js returns Float32Array. Array.isArray would
+    // return false on a Float32Array, so the guard must accept
+    // typed arrays via ArrayLike<number>.
+    const m = new Float32Array([0.6, 0.8, 0, 0]);
+    const f = new Float32Array([0.6, 0.8, 0, 0]);
+    const r = scorePair(
+      base({ missingEmbedding: m, foundEmbedding: f }),
+    );
+    expect(r.similarity).toBeGreaterThan(0);
+    expect(r.components.cosine).toBeCloseTo(1, 5);
+  });
+  it("a Float32Array with NaN → invalid pair (all-null components)", () => {
+    const m = new Float32Array([Number.NaN, 0.8, 0, 0]);
+    const f = new Float32Array([0.6, 0.8, 0, 0]);
+    const r = scorePair(
+      base({ missingEmbedding: m, foundEmbedding: f }),
+    );
+    expect(r.similarity).toBe(0);
+    expect(r.qualified).toBe(false);
+    expect(r.components.cosine).toBeNull();
+  });
+  it("a string is rejected as an embedding (not a numeric array-like)", () => {
+    const r = scorePair(
+      base({ missingEmbedding: "1,0,0,0" as unknown as readonly number[], foundEmbedding: a }),
+    );
+    expect(r.similarity).toBe(0);
+    expect(r.qualified).toBe(false);
+    expect(r.components.cosine).toBeNull();
+  });
   it("never returns NaN or Infinity for any field across bad inputs", () => {
     const cases: ScoreInput[] = [
       base({ missingEmbedding: [0, 0, 0, 0], foundEmbedding: [0, 0, 0, 0] }),
@@ -151,6 +208,10 @@ describe("scorePair — invalid-pair guard", () => {
       base({ missingEmbedding: [], foundEmbedding: [] }),
       base({ missingEmbedding: [1, 0], foundEmbedding: [1, 0, 0] }),
       base({ missingAgeMin: Number.NaN, missingAgeMax: 5, foundAgeMin: 5, foundAgeMax: 5 }),
+      base({ missingAgeMin: 12, missingAgeMax: 10, foundAgeMin: 10, foundAgeMax: 10 }),
+      base({ missingAgeMin: -3, missingAgeMax: 5, foundAgeMin: 5, foundAgeMax: 5 }),
+      base({ missingAgeMin: 10, missingAgeMax: null, foundAgeMin: 10, foundAgeMax: 10 }),
+      base({ missingEmbedding: "1,0,0,0" as unknown as readonly number[], foundEmbedding: a }),
     ];
     for (const c of cases) {
       const r = scorePair(c);
@@ -170,6 +231,28 @@ describe("scorePair — A-028 components: name/clothing", () => {
   it("name component is null when either side is empty after normalisation", () => {
     const r = scorePair(base({ missingName: "Rahim", foundName: "   " }));
     expect(r.components.name).toBeNull();
+  });
+  it("textComponent treats undefined the same as null (P3-031 fix #6)", () => {
+    // The ScoreInput type is `string | null`, but a defensive
+    // textComponent also accepts `undefined` and returns null
+    // instead of throwing. Pass undefined through `as never` (the
+    // public type forbids it; this test pins the runtime safety).
+    const r = scorePair(
+      base({
+        missingName: undefined as unknown as null,
+        foundName: "Rahim",
+      }),
+    );
+    expect(r.components.name).toBeNull();
+  });
+  it("textComponent treats clothing undefined the same as null", () => {
+    const r = scorePair(
+      base({
+        missingClothing: "blue shirt",
+        foundClothing: undefined as unknown as null,
+      }),
+    );
+    expect(r.components.clothing).toBeNull();
   });
   it("name component = token-set Jaccard on NFC / lower-case / punctuation-stripped text", () => {
     const r = scorePair(
@@ -203,6 +286,64 @@ describe("scorePair — A-028 components: name/clothing", () => {
     expect(r.components.clothing!).toBeGreaterThanOrEqual(0);
     expect(r.components.clothing!).toBeLessThanOrEqual(1);
   });
+  it("Bangla name 'রহিম' vs 'রহিম' = 1 (tokenise keeps the whole composite token)", () => {
+    // P3-031 fix #1: the old /[^\p{L}\p{N}\s]+/gu regex shredded
+    // combining marks, splitting "রহিম" into ["রহ","ম"]. The fix
+    // keeps \p{M} so the whole name is one token. Identical names
+    // therefore Jaccard 1.
+    const r = scorePair(
+      base({ missingName: "রহিম", foundName: "রহিম" }),
+    );
+    expect(r.components.name).toBe(1);
+  });
+  it("Bangla name 'রহিম' vs 'করিম' = 0 (whole-token mismatch, not partial)", () => {
+    // Two different Bangla names that differ only in the first
+    // consonant: with the fix they are different tokens and Jaccard
+    // is 0 (not a partial credit from a "rahim"/"karim" syllable
+    // overlap — the old regex would have shredded both into similar
+    // fragments and produced a misleading partial score).
+    const r = scorePair(
+      base({ missingName: "রহিম", foundName: "করিম" }),
+    );
+    expect(r.components.name).toBe(0);
+  });
+  it("multi-token Bangla clothing: 'লাল শার্ট, নীল জিন্স' vs 'নীল জিন্স' Jaccard = 2/3", () => {
+    // Both sides NFC-normalise then tokenise. With the fix the
+    // composite tokens {লাল, শার্ট, নীল, জিন্স} and {নীল, জিন্স}
+    // intersect on 2 tokens, union on 4. Jaccard = 2/4 = 0.5.
+    // The old regex would have shredded each composite into
+    // 2-3 fragments, changing the Jaccard.
+    const r = scorePair(
+      base({
+        missingClothing: "লাল শার্ট, নীল জিন্স",
+        foundClothing: "নীল জিন্স",
+      }),
+    );
+    expect(r.components.clothing).toBeCloseTo(0.5, 2);
+  });
+  it("two-token Bangla name 'রহিম উদ্দিন' keeps each token whole (no combining-mark shredding)", () => {
+    // "রহিম উদ্দিন" splits on the ASCII space into 2 tokens, and
+    // each token keeps its combining marks intact (the hasanta ্
+    // and the vowel sign ি). Compared to itself, the two token
+    // sets are equal and Jaccard = 1. The old regex would have
+    // turned "রহিম" into {রহ, ম} and "উদ্দিন" into {উদ, দ, ন},
+    // dropping the intra-token Jaccard for any close-but-not-equal
+    // pair.
+    const r = scorePair(
+      base({ missingName: "রহিম উদ্দিন", foundName: "রহিম উদ্দিন" }),
+    );
+    expect(r.components.name).toBe(1);
+  });
+  it("'রহিম উদ্দিন' vs 'রহিম' (Bangla) = 1/2 (one of two tokens shared)", () => {
+    // With the fix, {রহিম, উদ্দিন} ∩ {রহিম} = {রহিম}; union = 2.
+    // Jaccard = 1/2 = 0.5. The old regex would have produced
+    // {রহ, ম} ∩ {রহ} = {রহ} with union 3 → 1/3, a different
+    // value.
+    const r = scorePair(
+      base({ missingName: "রহিম উদ্দিন", foundName: "রহিম" }),
+    );
+    expect(r.components.name).toBeCloseTo(0.5, 2);
+  });
 });
 
 describe("scorePair — A-028 components: district", () => {
@@ -230,6 +371,25 @@ describe("scorePair — A-028 components: district", () => {
     );
     expect(r.components.district).toBe(0);
   });
+  it("district component is null when only 'same' is unknown and no neighbour info (P3-031 fix #6)", () => {
+    // "Unknown same with no neighbour info" = (same=null,
+    // neighbour=null) → null (no evidence either way). The same
+    // null/unknown is preserved when only one axis is unknown and
+    // the other is unknown too; the dead branches that used to
+    // fall through to 0 have been removed.
+    const r = scorePair(
+      base({ districtSame: null, districtNeighbour: null }),
+    );
+    expect(r.components.district).toBeNull();
+  });
+  it("district component is 0 when same is unknown and neighbour is false (no match)", () => {
+    // A known 'neighbour = false' on the only known axis is
+    // disagreement, not unknown — so the score is 0, not null.
+    const r = scorePair(
+      base({ districtSame: null, districtNeighbour: false }),
+    );
+    expect(r.components.district).toBe(0);
+  });
 });
 
 describe("scorePair — A-028 components: age", () => {
@@ -240,17 +400,60 @@ describe("scorePair — A-028 components: age", () => {
     expect(r.components.age).toBeNull();
   });
   it("age component is 0 when the intervals do not intersect even with ±2y tolerance", () => {
+    // Hand-computed (P3-031 fix #3): widen only the b-side by ±2.
+    // a=[5,6] raw, b=[15,17] widened to [13,19]. Overlap = empty.
+    // 0.
     const r = scorePair(
       base({ missingAgeMin: 5, missingAgeMax: 6, foundAgeMin: 15, foundAgeMax: 17 }),
     );
-    // 5-6 + 2y tolerance = 3-8; 15-17 + 2y tolerance = 13-19. No overlap.
     expect(r.components.age).toBe(0);
   });
   it("age component is 1 when the intervals fully overlap (single-year, equal)", () => {
+    // Hand-computed: a=[10,10] raw, b=[10,10] widened to [8,12].
+    // Overlap [10,10] = 1 year. spanA = 1, spanB = 1.
+    // min(1, 1/1) = 1.
     const r = scorePair(
       base({ missingAgeMin: 10, missingAgeMax: 10, foundAgeMin: 10, foundAgeMax: 10 }),
     );
     expect(r.components.age).toBe(1);
+  });
+  it("age component is 1 when b is exactly 2 years above a single-year a (inside tolerance)", () => {
+    // Hand-computed (P3-031 fix #3): a=[10,10] raw, b=[12,12]
+    // widened to [10,14]. Overlap = [10,10] = 1 year. spanA = 1,
+    // spanB = 1. min(1, 1/1) = 1.
+    const r = scorePair(
+      base({ missingAgeMin: 10, missingAgeMax: 10, foundAgeMin: 12, foundAgeMax: 12 }),
+    );
+    expect(r.components.age).toBe(1);
+  });
+  it("age component is 0 when b is exactly 3 years above a single-year a (outside ±2 tolerance)", () => {
+    // Hand-computed (P3-031 fix #3): a=[10,10] raw, b=[13,13]
+    // widened to [11,15]. Overlap = empty (lo=11, hi=10).
+    // 0.
+    const r = scorePair(
+      base({ missingAgeMin: 10, missingAgeMax: 10, foundAgeMin: 13, foundAgeMax: 13 }),
+    );
+    expect(r.components.age).toBe(0);
+  });
+  it("age component on a touching-but-not-overlapping pair is 1 with the new tolerance (the b-side widening reaches a)", () => {
+    // Hand-computed (P3-031 fix #3): a=[8,10] raw, b=[10,12]
+    // widened to [8,14]. Overlap = [8,10] = 3 years. spanA = 3,
+    // spanB = 3. min(1, 3/3) = 1. The old behaviour that widened
+    // BOTH sides would also give 1 here; the change is the
+    // doubled band, not this case.
+    const r = scorePair(
+      base({ missingAgeMin: 8, missingAgeMax: 10, foundAgeMin: 10, foundAgeMax: 12 }),
+    );
+    expect(r.components.age).toBe(1);
+  });
+  it("age component on a partial overlap [8,12] vs [13,15] is 2/3 (raw intersection 11-12)", () => {
+    // Hand-computed (P3-031 fix #3): a=[8,12] raw, b=[13,15]
+    // widened to [11,17]. Overlap = [11,12] = 2 years. spanA = 5,
+    // spanB = 3. min(5, 3) = 3. min(1, 2/3) ≈ 0.67.
+    const r = scorePair(
+      base({ missingAgeMin: 8, missingAgeMax: 12, foundAgeMin: 13, foundAgeMax: 15 }),
+    );
+    expect(r.components.age).toBeCloseTo(2 / 3, 2);
   });
   it("age component is on a 0-1 scale", () => {
     const r = scorePair(
@@ -349,19 +552,62 @@ describe("scorePair — all-unknown pair uses cosine only and can qualify only b
     expect(r.similarity).toBe(0);
     expect(r.qualified).toBe(false);
   });
-  it("cosine below the floor with no other features known → not qualified", () => {
-    // cosine ≈ 0.707 < 0.30 is false, so cosine meets the floor. But with
-    // a cosine of 0.707 the only available feature is cosine, so
-    // similarity = 100 × 0.707 / 0.707 = 100 (after rounding 70.71
-    // because the only available weight is 0.55 and 0.55/0.55=1, so
-    // similarity = 100 × 0.707 × 0.55 / 0.55 = 70.71). Either way the
-    // cosine floor (0.30) is met, so the pair qualifies. This test pins
-    // the math: a lone-cosine pair scores exactly 100 × cosine.
+  it("lone cosine pair: the score is 100 × cosine, and qualifies only when cosine meets the floor (worked by hand)", () => {
+    // c = [√0.5, √0.5, 0, 0] is unit-length and shares the first two
+    // axes equally with a, so dot(a, c) = √0.5 ≈ 0.707. With only
+    // cosine available, A-028 normalisation makes the lone feature
+    // carry 100% of the weight. similarity = 100 × 0.707 = 70.71
+    // (rounded to 2dp). The cosine floor (0.30) is met (0.707 > 0.30),
+    // so the pair qualifies. This pins the math: a lone-cosine pair
+    // scores exactly 100 × cosine.
     const r = scorePair(base({ foundEmbedding: c })); // cosine ≈ 0.707
     expect(r.components.cosine!).toBeGreaterThan(MATCH_CONFIG.minCosineToQualify);
-    // similarity = 100 × 0.55 × 0.707 / 0.55 = 70.71 (rounded to 2dp).
     expect(r.similarity).toBeCloseTo(70.71, 2);
     expect(r.qualified).toBe(true);
+  });
+  it("cosine ≈ 0.29 with ALL soft features at 1 abstains because of the cosine floor (P3-031 fix #4)", () => {
+    // Construct a unit vector d = [0.29, sqrt(1 - 0.29²), 0, 0] so
+    // dot(a, d) = 0.29 → cosine = 0.29. cosine = 0.29 < floor 0.30
+    // so the cosine-floor guard must make the pair abstain EVEN
+    // THOUGH the weighted score with all four soft features at 1
+    // is 100 × (0.55*0.29 + 0.15 + 0.15 + 0.10 + 0.05) = 100 ×
+    // 0.6095 = 60.95 — which would otherwise qualify (>= 60).
+    const d: readonly number[] = [0.29, Math.sqrt(1 - 0.29 * 0.29), 0, 0];
+    const r = scorePair(
+      base({
+        foundEmbedding: d,
+        missingName: "Rahim",
+        foundName: "Rahim",
+        missingClothing: "blue shirt",
+        foundClothing: "blue shirt",
+        districtSame: true,
+        districtNeighbour: null,
+        missingAgeMin: 10,
+        missingAgeMax: 10,
+        foundAgeMin: 10,
+        foundAgeMax: 10,
+      }),
+    );
+    // Sanity: weighted similarity is above the threshold.
+    expect(r.similarity).toBeGreaterThanOrEqual(MATCH_CONFIG.qualifySimilarity);
+    // The cosine floor must still force the pair to abstain.
+    expect(r.components.cosine!).toBeLessThan(MATCH_CONFIG.minCosineToQualify);
+    expect(r.qualified).toBe(false);
+  });
+  it("cosine at exactly the floor (0.30) qualifies when similarity meets the threshold", () => {
+    // Construct a unit vector e = [0.30, sqrt(1 - 0.30²), 0, 0] so
+    // dot(a, e) = 0.30 → cosine = 0.30 (boundary). All other
+    // features unknown → similarity = 100 × 0.30 = 30.0. This is
+    // below the 60 threshold so it should still abstain. The point
+    // of this test is the cosine floor check: 0.30 >= 0.30 is
+    // true, so the cosine-floor guard does not block.
+    const e: readonly number[] = [0.3, Math.sqrt(1 - 0.09), 0, 0];
+    const r = scorePair(base({ foundEmbedding: e }));
+    expect(r.components.cosine).toBeCloseTo(0.3, 5);
+    expect(r.components.cosine!).toBeGreaterThanOrEqual(MATCH_CONFIG.minCosineToQualify);
+    // similarity is below the threshold because only cosine is known.
+    expect(r.similarity).toBeLessThan(MATCH_CONFIG.qualifySimilarity);
+    expect(r.qualified).toBe(false);
   });
 });
 
@@ -435,6 +681,57 @@ describe("scorePair — similarity bounds and qualification boundary", () => {
       }),
     );
     expect(high.similarity).toBeLessThanOrEqual(100);
+  });
+  it("rounded-similarity boundary: a pair whose raw similarity is above 60 qualifies (P3-031 fix #5)", () => {
+    // Hand-computed: cosine=0.5, district=1, age=1.
+    // numerator = 0.55*0.5 + 0.10*1 + 0.05*1 = 0.275 + 0.15 = 0.425.
+    // denominator = 0.55 + 0.10 + 0.05 = 0.70.
+    // raw similarity = 100 × 0.425 / 0.70 = 60.7142...
+    // rounds to 60.71. With cosine (0.5) above the floor (0.30)
+    // AND similarity (60.71) ≥ the threshold (60), the pair must
+    // qualify. The point of this test is that rounding to 2
+    // decimals happens BEFORE the threshold check and that the
+    // returned `similarity` field is the same rounded value the
+    // caller sees — i.e. qualification and ranking both read the
+    // same rounded number.
+    const v: readonly number[] = [0.5, Math.sqrt(0.75), 0, 0];
+    const r = scorePair(
+      base({
+        missingEmbedding: a,
+        foundEmbedding: v, // cosine = 0.5 with a
+        districtSame: true,
+        districtNeighbour: null,
+        missingAgeMin: 10,
+        missingAgeMax: 10,
+        foundAgeMin: 10,
+        foundAgeMax: 10,
+      }),
+    );
+    expect(r.similarity).toBeCloseTo(60.71, 2);
+    expect(r.similarity).toBeGreaterThanOrEqual(MATCH_CONFIG.qualifySimilarity);
+    expect(r.qualified).toBe(true);
+  });
+  it("a similarity just below 60 abstains (P3-031 fix #5)", () => {
+    // Hand-computed: cosine=0.5, district=0 (different) + age=1.
+    // numerator = 0.55*0.5 + 0.10*0 + 0.05*1 = 0.275 + 0.05 = 0.325.
+    // denominator = 0.55 + 0.10 + 0.05 = 0.70.
+    // raw similarity = 100 × 0.325 / 0.70 = 46.4285... rounds to
+    // 46.43. This is comfortably below 60 and abstains.
+    const v: readonly number[] = [0.5, Math.sqrt(0.75), 0, 0];
+    const r = scorePair(
+      base({
+        missingEmbedding: a,
+        foundEmbedding: v,
+        districtSame: false,
+        districtNeighbour: false,
+        missingAgeMin: 10,
+        missingAgeMax: 10,
+        foundAgeMin: 10,
+        foundAgeMax: 10,
+      }),
+    );
+    expect(r.similarity).toBeLessThan(MATCH_CONFIG.qualifySimilarity);
+    expect(r.qualified).toBe(false);
   });
   it("qualifies at and above the threshold; abstains below (TC-041)", () => {
     // A high-evidence pair is above the threshold.
