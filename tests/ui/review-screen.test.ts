@@ -18,16 +18,18 @@ describe("SCREEN-003 static markup (no browser)", () => {
     expect(html).toContain("অজানা"); expect(html).toContain('for="review-child.height_cm"'); expect(html).toContain('lang="bn"');
     expect(html).toContain("min-h-11"); expect(html).not.toMatch(/(?:red-|danger|#[fF]{2}0000)/);
   });
-  it("lists all 64 districts in the active language with a required placeholder", () => {
+  it("lists all 64 districts with bilingual names, search, and a clearable unknown choice", () => {
     const r = record();
     const bn = renderToStaticMarkup(createElement(ReviewFields, { record: r, locale: "bn", errors: [], onEdit: noop, onBatch: noop, onApprox: noop, onBlur: noop, locked: false }));
     const en = renderToStaticMarkup(createElement(ReviewFields, { record: r, locale: "en", errors: [], onEdit: noop, onBatch: noop, onApprox: noop, onBlur: noop, locked: false }));
-    for (const html of [bn, en]) {
+    for (const [locale, html] of [["bn", bn], ["en", en]] as const) {
       const select = html.split('<select id="review-event.district_code"')[1]?.split("</select>")[0];
       expect(select).toBeDefined();
       expect(select!.match(/<option /g)).toHaveLength(65);
       expect(select).toContain('<option value=""');
-      expect(select).toContain('disabled=""');
+      expect(select).not.toContain('<option value="" disabled');
+      expect(html).toContain('id="review-event.district_code-search"');
+      expect(select).toContain(locale === "bn" ? "চট্টগ্রাম / Chattogram / Chittagong" : "Chattogram / চট্টগ্রাম / Chittagong");
     }
     expect(bn).toContain('lang="bn"');
     expect(bn).toContain("(১৭)");

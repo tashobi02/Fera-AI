@@ -33,6 +33,7 @@ const appUrl = assertLocalDatabaseUrl(
   "test:e2e app",
 );
 if (
+  appUrl.username !== "fera_app" ||
   decodeURIComponent(appUrl.pathname.slice(1)) !== E2E_DB_NAME ||
   appUrl.hostname !== adminUrl.hostname ||
   appUrl.port !== adminUrl.port

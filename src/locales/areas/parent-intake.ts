@@ -10,6 +10,8 @@ export const parentIntakeBn = {
   // when the name is ambiguous.
   reviewDistrictOptionUnknown: "জেলা বাছাই করুন",
   reviewDistrictOptionLabel: "{name} ({code})",
+  reviewDistrictSearch: "জেলা খুঁজুন — বাংলা, ইংরেজি বা অন্য নাম",
+  reviewDistrictNoResults: "কোনো জেলা মেলেনি। অন্য বানান লিখুন।",
   reviewDistrictNeedSelection: "জেলা বাছাই করা জরুরি।",
   reviewDistrictHelpLink: "সহায়তার জন্য ১৩২১৯-এ কল করুন",
   // Success link copy: the device-local copy used to just go back to the
@@ -20,6 +22,8 @@ export const parentIntakeBn = {
 export const parentIntakeEn = {
   reviewDistrictOptionUnknown: "Choose a district",
   reviewDistrictOptionLabel: "{name} ({code})",
+  reviewDistrictSearch: "Search districts by Bangla, English, or alternate name",
+  reviewDistrictNoResults: "No district matches. Try another spelling.",
   reviewDistrictNeedSelection: "Choose a district to submit.",
   reviewDistrictHelpLink: "Call 13219 for help",
   reviewOpenReport: "Open the submitted report",
