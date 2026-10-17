@@ -2,14 +2,17 @@
 // Public surface for the duplicate detector module.
 export {
   CANDIDATE_LIMIT,
+  DUPLICATE_CONFIG,
   SIMILARITY_THRESHOLD,
   agesAgree,
   computeAgreement,
+  countAgreeingProfileFields,
   decideDuplicateRule,
   detectDuplicates,
   districtsAgree,
   namesAgree,
   phonesAgree,
+  profilesContradict,
   sexesAgree,
   timesAgree,
   type DuplicateFlag,
