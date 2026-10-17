@@ -77,7 +77,8 @@ describe("wording guard", () => {
   });
 
   // FR-034 also covers displayed text. Exempt locale keys: D4 §10 mandated negated disclaimer; the guard covers generated outputs, not this.
-  const NEGATED_DISCLAIMER_KEYS = ["welcomeNoAlerts"];
+  // D-A: the two match-review notes are negated disclaimers too, so they are exempt like welcomeNoAlerts.
+  const NEGATED_DISCLAIMER_KEYS = ["welcomeNoAlerts", "matchReviewSimilarityNote", "matchReviewDialogBody"];
 
   it("passes every locale string and error message shown today", () => {
     const strings: string[] = [];
@@ -90,17 +91,36 @@ describe("wording guard", () => {
     for (const e of Object.values(ERROR_CATALOGUE)) strings.push(e.bn, e.en);
     expect(strings.length).toBeGreaterThan(100);
     expect(strings.filter((s) => findBannedGroup(s) !== null)).toEqual([]);
-    // The exemption is the only one: only welcomeNoAlerts is listed, exactly matching the D4 §10 negated disclaimer in bn and en.
-    expect(NEGATED_DISCLAIMER_KEYS).toEqual(["welcomeNoAlerts"]);
+    // The exemptions are exactly the negated-disclaimer keys (D4 §10, D-A) in bn and en, in source order.
+    expect(NEGATED_DISCLAIMER_KEYS).toEqual([
+      "welcomeNoAlerts",
+      "matchReviewSimilarityNote",
+      "matchReviewDialogBody",
+    ]);
     expect(exempt).toEqual([
       locales.locales.bn.welcomeNoAlerts,
+      locales.locales.bn.matchReviewSimilarityNote,
+      locales.locales.bn.matchReviewDialogBody,
       locales.locales.en.welcomeNoAlerts,
+      locales.locales.en.matchReviewSimilarityNote,
+      locales.locales.en.matchReviewDialogBody,
     ]);
     expect(locales.locales.bn.welcomeNoAlerts).toBe(
       "ফেরা পুলিশ বা সিআইডি-কে সতর্কবার্তা পাঠায় না। জরুরি হলে ১৩২১৯-এ কল করুন।",
     );
     expect(locales.locales.en.welcomeNoAlerts).toBe(
       "Fera does not alert police or CID. In an emergency, call 13219.",
+    );
+    // Pin the exempt D-A notes to their exact negated copy, so an unnegated edit fails here.
+    expect(locales.locales.bn.matchReviewSimilarityNote).toBe("১০০-এর মধ্যে। এটি সম্ভাবনা বা পরিচয়ের প্রমাণ নয়।");
+    expect(locales.locales.en.matchReviewSimilarityNote).toBe(
+      "Out of 100. This is not a probability and not proof of identity.",
+    );
+    expect(locales.locales.bn.matchReviewDialogBody).toBe(
+      "এতে শিশুকে সরাসরি ফেরত দেওয়া হবে না; রেফারেল নথিভুক্ত হবে (সিমুলেশন)।",
+    );
+    expect(locales.locales.en.matchReviewDialogBody).toBe(
+      "This will not return the child directly; a referral will be recorded (simulation).",
     );
   });
 

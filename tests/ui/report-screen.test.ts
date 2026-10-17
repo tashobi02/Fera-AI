@@ -170,17 +170,59 @@ describe("parent-screen sources", () => {
     "src/lib/outputs-client.ts",
   ];
 
+  const NO_PHOTO =
+    /type=["']file["']|accept=["']image|capture=|drawImage|createImageBitmap|putImageData|new Image\(|<img\b|<Image\b|next\/image|FileReader/;
+
+  // Fail closed: strip only the two safe getUserMedia forms (the recorder's callback property and
+  // the literal audio-only call); any other occurrence (video, variables, spreads, bare or
+  // destructured references, bracket access) is a violation because it could request video.
+  const stripSafeGetUserMedia = (src: string) =>
+    src
+      .replace(/getUserMedia\s*:\s*\(\)\s*=>/g, "")
+      .replace(/getUserMedia\s*\(\s*\{\s*audio\s*:\s*true\s*\}\s*\)/g, "");
+  const hasPhotoPath = (src: string) =>
+    NO_PHOTO.test(src) || stripSafeGetUserMedia(src).includes("getUserMedia");
+
   // TC-006 / BR-006: no way to take, pick or draw a photo.
   it.each(sources)(
     "%s has no file/camera input, image element or image drawing",
     (path) => {
       const src = readFileSync(path, "utf8");
-      expect(src).not.toMatch(
-        /type=["']file["']|accept=["']image|capture=|drawImage|createImageBitmap|putImageData|new Image\(|<img\b|<Image\b|next\/image|FileReader|getUserMedia/,
-      );
+      expect(src).not.toMatch(NO_PHOTO);
+      expect(stripSafeGetUserMedia(src)).not.toContain("getUserMedia");
     },
   );
 
+  it.each([
+    "getUserMedia({ video: true })",
+    "getUserMedia({ audio: true, video: true })",
+    'getUserMedia({\n  audio: true,\n  video: { facingMode: "user" },\n})',
+    "getUserMedia(constraints)",
+    "const c = { video: true }; getUserMedia(c)",
+    "getUserMedia({ ...base, audio: true })",
+    "navigator.mediaDevices.getUserMedia(opts)",
+    "const gum = navigator.mediaDevices.getUserMedia;",
+    "const { getUserMedia } = navigator.mediaDevices;",
+    "const { getUserMedia } = navigator.mediaDevices; getUserMedia({ audio: true });",
+    "const gum = getUserMedia;",
+    "navigator.mediaDevices['getUserMedia']({ audio: true })",
+    'navigator.mediaDevices["getUserMedia"]({ video: true })',
+    "navigator.mediaDevices['getUserMedia'];",
+    "getUserMedia: () => navigator.mediaDevices.getUserMedia({ video: true })",
+    "getUserMedia({ audio: true }); getUserMedia({ video: true })",
+  ])("rejects getUserMedia other than the audio-only call: %s", (code) => {
+    expect(hasPhotoPath(code)).toBe(true);
+  });
+
+  it.each([
+    "getUserMedia({ audio: true })",
+    "navigator.mediaDevices.getUserMedia({audio:true})",
+    "getUserMedia({\n  audio: true\n})",
+    "getUserMedia: () => navigator.mediaDevices.getUserMedia({ audio: true }),",
+    "getUserMedia : ()=>navigator.mediaDevices.getUserMedia( { audio : true } )",
+  ])("allows the audio-only call and the callback property: %s", (code) => {
+    expect(hasPhotoPath(code)).toBe(false);
+  });
   // BR-006 across every parent screen (S-001–S-004): no image input anywhere; the voice
   // intake may use the microphone, but only ever for audio.
   const parentSources = files("src/app/(parent)");
