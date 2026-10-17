@@ -19,6 +19,8 @@ export const CASE_AUDIT_ACTIONS = {
   caseContactViewed: "case.contact_viewed", // raw contact served to an officer (D2A §5.4)
   matchVoided: "match.voided", // pending candidate invalidated by a confirm or an edit
   referralRecorded: "referral.recorded", // internal referral record (simulation), never delivery
+  duplicateReviewed: "duplicate.reviewed", // API-023 officer decision; a duplicate link does not change case state
+  duplicateFlagged: "duplicate.flagged", // system detector flag, when persisted by a future integration
   // Refused transactions, written after the rollback (D2B §10.1, BR-010): { error_id, api } only.
   matchRefused: "match.refused", // API-010 decision refused (E-005)
   caseCloseRefused: "case.close.refused", // API-011 closure refused (E-005/E-017)
@@ -45,6 +47,8 @@ export const ACTION_ACTORS: Record<CaseAuditAction, readonly ActorType[]> = {
   "case.closed": ["officer"],
   "case.close.refused": ["officer"],
   "case.contact_viewed": ["officer"],
+  "duplicate.reviewed": ["officer"],
+  "duplicate.flagged": ["system"],
   "match.voided": ["officer", "parent", "system"],
   "case.created": ["parent", "staff", "officer"],
   "case.submission_replayed": ["parent", "staff", "officer"],
