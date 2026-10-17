@@ -19,3 +19,5 @@ export { closeCase } from "./close";
 export type { CloseResult } from "./close";
 export { readCase } from "./read";
 export type { ReadResult } from "./read";
+export { listOfficerCases } from "./list";
+export type { OfficerCaseListInput, OfficerCaseListResult, ListCasesServiceContext } from "./list";
