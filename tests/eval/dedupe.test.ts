@@ -4,7 +4,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 // @ts-ignore -- plain ESM script without type declarations
-import { run as runDedupe, buildPredictedPositives, scoreDedupe, __test } from "../../eval/dedupe.mjs";
+import { run as runDedupe, buildDuplicateSet, buildPredictedPositives, scoreDedupe, __test } from "../../eval/dedupe.mjs";
 
 const { detectCacheHit } = __test;
 
@@ -61,6 +61,57 @@ describe("eval/dedupe.mjs — buildPredictedPositives + scoreDedupe", () => {
     const predicted = buildPredictedPositives(predictions);
     const r = scoreDedupe({ truePairs, predicted });
     expect(r.tp).toBe(1);
+  });
+
+  it("counts shared-phone distinct-child links as targeted false consolidations", () => {
+    const manifest = {
+      ...MANIFEST,
+      records: [
+        ...MANIFEST.records,
+        { record_id: "t1", split_group_id: "MG-T", split: "test" },
+      ],
+    };
+    const records = GROUND_TRUTH.records.map((record) => ({
+      ...record,
+      phone_shared_with_other_identities: [] as string[],
+    }));
+    records[0].phone_shared_with_other_identities = ["b1", "t1"];
+    records[2].phone_shared_with_other_identities = ["a1"];
+    records.push({
+      record_id: "t1",
+      kind: "found",
+      role: "decoy",
+      identity_id: "ID-T",
+      duplicate_group_id: null,
+      true_partner_ids: [],
+      no_match: false,
+      decoy_type: null,
+      decoy_target_ids: [],
+      phone_shared_with_other_identities: ["a1"],
+    });
+
+    const duplicateSet = buildDuplicateSet({ records, manifest, split: "dev" });
+    expect(duplicateSet.sharedPhoneDistinct).toEqual([["a1", "b1"]]);
+
+    const devIds = new Set(MANIFEST.records.map((record) => record.record_id));
+    const predicted = buildPredictedPositives([{
+      id: "a1",
+      links: [
+        { a: "b1", b: "a1", rule: "phone" },
+        { a: "a1", b: "t1", rule: "phone" },
+      ],
+    }], devIds);
+    const score = scoreDedupe({
+      truePairs: duplicateSet.truePairs,
+      predicted,
+      sharedPhoneNegativePairs: duplicateSet.sharedPhoneDistinct,
+    });
+
+    expect(predicted).toEqual(new Set(["a1|b1"]));
+    expect(score.fp).toBe(1);
+    expect(score.sharedPhoneNegativeTotal).toBe(1);
+    expect(score.sharedPhoneNegativeFp).toBe(1);
+    expect(score.sharedPhoneNegativeRejected).toBe(0);
   });
 });
 
