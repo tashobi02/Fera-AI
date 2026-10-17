@@ -5,8 +5,10 @@ import type { DependencyList, EffectCallback, ReactElement, ReactNode } from "re
 type Slot = { value?: unknown; deps?: DependencyList; cleanup?: () => void; setup?: EffectCallback };
 let active: HookHarness | null = null;
 
-function context() {
-  if (!active) throw new Error("Test hook used outside a render");
+function context(): HookHarness | null {
+  // When the real React renderer (renderToStaticMarkup) is in control, the harness
+  // is not active. The hooks below fall back to stable, predictable values so a
+  // component rendered outside a harness call still produces a deterministic tree.
   return active;
 }
 
@@ -52,12 +54,15 @@ const changed = (a?: DependencyList, b?: DependencyList) => !a || !b || a.length
 
 export const testHooks = {
   useRef<T>(initial: T) {
-    const slot = context().slot();
+    const h = context();
+    if (!h) return { current: initial } as { current: T };
+    const slot = h.slot();
     slot.value ??= { current: initial };
     return slot.value as { current: T };
   },
   useState<T>(initial: T | (() => T)) {
     const h = context();
+    if (!h) return [typeof initial === "function" ? (initial as () => T)() : initial, () => {}] as const;
     const slot = h.slot();
     if (!("value" in slot)) slot.value = typeof initial === "function" ? (initial as () => T)() : initial;
     return [slot.value as T, (next: T | ((old: T) => T)) => {
@@ -70,13 +75,16 @@ export const testHooks = {
     return [state, (event: A) => setState((old) => reducer(old, event))] as const;
   },
   useMemo<T>(fn: () => T, deps: DependencyList) {
-    const slot = context().slot();
+    const h = context();
+    if (!h) return fn();
+    const slot = h.slot();
     if (changed(slot.deps, deps)) { slot.value = fn(); slot.deps = deps; }
     return slot.value as T;
   },
   useId() { return testHooks.useMemo(() => "test-id", []); },
   useEffect(fn: EffectCallback, deps?: DependencyList) {
     const h = context();
+    if (!h) return;
     const slot = h.slot();
     if (changed(slot.deps, deps)) h.effects.push(() => {
       slot.cleanup?.();

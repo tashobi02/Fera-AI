@@ -61,8 +61,9 @@ export const officerCaseBn = {
   closeOutcomeLabel: "ফলাফল", // needs human Bangla review
   closeOutcomeCoordination: "শনাক্ত, রেফারেল হয়েছে", // needs human Bangla review
   closeOutcomeResolvedOutside: "ফেরার বাইরে নিষ্পত্তি", // needs human Bangla review
-  closeNoteLabel: "নোট (ঐচ্ছিক)", // needs human Bangla review
+  closeNoteLabel: "নোট (আবশ্যক)", // needs human Bangla review
   closeNoteHint: "আপনার নিজের কথায় — রেফারেল নথিভুক্তির সিমুলেশনের বর্ণনা", // needs human Bangla review
+  closeNoteRequired: "পর্যালোচিত নোট লিখুন (৩–৫০০ অক্ষর)।", // needs human Bangla review
   closeStep1: "প্রথম ধাপ", // needs human Bangla review
   closeConfirm1: "পর্যালোচনা শেষ", // needs human Bangla review
   closeStep2: "দ্বিতীয় ধাপ (চূড়ান্ত)", // needs human Bangla review
@@ -133,8 +134,9 @@ export const officerCaseEn = {
   closeOutcomeLabel: "Outcome",
   closeOutcomeCoordination: "Located, referral recorded",
   closeOutcomeResolvedOutside: "Resolved outside Fera",
-  closeNoteLabel: "Note (optional)",
+  closeNoteLabel: "Note (required)",
   closeNoteHint: "In your own words — description of the simulated referral record",
+  closeNoteRequired: "Enter a reviewed note (3–500 characters).",
   closeStep1: "Step 1",
   closeConfirm1: "Review complete",
   closeStep2: "Step 2 (final)",

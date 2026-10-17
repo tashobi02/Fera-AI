@@ -37,10 +37,12 @@ export default async function OfficerCasePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  // Verified officer only. requireRole writes the access.denied audit row when a signed-in
-  // staff or unverified officer visits (BR-010), then notFound() shows SCREEN-016.
-  const { principal } = await requireRole(["officer"], "/officer/case");
+  // The id is needed in the requireRole return path (sign-in redirect, page-denial
+  // audit) before the case read runs; verified officer only. requireRole writes the
+  // access.denied audit row when a signed-in staff or unverified officer visits
+  // (BR-010), then notFound() shows SCREEN-016.
   const { id } = await params;
+  const { principal } = await requireRole(["officer"], `/officer/case/${id}`);
   const locale = await getLocale();
   const t = locales[locale] as Record<MessageKey, string>;
 

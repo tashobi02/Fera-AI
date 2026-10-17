@@ -15,8 +15,8 @@
 //   নথিভুক্ত (সিমুলেশন)" / "Coordination decision and referral recorded (simulation)".
 //   A success means the case is now closed; the page itself stays put (a follow-up reload
 //   would re-render the case in its closed state and the close form unmounts).
-// - The closeCaseRequestSchema note is trimmed to 3..500 chars; the textarea mirror is
-//   `maxLength=500` and rejects the empty string (a note of "  " is treated as missing).
+// - The closeCaseRequestSchema note is trimmed to 3..500 chars; the UI enforces the
+//   trimmed minimum before step 2 and submission, and caps input at 500 characters.
 import { useId, useReducer, useRef, type FormEvent } from "react";
 import { CircleAlertIcon, CircleCheckIcon, LoaderCircleIcon } from "@/app/components/icons";
 import {
@@ -39,6 +39,7 @@ const postJson = (body: unknown): RequestInit => ({
 
 type Outcome = "coordination_recorded" | "resolved_outside_fera";
 
+const NOTE_MIN = 3;
 const NOTE_MAX = 500;
 
 // "coordination_recorded" is the one that needs a referral record; the page guards the
@@ -60,12 +61,19 @@ const OUTCOME_LABEL: Record<Locale, Record<Outcome, string>> = {
 type State = {
   // step 1: outcome + note collected; step 2: final close.
   step: 1 | 2;
+  // True once the officer has moved between steps. The initial step 1 does not
+  // carry a data-step attribute — step 1 is the default, and the attribute only
+  // appears once the form has been driven past it.
+  stepped: boolean;
   outcome: Outcome;
   note: string;
   status: "idle" | "submitting";
   success: CloseCaseResponse | null;
-  failure: "stale" | "closed" | "not-allowed" | "generic" | null;
+  failure: Failure | null;
 };
+
+type Failure = "note" | "stale" | "closed" | "not-allowed" | "generic";
+type ApiFailure = Exclude<Failure, "note">;
 
 type Action =
   | { type: "set-outcome"; value: Outcome }
@@ -74,7 +82,7 @@ type Action =
   | { type: "back" }
   | { type: "submitting" }
   | { type: "success"; data: CloseCaseResponse }
-  | { type: "failure"; failure: State["failure"] };
+  | { type: "failure"; failure: Failure | null };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
@@ -83,9 +91,11 @@ function reducer(state: State, action: Action): State {
     case "set-note":
       return { ...state, note: action.value, failure: null };
     case "next":
-      return state.note.trim().length >= 0 ? { ...state, step: 2, failure: null } : state;
+      return state.note.trim().length >= NOTE_MIN
+        ? { ...state, step: 2, stepped: true, failure: null }
+        : { ...state, failure: "note" };
     case "back":
-      return { ...state, step: 1 };
+      return { ...state, step: 1, stepped: true };
     case "submitting":
       return { ...state, status: "submitting", failure: null };
     case "success":
@@ -96,14 +106,14 @@ function reducer(state: State, action: Action): State {
 }
 
 function initialState(outcome: Outcome): State {
-  return { step: 1, outcome, note: "", status: "idle", success: null, failure: null };
+  return { step: 1, stepped: false, outcome, note: "", status: "idle", success: null, failure: null };
 }
 
 async function postClose(
   caseId: string,
   body: CloseCaseRequest,
   fetchImpl: FetchLike = fetch,
-): Promise<{ ok: true; data: CloseCaseResponse } | { ok: false; failure: State["failure"] }> {
+): Promise<{ ok: true; data: CloseCaseResponse } | { ok: false; failure: ApiFailure }> {
   const parsed = closeCaseRequestSchema.safeParse(body);
   if (!parsed.success) return { ok: false, failure: "generic" };
   let res: Response;
@@ -161,6 +171,7 @@ export function CloseForm({
   const id = {
     outcome: `${uid}-outcome`,
     note: `${uid}-note`,
+    noteError: `${uid}-note-error`,
     success: `${uid}-success`,
     failure: `${uid}-failure`,
   };
@@ -191,6 +202,10 @@ export function CloseForm({
     if (state.status === "submitting") return;
     if (state.step === 1) {
       dispatch({ type: "next" });
+      return;
+    }
+    if (state.note.trim().length < NOTE_MIN) {
+      dispatch({ type: "failure", failure: "note" });
       return;
     }
     dispatch({ type: "submitting" });
@@ -239,7 +254,7 @@ export function CloseForm({
           onSubmit={onSubmit}
           noValidate
           className="flex flex-col gap-4"
-          data-step={state.step}
+          data-step={state.stepped ? state.step : undefined}
           data-outcome={state.outcome}
         >
           <fieldset
@@ -252,7 +267,6 @@ export function CloseForm({
                 <label
                   key={value}
                   className="flex items-start gap-2 rounded-md border border-hairline bg-elevated px-3 py-2 text-body-sm text-ink"
-                  data-value={value}
                 >
                   <input
                     type="radio"
@@ -262,6 +276,7 @@ export function CloseForm({
                     onChange={() => dispatch({ type: "set-outcome", value })}
                     className="mt-1 size-4 accent-primary"
                     disabled={value !== allowedOutcome}
+                    data-value={value}
                     data-allowed={value === allowedOutcome}
                   />
                   <span>{OUTCOME_LABEL[locale][value]}</span>
@@ -281,7 +296,11 @@ export function CloseForm({
               value={state.note}
               onChange={(e) => dispatch({ type: "set-note", value: e.target.value.slice(0, NOTE_MAX) })}
               rows={3}
+              required
+              minLength={NOTE_MIN}
               maxLength={NOTE_MAX}
+              aria-invalid={state.failure === "note"}
+              aria-describedby={state.failure === "note" ? id.noteError : undefined}
               className="rounded-md border border-hairline-strong bg-elevated px-3 py-2 text-body-sm text-ink focus:border-focus focus:outline-none focus:ring-2 focus:ring-focus/30"
               data-state="editable"
             />
@@ -299,7 +318,11 @@ export function CloseForm({
               data-state={state.failure}
               className="flex flex-col gap-2 rounded-md border border-hairline bg-elevated px-3 py-2"
             >
-              {state.failure === "stale" ? (
+              {state.failure === "note" ? (
+                <p id={id.noteError} className="text-body-sm text-ink" data-state="note-error">
+                  {t.closeNoteRequired}
+                </p>
+              ) : state.failure === "stale" ? (
                 <>
                   <p className="flex items-start gap-2 text-body-sm text-ink">
                     <CircleAlertIcon className="mt-0.5 size-4 text-faint" aria-hidden="true" />

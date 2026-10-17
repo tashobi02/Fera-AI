@@ -108,8 +108,11 @@ export function OfficerCaseDetail({
             aria-label={`${t.caseStatusLabel} ${statusLabel}`}
           >
             <Icon className="size-3.5" aria-hidden="true" />
-            <span>{statusLabel}</span>
+            {statusLabel}
           </span>
+        </p>
+        <p className="text-body-sm text-mute">
+          {t.caseReferenceLabel}
         </p>
         <p className="text-body-sm text-mute">
           {view.kind === "missing" ? t.caseKindMissing : t.caseKindFound}
@@ -173,13 +176,15 @@ export function OfficerCaseDetail({
             value={reporter ?? t.notProvided}
           />
           <Field
-            label={view.contact_phone ? t.reporterPhoneUnmasked : t.reporterPhoneMasked}
-            value={
-              view.contact_phone
-                ? view.contact_phone
-                : view.contact_phone_masked ?? t.notProvided
-            }
+            label={t.reporterPhoneMasked}
+            value={view.contact_phone_masked ?? t.notProvided}
           />
+          {view.contact_phone ? (
+            <Field
+              label={t.reporterPhoneUnmasked}
+              value={view.contact_phone}
+            />
+          ) : null}
         </dl>
       </section>
 

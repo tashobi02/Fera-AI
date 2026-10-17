@@ -14,11 +14,11 @@
 //   safe projection only.
 // - No rescue / return / reunification wording anywhere.
 // - Bangla + English for every new state (loading, empty, error).
-import type { FormEvent } from "react";
-import { createElement } from "react";
+import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { errorEnvelope } from "@/contracts";
+import { locales, type MessageKey } from "@/locales";
 import type {
   OfficerAuditResponse,
   OfficerCaseView,
@@ -50,6 +50,13 @@ vi.mock("next/navigation", async () => ({
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");
   },
+}));
+
+// CloseForm is a client component that uses useId, useReducer and useRef. The harness
+// provides in-memory hooks so we can drive it from Node without a renderer.
+vi.mock("react", async (original) => ({
+  ...(await original<typeof import("react")>()),
+  ...(await import("../intake-ui/fakes/hook-harness")).testHooks,
 }));
 
 // requireRole is called with the same arguments the desk pages use.
@@ -139,7 +146,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function renderToStaticHtml(tree: unknown): string {
+function renderToStaticHtml(tree: ReactNode): string {
   return renderToStaticMarkup(tree);
 }
 
@@ -185,9 +192,6 @@ describe("SCREEN-012 detail (node-server markup)", () => {
       locale: "bn",
       view: exampleOfficerMissingView as OfficerCaseView,
       t: {
-        statusGroupOpen: "খোলা",
-        statusGroupMatched: "যাচাই চলছে",
-        statusGroupClosed: "বন্ধ",
         ...bnKeys(),
       },
     }));
@@ -213,9 +217,6 @@ describe("SCREEN-012 detail (node-server markup)", () => {
       locale: "en",
       view: exampleOfficerMissingView as OfficerCaseView,
       t: {
-        statusGroupOpen: "Open",
-        statusGroupMatched: "Being checked",
-        statusGroupClosed: "Closed",
         ...enKeys(),
       },
     }));
@@ -234,9 +235,6 @@ describe("SCREEN-012 detail (node-server markup)", () => {
       locale: "en",
       view: exampleOfficerMissingView as OfficerCaseView,
       t: {
-        statusGroupOpen: "Open",
-        statusGroupMatched: "Being checked",
-        statusGroupClosed: "Closed",
         ...enKeys(),
       },
     }));
@@ -252,26 +250,32 @@ describe("SCREEN-012 detail (node-server markup)", () => {
 
   it("shows \"Coordinated\" / \"Referred\" status labels with the icon-and-text rule", () => {
     const confirmed: OfficerCaseView = { ...exampleOfficerMissingView, status: "confirmed" };
+    const referred: OfficerCaseView = { ...exampleOfficerFoundView, status: "referred" };
     localeCookie = "en";
-    const html = renderToString(OfficerCaseDetail({
+    const confirmedHtml = renderToString(OfficerCaseDetail({
       locale: "en",
       view: confirmed,
       t: {
-        statusGroupOpen: "Open",
-        statusGroupMatched: "Being checked",
-        statusGroupClosed: "Closed",
-        officerCase: enKeys(),
+        ...enKeys(),
       },
     }));
-    expect(html).toMatch(/<svg.*?<\/svg>\s*Confirmed/);
-    expect(html).toContain("Referral recorded (simulation)");
-    expect(html).not.toMatch(RED);
+    const referredHtml = renderToString(OfficerCaseDetail({
+      locale: "en",
+      view: referred,
+      t: {
+        ...enKeys(),
+      },
+    }));
+    expect(confirmedHtml).toMatch(/<svg[\s\S]*?<\/svg>\s*Confirmed/);
+    expect(referredHtml).toMatch(/<svg[\s\S]*?<\/svg>\s*Referral recorded \(simulation\)/);
+    expect(confirmedHtml).not.toMatch(RED);
+    expect(referredHtml).not.toMatch(RED);
   });
 });
 
 describe("SCREEN-012 close form (two-step confirm)", () => {
   function mountOpen(locale: "bn" | "en", impl?: typeof fetch) {
-    return mountHooks(() => createElement(CloseForm, {
+    return mountHooks(() => CloseForm({
       locale,
       caseId: CASE_ID,
       allowedOutcome: "resolved_outside_fera",
@@ -280,7 +284,7 @@ describe("SCREEN-012 close form (two-step confirm)", () => {
     }));
   }
   function mountConfirmed(locale: "bn" | "en", impl?: typeof fetch) {
-    return mountHooks(() => createElement(CloseForm, {
+    return mountHooks(() => CloseForm({
       locale,
       caseId: CASE_ID,
       allowedOutcome: "coordination_recorded",
@@ -289,24 +293,35 @@ describe("SCREEN-012 close form (two-step confirm)", () => {
     }));
   }
 
-  it("renders the exact D3 success copy (bn + en) and forbids rescue / return wording", () => {
-    localeCookie = "bn";
-    const bn = renderToStaticHtml(renderToString(
-      createElement(CloseForm, {
-        locale: "bn", caseId: CASE_ID, allowedOutcome: "resolved_outside_fera", expectedVersion: 1,
-      }),
-    ));
-    expect(bn).toContain("সমন্বয়ের সিদ্ধান্ত ও রেফারেল নথিভুক্ত (সিমুলেশন)");
-    expect(bn).not.toMatch(BANNED_EN);
-    expect(bn).not.toMatch(BANNED_BN);
-    const en = renderToString(
-      createElement(CloseForm, {
-        locale: "en", caseId: CASE_ID, allowedOutcome: "resolved_outside_fera", expectedVersion: 1,
-      }),
-    );
-    expect(renderToStaticHtml(en)).toContain("Coordination decision and referral recorded (simulation)");
-    expect(renderToStaticHtml(en)).not.toMatch(BANNED_EN);
-    expect(renderToStaticHtml(en)).not.toMatch(BANNED_BN);
+  it("shows exact D3 success copy only after close succeeds in both locales", async () => {
+    const cases = [
+      { locale: "bn" as const, allowedOutcome: "resolved_outside_fera" as const, expectedVersion: 1, next: "পর্যালোচনা শেষ", confirm: "সমন্বয়ের রেকর্ড বন্ধ করুন", success: "সমন্বয়ের সিদ্ধান্ত ও রেফারেল নথিভুক্ত (সিমুলেশন)" },
+      { locale: "en" as const, allowedOutcome: "coordination_recorded" as const, expectedVersion: 2, next: "Review complete", confirm: "Close coordination record", success: "Coordination decision and referral recorded (simulation)" },
+    ];
+
+    for (const item of cases) {
+      const fetcher = vi.fn().mockResolvedValue(Response.json(exampleCloseCaseResponse));
+      const h = mountHooks(() => CloseForm({
+        locale: item.locale,
+        caseId: CASE_ID,
+        allowedOutcome: item.allowedOutcome,
+        expectedVersion: item.expectedVersion,
+        fetchImpl: fetcher as unknown as typeof fetch,
+      }));
+      expect(content(h.tree)).not.toContain(item.success);
+      setNote(h, "Reviewed coordination outcome");
+      submitCloseForm(h, item.next);
+      h.render();
+      expect(content(h.tree)).not.toContain(item.success);
+      expect(fetcher).not.toHaveBeenCalled();
+      submitCloseForm(h, item.confirm);
+      await settle();
+      h.render();
+      const html = renderToStaticHtml(h.tree);
+      expect(content(h.tree)).toContain(item.success);
+      expect(html).not.toMatch(BANNED_EN);
+      expect(html).not.toMatch(BANNED_BN);
+    }
   });
 
   it("limits radio choice to allowedCloseOutcome(status): confirmed → coordination_recorded only", () => {
@@ -351,26 +366,49 @@ describe("SCREEN-012 close form (two-step confirm)", () => {
     const h = mountConfirmed("en", fetcher as unknown as typeof fetch);
     const initialForm = elements(h.tree).find((n) => n.type === "form")!;
     expect((initialForm.props["data-step"] as unknown) ?? undefined).toBeUndefined();
+    const initialNote = elements(h.tree).find((node) => node.type === "textarea")!;
+    expect(initialNote.props["required"]).toBe(true);
+    expect(initialNote.props["minLength"]).toBe(3);
+    // A blank note is rejected before step 2, in line with closeCaseRequestSchema.
+    submitCloseForm(h, "Review complete");
+    h.render();
+    expect(content(h.tree)).toContain("Enter a reviewed note (3–500 characters).");
+    const rejectedNote = elements(h.tree).find((node) => node.type === "textarea")!;
+    expect(rejectedNote.props["aria-invalid"]).toBe(true);
+    const describedBy = rejectedNote.props["aria-describedby"];
+    expect(elements(h.tree).some((node) => node.props["id"] === describedBy && node.props["data-state"] === "note-error")).toBe(true);
+    expect(elements(h.tree).some((node) => node.props["data-state"] === "step-2-prompt")).toBe(false);
+    expect(fetcher).not.toHaveBeenCalled();
+    // Add a valid note. Step 1 advances, but still does not call the close endpoint.
+    setNote(h, "Reviewed coordination outcome");
     // Step 1 button click → moves to step 2, no fetch yet.
-    click(button(h.tree, "Review complete"));
+    submitCloseForm(h, "Review complete");
     h.render();
     expect(fetcher).not.toHaveBeenCalled();
+    // Step 2 revalidates too because the officer can still edit the note there.
+    setNote(h, "x");
+    submitCloseForm(h, "Close coordination record");
+    h.render();
+    expect(content(h.tree)).toContain("Enter a reviewed note (3–500 characters).");
+    expect(fetcher).not.toHaveBeenCalled();
+    expect((elements(h.tree).find((node) => node.type === "form")!.props as { "data-step"?: number })["data-step"]).toBe(2);
+    setNote(h, "Reviewed coordination outcome");
     // Step 2 confirms → POST /api/cases/<id>/close with the contract body.
-    const step2 = button(h.tree, "Close coordination record");
-    click(step2);
+    submitCloseForm(h, "Close coordination record");
     await settle();
     h.render();
     expect(fetcher).toHaveBeenCalledTimes(1);
     expect(fetcher.mock.calls[0][0]).toBe(`/api/cases/${CASE_ID}/close`);
     const body = JSON.parse(fetcher.mock.calls[0][1].body as string);
-    expect(body).toMatchObject({ outcome: "coordination_recorded", expected_version: 2 });
+    expect(body).toMatchObject({ outcome: "coordination_recorded", note: "Reviewed coordination outcome", expected_version: 2 });
     // success copy after submit
     expect(content(h.tree)).toContain("Coordination decision and referral recorded (simulation)");
   });
 
   it("step 1 → back returns the user to step 1; form data-step becomes 1 again", () => {
     const h = mountConfirmed("en");
-    click(button(h.tree, "Review complete"));
+    setNote(h, "Reviewed coordination outcome");
+    submitCloseForm(h, "Review complete");
     h.render();
     expect((elements(h.tree).find((n) => n.type === "form")!.props as { "data-step"?: number })["data-step"]).toBe(2);
     click(button(h.tree, "Step 1"));
@@ -388,9 +426,9 @@ describe("SCREEN-012 close form (two-step confirm)", () => {
     const noteField = elements(formNode).find((n) => (n.props as { "id"?: string }).id?.endsWith("-note"))!;
     (noteField.props as { onChange?: (e: { target: { value: string } }) => void }).onChange?.({ target: { value: "আমার নোট — সমন্বয় চলছে" } });
     h.render();
-    click(button(h.tree, "পর্যালোচনা শেষ"));
+    submitCloseForm(h, "পর্যালোচনা শেষ");
     h.render();
-    click(button(h.tree, "সমন্বয়ের রেকর্ড বন্ধ করুন"));
+    submitCloseForm(h, "সমন্বয়ের রেকর্ড বন্ধ করুন");
     await settle();
     h.render();
     expect(fetcher).toHaveBeenCalledTimes(1);
@@ -406,13 +444,16 @@ describe("SCREEN-012 close form (two-step confirm)", () => {
       Response.json(errorEnvelope("E-004"), { status: 404 }),
     );
     const h = mountOpen("en", fetcher as unknown as typeof fetch);
-    click(button(h.tree, "Review complete"));
+    const note = "Reviewed coordination outcome";
+    setNote(h, note);
+    submitCloseForm(h, "Review complete");
     h.render();
-    click(button(h.tree, "Close coordination record"));
+    submitCloseForm(h, "Close coordination record");
     await settle();
     h.render();
     expect(fetcher).toHaveBeenCalledTimes(1);
     expect(content(h.tree)).toContain("This case is already closed");
+    expect(elements(h.tree).find((node) => node.type === "textarea")?.props["value"]).toBe(note);
   });
 
   it("generic 5xx shows the calm retry message and keeps the form usable", async () => {
@@ -420,9 +461,10 @@ describe("SCREEN-012 close form (two-step confirm)", () => {
       Response.json(errorEnvelope("E-021"), { status: 500 }),
     );
     const h = mountConfirmed("bn", fetcher as unknown as typeof fetch);
-    click(button(h.tree, "পর্যালোচনা শেষ"));
+    setNote(h, "নোটটি তিন অক্ষরের বেশি");
+    submitCloseForm(h, "পর্যালোচনা শেষ");
     h.render();
-    click(button(h.tree, "সমন্বয়ের রেকর্ড বন্ধ করুন"));
+    submitCloseForm(h, "সমন্বয়ের রেকর্ড বন্ধ করুন");
     await settle();
     h.render();
     expect(content(h.tree)).toContain("কিছু একটা ভুল হয়েছে");
@@ -562,7 +604,8 @@ describe("SCREEN-012 page-level integrity", () => {
     pageReads.auditResult = { kind: "ok", view: exampleOfficerAuditResponse };
     localeCookie = "en";
     const html = await renderPage();
-    expect(html).toContain("Coordination decision and referral recorded (simulation)");
+    expect(html).toContain("Note (required)");
+    expect(html).not.toContain("Coordination decision and referral recorded (simulation)");
     expect(html).toContain("Located, referral recorded");
     expect(html).not.toMatch(BANNED_EN);
     expect(html).not.toMatch(BANNED_BN);
@@ -573,104 +616,33 @@ describe("SCREEN-012 page-level integrity", () => {
 // function signatures other modules call. The keys here are the D3/D4 set used by
 // SCREEN-012 markup; anything else would silently drift from the screens.
 function bnKeys() {
-  return {
-    caseTitle: "কেস বিস্তারিত",
-    caseKindMissing: "নিখোঁজ রিপোর্ট",
-    caseKindFound: "খুঁজে পাওয়া রিপোর্ট",
-    caseStatusLabel: "অবস্থা",
-    caseStatusSubmitted: "জমা হয়েছে",
-    caseStatusConfirmed: "যাচাই হয়েছে",
-    caseStatusClosed: "বন্ধ",
-    caseStatusReferred: "রেফারেল নথিভুক্ত (সিমুলেশন)",
-    childSection: "শিশুর তথ্য",
-    childName: "নাম",
-    childNameLatin: "নাম (ইংরেজি অক্ষরে)",
-    childAge: "বয়স",
-    childSex: "লিঙ্গ",
-    childSexMale: "ছেলে",
-    childSexFemale: "মেয়ে",
-    childSexOther: "অন্য কিছু",
-    childSexUnknown: "জানি না",
-    childHeight: "উচ্চতা (সেমি)",
-    childClothing: "পোশাক",
-    childMarks: "চেনার চিহ্ন",
-    eventSection: "কখন ও কোথায়",
-    eventAt: "শেষবার দেখা",
-    eventPlace: "স্থান",
-    eventDistrict: "জেলা",
-    eventThana: "থানা",
-    eventCircumstances: "পরিস্থিতি",
-    reporterSection: "অভিভাবক ও যোগাযোগ",
-    reporterRelation: "শিশুর সাথে সম্পর্ক",
-    reporterPhoneMasked: "ফোন (মাস্ক করা)",
-    reporterPhoneUnmasked: "ফোন (যাচাইকৃত)",
-    duplicateSection: "সম্ভাব্য একই রিপোর্ট",
-    duplicateEmpty: "সম্ভাব্য একই রিপোর্ট পাওয়া যায়নি",
-    matchingSection: "মিল খোঁজা",
-    auditSection: "কার্যক্রমের ইতিহাস",
-    auditEmpty: "এই কেসের জন্য কোনো কার্যক্রম নথিভুক্ত নেই",
-    auditWithheldNote: "কিছু নথিভুক্ত কার্যক্রম অনুমতির বাইরে থাকায় দেখানো হচ্ছে না",
-    closeTitle: "কেস বন্ধ করুন",
-    closeIntro: "বন্ধ করলে সমন্বয়ের রেকর্ড তৈরি হবে (সিমুলেশন)। কোনো দাবি করা হবে না।",
-    closeSuccessTitle: "কেস বন্ধ হয়েছে",
-    closeSuccessBody: "সমন্বয়ের সিদ্ধান্ত ও রেফারেল নথিভুক্ত (সিমুলেশন)",
-    notProvided: "দেওয়া হয়নি",
-    unknown: "অজানা",
-    loadingCase: "কেসের তথ্য লোড হচ্ছে…",
-    errorUnavailable: "এই কেসের তথ্য এখন দেখানো যাচ্ছে না। পরে আবার চেষ্টা করুন।",
-  } as unknown as Record<string, string>;
+  return locales.bn as Record<MessageKey, string>;
 }
 function enKeys() {
-  return {
-    caseTitle: "Case detail",
-    caseKindMissing: "Missing report",
-    caseKindFound: "Found report",
-    caseStatusLabel: "Status",
-    caseStatusSubmitted: "Submitted",
-    caseStatusConfirmed: "Confirmed",
-    caseStatusClosed: "Closed",
-    caseStatusReferred: "Referral recorded (simulation)",
-    childSection: "Child details",
-    childName: "Name",
-    childNameLatin: "Name (Latin letters)",
-    childAge: "Age",
-    childSex: "Sex",
-    childSexMale: "Boy",
-    childSexFemale: "Girl",
-    childSexOther: "Other",
-    childSexUnknown: "Don't know",
-    childHeight: "Height (cm)",
-    childClothing: "Clothing",
-    childMarks: "Identifying marks",
-    eventSection: "When and where",
-    eventAt: "Last seen",
-    eventPlace: "Place",
-    eventDistrict: "District",
-    eventThana: "Thana (police station area)",
-    eventCircumstances: "Circumstances",
-    reporterSection: "Reporter and contact",
-    reporterRelation: "Relation to the child",
-    reporterPhoneMasked: "Phone (masked)",
-    reporterPhoneUnmasked: "Phone (verified)",
-    duplicateSection: "Likely same report",
-    duplicateEmpty: "No likely same report found",
-    matchingSection: "Matching",
-    auditSection: "Activity log",
-    auditEmpty: "No activity is recorded for this case",
-    auditWithheldNote: "Some recorded activity is withheld because your permissions don't cover it",
-    closeTitle: "Close case",
-    closeIntro: "Closing records a coordination outcome (simulation). No outcome is claimed beyond that.",
-    closeSuccessTitle: "Case closed",
-    closeSuccessBody: "Coordination decision and referral recorded (simulation)",
-    notProvided: "Not provided",
-    unknown: "Unknown",
-    loadingCase: "Loading case details…",
-    errorUnavailable: "This case's details aren't available right now. Try again later.",
-  } as unknown as Record<string, string>;
+  return locales.en as Record<MessageKey, string>;
+}
+
+function setNote(h: ReturnType<typeof mountHooks>, value: string): void {
+  const field = elements(h.tree).find((node) => node.type === "textarea");
+  const onChange = field?.props["onChange"] as ((event: { target: { value: string } }) => void) | undefined;
+  if (!onChange) throw new Error("Close note field has no change handler");
+  onChange({ target: { value } });
+  h.render();
+}
+
+function submitCloseForm(h: ReturnType<typeof mountHooks>, label: string): void {
+  const submitButton = button(h.tree, label);
+  if (submitButton.props["type"] !== "submit") {
+    throw new Error(`Close-form action is not a submit button: ${label}`);
+  }
+  const form = elements(h.tree).find((node) => node.type === "form");
+  const onSubmit = form?.props["onSubmit"] as ((event: { preventDefault(): void }) => void) | undefined;
+  if (!onSubmit) throw new Error("Close form has no submit handler");
+  onSubmit({ preventDefault() {} });
 }
 
 // Inline renderToString — the file uses this for the small per-component tests so the
 // page-test wrapper (renderPage) can reuse a stable JSX-free host.
-function renderToString(element: unknown): string {
+function renderToString(element: ReactNode): string {
   return renderToStaticMarkup(element);
 }

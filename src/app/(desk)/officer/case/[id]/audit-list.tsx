@@ -147,10 +147,12 @@ export function AuditList({
       {view.withheld > 0 ? (
         <p
           role="status"
+          data-state="withheld"
+          data-count={view.withheld}
           className="flex items-start gap-2 rounded-md border border-hairline bg-elevated px-3 py-2 text-caption-md text-mute"
         >
           <CircleAlertIcon className="mt-0.5 size-3.5 text-faint" aria-hidden="true" />
-          <span data-state="withheld" data-count={view.withheld}>
+          <span>
             {t.auditWithheldNote}
           </span>
         </p>
