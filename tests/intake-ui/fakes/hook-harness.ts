@@ -109,4 +109,6 @@ export function button(tree: ReactNode, label: string): Element {
   return found;
 }
 export function click(node: Element) { (node.props.onClick as () => void)(); }
-export async function settle() { for (let i = 0; i < 8; i++) await Promise.resolve(); }
+// Microtasks only (several callers use fake timers). 32 turns, not 8: Node 22's fetch
+// Response.json() body read takes more turns than Node 24's, and CI runs Node 22.
+export async function settle() { for (let i = 0; i < 32; i++) await Promise.resolve(); }
