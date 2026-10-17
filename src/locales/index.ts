@@ -47,6 +47,171 @@ const bn = {
   // SCREEN-016 not found / not allowed (COMP-045). notFoundTitle is the D3 copy.
   notFoundTitle: "তথ্যটি পাওয়া যায়নি।",
   notFoundHome: "শুরুর পাতায় ফিরুন",
+  // SCREEN-001 welcome and SCREEN-002 intake (TASK-021). Sources noted per line;
+  // Lines without a D3/D4 source are new copy, pending human Bangla review (OD-021-3).
+  welcomeLead: "ফেরা আপনার কথা থেকে নিখোঁজ শিশুর রিপোর্ট তৈরি করে।", // D3 SCREEN-001
+  welcomeNoAlerts: "ফেরা পুলিশ বা সিআইডি-কে সতর্কবার্তা পাঠায় না। জরুরি হলে ১৩২১৯-এ কল করুন।", // D4 §10
+  noticeTitle: "শুরু করার আগে জেনে নিন", // new
+  providerNotice: "কথা বা লেখা বোঝার জন্য বাইরের এআই সেবা ব্যবহার হতে পারে। এই সংস্করণে বাস্তব শিশুর তথ্য দেবেন না।", // D4 §15.1
+  noticeReviewFirst: "আপনি দেখে নিশ্চিত না করা পর্যন্ত প্রতিবেদন জমা হবে না।", // new
+  noticeWhoSees: "জমা দেওয়ার পর সম্ভাব্য মিল শুধু যাচাইকৃত কর্মকর্তারা দেখেন।", // new
+  startAction: "শুরু করুন", // D3 ACT-001
+  callHelpline: "১৩২১৯-এ কল করুন", // D3 SCREEN-001
+  noticeAckAction: "বুঝেছি, চালিয়ে যান", // new
+  syntheticBadge: "সিনথেটিক", // D3 COMP-023
+  mockReplies: "নমুনা উত্তর, আসল এআই নয়", // new
+  cachedBadge: "ক্যাশ · পূর্বপ্রস্তুত সিনথেটিক উদাহরণ", // D4 §15.1
+  intakeTitle: "আপনার শিশুর কথা বলুন", // D4 §10
+  intakeEmptyPrompt: "আপনার শিশুর কথা বলুন বা লিখুন", // D3 SCREEN-002 empty
+  intakeExample: "যেমন: আমার মেয়ে মীম, বয়স ১১, আজ সকালে স্কুলে যাওয়ার পথে…", // D3 §4
+  conversationLabel: "কথোপকথন", // new
+  speakerParent: "আপনি", // new
+  messageSending: "পাঠানো হচ্ছে", // needs human Bangla review
+  messageFailed: "পাঠানো যায়নি", // new
+  recordAction: "রেকর্ড করুন", // new
+  stopAction: "থামান", // new
+  recordHint: "একবার চাপ দিলে রেকর্ড শুরু হবে, আবার চাপ দিলে থামবে। সর্বোচ্চ ২ মিনিট।", // new
+  recordingTime: "রেকর্ডিংয়ের সময়", // new
+  micRequesting: "মাইক্রোফোনের অনুমতি চাওয়া হচ্ছে…", // new
+  listening: "শুনছি…", // D3 SCREEN-002
+  sending: "পাঠাচ্ছি…", // D4 §9
+  understanding: "বুঝে নিচ্ছি…", // D3 SCREEN-002
+  stillWorking: "এখনও কাজ চলছে, একটু অপেক্ষা করুন", // D3 SCREEN-002, D4 §12
+  useFormLink: "ফর্মে লিখুন", // D4 §12
+  textLabel: "অথবা এখানে লিখুন", // new
+  typeHere: "এখানে লিখুন", // needs human Bangla review
+  questionChildObject: "শিশুটিকে", // needs human Bangla review
+  questionChildPossessive: "শিশুটির", // needs human Bangla review
+  questionChild: "শিশু", // needs human Bangla review
+  transcriptLabel: "যা শুনেছি — ভুল থাকলে ঠিক করে দিন", // new
+  answerLabel: "আপনার উত্তর", // new
+  sendAction: "পাঠান", // new (ACT-005)
+  transcriptSend: "ঠিক আছে, পাঠান", // D4 §9
+  textTooShort: "আরও একটু বিস্তারিত লিখুন", // D4 §11
+  answerRequired: "উত্তর লিখুন", // new
+  sexMale: "ছেলে", // D3 COMP-009
+  sexFemale: "মেয়ে",
+  sexOther: "অন্য কিছু",
+  sexUnknown: "জানি না",
+  understoodTitle: "এ পর্যন্ত যা বুঝেছি", // new (D4 §14 "যা বুঝেছি")
+  unknownValue: "অজানা", // D3 SCREEN-003
+  fieldName: "নাম",
+  fieldAge: "বয়স",
+  fieldSex: "ছেলে না মেয়ে",
+  fieldClothing: "পোশাক",
+  fieldMarks: "চেনার চিহ্ন",
+  fieldLastSeenAt: "শেষবার কখন দেখা গিয়েছিল",
+  fieldPlace: "কোথায় দেখা গিয়েছিল",
+  fieldDistrict: "জেলা",
+  fieldPhone: "আপনার মোবাইল নম্বর",
+  ageYears: "{n} বছর",
+  ageRange: "{min}–{max} বছর",
+  approxTime: "আনুমানিক {t}",
+  readyTitle: "খসড়া তৈরি। এবার প্রতিটি তথ্য যাচাই করুন।", // new
+  beforeSubmit: "জমা দেওয়ার আগে তথ্য যাচাই করুন। ফেরা পুলিশে জিডি জমা দেয় না।", // D4 §15.1
+  reviewAction: "তথ্য যাচাই করুন", // new
+  manualTitle: "বাকি তথ্য ফর্মে দিন। আপনার লেখা রাখা আছে।", // new (D3 §7 row 15)
+  stillUnknown: "যা এখনও জানা নেই:", // new
+  openFormAction: "ফর্ম খুলুন", // new (ACT-014)
+  discardAction: "খসড়া মুছুন", // new (ACT-015)
+  discardConfirm: "খসড়া মুছে ফেলবেন?", // D3 §7 row 11
+  retryAction: "আবার চেষ্টা করুন", // new (ACT-031)
+  // Review round 1 (TASK-021): all new, Bangla review pending (OD-021-3).
+  recordingStopped: "রেকর্ড থেমেছে।",
+  questionAge: "{নাম}-এর বয়স কত?", // D3 COMP-009; needs human Bangla review
+  questionDistrict: "{নাম}-কে শেষবার কোন জেলায় দেখা গিয়েছিল?", // D3 COMP-009; needs human Bangla review
+  questionAt: "শেষবার কবে, কখন দেখা গিয়েছিল?",
+  questionPhone: "আপনার মোবাইল নম্বর দিন, যাতে খবর পেলে যোগাযোগ করা যায়।", // D3 COMP-009
+  questionPlace: "{নাম}-কে শেষবার কোথায় দেখা গিয়েছিল?", // new template; needs human Bangla review
+  textLimitReached: "সর্বোচ্চ ২,০০০ অক্ষর লেখা যায়।",
+  discardYes: "মুছুন",
+  discardNo: "রাখুন",
+  fieldHeight: "উচ্চতা",
+  fieldNameLatin: "নাম (ইংরেজি অক্ষরে)",
+  fieldThana: "থানা",
+  fieldCircumstances: "কী ঘটেছিল (আপনার কথায়)",
+  fieldRelation: "শিশুর সাথে আপনার সম্পর্ক",
+  heightCm: "{n} সেমি",
+  timeWindow: "{from} থেকে {to}-এর মধ্যে (আনুমানিক)",
+  startAgainAction: "নতুন করে শুরু করুন", // new
+  timeAfter: "{t}-এর পরে (আনুমানিক)", // new, round 2: needs human Bangla review
+  timeBefore: "{t}-এর আগে (আনুমানিক)", // new, round 2: needs human Bangla review
+  recordingNotSent: "রেকর্ডিংটি পাঠানো যায়নি। আবার রেকর্ড করুন।", // new, round 2: needs human Bangla review
+  finishRecordingFirst: "আগে রেকর্ডিং থামান, তারপর পাঠান।", // new, round 2: needs human Bangla review
+  // SCREEN-003 TASK-022: new strings need human Bangla review (OD-022-13).
+  reviewAgeHint: "বয়স জানা থাকলে সঠিক বয়স দিন, অথবা আনুমানিক বয়সের দুই সীমা দিন।", // needs human Bangla review
+  reviewRequired: "প্রয়োজনীয়", // needs human Bangla review
+  reviewRequiredSummary: "জমা দেওয়ার আগে নিচের তথ্যগুলো পূরণ বা ঠিক করুন।", // needs human Bangla review
+  reviewStorageUnreadable: "এই ডিভাইসের সংরক্ষিত খসড়া পড়া যাচ্ছে না। ব্রাউজারের সংরক্ষণের অনুমতি দেখে আবার খুলুন।", // needs human Bangla review
+  reviewTitle: "তথ্যগুলো যাচাই করুন",
+  reviewIntro: "প্রতিটি তথ্য দেখে ভুল থাকলে ঠিক করুন। না জানলে অজানা রাখুন।",
+  reviewEmpty: "এই ডিভাইসে যাচাই করার মতো খসড়া নেই।",
+  reviewBack: "আপনার কথায় ফিরুন",
+  reviewChecked: "আমি যাচাই করেছি", // D3 SCREEN-003
+  reviewSubmit: "যাচাই করে জমা দিন", // D3 ACT-008
+  reviewSubmitting: "জমা হচ্ছে…", // D3 SCREEN-003
+  reviewSubmitted: "রিপোর্ট জমা হয়েছে। রেফারেন্স: {ref}",
+  reviewSource: "আপনার পুরো লেখা",
+  reviewExtraSource: "আপনার আরও লেখা — এগুলো নিজে দেখে তথ্যের ঘরে যোগ করুন",
+  reviewEdited: "আপনি সংশোধন করেছেন",
+  reviewNoSpan: "এই তথ্যের উৎসের অংশ চিহ্নিত নেই। আপনার লেখার সঙ্গে মিলিয়ে দেখুন।",
+  reviewLocal: "খসড়া এই ডিভাইসে রাখা হয়। একই ডিভাইসের অন্য কেউ এটি দেখতে পারেন। কাজ শেষে এই ডিভাইস থেকে মুছে দিন।",
+  reviewStorageFailed: "এই ডিভাইসে খসড়া রাখা যায়নি। পাতা বন্ধ করলে তথ্য হারিয়ে যেতে পারে।",
+  reviewClearFailed: "ডিভাইসের সংরক্ষিত কপি মোছা যায়নি। এই ব্রাউজারের সাইটের তথ্য নিজে মুছে দিন।",
+  reviewDiscardDevice: "এই ডিভাইস থেকে খসড়া মুছুন",
+  reviewErrorSummary: "চিহ্নিত তথ্যগুলো ঠিক করে আবার যাচাই করুন।",
+  reviewFieldInvalid: "এই তথ্যটি দিন বা ঠিক করুন। না জানলে আন্দাজ করবেন না।",
+  reviewAgeInvalid: "বয়স ০ থেকে ১৭-এর মধ্যে দিন", // D4 §11
+  reviewPhoneInvalid: "০১ দিয়ে শুরু ১১ সংখ্যার নম্বর দিন", // D4 §11
+  reviewTimeInvalid: "সঠিক সময় ও সীমা দিন। ভবিষ্যতের সময় দেওয়া যাবে না।",
+  reviewTimeHint: "তারিখ: বছর-মাস-দিন। সময়: ঘণ্টা:মিনিট (২৪ ঘণ্টা)। সঠিক সময় হলে দুই সীমাতেও একই সময় দিন।", // needs human Bangla review
+  reviewDistrictCode: "জেলার নম্বর (সিনথেটিক নমুনা)",
+  reviewDistrictHint: "জেলার নামের তালিকা এখনও যুক্ত হয়নি। নমুনার জেলার নম্বর জানা থাকলে দিন (১–৬৪)। আন্দাজ করবেন না।",
+  reviewAgeMin: "বয়সের নিচের সীমা (বছর)",
+  reviewAgeMax: "বয়সের উপরের সীমা (বছর)",
+  reviewTimeLower: "শেষবার দেখার সময়ের নিচের সীমা",
+  reviewTimeUpper: "শেষবার দেখার সময়ের উপরের সীমা",
+  reviewApprox: "শেষবার দেখার সময় আনুমানিক",
+  reviewConflict: "এই জমার নম্বরে ভিন্ন তথ্য আগে জমা হয়েছে। আবার দেখে নতুন নম্বরে জমা দিতে পারেন। এতে আলাদা রিপোর্ট হতে পারে।",
+  reviewNewId: "আবার দেখে নতুন নম্বরে জমা দিন",
+  reviewSession: "সেশনের সময় শেষ হয়েছে। খসড়া এই ডিভাইসে আছে। আপনার কথার পাতায় ফিরে সেশন শুরু করুন।",
+  reviewSessionExpired: "আপনার খসড়ার সময় শেষ। নতুন করে শুরু করুন।", // D3:333 / catalogue E-019, needs human Bangla review
+  reviewRetryFrozen: "ফল জানা যায়নি। একই তথ্য ও জমার নম্বর রেখে আবার চেষ্টা করুন।",
+  reviewPlannedManual: "নিজে পূরণ করার ফর্ম", // planned label wraps it; needs human Bangla review
+  reviewPlannedReport: "জমা দেওয়া রিপোর্টের পাতা", // planned label wraps it; needs human Bangla review
+  reviewExpired: "আপনার খসড়ার সময় শেষ। নতুন করে শুরু করুন।", // D3:333 / catalogue E-019, needs human Bangla review
+  reviewUnknownAdd: "অজানা — যোগ করুন", // needs human Bangla review
+  reviewDiscardWarn: "এই খসড়া জমা দেওয়ার চেষ্টা হয়েছে। সার্ভারে ইতিমধ্যে পৌঁছে থাকতে পারে — মুছলে আর ডিভাইসে খুঁজে পাবেন না।", // needs human Bangla review
+  reviewMockSubmit: "[MOCK] পূর্বপ্রস্তুত: জমা দেওয়া সক্রিয় নয়, আসল API যুক্ত হলে কাজ করবে", // needs human Bangla review
+  reviewMockSubmitButton: "[MOCK] জমা দিন (অকার্যকর)", // needs human Bangla review
+  reviewSourceExcerpt: "উৎসের অংশ", // needs human Bangla review
+  reviewSourceLink: "পুরো লেখায় দেখুন", // needs human Bangla review
+  reviewAgeMode: "বয়স কীভাবে জানাবেন?", // needs human Bangla review
+  reviewAgeEstimate: "আনুমানিক বয়সের সীমা", // needs human Bangla review
+  reviewAgeExactHint: "সঠিক বয়স জানা থাকলে বছরে লিখুন।", // needs human Bangla review
+  reviewAgeRangeHint: "আনুমানিক বয়সের নিচের ও উপরের সীমা বছরে লিখুন।", // needs human Bangla review
+  reviewClockLabel: "সময় (২৪ ঘণ্টা)", // needs human Bangla review
+  reviewDateNotApplied: "এই তারিখ এখনো প্রয়োগ হয়নি। সময়ের অংশ বাছুন, অথবা নিচে প্রতিটি সময়ের তারিখ বদলান।", // needs human Bangla review
+  reviewFutureClamped: "ভবিষ্যতের অংশ বাদ দিয়ে উপরের সীমা বর্তমান সময় পর্যন্ত রাখা হয়েছে। তারিখ ও সময় যাচাই করুন।", // needs human Bangla review
+  reviewDateHint: "তারিখ লিখুন: ২০২৫-১২-৩১। একটি সময়ের অংশ বাছলে সীমা পূরণ হবে; পরে বদলাতে পারবেন।", // needs human Bangla review
+  reviewDateInvalid: "সঠিক তারিখ লিখুন: বছর-মাস-দিন।", // needs human Bangla review
+  reviewTimeBoundHint: "তারিখ: বছর-মাস-দিন। সময়: ঘণ্টা:মিনিট (২৪ ঘণ্টা)। সঠিক সময় হলে তিনটি সময় একই রাখুন।", // needs human Bangla review
+  ageExact: "সঠিক বয়স", // needs human Bangla review
+  timeExact: "সঠিক সময়", // needs human Bangla review
+  // Part-of-day time chips (D4 §11)
+  timePartMorning: "সকাল", // needs human Bangla review
+  timePartMidday: "দুপুর", // needs human Bangla review
+  timePartAfternoon: "বিকেল", // needs human Bangla review
+  timePartEvening: "সন্ধ্যা", // needs human Bangla review
+  timePartNight: "রাত", // needs human Bangla review
+  timeDateLabel: "শেষবার দেখার তারিখ", // needs human Bangla review
+  timeDateShort: "তারিখ", // needs human Bangla review
+  timeDateHint: "সঠিক তারিখ জানা না থাকলে খালি রাখুন।", // needs human Bangla review
+  timePartLabel: "দিনের কোন সময়", // needs human Bangla review
+  earlierDraftFound: "আগের খসড়া পাওয়া গেছে — চালিয়ে যাবেন?", // D3:309; needs human Bangla review
+  earlierDraftContinue: "আগের খসড়া চালিয়ে যান", // needs human Bangla review
+  earlierDraftReplace: "নতুন তথ্য দিয়ে শুরু করুন", // needs human Bangla review
+  reviewCorruptAttempted: "পূর্বের জমার চেষ্টা পড়া যায়নি, তবে জমার নম্বর রাখা হয়েছে।", // needs human Bangla review
   // SCREEN-013 admin data tools (TASK-032, COMP-043). D3 strings: redactAction (ACT-027),
   // redactEmpty, redactSuccess. "[MOCK]" stays in every verification label (BR-024).
   adminTitle: "অ্যাডমিন ডেটা টুল",
@@ -188,6 +353,166 @@ const en = {
   signingOut: "Signing out…",
   notFoundTitle: "We couldn't find that.",
   notFoundHome: "Back to home",
+  welcomeLead: "Fera turns what you say into a missing-child report.",
+  welcomeNoAlerts: "Fera does not alert police or CID. In an emergency, call 13219.",
+  noticeTitle: "Before you start",
+  providerNotice: "External AI may process audio/text. Do not enter real child information in this version.",
+  noticeReviewFirst: "The report is not submitted until you check and confirm it.",
+  noticeWhoSees: "After you submit, only verified officers see possible matches.",
+  startAction: "Start",
+  callHelpline: "Call 13219",
+  noticeAckAction: "I understand, continue",
+  syntheticBadge: "Synthetic",
+  mockReplies: "Sample replies, not real AI",
+  cachedBadge: "Cached · prepared synthetic example",
+  intakeTitle: "Tell us about your child",
+  intakeEmptyPrompt: "Tell us about your child, by voice or text.",
+  intakeExample: "For example: My daughter Mim, 11, this morning on the way to school…",
+  conversationLabel: "Conversation",
+  speakerParent: "You",
+  messageSending: "Sending",
+  messageFailed: "Not sent",
+  recordAction: "Record",
+  stopAction: "Stop",
+  recordHint: "Press once to start recording, press again to stop. Up to 2 minutes.",
+  recordingTime: "Recording time",
+  micRequesting: "Asking for microphone permission…",
+  listening: "Listening…",
+  sending: "Sending…",
+  understanding: "Understanding…",
+  stillWorking: "Still working, please wait",
+  useFormLink: "Use the form",
+  textLabel: "Or type it here",
+  typeHere: "Type it here",
+  questionChildObject: "the child",
+  questionChildPossessive: "the child",
+  questionChild: "the child",
+  transcriptLabel: "What we heard — fix anything wrong",
+  answerLabel: "Your answer",
+  sendAction: "Send",
+  transcriptSend: "OK, send",
+  textTooShort: "Please add a little more detail",
+  answerRequired: "Type your answer",
+  sexMale: "Boy",
+  sexFemale: "Girl",
+  sexOther: "Other",
+  sexUnknown: "Don't know",
+  understoodTitle: "What we understood so far",
+  unknownValue: "Unknown",
+  fieldName: "Name",
+  fieldAge: "Age",
+  fieldSex: "Boy or girl",
+  fieldClothing: "Clothing",
+  fieldMarks: "Identifying marks",
+  fieldLastSeenAt: "When last seen",
+  fieldPlace: "Where last seen",
+  fieldDistrict: "District",
+  fieldPhone: "Your mobile number",
+  ageYears: "{n} years",
+  ageRange: "{min}–{max} years",
+  approxTime: "About {t}",
+  readyTitle: "Draft ready. Now check each detail.",
+  beforeSubmit: "Review before submission. Fera does not file a police GD.",
+  reviewAction: "Check details",
+  manualTitle: "Add the rest in the form. Your text is kept.",
+  stillUnknown: "Still unknown:",
+  openFormAction: "Open the form",
+  discardAction: "Delete draft",
+  discardConfirm: "Delete this draft?",
+  retryAction: "Try again",
+  recordingStopped: "Recording stopped.",
+  questionAge: "How old is {name}?",
+  questionDistrict: "In which district was {name} last seen?",
+  questionAt: "When was {name} last seen?",
+  questionPhone: "Your mobile number, so you can be contacted.",
+  questionPlace: "Where was {name} last seen?",
+  textLimitReached: "You can write up to 2,000 characters.",
+  discardYes: "Delete",
+  discardNo: "Keep",
+  fieldHeight: "Height",
+  fieldNameLatin: "Name (Latin letters)",
+  fieldThana: "Thana (police station area)",
+  fieldCircumstances: "What happened (your words)",
+  fieldRelation: "Your relation to the child",
+  heightCm: "{n} cm",
+  timeWindow: "Between {from} and {to} (approximate)",
+  startAgainAction: "Start again",
+  timeAfter: "After {t} (approximate)",
+  timeBefore: "Before {t} (approximate)",
+  recordingNotSent: "The recording was not sent. Please record again.",
+  finishRecordingFirst: "Stop the recording first, then send.",
+  reviewAgeHint: "Enter the exact age or both bounds of an estimated age range.",
+  reviewRequired: "Required",
+  reviewRequiredSummary: "Complete or correct these details before submitting.",
+  reviewStorageUnreadable: "Saved drafts on this device cannot be read. Check browser storage permissions and reopen this page.",
+  reviewTitle: "Check each detail",
+  reviewIntro: "Check and correct each detail. Leave unknown details unknown.",
+  reviewEmpty: "There is no draft to review on this device.",
+  reviewBack: "Back to your words",
+  reviewChecked: "I have checked",
+  reviewSubmit: "Check and submit",
+  reviewSubmitting: "Submitting…",
+  reviewSubmitted: "Report submitted. Reference: {ref}",
+  reviewSource: "Your full text",
+  reviewExtraSource: "Your additional words — review and add these to the fields yourself",
+  reviewEdited: "Edited by you",
+  reviewNoSpan: "No source span is marked for this detail. Check it against your words.",
+  reviewLocal: "This draft is kept on this device. Someone else using it may see it. Delete it from this device when you finish.",
+  reviewStorageFailed: "The draft could not be saved on this device. Closing this page may lose your work.",
+  reviewClearFailed: "The saved copy could not be deleted. Clear this browser’s site data yourself.",
+  reviewDiscardDevice: "Delete draft from this device",
+  reviewErrorSummary: "Correct the marked details, then check again.",
+  reviewFieldInvalid: "Add or correct this detail. Do not guess if you do not know.",
+  reviewAgeInvalid: "Enter an age from 0 to 17",
+  reviewPhoneInvalid: "Enter an 11-digit number starting 01",
+  reviewTimeInvalid: "Enter a valid time and bounds. The time cannot be in the future.",
+  reviewTimeHint: "Date: year-month-day. Time: HH:mm (24-hour). For an exact time, use the same time in both bounds.", // needs human Bangla review
+  reviewDistrictCode: "District number (synthetic sample)",
+  reviewDistrictHint: "The district name list is not connected yet. Enter the sample’s district number if known (1–64). Do not guess.",
+  reviewAgeMin: "Lower age bound (years)",
+  reviewAgeMax: "Upper age bound (years)",
+  reviewTimeLower: "Earliest last-seen time",
+  reviewTimeUpper: "Latest last-seen time",
+  reviewApprox: "Last-seen time is approximate",
+  reviewConflict: "Different details were already submitted under this submission ID. You can review and submit with a new ID. This may create a separate report.",
+  reviewNewId: "Review and submit with a new ID",
+  reviewSession: "Your session has expired. The draft is kept on this device. Open your words to start a session.",
+  reviewSessionExpired: "Your draft has expired. Please start again.", // D3:333 / catalogue E-019
+  reviewRetryFrozen: "The result is unknown. Retry with the same details and submission ID.",
+  reviewPlannedManual: "Manual form", // planned label wraps it; needs human Bangla review
+  reviewPlannedReport: "Submitted report page", // planned label wraps it; needs human Bangla review
+  reviewExpired: "Your draft has expired. Please start again.", // D3:333 / catalogue E-019
+  reviewUnknownAdd: "Unknown — add",
+  reviewDiscardWarn: "This draft was already attempted. The server may have received it — deleting it removes the device copy.",
+  reviewMockSubmit: "[MOCK] prepared: submit is not active, it will work once the real API is connected",
+  reviewMockSubmitButton: "[MOCK] submit (inactive)",
+  reviewSourceExcerpt: "Source excerpt",
+  reviewSourceLink: "See in full text",
+  reviewAgeMode: "How will you enter the age?",
+  reviewAgeEstimate: "Estimated age range",
+  reviewAgeExactHint: "Enter the known exact age in years.",
+  reviewAgeRangeHint: "Enter both the lower and upper estimated ages in years.",
+  reviewClockLabel: "Time (24-hour)", // needs human Bangla review
+  reviewDateNotApplied: "This date has not been applied. Choose a part of day, or change each time’s date below.", // needs human Bangla review
+  reviewFutureClamped: "The future part of this period was removed: the upper bound is now the current time. Check the date and time.", // needs human Bangla review
+  reviewDateHint: "Use year-month-day. Choose a part of day to fill the bounds; you can edit them afterwards.", // needs human Bangla review
+  reviewDateInvalid: "Enter a valid date as year-month-day.",
+  reviewTimeBoundHint: "Date: year-month-day. Time: HH:mm (24-hour). For an exact time, keep all three times equal.", // needs human Bangla review
+  ageExact: "Exact age",
+  timeExact: "Exact time",
+  timePartMorning: "Morning",
+  timePartMidday: "Midday",
+  timePartAfternoon: "Afternoon",
+  timePartEvening: "Evening",
+  timePartNight: "Night",
+  timeDateLabel: "Date last seen",
+  timeDateShort: "Date",
+  timeDateHint: "Leave empty if you are not sure of the date.",
+  timePartLabel: "Part of day",
+  earlierDraftFound: "Earlier draft found — continue?", // D3:309
+  earlierDraftContinue: "Continue earlier draft",
+  earlierDraftReplace: "Start with new details",
+  reviewCorruptAttempted: "Previous submission attempt could not be read, but its submission ID has been kept.",
   adminTitle: "Admin data tools",
   adminIntro: "No child or candidate details are shown here. All accounts and reports are synthetic.",
   syntheticLabel: "Synthetic",
