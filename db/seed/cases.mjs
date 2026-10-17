@@ -150,7 +150,7 @@ export async function seedCases(client, { set }) {
         continue;
       }
       if (rec.kind === "missing") {
-        await client.query("INSERT INTO parent_sessions (id, revoked_at) VALUES ($1, now()) ON CONFLICT (id) DO NOTHING", [rec.record_id]);
+        await client.query("INSERT INTO parent_sessions (id, revoked_at) VALUES ($1, now()) ON CONFLICT (id) DO UPDATE SET revoked_at = COALESCE(parent_sessions.revoked_at, now())", [rec.record_id]);
         const row = await insertCase(client, record, rec.record_id, hash);
         await audit(client, { type: "parent", sessionId: rec.record_id, action: "case.created", caseId: row.id,
           details: { ref_code: row.ref_code, version: row.version, to_status: "submitted", api: "API-003", replayed: false } });

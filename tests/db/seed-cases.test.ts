@@ -60,6 +60,7 @@ describe.skipIf(!dbTestsEnabled)("case seed (TASK-019)", () => {
     }
   });
 
+  // Smoke bound only: the real run takes tens of milliseconds, so this cannot catch a mild regression.
   it("loads the demo set under two minutes without Rafi", async () => {
     const t0 = Date.now();
     const result = await seedCases(admin, { set: "demo" });
@@ -109,6 +110,21 @@ describe.skipIf(!dbTestsEnabled)("case seed (TASK-019)", () => {
       const row = byId.get(rec.record_id)!;
       expect(row.submission_payload_hash).toBe(submissionPayloadHash(parsed));
       expect(row.version).toBe(1);
+    }
+  });
+
+  it("fails closed when a stored payload hash differs, writing nothing new", async () => {
+    const casesBefore = await count("SELECT count(*)::int AS n FROM cases");
+    const auditBefore = await count("SELECT count(*)::int AS n FROM audit_log");
+    const victim = records[0].record_id;
+    const { rows } = await admin.query("SELECT submission_payload_hash AS h FROM cases WHERE client_submission_id = $1", [victim]);
+    await admin.query("UPDATE cases SET submission_payload_hash = repeat('0', 64) WHERE client_submission_id = $1", [victim]);
+    try {
+      await expect(seedCases(admin, { set: "full" })).rejects.toThrow(/differs from the committed record/);
+      expect(await count("SELECT count(*)::int AS n FROM cases")).toBe(casesBefore);
+      expect(await count("SELECT count(*)::int AS n FROM audit_log")).toBe(auditBefore);
+    } finally {
+      await admin.query("UPDATE cases SET submission_payload_hash = $2 WHERE client_submission_id = $1", [victim, rows[0].h]);
     }
   });
 
