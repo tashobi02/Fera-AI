@@ -4,6 +4,7 @@ on:
   push:
     branches: [main, phase1, phase2]
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -47,3 +48,35 @@ jobs:
       - name: wait for PostgreSQL
         run: for i in $(seq 1 60); do PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -Atc 'select 1' postgres >/dev/null 2>&1 && exit 0; sleep 2; done; exit 1
       - run: npm run test:db
+
+  # P3-014 Playwright + axe smoke on a fresh per-run loopback database.
+  # Manual gate (workflow_dispatch) so a green push to `main` does not pay the
+  # build + browser cost on every PR. Stays green in isolation.
+  e2e:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: psql client (>= 15 for \getenv)
+        run: command -v psql >/dev/null || (sudo apt-get update && sudo apt-get install -y postgresql-client); psql --version
+      - run: docker build -t fera-pg16-pgvector:0.8.1 db/docker
+      - run: docker run -d --name fera-db -e POSTGRES_PASSWORD=postgres -p 127.0.0.1:54322:5432 fera-pg16-pgvector:0.8.1
+      - name: wait for PostgreSQL
+        run: for i in $(seq 1 60); do PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -Atc 'select 1' postgres >/dev/null 2>&1 && exit 0; sleep 2; done; exit 1
+      - name: install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: run e2e
+        run: npm run test:e2e
+      - name: upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7

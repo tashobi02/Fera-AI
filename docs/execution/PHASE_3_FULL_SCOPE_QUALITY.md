@@ -1,8 +1,8 @@
 # Phase 3 — Full scope and quality · Gates G3, G4
 
-**Window:** Wed 14 Oct 2026, 07:00 → 16:00 (Asia/Dhaka) · **Gates:** G3 (13:00), G4 (16:00) · **Plan:** [EXECUTION_PLAN.md](EXECUTION_PLAN.md#phase-3--full-scope-and-quality-wed-14-oct-0700--1600--gates-g3-g4) · **Prev:** [Phase 2](PHASE_2_MUST_CORE.md) · **Next:** [Phase 4](PHASE_4_SUBMISSION.md)
-**Phase status:** `todo`
-**Last updated:** 2026-10-13 · tasks distributed among Obidit, Masnun and Mahim; lead = Mahim
+**Window:** **Rebaseline approved by Mahim, as reported by the user on 17 Oct:** Sat 17 → Thu 22 Oct 2026 (Asia/Dhaka) · **Gates:** G2′ Mon 19 Oct 22:00, G3 Wed 21 Oct 20:00, G4 Thu 22 Oct 22:00 (the original 14 Oct times are stale) · **Detailed plan:** [PHASE_3_PLAN.md](PHASE_3_PLAN.md) · **Plan:** [EXECUTION_PLAN.md](EXECUTION_PLAN.md#phase-3--full-scope-and-quality-wed-14-oct-0700--1600--gates-g3-g4) · **Prev:** [Phase 2](PHASE_2_MUST_CORE.md) · **Next:** [Phase 4](PHASE_4_SUBMISSION.md)
+**Phase status:** `doing`
+**Last updated:** 2026-10-17 · tasks distributed among Obidit, Masnun and Mahim; lead = Mahim
 **Team:** **Obidit** — intake, AI, outputs · **Masnun** — data, matching, officer workflow, dashboard, evaluation · **Mahim** — lead; platform, integration, release (named "Sadman" in AGENTS.md and the spec pack; D6 owner code S). Tasks follow [EXECUTION_PLAN.md](EXECUTION_PLAN.md). The lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`.
 
 ---
@@ -28,16 +28,18 @@ This is a living tracker. Every agent working on a task in this phase updates it
 
 ---
 
-## Timeline (hard times)
-| Time | Event | Status |
+## Timeline: approved rebaseline to the 24 Oct finale (user-reported Mahim approval)
+The 14 Oct times are stale. Targets, not a computed schedule; capacity is **UNKNOWN**. Details and cut triggers: [PHASE_3_PLAN.md §2](PHASE_3_PLAN.md#2-rebaseline-to-the-24-oct-finale-approved-by-mahim-as-reported-by-the-user-on-17-oct).
+
+| When | Event | Status |
 |---|---|---|
-| 09:00 | Stand-up + merge window | `todo` |
-| 10:00–12:00 | TASK-041 timing study, ≥5 testers | `todo` |
-| **12:30** | **Feature freeze.** After this, only fixes for failing TCs | `todo` |
-| 13:00 | Stand-up · **G3** check | `todo` |
-| **15:00** | TASK-042 production deploy + smoke | `todo` |
-| **15:45** | TASK-043 final frozen evaluation on the prod build | `todo` |
-| 16:00 | **G4** check | `todo` |
+| Sat 17 Oct | Merge confirmed, decisions logged, Wave 0.0 | `done` (D-A and rebaseline approved as reported; other §3 decisions pending) |
+| Sat 17 – Mon 19 Oct | Wave 0 (Phase 2 unblockers) · **G2′ Mon 19 Oct 22:00** | `todo` |
+| Mon 19 – Tue 20 Oct | Wave 1 features · **Feature freeze Tue 20 Oct 22:00** | `todo` |
+| Wed 21 Oct | Wave 2 quality; TASK-036, TASK-040 clips, TASK-041 (human) · **G3 20:00** | `todo` |
+| Thu 22 Oct | TASK-042 deploy (explicit go-ahead), TASK-060, TASK-043 · **G4 22:00** | `todo` |
+| Fri 23 Oct | Phase 5 rehearsals and backup recording | `todo` |
+| Sat 24 Oct | Finale | `todo` |
 
 Cut order if short ([D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommendation)): FR-036 disaster screen → FR-010 13219 summary → FR-024 import → FR-029 edit after submit → live voice (keep labelled cached note) → poster PNG (keep poster text).
 
@@ -125,6 +127,16 @@ Tick only from the gate report (`fera-gate`), with evidence linked.
 Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
 ### Obidit
+- 2026-10-17 22:14 · Codex + Puku CLI Opus 4.8 · P3-018 isolated draft `7a9fadb` · Two capped Puku repair runs left the close/audit draft blocked; a focused Puku continuation completed, then an integrator schema-parse test fix made `npm run typecheck` pass. Lint exits 0 with three warnings. `npm test -- tests/api/case-close.test.ts` fails without a DB because the DB-backed file is in the unit suite; local `npm run test:db` fails 7 audit-read tests on timestamp fixture shape. API-013's reader also fetches audit rows before the role guard. Draft remains local and excluded from `phase2`; no P3-018 completion or gate PASS claimed.
+- 2026-10-17 22:01 · Codex · [PR #38](https://github.com/tashobi02/Fera-AI/pull/38) merged into `phase2` at `a43289e` · P3-001–004/011/014–016 are integrated; GitHub check and DB jobs plus Vercel preview passed. Manual E2E was skipped in CI and passed 4/4 locally. This merge does not complete TASK-014/022/023/024/029/038 or any Phase 3 gate. [TASK-019 seed PR #35](https://github.com/tashobi02/Fera-AI/pull/35) is still open, so P3-043 remains `todo`; TASK-003 is still a human `todo`.
+- 2026-10-17 21:58 · Codex · [draft PR #38](https://github.com/tashobi02/Fera-AI/pull/38) into `phase2` · Clean P3-001–004/011/014–016 and TASK-009 dependency submitted for review after `FERA-REVIEW: PASS`. CI check and DB jobs are pending; manual E2E job is skipped on this PR. No Wave 0.1, G2′, G3, or G4 PASS claimed.
+- 2026-10-17 21:50 · Codex + repo `fera-review` · phase2--obidit-phase3-wave0 · Prepared a clean `origin/phase2` PR branch containing P3-001–004/011/014–016 plus TASK-009 district seed. P3-015 review blockers (clearable unknown; D3/D4 bilingual alias search) fixed, with result announcements and refreshed 360 px image. [PR verification](evidence/p3-wave0-pr-verification.md): lint/typecheck/build PASS, 2,875 unit PASS, 11 DB files/203 tests PASS, E2E 4/4 PASS; safeguarding, TS, security, React, DB, Bengali, a11y, MLE and E2E review PASS or approve-with-warnings. Masnun TASK-026/028 and blocked drafts are excluded; Wave 0.1/G2′ remains pending. TASK-003 stays human `todo`; OD-014-7/OD-020-3 remain open. Branch is ready for PR review into `phase2`, not for a gate PASS.
+- 2026-10-17 17:10 · Codex · phase-3-obidit · Fetched `origin/phase2` at PR #26 merge `545065d` and merged it as `7de5762`. Resolved S-003/test overlap and locale duplicate; lint/typecheck PASS, `npm test` 2,963 passed/203 skipped, `test:db` 11 files PASS, `test:e2e` 4/4 PASS with Turbopack build. OD-022-5 written decision found in Mahim commit `c1269e7` on an unmerged branch; OD-014-7/OD-020-3 still open. Correction to 16:43 log: the OD-022-5 decision was in a commit message, not the documents searched then. Current PR diff against `phase2` also includes Masnun TASK-009/026/028 files absent from target; review their inclusion explicitly. No Wave 0.1 gate PASS claimed.
+- 2026-10-17 16:48 · Codex · P3-010/P3-018 isolated lanes · Preserved failed drafts as `d5371b6` and `33c9017` for lead review; neither is merged into `phase-3-obidit` or counted as complete.
+- 2026-10-17 16:46 · Codex + repo `fera-review` · phase-3-obidit · Partial Wave 0.1 review PASS after API-004 malformed-ID E-004/null-FK denial fix; safeguarding, security, TS, React and e2e reviewers PASS. `npm test` 2,967 passed/203 skipped; `test:db` 11 files passed (case-read 12/12); lint/typecheck passed. Wave 0.1 gate remains pending because blocked/gated cards are unmerged.
+- 2026-10-17 16:43 · Codex + exact CLI lanes · phase-3-obidit · Wave 0.1 partial: P3-011/014/015/016 merged; `npm test` 2,967 passed/202 skipped, `test:db` 11 files passed, lint/typecheck passed, `test:e2e` 4/4 passed with a Turbopack build. P3-010 MLE review BLOCK; P3-012 agy permission BLOCK (automatic approval review rejected bypass); P3-018 typecheck BLOCK. P3-005/013/017/020 remain gated on OD-020-3/OD-022-5/OD-014-7. Locally available Mahim branches contain no written decisions for these. GitHub `phase2` fetch remains blocked: SSH key unavailable and `gh` token invalid. No Wave 0.1 gate PASS claimed.
+- 2026-10-17 11:46 · Codex + assigned CLI lanes · phase-3-obidit · Wave 0.0 P3-001–004 merged; `npm test` 2,959 passed/191 skipped, `npm run test:db` 10 files passed, lint/typecheck/build exit 0, whole-wave Codex Luna `fera-review` PASS. Evidence: [W0.0 gate](../gates/W0.0-2026-10-17-1146.md). TASK-014/023/024 remain incomplete beyond these cards.
+- 2026-10-17 11:34 · Codex · phase-3-obidit · D-A and rebaseline approved by Mahim, as reported by the user; P3-002/P3-003 may proceed. Other §3 decisions remain open.
 - 2026-10-15 19:52 · Claude Code (Haiku) · obidit-helpline · TASK-047 `todo` → `review`; helpline template (≤80 words, worst case 77) and API-006 accepts `helpline`; TC-007 passes at service level; stacked on #15
 ### Masnun
 ### Mahim (lead)

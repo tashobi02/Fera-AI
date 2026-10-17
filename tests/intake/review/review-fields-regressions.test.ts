@@ -7,7 +7,7 @@ import { buildSubmission, editField } from "@/lib/intake/review";
 import { localizeDigits } from "@/lib/numerals";
 import { content, elements, mountHooks } from "../../intake-ui/fakes/hook-harness";
 vi.mock("react", async (original) => ({ ...await original<typeof import("react")>(), ...(await import("../../intake-ui/fakes/hook-harness")).testHooks }));
-const { ReviewFields, ConfirmBar } = await import("@/app/(parent)/intake/review/review-fields");
+const { ReviewFields, ConfirmBar, DistrictSelect } = await import("@/app/(parent)/intake/review/review-fields");
 function fixture() {
   const r = createDeviceDraft({ to: "review", response: clientExamples.extractResponse, sourceText: clientExamples.extractResponse.draft.source_text, missing: [], asked: 4, mock: false, cached: false })!;
   r.draft = { ...structuredClone(clientExamples.createMissingRequest.draft), event: { ...clientExamples.createMissingRequest.draft.event, district_text: null } };
@@ -147,15 +147,40 @@ describe("Polish round 2026-10-16 (TASK-022)", () => {
     expect(get2().edits["event.place_text"]).toBe("স্কুলের সামনেবটতলা");
     expect(get2().edits["event.place_text"]).not.toMatch(/[\r\n]/);
   });
-  it("PR3: name, phone, place, district are <input> with phone carrying inputMode tel and autoComplete tel", () => {
+  it("PR3: name, phone and place are inputs; phone carries tel attributes", () => {
     const { h } = harness();
-    for (const id of ["review-child.name", "review-reporter.phone", "review-event.place_text", "review-event.district_code"]) {
+    for (const id of ["review-child.name", "review-reporter.phone", "review-event.place_text"]) {
       const n = input(h.tree, id);
       expect(n.type, id).toBe("input");
     }
     const phone = input(h.tree, "review-reporter.phone");
     expect(phone.props.inputMode).toBe("tel");
     expect(phone.props.autoComplete).toBe("tel");
+  });
+  it("records a selected district code for the final reviewed submission", () => {
+    const { h, record } = harness();
+    const district = elements(h.tree).find(n => typeof n.type === "function" && n.type.name === "DistrictSelect");
+    expect(district).toBeDefined();
+    (district!.props.onChange as (value: string) => void)("17");
+    h.render();
+    expect(record().edits["event.district_code"]).toBe("17");
+    expect(buildSubmission(record(), true)?.draft.event.district_code).toBe(17);
+  });
+  it("finds a district by an English alias in Bangla mode and lets the parent clear it", () => {
+    const { h, record } = harness();
+    let search = "";
+    const picker = mountHooks(() => DistrictSelect({ id: "review-event.district_code", value: "17", search, disabled: false, required: true, invalid: false, locale: "bn", onChange() {}, onSearch(next) { search = next; }, onBlur() {} }));
+    change(picker.tree, "review-event.district_code-search", "Chittagong"); picker.render();
+    const options = elements(picker.tree).filter(n => n.type === "option" && n.props.value !== "");
+    expect(options).toHaveLength(2); // matching alias and the currently selected district
+    expect(options.some(n => content(n).includes("Chittagong"))).toBe(true);
+    expect(content(picker.tree)).toContain("১টি জেলা মিলেছে।");
+    const district = elements(h.tree).find(n => typeof n.type === "function" && n.type.name === "DistrictSelect");
+    expect(district).toBeDefined();
+    (district!.props.onChange as (value: string) => void)("");
+    h.render();
+    expect(record().edits["event.district_code"]).toBe("");
+    expect(buildSubmission(record(), true)).toBeNull();
   });
 });
 

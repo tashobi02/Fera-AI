@@ -3,7 +3,11 @@ import type { ReactNode } from "react";
 // Lucide outline icons (ISC, third_party/lucide.LICENSE), inlined so there is no
 // icon dependency: 24 × 24 grid, 2 px stroke, round caps and joins, currentColor
 // (DESIGN.md Iconography). Decorative by default; the adjacent text carries meaning.
-function Icon({ children, className = "size-4" }: { children: ReactNode; className?: string }) {
+//
+// P3-001: this base is now exported so new icons can live in files next to the
+// screen that uses them, instead of every wave editing this file. No other
+// change in this card.
+export function Icon({ children, className = "size-4" }: { children: ReactNode; className?: string }) {
   return (
     <svg
       aria-hidden="true"

@@ -1,13 +1,14 @@
 // Signing keys for the credential session (AUTH_SECRET) and the parent cookie
-// (PARENT_COOKIE_KEY), D2B §15.1: "32+ random bytes, base64". Read at call time, never
+// (PARENT_COOKIE_KEY), the draft token (DRAFT_SIGNING_KEY), D2B §15.1: "32+ random bytes, base64". Read at call time, never
 // logged. In production (Vercel or NODE_ENV=production, which includes the DEMO_MODE=1
 // laptop) a missing or short key is an error. In development and tests a missing key
-// becomes a random per-process key with one warning, so sessions end on restart.
+// becomes a random per-process key with one warning, so sessions end on restart, except
+// DRAFT_SIGNING_KEY, which always fails closed so drafts never sign with a throwaway key.
 import { createHmac, randomBytes } from "node:crypto";
 import { isProductionEnv } from "@/app/api/_shared/cookies";
 import { createLogger } from "@/app/api/_shared/log";
 
-export type SecretName = "AUTH_SECRET" | "PARENT_COOKIE_KEY";
+export type SecretName = "AUTH_SECRET" | "PARENT_COOKIE_KEY" | "DRAFT_SIGNING_KEY";
 export type Env = Record<string, string | undefined>;
 
 const MIN_BYTES = 32;
@@ -33,7 +34,7 @@ export function loadSecret(name: SecretName, env: Env = process.env): Buffer {
   const raw = env[name];
   const decoded = decodeSecret(raw);
   if (decoded) return decoded;
-  if (raw || isProductionEnv(env)) throw new SecretConfigError(name);
+  if (raw || isProductionEnv(env) || name === "DRAFT_SIGNING_KEY") throw new SecretConfigError(name);
   let key = devKeys.get(name);
   if (!key) {
     key = randomBytes(MIN_BYTES);
