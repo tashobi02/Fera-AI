@@ -5,7 +5,12 @@ export {
   EMBEDDING_DIM,
   EmbeddingNotConfiguredError,
   MODEL_DTYPE,
+  POOLING_OPTIONS,
   PREFIX,
+  ROLE_BY_KIND,
+  TEXT_RECIPE,
+  buildSpace,
+  verifyModelCache,
   defaultCacheDir,
   embedText,
   getEmbedder,
@@ -13,6 +18,6 @@ export {
   loadLocalEmbedder,
   setEmbedder,
 } from "./model";
-export type { Embedder, EmbeddingRole } from "./model";
+export type { Embedder, EmbeddingRole, ModelFile, SpaceInputs } from "./model";
 export { caseEmbeddingText } from "./text";
 export type { CaseTextFields, CaseTextInput, DraftLike } from "./text";

@@ -2,53 +2,93 @@
 // switch. Self-contained (no relative imports, erasable syntax only) because
 // scripts/model-fetch.mjs and scripts/reembed.mjs load it with Node's type stripping.
 //
-// One model, one revision, one vector space. The three values below are written to
+// One model, one revision, one vector space. The three values in EMBEDDING are written to
 // cases.embedding_model / embedding_revision / embedding_space together with the vector
 // (the schema CHECK sets them all or none). Changing ANY of them makes `npm run reembed`
 // re-embed every case, because vectors from different spaces must never be compared.
-
-import { existsSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { createReadStream, existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 export const EMBEDDING_DIM = 384;
 
 // Hugging Face commit of Xenova/multilingual-e5-small (ONNX export of
-// intfloat/multilingual-e5-small), main on 17 Oct 2026, last modified 2025-07-22.
-// Looked up from https://huggingface.co/api/models/Xenova/multilingual-e5-small, not
-// invented. The TASK-004 spike downloaded `main` without recording a hash; main had not
-// moved since 2025-07-22, so it is the same commit unless HF rewrote history.
+// intfloat/multilingual-e5-small). Read from
+// https://huggingface.co/api/models/Xenova/multilingual-e5-small on 17 Oct 2026 (first
+// look-up) and again on 18 Oct 2026 (same sha; lastModified 2025-07-22), not invented. The
+// TASK-004 spike downloaded `main` without recording a hash; main had not moved since
+// 2025-07-22, so it is the same commit unless Hugging Face rewrote history.
 const MODEL_REVISION = "761b726dd34fb83930e26aab4e9ac3899aa1fa78";
 // Weights precision. q8 (~113 MiB) was within one query of fp32 (~449 MiB) in the spike.
 const DTYPE = "q8";
-// Bump when caseEmbeddingText (text.ts) changes what is embedded.
-const TEXT_RECIPE = "text-v1";
-
-export const EMBEDDING = {
-  model: "Xenova/multilingual-e5-small",
-  revision: MODEL_REVISION,
-  // dtype + pooling + normalisation + dimension + text recipe: everything besides the
-  // model files that changes the vector.
-  space: `e5-small-${DTYPE}-mean-l2-${EMBEDDING_DIM}-${TEXT_RECIPE}`,
-} as const;
-
-export const MODEL_DTYPE = DTYPE;
-
-// Files fetched by `npm run model:fetch` from the pinned revision, with SHA-256 digests
-// (the onnx and tokenizer.json digests equal Hugging Face's LFS oids for that commit).
-// They are stored under <cache>/<model>/<path>, the layout Transformers.js reads with its
-// default revision, so the runtime can load them with remote downloads disabled.
-// (Passing `revision` to Transformers.js 4.3.1 makes its tokenizer lookup miss the cache.)
-export const MODEL_FILES = [
-  { path: "config.json", sha256: "cb99455288675345e1a4f411438d5d0adbba5fbd3a67ea4fb03c015433b996c1" },
-  { path: "tokenizer_config.json", sha256: "a1d6bc8734a6f635dc158508bef000f8e2e5a759c7d92f984b2c86e5ff53425b" },
-  { path: "tokenizer.json", sha256: "0b44a9d7b51c3c62626640cda0e2c2f70fdacdc25bbbd68038369d14ebdf4c39" },
-  { path: "onnx/model_quantized.onnx", sha256: "f80102d3f2a1229f387d3c81909990d8945513e347b0eab049f7de3c6f98c193" },
-] as const;
+// Bump when caseEmbeddingText (text.ts) changes what is embedded. A golden test pins the
+// text for fixed inputs, so a change cannot slip through without touching this.
+export const TEXT_RECIPE = "text-v1";
 
 export type EmbeddingRole = "query" | "passage";
 // multilingual-e5 documented prefixes. `query: ` is the missing/query side, `passage: `
 // the found side (spike: small gain over passage/passage).
 export const PREFIX: Record<EmbeddingRole, string> = { query: "query: ", passage: "passage: " };
+// Which side each case kind is embedded as. The single source for text embedding and reembed.
+export const ROLE_BY_KIND: Record<"missing" | "found", EmbeddingRole> = { missing: "query", found: "passage" };
+// Options handed to the model call: the only place they are written down.
+export const POOLING_OPTIONS = { pooling: "mean", normalize: true } as const;
+
+export interface SpaceInputs {
+  dtype: string;
+  dim: number;
+  textRecipe: string;
+  prefix: Record<EmbeddingRole, string>;
+  roleByKind: Record<string, string>;
+  pooling: string;
+  normalize: boolean;
+}
+
+/** Builds the vector-space label from everything besides the model files that changes a vector. */
+export function buildSpace(i: SpaceInputs): string {
+  const digest = createHash("sha256")
+    .update(JSON.stringify([i.dtype, i.dim, i.textRecipe, i.prefix, i.roleByKind, i.pooling, i.normalize]))
+    .digest("hex")
+    .slice(0, 10);
+  return `e5-small-${i.dtype}-${i.pooling}-${i.normalize ? "l2" : "raw"}-${i.dim}-${i.textRecipe}-${digest}`;
+}
+
+export const EMBEDDING = {
+  model: "Xenova/multilingual-e5-small",
+  revision: MODEL_REVISION,
+  space: buildSpace({
+    dtype: DTYPE,
+    dim: EMBEDDING_DIM,
+    textRecipe: TEXT_RECIPE,
+    prefix: PREFIX,
+    roleByKind: ROLE_BY_KIND,
+    pooling: POOLING_OPTIONS.pooling,
+    normalize: POOLING_OPTIONS.normalize,
+  }),
+} as const;
+
+export const MODEL_DTYPE = DTYPE;
+
+export interface ModelFile {
+  path: string;
+  sha256: string;
+}
+
+// Files fetched by `npm run model:fetch` from the pinned revision, with SHA-256 digests.
+// onnx and tokenizer.json digests equal Hugging Face's LFS oids for that commit; the two
+// small JSON files have no LFS oid, so their digests are trust-on-first-use (taken from the
+// downloaded bytes on 17 Oct 2026). They are stored under <cache>/<model>/<path>, the
+// layout Transformers.js reads with its default revision, so the runtime loads them with
+// remote downloads disabled. Transformers.js 4.3.1 looks tokenizer files up under the
+// DEFAULT revision, so passing `revision` to pipeline() cannot find a pinned cache
+// ("this.tokenizer is not a function"); the cache is therefore not keyed by revision and
+// THE SHA-256 CHECK BELOW is what ties the bytes on disk to the pinned revision.
+export const MODEL_FILES: readonly ModelFile[] = [
+  { path: "config.json", sha256: "cb99455288675345e1a4f411438d5d0adbba5fbd3a67ea4fb03c015433b996c1" },
+  { path: "tokenizer_config.json", sha256: "a1d6bc8734a6f635dc158508bef000f8e2e5a759c7d92f984b2c86e5ff53425b" },
+  { path: "tokenizer.json", sha256: "0b44a9d7b51c3c62626640cda0e2c2f70fdacdc25bbbd68038369d14ebdf4c39" },
+  { path: "onnx/model_quantized.onnx", sha256: "f80102d3f2a1229f387d3c81909990d8945513e347b0eab049f7de3c6f98c193" },
+];
 
 /** Embeds an already-prefixed string. May return an un-normalised vector. */
 export interface Embedder {
@@ -66,23 +106,54 @@ export function defaultCacheDir(): string {
   return process.env.FERA_MODEL_CACHE || "models/hf";
 }
 
-/** Loads the cached model. Never downloads: a missing file fails with a model:fetch hint. */
-export async function loadLocalEmbedder(options: { cacheDir?: string } = {}): Promise<Embedder> {
-  const cacheDir = options.cacheDir ?? defaultCacheDir();
-  const missing = MODEL_FILES.filter((f) => !existsSync(join(cacheDir, EMBEDDING.model, f.path)));
-  if (missing.length > 0) {
-    throw new Error(`embedding model is not available locally (run \`npm run model:fetch\`); missing ${missing.map((f) => f.path).join(", ")}`);
+function sha256File(path: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const hash = createHash("sha256");
+    createReadStream(path)
+      .on("error", reject)
+      .on("data", (chunk) => hash.update(chunk))
+      .on("end", () => resolve(hash.digest("hex")));
+  });
+}
+
+const verified = new Set<string>();
+
+/**
+ * Checks, once per process, that every model file exists and matches its SHA-256, and that
+ * the cache directories are not world-writable. Fails closed with a model:fetch hint.
+ */
+export async function verifyModelCache(cacheDir: string, files: readonly ModelFile[] = MODEL_FILES, model: string = EMBEDDING.model): Promise<void> {
+  const key = JSON.stringify([cacheDir, model, files]);
+  if (verified.has(key)) return;
+  const hint = "run `npm run model:fetch`";
+  for (const dir of [cacheDir, join(cacheDir, model)]) {
+    if (!existsSync(dir)) throw new Error(`embedding model is not available locally (${hint}): ${dir} is missing`);
+    if (process.platform !== "win32" && (statSync(dir).mode & 0o002) !== 0) {
+      throw new Error(`embedding model cache ${dir} is world-writable; refusing to load model files from it (chmod o-w, then ${hint})`);
+    }
   }
+  for (const file of files) {
+    const path = join(cacheDir, model, file.path);
+    if (!existsSync(path)) throw new Error(`embedding model is not available locally (${hint}); missing ${file.path}`);
+    if ((await sha256File(path)) !== file.sha256) {
+      throw new Error(`embedding model file ${file.path} does not match its pinned SHA-256 (corrupt or replaced); ${hint}`);
+    }
+  }
+  verified.add(key);
+}
+
+/** Loads the cached model after verifying it. Never downloads. */
+export async function loadLocalEmbedder(options: { cacheDir?: string; files?: readonly ModelFile[] } = {}): Promise<Embedder> {
+  const cacheDir = options.cacheDir ?? defaultCacheDir();
+  await verifyModelCache(cacheDir, options.files ?? MODEL_FILES);
   const { pipeline, env } = await import("@huggingface/transformers");
   env.cacheDir = cacheDir;
+  env.allowLocalModels = true;
   env.allowRemoteModels = false;
   const extractor = await pipeline("feature-extraction", EMBEDDING.model, { dtype: MODEL_DTYPE });
   return {
     async embed(text: string) {
-      const out = await (extractor as unknown as (t: string, o: object) => Promise<{ data: Float32Array }>)(text, {
-        pooling: "mean",
-        normalize: true,
-      });
+      const out = await (extractor as unknown as (t: string, o: object) => Promise<{ data: Float32Array }>)(text, POOLING_OPTIONS);
       return Float32Array.from(out.data);
     },
   };

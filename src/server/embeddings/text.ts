@@ -19,6 +19,27 @@
 //             free-form district text. None of these describe the child, and the phone
 //             and raw text can carry identifying details; they never enter a vector.
 //
+// FREE-TEXT SAFETY
+//   Only the name and phone FIELDS are left out. Free-text fields are scrubbed of phone-like
+//   numbers (01 + 9 digits, ASCII or Bangla digits, common separators, optional +880).
+//   Names typed into free text (for example in circumstances) are NOT detected.
+//
+// SUBMITTED CASES ONLY
+//   caseEmbeddingText and `npm run reembed` must only run on submitted cases (rows of
+//   `cases`). Unreviewed intake drafts must never be embedded: they live in intake_drafts,
+//   which reembed never reads (tested).
+//
+// KEEP STALE VECTORS OUT
+//   Any code path that changes an embedded field (clothing, marks, circumstances, place_text,
+//   sex, age_*) MUST clear embedding, embedding_model, embedding_revision and embedding_space
+//   in the same UPDATE. editMissingCase (src/server/case/commands.ts) does. Anything that
+//   changes this file's output must bump TEXT_RECIPE in model.ts (a golden test pins it).
+//
+// SIMILARITY IS NOT A MATCH SIGNAL ALONE
+//   Top-1 cosine does not separate a true no-match: in the TASK-004 spike no-match top-1
+//   cosine reached 0.96 while the weakest true pair was 0.90. Similarity is not a
+//   probability and must never be shown or used as one.
+//
 // Sex and age words are Bangla (ছেলে / মেয়ে, "বয়স ৭–১০ বছর") with Bangla digits, the
 // same script as the description fields, because mixed-script text under-performed.
 // Unknown sex and unknown age are left out; nothing is guessed.
@@ -65,8 +86,21 @@ function fieldsOf(input: CaseTextInput): CaseTextFields {
   return d;
 }
 
+// Bangladeshi mobile numbers: 01 + 9 digits, or +880 / 880 + 1 + 9 digits, with ASCII or
+// Bangla digits and space, dot or hyphen separators between digits.
+const D = "[0-9০-৯]";
+const SEP = "[\\s.\\-]?";
+const PHONE_LIKE = new RegExp(
+  `(?<!${D})(?:\\+?(?:880|৮৮০)${SEP}[1১]|[0০]${SEP}[1১])(?:${SEP}${D}){9}(?!${D})`,
+  "gu",
+);
+
+export function scrubPhones(s: string): string {
+  return s.replace(PHONE_LIKE, " ");
+}
+
 const clean = (s: string | null | undefined): string =>
-  typeof s === "string" ? s.normalize("NFC").replace(/\s+/g, " ").trim() : "";
+  typeof s === "string" ? scrubPhones(s.normalize("NFC")).replace(/\s+/g, " ").trim() : "";
 
 function ageWords(f: CaseTextFields): string {
   const lo = f.age_min ?? f.age_years ?? null;
