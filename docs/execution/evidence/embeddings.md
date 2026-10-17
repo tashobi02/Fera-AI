@@ -20,7 +20,7 @@ All data is synthetic. Status: `review`.
 
 - Model `Xenova/multilingual-e5-small` (ONNX export of `intfloat/multilingual-e5-small`), `q8` weights, mean pooling, L2 normalised, 384-d.
 - **Revision `761b726dd34fb83930e26aab4e9ac3899aa1fa78`**, read on 18 Oct 2026 from `https://huggingface.co/api/models/Xenova/multilingual-e5-small` (last modified 2025-07-22). The TASK-004 spike downloaded `main` and did not record a hash; because `main` had not moved since 2025-07-22 it is the same commit unless Hugging Face rewrote history. The q8 weight file matches the spike's byte count (118,308,185 B).
-- **Space** `e5-small-q8-mean-l2-384-text-v1`: dtype + pooling + normalisation + dimension + text recipe. Changing the model, revision, space string or `TEXT_RECIPE` makes `reembed` re-embed every case.
+- **Space** `e5-small-q8-mean-l2-384-text-v1-<10 hex>`: built by `buildSpace()` from the exported constants (dtype, dimension, `TEXT_RECIPE`, the `query: `/`passage: ` prefix strings, the kind-to-role map, pooling and normalise options) with a short SHA-256 of them, so changing any one changes the string (tested). Current value `e5-small-q8-mean-l2-384-text-v1-f88aa34c97`. Changing the model, revision, space string or `TEXT_RECIPE` makes `reembed` re-embed every case.
 - Files fetched, each SHA-256 verified before it is kept: `config.json`, `tokenizer_config.json`, `tokenizer.json` (16.3 MiB), `onnx/model_quantized.onnx` (112.8 MiB). 129.1 MiB on disk. Cache `./models/hf` (or `FERA_MODEL_CACHE`), git-ignored (`models/`). Never committed.
 - Transformers.js 4.3.1 finding: passing `revision` to `pipeline()` makes its tokenizer lookup miss a custom cache (`this.tokenizer is not a function`). So `model:fetch` downloads the pinned revision itself into the default-revision layout and the runtime loads with remote downloads disabled. A missing file fails with a "run `npm run model:fetch`" message; the runtime never downloads.
 
@@ -68,14 +68,51 @@ Tests: `tests/embeddings/*` (fake embedder: unit norm, 384-d, NFC equality, name
 |---|---|
 | Package | `@huggingface/transformers` **4.3.1**, exact pin, production dependency (the spike used 4.3.1 as a dev-only install) |
 | Why | runs the pinned multilingual-e5-small locally (A-026/A-027): no per-call cost, offline for the laptop finale |
-| Licence | Apache-2.0 (package); the model `intfloat/multilingual-e5-small` is MIT-licensed per its model card (checked from memory of the card, not re-verified here: verify before the final licence notice) |
+| Licence | Apache-2.0 (package, per `node_modules/@huggingface/transformers/package.json` and the lockfile). Model licence: **UNKNOWN** (believed MIT, from memory, NOT verified; check the model card before the final licence notice) |
 | Size | package 15 MB; its dependencies `onnxruntime-node` 1.30.0 (287 MB in `node_modules`, native binaries) and `onnxruntime-web` (140 MB) and `sharp` 0.35.5 dominate. These are install-size numbers on macOS arm64 only; Vercel function size is **UNKNOWN (OQ-023)** |
 | Runtime download | none: the runtime loads from the local cache with remote models disabled. Only `npm run model:fetch` downloads (4 files from huggingface.co, ~129 MiB). `npm install` may also run onnxruntime-node's install script; npm printed an "allow-scripts" warning for it and it ran fine here: needs a human look at CI |
 | Not yet wired | no route imports the service yet; when one does, `next.config.ts` will need `serverExternalPackages: ["@huggingface/transformers", "onnxruntime-node"]` (not added, unmeasured) |
+
+## Fix round 1 (18 Oct 2026, after review)
+
+**Guarantee, reworded.** The child-name and phone FIELDS are not embedded, and phone-like numbers (01 + 9 digits, ASCII or Bangla digits, space/dot/hyphen separators, optional +880) are scrubbed from the free-text fields before embedding. **Names typed into free text are NOT detected.** Tested.
+
+**Top-1 similarity does not identify a true no-match.** In the TASK-004 spike no-match top-1 cosine reached 0.96 while the weakest true pair was 0.90. Similarity is not a probability and must not be shown or used as one. (Also in the `text.ts` header.)
+
+**Staleness.**
+- A golden test pins `caseEmbeddingText` for fixed inputs; any change to it must bump `TEXT_RECIPE` (which changes the space and makes `reembed` redo everything).
+- Writers of embedded fields or of the embedding columns, from grepping `src/server` and `db/seed`: `src/server/case/commands.ts` `editMissingCase` (clears embedding + model + revision + space in the same UPDATE as the edit; correct), `db/seed/cases.mjs` (inserts with the columns NULL), `scripts/embeddings/reembed-lib.mjs` (this task), and `redact_case()` in the schema (clears them). `src/server/case/{state,rows}.ts` only mention or read the columns. No other writer found. Rule for future code: any path that changes clothing, marks, circumstances, place_text, sex or age_* MUST clear the four embedding columns in the same UPDATE.
+- A case whose text becomes empty: **fixed**, not just documented. `reembed` clears its old vector (`cleared_empty` count). The schema currently forbids empty text on live cases (place_text and age are required), so this is covered by a stub-client unit test only.
+- **Open decision (TASK-017 / matcher owner):** after a model change `reembed` does NOT reset `matching_state`, `matched_at` or `match_error_id`, and does not void candidates computed from old-space vectors. The matcher must decide how to treat them.
+- Concurrency: each UPDATE is guarded by the `version` read with the row; an edited row is counted `stale_retry`, one more bounded pass is made, anything still stale is `stale_remaining` and printed as a warning. Tested with an injected edit between SELECT and UPDATE (the edit's NULL embedding wins; the retry then embeds the NEW text).
+- `TERMINAL` (confirmed, closed, referred) in `reembed-lib.mjs` duplicates the transition-guard trigger's terminal states in `db/schema_v2.sql`; the schema owner must keep the two in sync. Tested for confirmed, referred and closed, plus redacted.
+
+**Cache integrity.** `loadLocalEmbedder` verifies the SHA-256 of all four model files once per process (about 113 MiB hashed), refuses a world-writable cache directory, sets `env.allowLocalModels = true` and `allowRemoteModels = false`, and fails closed with a `npm run model:fetch` hint. The file list is injectable, tested with tiny files, a corrupted file, a missing file and a 0777 directory. Because Transformers.js 4.3.1 looks files up under its DEFAULT revision (passing `revision` cannot find a pinned cache), the cache is not keyed by revision and the hash check is what ties the bytes to the pinned revision. `onnx/model_quantized.onnx` and `tokenizer.json` digests equal Hugging Face's LFS oids; **`config.json` and `tokenizer_config.json` have no LFS oid, so their digests are trust-on-first-use** (hashed from the bytes downloaded on 17 Oct 2026).
+
+**Node preflight.** `model:fetch` and `reembed` check the Node version first and exit 1 with a message if type stripping is unavailable (needs 22.18+, 23.6+ or 24). **Open decision for Mahim:** `package.json` `engines` still says `^22.12.0 || >=24.0.0`, which allows 22.12 to 22.17 where these scripts would exit with that message. `engines` was not changed.
+
+**Database.** `reembed` sets `statement_timeout = 60s` and `lock_timeout = 5s` on its connection. It runs as the owner connection (loopback-guarded, like `db:reset` and `seed`); the same logic also runs as `fera_app` (column-level UPDATE grants suffice; tested via `connect("app")`), so a future route can call it with the app role. It reads only the `cases` table, never `intake_drafts` (source-level test), so unreviewed drafts are never embedded.
+
+**Revision date.** `main` was read from the Hugging Face API on 17 Oct 2026 (first look-up) and again on 18 Oct 2026: same sha `761b726dd34fb83930e26aab4e9ac3899aa1fa78`, lastModified 2025-07-22 (query repeated 18 Oct 2026 01:27 +06).
+
+**Real pipeline, rerun after the fixes** (single local run, 18 Oct 2026 01:30 +06, fresh database, model already cached and re-verified by SHA-256 at load; code at the commit following 229bebc; this laptop, Node v24.18.0, PostgreSQL 16.15 + pgvector 0.8.1):
+
+```
+seed -- --set full : cases inserted 200, skipped 0
+npm run model:fetch: ok (cached) x4; ok: 384-d vector, 129.1 MiB in cache, 1.2 s
+npm run reembed    : 200 records embedded
+  {"embedded":200,"skipped_empty":0,"cleared_empty":0,"stale_retry":0,"batches":8,"stale_remaining":0,"space":"e5-small-q8-mean-l2-384-text-v1-f88aa34c97","elapsed_s":2.5}
+second reembed     : 0 records embedded
+db: 200 rows | 200 embeddings | 1 distinct space | vector_norm 0.99999997 to 1.00000003
+```
+
+The earlier timings in this document (26.7 s first fetch, 2.8 s for 200) were also single local runs, not benchmarks.
+
+**Dependency PR note, additions.** `@huggingface/transformers` 4.3.1 is Apache-2.0 per the lockfile. Its `onnxruntime-node` 1.30.0 postinstall downloads native binaries (on linux/x64 this includes CUDA provider files we do not use); recommending `ONNXRUNTIME_NODE_INSTALL=skip` where the embedding model is not run (CI, Vercel) is a CI decision for Mahim (`.github` not touched here). `onnxruntime-web` is pinned by transformers to a dev build `1.31.0-dev.20260914-8d85527a0` and must not be bundled into client code. `serverExternalPackages` is not wired because no route calls the service yet.
 
 ## Open items
 
 - UNKNOWN: Vercel size/cold-start/memory fit (OQ-023); local-vs-API decision stays OPEN.
 - UNKNOWN: whether age/sex words help or hurt ranking (needs `eval:match`).
-- UNKNOWN: model licence line not re-verified (see above).
+- UNKNOWN: model licence (see above). Open decisions: `engines` vs Node 22.18; matcher handling of `matching_state` after a model change; CI `ONNXRUNTIME_NODE_INSTALL=skip`.
 - The match pipeline that calls `embedText` after submit (COMP-011 failure mode "case saved `open` without vector") belongs to the matcher/case-service integration (TASK-017), not this task.
