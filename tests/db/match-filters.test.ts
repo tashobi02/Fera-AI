@@ -235,30 +235,51 @@ describe.skipIf(!dbTestsEnabled)("matcher hard filters DB (P3-030, BR-017, TC-00
   });
 
   // TC-040: two intervals that overlap only outside the midpoint must still
-  // pass. The SQL uses the bounds (BR-017), so the only requirement is that
-  // the intervals share at least one point in time. We pair the missing
-  // interval [72..48] with the found interval [48..0] (they touch at 48h)
-  // and verify it is eligible, while a fully disjoint interval is not.
-  it("TC-040: overlapping event intervals are eligible even when midpoint logic would reject them", async () => {
+  // pass. BR-017 (D1 line 501) only requires "found upper time >= missing
+  // lower time" — the only time-based ineligibility is when the found
+  // interval ends BEFORE the missing interval starts. We pair the missing
+  // interval [72..48] with a found interval that shares only the 48h
+  // boundary point (eligible) and verify it is eligible, while a found
+  // interval that ends strictly before the missing interval starts is not.
+  it("TC-040: overlapping event intervals are eligible (only a found interval that ends before the missing interval starts is excluded)", async () => {
     const missingId = await insertMissingAndOpen({
       client: admin, sex: "male", age_min: 8, age_max: 10,
       event_at_lower: hours(72), event_at_upper: hours(48),
     });
-    // Found [48h ago, 0h ago]: shares 48h with the missing interval.
+    // Found [48h ago, 0h ago]: shares 48h with the missing interval;
+    // TC-040 — an overlap that a pure midpoint check would reject.
     const overlapping = await insertFound({
       client: admin, staffId: actors.staff, sex: "male", age_min: 8, age_max: 10,
       event_at_lower: hours(48), event_at_upper: hours(0),
     });
-    // A second found that is fully disjoint from the missing interval
-    // ([10h, 5h] is inside [10h..5h], which does not reach 48h).
-    const disjoint = await insertFound({
+    // The only time-based ineligible shape: the found interval ends
+    // BEFORE the missing interval starts.
+    const foundBeforeMissing = await insertFound({
       client: admin, staffId: actors.staff, sex: "male", age_min: 8, age_max: 10,
-      event_at_lower: hours(10), event_at_upper: hours(5),
+      event_at_lower: hours(200), event_at_upper: hours(100),
     });
     const rows = await eligibleFoundCandidates(app, missingId);
     const ids = rows.map((r) => r.found_case_id);
     expect(ids).toContain(overlapping);
-    expect(ids).not.toContain(disjoint);
+    expect(ids).not.toContain(foundBeforeMissing);
+  });
+
+  // BR-017 (D1 line 501): the most common true case is a child missing on
+  // day 1, found on day 5 — the found interval is entirely AFTER the
+  // missing interval. The SQL only checks "found upper time >= missing
+  // lower time", so this case must be eligible.
+  it("a found interval entirely after the missing interval is eligible (BR-017)", async () => {
+    const missingId = await insertMissingAndOpen({
+      client: admin, sex: "male", age_min: 7, age_max: 9,
+      event_at_lower: hours(72), event_at_upper: hours(48),
+    });
+    // Found [10h, 5h] is well after the missing interval ends at 48h.
+    const foundAfter = await insertFound({
+      client: admin, staffId: actors.staff, sex: "male", age_min: 7, age_max: 9,
+      event_at_lower: hours(10), event_at_upper: hours(5),
+    });
+    const rows = await eligibleFoundCandidates(app, missingId);
+    expect(rows.map((r) => r.found_case_id)).toContain(foundAfter);
   });
 
   it("sex mismatch is excluded (BR-017)", async () => {
@@ -307,8 +328,10 @@ describe.skipIf(!dbTestsEnabled)("matcher hard filters DB (P3-030, BR-017, TC-00
   });
 
   it("a missing case whose status is 'confirmed' is excluded (queue state, BR-017)", async () => {
-    // Insert both cases in a legal state, walk them through the state machine
-    // to confirmed / referred, then assert no eligible found case is returned.
+    // Use an otherwise-eligible found case (open, same sex, overlapping
+    // ages and event intervals) and no candidate row. Only the missing
+    // case's status is forced to 'confirmed' so the test would still pass
+    // even without the missing-status filter clause.
     const missingId = await insertMissingAndOpen({
       client: admin, sex: "male", age_min: 6, age_max: 8,
       event_at_lower: hours(20), event_at_upper: hours(10),
@@ -317,21 +340,18 @@ describe.skipIf(!dbTestsEnabled)("matcher hard filters DB (P3-030, BR-017, TC-00
       client: admin, staffId: actors.staff, sex: "male", age_min: 6, age_max: 8,
       event_at_lower: hours(19), event_at_upper: hours(11),
     });
-    const mv = await missingVersion(admin, missingId);
-    const fv = await foundVersion(admin, foundId);
-    await insertCandidate({
-      client: admin, missingId, foundId, missingVersion: mv, foundVersion: fv, status: "pending",
-    });
+    // Walk the missing case to 'confirmed'. The state machine reaches
+    // 'confirmed' only via matched_pending_review, so we skip triggers
+    // here to set the status directly.
     await forceStatus(admin, missingId, "matched_pending_review");
-    await asReplica(admin, () => admin.query(
-      "UPDATE match_candidates SET status='confirmed', decided_at=now() WHERE missing_case_id=$1 AND found_case_id=$2",
-      [missingId, foundId],
-    ));
     await forceStatus(admin, missingId, "confirmed");
-    await forceStatus(admin, foundId, "referred", ", closed_at = now()");
 
     const rows = await eligibleFoundCandidates(app, missingId);
     // Missing is no longer in a queue state; the SQL returns no rows.
+    // The found case is otherwise eligible; `foundId` is intentionally
+    // unused here to prove that the missing-status filter alone is
+    // responsible for the empty result.
+    void foundId;
     expect(rows).toEqual([]);
   });
 
@@ -353,7 +373,11 @@ describe.skipIf(!dbTestsEnabled)("matcher hard filters DB (P3-030, BR-017, TC-00
     expect(rows.map((r) => r.found_case_id)).not.toContain(foundId);
   });
 
-  it("a pair already listed as pending at the same versions is never re-suggested (no duplicate)", async () => {
+  it("a pair already listed as pending at the same versions IS still returned so a rerun can re-rank (BR-017)", async () => {
+    // BR-017 only excludes a `rejected` candidate row at the same versions.
+    // A pending pair must stay in the eligible set so a rerun can re-rank
+    // it (the matcher glue upserts with ON CONFLICT and never produces a
+    // true duplicate).
     const missingId = await insertMissingAndOpen({
       client: admin, sex: "male", age_min: 6, age_max: 8,
       event_at_lower: hours(20), event_at_upper: hours(10),
@@ -368,7 +392,7 @@ describe.skipIf(!dbTestsEnabled)("matcher hard filters DB (P3-030, BR-017, TC-00
       client: admin, missingId, foundId, missingVersion: mv, foundVersion: fv, status: "pending",
     });
     const rows = await eligibleFoundCandidates(app, missingId);
-    expect(rows.map((r) => r.found_case_id)).not.toContain(foundId);
+    expect(rows.map((r) => r.found_case_id)).toContain(foundId);
   });
 
   it("an age interval mismatch (> 2 years apart on both sides) is excluded (BR-017)", async () => {

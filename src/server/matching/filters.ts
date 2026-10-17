@@ -6,12 +6,19 @@
 //   (3) age interval overlap within ±2 years when both known;
 //       an unknown found age (BR-016) is allowed but a missing age is never unknown
 //       (the schema CHECK on cases requires age_min for missing when not redacted)
-//   (4) event-interval overlap using the bounds, never the midpoint    — TC-040
+//   (4) found upper time >= missing lower time (D1 line 501: "found upper time ≥
+//       missing lower time"). The most common true case is a child missing on
+//       day 1, found on day 5, so the found interval is entirely AFTER the
+//       missing interval — a symmetric two-bound overlap rule would wrongly
+//       drop that pair. TC-040 keeps interval bounds in play through the
+//       "found upper time" half of the rule.
 //   (5) both endpoints in a live queue status (open or matched_pending_review)
 //   (6) neither endpoint redacted, confirmed or closed
 //   (7) never a pair already rejected at the same report versions     — BR-019
-//   (8) never a pair already listed as pending at the same versions   — no duplicate
-//       candidate rows for the same endpoint pair at the same versions
+//   (8) no duplicate candidate row at the same endpoint pair & versions
+//       (pending/confirmed/voided/superseded are kept in the eligible set
+//       so a rerun can re-rank them; the matcher glue upserts with
+//       ON CONFLICT and never produces a true duplicate)
 //
 // Implementation notes:
 //   - Pure parameterised SQL; no string interpolation of caller values.
@@ -24,6 +31,8 @@
 import type { Queryable } from "@/server/db/queryable";
 
 export interface EligibleFoundRow {
+  missing_case_id: string;
+  missing_version: number;
   found_case_id: string;
   found_version: number;
   status: "open" | "matched_pending_review";
@@ -55,6 +64,8 @@ const ELIGIBLE_FOUND_SQL = `
     FROM cases WHERE id = $1
   )
   SELECT
+    m.id              AS missing_case_id,
+    m.version         AS missing_version,
     f.id              AS found_case_id,
     f.version         AS found_version,
     f.status          AS status,
@@ -88,21 +99,25 @@ const ELIGIBLE_FOUND_SQL = `
       OR m.age_max IS NULL
       OR (f.age_min <= m.age_max + 2 AND m.age_min <= f.age_max + 2)
     )
-    -- (4) BR-017 + TC-040: event-interval overlap using the bounds, never
-    -- the midpoint. Two intervals that overlap outside the midpoint still
-    -- pass; pure-midpoint logic would drop them.
+    -- (4) BR-017 + TC-040 (D1 line 501): the only event-time rule is
+    -- "found upper time >= missing lower time". The common true case is a
+    -- child missing on day 1, found on day 5 — the found interval is
+    -- entirely AFTER the missing interval and the symmetric "found lower
+    -- time <= missing upper time" half would wrongly drop it.
     AND f.event_at_upper >= m.event_at_lower
-    AND f.event_at_lower <= m.event_at_upper
     -- (7) BR-017 + BR-019: a rejected pair at the same versions is never
-    -- re-suggested. (8) No duplicate candidate row at the same versions in
-    -- any other status (pending/confirmed/voided/superseded).
+    -- re-suggested. (8) Pending/confirmed/voided/superseded rows at the
+    -- same versions are NOT excluded: confirmed/voided pairs are already
+    -- ineligible through case status, and pending pairs must stay in the
+    -- eligible set so a rerun can re-rank them. The matcher glue upserts
+    -- with ON CONFLICT and never produces a true duplicate.
     AND NOT EXISTS (
       SELECT 1 FROM match_candidates mc
       WHERE mc.missing_case_id = m.id
         AND mc.found_case_id   = f.id
         AND mc.missing_version = m.version
         AND mc.found_version   = f.version
-        AND mc.status IN ('rejected', 'pending', 'confirmed', 'voided', 'superseded')
+        AND mc.status = 'rejected'
     )
   ORDER BY f.id`;
 
@@ -126,8 +141,8 @@ export const INELIGIBLE_PAIR_CHECK_SQL = `
       WHEN NOT (f.age_min IS NULL OR f.age_max IS NULL OR m.age_min IS NULL OR m.age_max IS NULL
                 OR (f.age_min <= m.age_max + 2 AND m.age_min <= f.age_max + 2))
            THEN 'age_no_overlap'
-      WHEN NOT (f.event_at_upper >= m.event_at_lower AND f.event_at_lower <= m.event_at_upper)
-           THEN 'time_no_overlap'
+      WHEN NOT (f.event_at_upper >= m.event_at_lower)
+           THEN 'found_before_missing'
       ELSE 'unknown'
     END AS reason
   FROM match_candidates mc
@@ -144,7 +159,7 @@ export const INELIGIBLE_PAIR_CHECK_SQL = `
       OR NOT (f.sex = m.sex OR f.sex = 'unknown' OR m.sex = 'unknown')
       OR NOT (f.age_min IS NULL OR f.age_max IS NULL OR m.age_min IS NULL OR m.age_max IS NULL
               OR (f.age_min <= m.age_max + 2 AND m.age_min <= f.age_max + 2))
-      OR NOT (f.event_at_upper >= m.event_at_lower AND f.event_at_lower <= m.event_at_upper)
+      OR NOT (f.event_at_upper >= m.event_at_lower)
     )`;
 
 // Export the runnable SQL so the matcher run (TASK-017d) and the eval
@@ -186,9 +201,33 @@ function normaliseEligibleRow(value: unknown): EligibleFoundRow {
   if (status !== "open" && status !== "matched_pending_review") {
     throw new Error(`filters: unexpected found status ${status}`);
   }
+  const foundVersionRaw = r["found_version"];
+  if (foundVersionRaw === null || foundVersionRaw === undefined) {
+    throw new Error("filters: found_version is required (column is NOT NULL)");
+  }
+  const foundVersion =
+    typeof foundVersionRaw === "number"
+      ? foundVersionRaw
+      : Number(foundVersionRaw);
+  if (!Number.isFinite(foundVersion)) {
+    throw new Error("filters: found_version must be a finite number");
+  }
+  const missingVersionRaw = r["missing_version"];
+  if (missingVersionRaw === null || missingVersionRaw === undefined) {
+    throw new Error("filters: missing_version is required (column is NOT NULL)");
+  }
+  const missingVersion =
+    typeof missingVersionRaw === "number"
+      ? missingVersionRaw
+      : Number(missingVersionRaw);
+  if (!Number.isFinite(missingVersion)) {
+    throw new Error("filters: missing_version must be a finite number");
+  }
   return {
+    missing_case_id: str("missing_case_id"),
+    missing_version: missingVersion,
     found_case_id: str("found_case_id"),
-    found_version: intOrNull("found_version") ?? 0,
+    found_version: foundVersion,
     status,
     sex: str("sex") as EligibleFoundRow["sex"],
     age_min: intOrNull("age_min"),
@@ -212,11 +251,18 @@ function normaliseEligibleRow(value: unknown): EligibleFoundRow {
  *   - opposite kinds                                 (BR-017)
  *   - sex equal or unknown                           (BR-017)
  *   - age intervals overlap ±2y                      (BR-017; BR-016 allows unknown found age)
- *   - event intervals overlap using bounds, never midpoint  (BR-017; TC-040)
+ *   - found upper time >= missing lower time         (BR-017; the most common
+ *     case is a child missing on day 1 and found on day 5, so the found
+ *     interval is entirely AFTER the missing interval; the symmetric
+ *     "found lower time <= missing upper time" half is intentionally NOT
+ *     checked so that case stays eligible. TC-040 keeps interval bounds
+ *     in play through the "found upper time" half of the rule.)
  *   - both endpoints in queue status                 (BR-017)
  *   - neither endpoint redacted                      (BR-017)
  *   - not previously rejected at the same versions   (BR-017; BR-019)
- *   - not already a candidate row at the same versions (no duplicates)
+ *   - pending/confirmed/voided/superseded candidate rows are kept; the
+ *     matcher glue upserts with ON CONFLICT and never produces a true
+ *     duplicate.
  */
 export async function eligibleFoundCandidates(
   db: Queryable,
