@@ -10,11 +10,15 @@ const MODEL = "Xenova/multilingual-e5-small";
 const ci = process.argv.indexOf("--cache");
 const CACHE = ci > -1 ? process.argv[ci + 1] : ".cache/models";
 const di = process.argv.indexOf("--dtype");
+const arg = (n, d) => { const i = process.argv.indexOf(n); return i > -1 ? process.argv[i + 1] : d; };
+const QP = arg("--query-prefix", "passage: "); // default: passage: on both sides
+const PP = arg("--passage-prefix", "passage: ");
 const DTYPE = di > -1 ? process.argv[di + 1] : "fp32";
 mkdirSync(CACHE, { recursive: true });
 
 const recs = readFileSync("data/synthetic/records.jsonl", "utf8").trim().split("\n").map((l) => JSON.parse(l));
 const gt = JSON.parse(readFileSync("data/synthetic/ground_truth.json", "utf8")).records;
+const gtById = new Map(gt.map((r) => [r.record_id, r]));
 
 const dirSize = (d) => readdirSync(d, { withFileTypes: true }).reduce((s, e) => s + (e.isDirectory() ? dirSize(join(d, e.name)) : statSync(join(d, e.name)).size), 0);
 const pct = (a, p) => { const s = [...a].sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.ceil(p * s.length) - 1)]; };
@@ -30,7 +34,9 @@ const extractor = await pipeline("feature-extraction", MODEL, { dtype: DTYPE });
 const warm = await extractor("passage: warm-up", { pooling: "mean", normalize: true });
 const coldMs = performance.now() - t0;
 const dim = warm.dims[1];
-const modelBytes = dirSize(CACHE);
+const onnxName = DTYPE === "fp32" ? "model.onnx" : DTYPE === "q8" ? "model_quantized.onnx" : `model_${DTYPE}.onnx`;
+const modelBytes = statSync(join(CACHE, MODEL, "onnx", onnxName)).size; // weight file only
+const cacheBytes = dirSize(CACHE);
 
 const fieldText = (r) => {
   const d = r.draft, c = d.child ?? {}, e = d.event ?? {};
@@ -38,7 +44,7 @@ const fieldText = (r) => {
 };
 const variants = { source_text: (r) => r.draft.source_text, description_fields: fieldText };
 
-const out = { model: MODEL, dtype: DTYPE, dim, coldMs, modelBytes, n: recs.length, variants: {} };
+const out = { model: MODEL, dtype: DTYPE, dim, coldMs, modelBytes, onnxName, cacheBytes, queryPrefix: QP, passagePrefix: PP, n: recs.length, variants: {} };
 
 for (const [vname, getText] of Object.entries(variants)) {
   const lat = [];
@@ -46,7 +52,7 @@ for (const [vname, getText] of Object.entries(variants)) {
   for (const r of recs) {
     const text = getText(r) || "";
     const s = performance.now();
-    const o = await extractor("passage: " + text, { pooling: "mean", normalize: true });
+    const o = await extractor((r.kind === "missing" ? QP : PP) + text, { pooling: "mean", normalize: true });
     lat.push(performance.now() - s);
     vec.set(r.record_id, Float32Array.from(o.data));
   }
@@ -75,6 +81,19 @@ for (const [vname, getText] of Object.entries(variants)) {
     if (!trueSet.has(m + "|" + fd) && !trueSet.has(fd + "|" + m)) randCos.push(cos(m, fd));
   }
   const nmTop1 = noMatch.map((q) => Math.max(...found.map((id) => cos(q.record_id, id))));
+  // per (query variant x partner variant) breakdown + misses
+  const groups = new Map(), misses = [];
+  queries.forEach((q, i) => {
+    const best = q.true_partner_ids.map((t) => [t, cos(q.record_id, t)]).sort((a, b) => b[1] - a[1])[0][0];
+    const key = q.source_variant + " -> " + gtById.get(best).source_variant;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(ranks[i]);
+    if (ranks[i] > 5) misses.push({ label: q.label, qv: q.source_variant, pv: gtById.get(best).source_variant, rank: ranks[i] });
+  });
+  const mk = (rs) => ({ n: rs.length, h1: rs.filter((r) => r <= 1).length, h3: rs.filter((r) => r <= 3).length, h5: rs.filter((r) => r <= 5).length, mrr: mean(rs.map((r) => 1 / r)) });
+  const byVariant = Object.fromEntries([...groups].sort().map(([k, rs]) => [k, mk(rs)]));
+  const sameRs = [...groups].filter(([k]) => k.split(" -> ")[0] === k.split(" -> ")[1]).flatMap(([, rs]) => rs);
+  const sameVariant = mk(sameRs);
   const hit = (k) => ranks.filter((r) => r <= k).length;
   out.variants[vname] = {
     latencyMs: { n: lat.length, median: pct(lat, 0.5), p95: pct(lat, 0.95), mean: mean(lat) },
@@ -83,16 +102,20 @@ for (const [vname, getText] of Object.entries(variants)) {
     randomN: randCos.length, randomMean: mean(randCos),
     hit1: hit(1), hit3: hit(3), hit5: hit(5), mrr: mean(ranks.map((r) => 1 / r)),
     noMatchN: nmTop1.length, noMatchTop1: { min: Math.min(...nmTop1), median: pct(nmTop1, 0.5), max: Math.max(...nmTop1), mean: mean(nmTop1) },
+    byVariant, sameVariant, misses,
     trueMin: Math.min(...truePairs), trueMedian: pct(truePairs, 0.5),
   };
 }
 
 console.log(JSON.stringify(out, null, 2));
 const mb = (b) => (b / 1048576).toFixed(1);
-console.log(`\nmodel=${MODEL} dtype=${DTYPE} dim=${dim} cache_bytes=${modelBytes} (${mb(modelBytes)} MiB) cold_load+first_embed_ms=${coldMs.toFixed(0)}`);
+console.log(`\nmodel=${MODEL} dtype=${DTYPE} dim=${dim} weights=${onnxName} ${modelBytes} B (${mb(modelBytes)} MiB) cache_dir_bytes=${cacheBytes} prefixes query=${JSON.stringify(QP)} passage=${JSON.stringify(PP)} cold_load+first_embed_ms=${coldMs.toFixed(0)}`);
 for (const [n, v] of Object.entries(out.variants)) {
   console.log(`\n[${n}] latency ms median=${f(v.latencyMs.median)} p95=${f(v.latencyMs.p95)} (n=${v.latencyMs.n})`);
   console.log(`  cos true=${f(v.truePairMean)} (n=${v.nTruePairCos}) decoy=${f(v.decoyMean)} (n=${v.decoyN}) random=${f(v.randomMean)} (n=${v.randomN})`);
   console.log(`  Hit@1=${v.hit1}/${v.nQueries} Hit@3=${v.hit3}/${v.nQueries} Hit@5=${v.hit5}/${v.nQueries} MRR=${f(v.mrr)} (candidates=${v.nFound})`);
   console.log(`  no-match top1 cos n=${v.noMatchN} min=${f(v.noMatchTop1.min)} median=${f(v.noMatchTop1.median)} max=${f(v.noMatchTop1.max)}; true-pair cos min=${f(v.trueMin)} median=${f(v.trueMedian)}`);
+  console.log("  by query->partner variant (n h1 h3 h5 mrr): " + Object.entries(v.byVariant).map(([k, g]) => `${k}: ${g.n} ${g.h1} ${g.h3} ${g.h5} ${f(g.mrr)}`).join(" | "));
+  console.log(`  same-variant only: n=${v.sameVariant.n} Hit@1=${v.sameVariant.h1} Hit@3=${v.sameVariant.h3} Hit@5=${v.sameVariant.h5} MRR=${f(v.sameVariant.mrr)}`);
+  console.log("  Hit@5 misses: " + (v.misses.map((m) => `${m.label}(${m.qv}->${m.pv}, rank ${m.rank})`).join("; ") || "none"));
 }
