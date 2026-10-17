@@ -73,9 +73,9 @@ Assumptions: matching, dashboard and import are Masnun's paths per AGENTS.md; a 
 
 ---
 
-## 4. Gap check: tracker vs code on `phase-3-obidit`
+## 4. Baseline gap check before Wave 0
 
-Checked against files, routes and npm scripts on the merged tree, not the tracker.
+Historical snapshot checked against files, routes and npm scripts on `phase-3-obidit` before the Wave 0 cards merged. For current integration state, use the status table in §9 and the Phase 3 tracker log; rows below are not refreshed after each PR.
 
 | Task | Tracker | Code on `phase-3-obidit` | Verdict |
 |---|---|---|---|
@@ -814,7 +814,7 @@ Status values: `todo` · `doing` · `review` · `done` · `blocked` · `cut`.
 | P3-015 | TASK-022 | Obidit | puku | `done` | [merged PR #38](https://github.com/tashobi02/Fera-AI/pull/38) · `c74381b` merged into `phase-3-obidit`; clean-branch fixes `f416cc4`, `c11dd76` | Searchable, clearable bilingual district list with aliases and result announcement; 44/44 focused tests; React/Bengali/a11y re-reviews PASS; 44px helpline and submitted-report link; refreshed [360 px screenshot](evidence/screenshots/p3-015-review-360.png). |
 | P3-016 | TASK-029 | Mahim | puku | `done` | [merged PR #38](https://github.com/tashobi02/Fera-AI/pull/38) · `2de934c` plus malformed-ID fix merged into `phase-3-obidit` | API tests 6/6, isolated DB tests 12/12, full `test:db` 11 files PASS; security, safeguarding, database and TS reviews PASS. Role DTOs and persisted E-004 denied-access audit, including malformed IDs, verified. This card alone does not complete TASK-029. |
 | P3-017 | TASK-014 | Obidit | puku | `todo` | | GATED OD-014-7; no recorded decision found in locally available Mahim branches. |
-| P3-018 | TASK-029 | Mahim | puku | `blocked` | isolated draft `33c9017`; not merged | Two Puku rounds exhausted; API-011/API-013 draft fails typecheck (`AuditResponse.data` and fixture typing) and DB-backed test placement needs correction. |
+| P3-018 | TASK-029 | Mahim | puku | `blocked` | isolated drafts `33c9017`, `7a9fadb`; neither merged | Puku CLI Opus 4.8 repaired response/fixture typing; integrator schema-parse fix made typecheck PASS. `npm test -- tests/api/case-close.test.ts` fails because this DB-backed test runs in the unit suite without `DATABASE_URL`; local `test:db` fails 7 audit-read tests (`audit_log.at` fixture shape). The reader also fetches audit rows before applying the role guard. No PR until these are fixed and DB/safeguarding review passes. |
 | P3-019 | TASK-029 | Mahim | puku | `todo` | | |
 | P3-020 | TASK-020 | Obidit | puku | `todo` | | GATED OD-020-3 and P3-005; no recorded decision found in locally available Mahim branches. |
 | P3-021 | TASK-025 | Obidit | haiku | `todo` | | |
