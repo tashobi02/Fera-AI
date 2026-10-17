@@ -18,7 +18,7 @@ describe("COMP-037/038 match review", () => {
       expect(html).toContain(locales[locale].matchReviewSimilarityNote);
     }
     expect(locales.bn.matchReviewSimilarity).toBe("মিলের মাত্রা"); // D3
-    // The only mention of probability is the negation; no percentage-match or "identical" claim.
+    // No probability wording at all (the wording guard bans it); no percentage-match or "identical" claim.
     const prose = render("en").replace(locales.en.matchReviewSimilarityNote, "");
     expect(prose).not.toMatch(/probab|%\s*match|identical/i);
   });

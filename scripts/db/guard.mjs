@@ -1,10 +1,15 @@
 // db:reset drops a database, so it only ever runs against this machine (CLAUDE.md:
-// never db:reset against a non-local database).
+// never db:reset against a non-local database). The optional `label` parameter
+// names the caller (`db:reset` keeps the existing message byte-for-byte; "spend"
+// mentions the AI spend CLI). scripts/db/ owner not listed in AGENTS.md (UNKNOWN);
+// shared tooling, flagged for Mahim (lead) in the PR. This is the smallest
+// possible change.
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
+const DEFAULT_LABEL = "db:reset";
 
 export const DEFAULT_DATABASE_URL = "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
 
-export function assertLocalDatabaseUrl(raw) {
+export function assertLocalDatabaseUrl(raw, label = DEFAULT_LABEL) {
   let url;
   try {
     url = new URL(raw);
@@ -15,12 +20,12 @@ export function assertLocalDatabaseUrl(raw) {
     throw new Error("DATABASE_URL must use the postgresql: scheme");
   }
   if (!LOCAL_HOSTS.has(url.hostname)) {
-    throw new Error("db:reset refuses a non-local database host");
+    throw new Error(`${label} refuses a non-local database host`);
   }
   // libpq lets ?host=, ?hostaddr= and ?service= override the authority host, so any
   // connection parameter in the query string is refused outright.
   if (url.search !== "" || url.hash !== "") {
-    throw new Error("db:reset refuses connection parameters in DATABASE_URL");
+    throw new Error(`${label} refuses connection parameters in DATABASE_URL`);
   }
   return url;
 }

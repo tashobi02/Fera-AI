@@ -35,12 +35,16 @@ export class RedactionDbError extends Error {
 // (status IN ('closed','referred'); a found report with a confirmed candidate whose
 // missing report is not closed is retained). tests/db/redaction.test.ts exercises each
 // branch against redact_case() directly. Already-redacted rows count as skipped.
-const ELIGIBLE = `
-  SELECT 1 FROM cases c
-  WHERE c.id = $1 AND c.anonymised_at IS NULL AND c.status IN ('closed', 'referred')
+const ELIGIBLE_WHERE = `
+  c.anonymised_at IS NULL AND c.status IN ('closed', 'referred')
     AND NOT (c.kind = 'found' AND EXISTS (
       SELECT 1 FROM match_candidates mc JOIN cases m ON m.id = mc.missing_case_id
       WHERE mc.found_case_id = c.id AND mc.status = 'confirmed' AND m.status <> 'closed'))`;
+
+const ELIGIBLE = `SELECT 1 FROM cases c WHERE c.id = $1 AND ${ELIGIBLE_WHERE}`;
+
+// SCREEN-013 eligible summary (TASK-032): a count only, no IDs or payload.
+const ELIGIBLE_COUNT = `SELECT count(*)::int AS n FROM cases c WHERE ${ELIGIBLE_WHERE}`;
 
 const ALL_CANDIDATES = `
   SELECT id FROM cases WHERE anonymised_at IS NULL AND status IN ('closed', 'referred') ORDER BY id`;
@@ -112,4 +116,20 @@ async function redactOne(pool: Pick<Pool, "connect">, caseId: string, adminId: s
 function sqlstateOf(err: unknown): string | null {
   const code = (err as { code?: unknown } | null)?.code;
   return typeof code === "string" && /^[0-9A-Z]{5}$/.test(code) ? code : null;
+}
+
+// Number of reports an all_eligible run would redact right now (SCREEN-013 summary and
+// empty state). Same eligibility as redact_case(); admin only, on the redactor pool.
+export async function countEligibleCases(pool: Pick<Pool, "query">, principal: Principal | null): Promise<number> {
+  if (!principal || principal.kind !== "user" || !canCall("API-016", principal)) throw new RedactionForbiddenError();
+  try {
+    const who = await pool.query<{ role: string }>("SELECT current_user AS role");
+    if (who.rows[0]?.role !== REDACTION_DB_ROLE) throw new RedactionDbError(null, 0);
+    const { rows } = await pool.query<{ n: unknown }>(ELIGIBLE_COUNT);
+    const n = rows[0]?.n;
+    if (typeof n !== "number" || !Number.isSafeInteger(n) || n < 0) throw new RedactionDbError(null, 0);
+    return n;
+  } catch (err) {
+    throw err instanceof RedactionDbError ? err : new RedactionDbError(sqlstateOf(err), 0);
+  }
 }
