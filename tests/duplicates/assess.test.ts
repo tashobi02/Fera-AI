@@ -147,7 +147,7 @@ describe("evidence list and score", () => {
     const r = assessPair(base, other(), 0.97);
     expect(r.link).toBe(true);
     expect(cues(r)).toEqual(expect.arrayContaining(["name", "clothing", "marks", "place_text", "district", "sex", "age_overlap", "embedding_cosine", "phone_shared_weak"]));
-    expect(r.cueCount).toBe(4);;
+    expect(r.cueCount).toBe(4);
     expect(r.score).toBeLessThanOrEqual(100);
   });
   it("needs two identity cues beyond sex/age/district: sex+age+district alone is not a link", () => {
