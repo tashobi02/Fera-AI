@@ -232,6 +232,7 @@ describe("parent sessions (D2A §9.1, BR-007 ownership)", () => {
       t.parent(randomUUID()),
       t.parent(t.store.addSession({ expiresInMs: -DAY_MS }).id),
       t.parent(t.store.addSession({ revoked: true }).id),
+      (() => { const row = t.store.addSession(); return `${t.parent(row.id)}; ${t.parent(row.id)}`; })(), // duplicated
     ]) {
       const res = await call(t.route(api), cookie);
       await expectError(res, "E-002");

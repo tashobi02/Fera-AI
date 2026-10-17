@@ -186,6 +186,17 @@ describe.skipIf(!dbTestsEnabled)("API-003 on PostgreSQL 16 (TASK-022)", () => {
     expect((await one<{ n: number }>(appClient, "SELECT count(*)::int AS n FROM parent_sessions")).n).toBe(sessionsBefore.n + 1);
   });
 
+  it("a cookieless submit that fails validation leaves only session metadata: no case, no audit row", async () => {
+    const before = await counts();
+    const sessionsBefore = await one<{ n: number }>(appClient, "SELECT count(*)::int AS n FROM parent_sessions");
+    const response = await submit({ ...manualRequest(), confirmed: false });
+    expect(response.status).toBe(400);
+    expect(await errorId(response)).toBe("E-001");
+    expect(await counts()).toEqual(before);
+    // Minting runs in the resolver, before the body is parsed: one metadata-only row.
+    expect((await one<{ n: number }>(appClient, "SELECT count(*)::int AS n FROM parent_sessions")).n).toBe(sessionsBefore.n + 1);
+  });
+
   it("does not replace a present but expired parent session: E-002, no new session, nothing stored", async () => {
     const { id } = await one<{ id: string }>(appClient, "INSERT INTO parent_sessions (created_at, expires_at) VALUES (now() - interval '31 days', now() - interval '1 minute') RETURNING id");
     const before = await counts();
