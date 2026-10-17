@@ -1,8 +1,8 @@
 # Phase 3 — Full scope and quality · Gates G3, G4
 
-**Window:** Wed 14 Oct 2026, 07:00 → 16:00 (Asia/Dhaka) · **Gates:** G3 (13:00), G4 (16:00) · **Plan:** [EXECUTION_PLAN.md](EXECUTION_PLAN.md#phase-3--full-scope-and-quality-wed-14-oct-0700--1600--gates-g3-g4) · **Prev:** [Phase 2](PHASE_2_MUST_CORE.md) · **Next:** [Phase 4](PHASE_4_SUBMISSION.md)
-**Phase status:** `todo`
-**Last updated:** 2026-10-13 · tasks distributed among Obidit, Masnun and Mahim; lead = Mahim
+**Window:** **Rebaseline approved by Mahim, as reported by the user on 17 Oct:** Sat 17 → Thu 22 Oct 2026 (Asia/Dhaka) · **Gates:** G2′ Mon 19 Oct 22:00, G3 Wed 21 Oct 20:00, G4 Thu 22 Oct 22:00 (the original 14 Oct times are stale) · **Detailed plan:** [PHASE_3_PLAN.md](PHASE_3_PLAN.md) · **Plan:** [EXECUTION_PLAN.md](EXECUTION_PLAN.md#phase-3--full-scope-and-quality-wed-14-oct-0700--1600--gates-g3-g4) · **Prev:** [Phase 2](PHASE_2_MUST_CORE.md) · **Next:** [Phase 4](PHASE_4_SUBMISSION.md)
+**Phase status:** `doing`
+**Last updated:** 2026-10-17 · tasks distributed among Obidit, Masnun and Mahim; lead = Mahim
 **Team:** **Obidit** — intake, AI, outputs · **Masnun** — data, matching, officer workflow, dashboard, evaluation · **Mahim** — lead; platform, integration, release (named "Sadman" in AGENTS.md and the spec pack; D6 owner code S). Tasks follow [EXECUTION_PLAN.md](EXECUTION_PLAN.md). The lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`.
 
 ---
@@ -28,16 +28,18 @@ This is a living tracker. Every agent working on a task in this phase updates it
 
 ---
 
-## Timeline (hard times)
-| Time | Event | Status |
+## Timeline: approved rebaseline to the 24 Oct finale (user-reported Mahim approval)
+The 14 Oct times are stale. Targets, not a computed schedule; capacity is **UNKNOWN**. Details and cut triggers: [PHASE_3_PLAN.md §2](PHASE_3_PLAN.md#2-rebaseline-to-the-24-oct-finale-approved-by-mahim-as-reported-by-the-user-on-17-oct).
+
+| When | Event | Status |
 |---|---|---|
-| 09:00 | Stand-up + merge window | `todo` |
-| 10:00–12:00 | TASK-041 timing study, ≥5 testers | `todo` |
-| **12:30** | **Feature freeze.** After this, only fixes for failing TCs | `todo` |
-| 13:00 | Stand-up · **G3** check | `todo` |
-| **15:00** | TASK-042 production deploy + smoke | `todo` |
-| **15:45** | TASK-043 final frozen evaluation on the prod build | `todo` |
-| 16:00 | **G4** check | `todo` |
+| Sat 17 Oct | Merge confirmed, decisions logged, Wave 0.0 | `done` (D-A and rebaseline approved as reported; other §3 decisions pending) |
+| Sat 17 – Mon 19 Oct | Wave 0 (Phase 2 unblockers) · **G2′ Mon 19 Oct 22:00** | `todo` |
+| Mon 19 – Tue 20 Oct | Wave 1 features · **Feature freeze Tue 20 Oct 22:00** | `todo` |
+| Wed 21 Oct | Wave 2 quality; TASK-036, TASK-040 clips, TASK-041 (human) · **G3 20:00** | `todo` |
+| Thu 22 Oct | TASK-042 deploy (explicit go-ahead), TASK-060, TASK-043 · **G4 22:00** | `todo` |
+| Fri 23 Oct | Phase 5 rehearsals and backup recording | `todo` |
+| Sat 24 Oct | Finale | `todo` |
 
 Cut order if short ([D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommendation)): FR-036 disaster screen → FR-010 13219 summary → FR-024 import → FR-029 edit after submit → live voice (keep labelled cached note) → poster PNG (keep poster text).
 
@@ -125,6 +127,8 @@ Tick only from the gate report (`fera-gate`), with evidence linked.
 Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
 ### Obidit
+- 2026-10-17 11:46 · Codex + assigned CLI lanes · phase-3-obidit · Wave 0.0 P3-001–004 merged; `npm test` 2,959 passed/191 skipped, `npm run test:db` 10 files passed, lint/typecheck/build exit 0, whole-wave Codex Luna `fera-review` PASS. Evidence: [W0.0 gate](../gates/W0.0-2026-10-17-1146.md). TASK-014/023/024 remain incomplete beyond these cards.
+- 2026-10-17 11:34 · Codex · phase-3-obidit · D-A and rebaseline approved by Mahim, as reported by the user; P3-002/P3-003 may proceed. Other §3 decisions remain open.
 - 2026-10-15 19:52 · Claude Code (Haiku) · obidit-helpline · TASK-047 `todo` → `review`; helpline template (≤80 words, worst case 77) and API-006 accepts `helpline`; TC-007 passes at service level; stacked on #15
 ### Masnun
 ### Mahim (lead)
