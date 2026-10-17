@@ -127,6 +127,7 @@ Tick only from the gate report (`fera-gate`), with evidence linked.
 Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
 ### Obidit
+- 2026-10-17 16:43 · Codex + exact CLI lanes · phase-3-obidit · Wave 0.1 partial: P3-011/014/015/016 merged; `npm test` 2,967 passed/202 skipped, `test:db` 11 files passed, lint/typecheck passed, `test:e2e` 4/4 passed with a Turbopack build. P3-010 MLE review BLOCK; P3-012 agy permission BLOCK (automatic approval review rejected bypass); P3-018 typecheck BLOCK. P3-005/013/017/020 remain gated on OD-020-3/OD-022-5/OD-014-7. Locally available Mahim branches contain no written decisions for these. GitHub `phase2` fetch remains blocked: SSH key unavailable and `gh` token invalid. No Wave 0.1 gate PASS claimed.
 - 2026-10-17 11:46 · Codex + assigned CLI lanes · phase-3-obidit · Wave 0.0 P3-001–004 merged; `npm test` 2,959 passed/191 skipped, `npm run test:db` 10 files passed, lint/typecheck/build exit 0, whole-wave Codex Luna `fera-review` PASS. Evidence: [W0.0 gate](../gates/W0.0-2026-10-17-1146.md). TASK-014/023/024 remain incomplete beyond these cards.
 - 2026-10-17 11:34 · Codex · phase-3-obidit · D-A and rebaseline approved by Mahim, as reported by the user; P3-002/P3-003 may proceed. Other §3 decisions remain open.
 - 2026-10-15 19:52 · Claude Code (Haiku) · obidit-helpline · TASK-047 `todo` → `review`; helpline template (≤80 words, worst case 77) and API-006 accepts `helpline`; TC-007 passes at service level; stacked on #15

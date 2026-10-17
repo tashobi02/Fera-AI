@@ -12,7 +12,7 @@
 // Run with: npm run test:db (this file is auto-discovered).
 import { randomBytes, randomUUID } from "node:crypto";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { closePool, getPool } from "@/server/db/pool";
+import { getPool, setPoolForTests } from "@/server/db/pool";
 import { errorEnvelopeSchema, isUuid } from "@/contracts";
 import { parentPrincipal, userPrincipal, type Principal } from "@/contracts/server";
 import { actorFor } from "@/server/audit";
@@ -20,9 +20,10 @@ import { readCase } from "@/server/case";
 import { GET } from "@/app/api/cases/[id]/route";
 import { defaultAuth } from "@/server/auth/default";
 import type { Pool, PoolClient } from "pg";
-import { fakePhone, pool, seedReference } from "./support/db";
+import { dbTestsEnabled, fakePhone, pool, seedReference } from "./support/db";
 
 let fixturePool: Pool;
+let appPool: Pool;
 
 // Fixture setup uses the local test DB owner; reads under test use fera_app.
 async function asFixtureOwner<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
@@ -108,7 +109,7 @@ async function insertParentSession(): Promise<string> {
   });
 }
 
-describe("API-004 cases read (P3-016, TC-022/052)", () => {
+describe.skipIf(!dbTestsEnabled)("API-004 cases read (P3-016, TC-022/052)", () => {
   let parentSessionId!: string;
   let otherParentSessionId!: string;
   let officerUserId!: string;
@@ -121,8 +122,9 @@ describe("API-004 cases read (P3-016, TC-022/052)", () => {
   let unverifiedFoundCaseId!: string;
 
   beforeAll(async () => {
-    if (!process.env.FERA_DB_TESTS) throw new Error("test:db must run with FERA_DB_TESTS=1");
     fixturePool = pool("admin");
+    appPool = pool("app");
+    setPoolForTests(appPool);
     const fixtureClient = await fixturePool.connect();
     try { await seedReference(fixtureClient); } finally { fixtureClient.release(); }
     parentSessionId = await insertParentSession();
@@ -149,7 +151,8 @@ describe("API-004 cases read (P3-016, TC-022/052)", () => {
 
   afterEach(() => vi.restoreAllMocks());
   afterAll(async () => {
-    await closePool();
+    setPoolForTests(null);
+    if (appPool) await appPool.end();
     if (fixturePool) await fixturePool.end();
   });
 
