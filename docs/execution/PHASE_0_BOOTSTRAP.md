@@ -58,7 +58,7 @@ This is a living tracker. Every agent working on a task in this phase updates it
 ## Tasks — Masnun
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| TASK-004 | Spike: local embedding model on Vercel (OQ-023, RISK-015) | Codex | TASK-001 | 3 | Report: cold start, size; decision local vs API | `todo` | | |
+| TASK-004 | Spike: local embedding model on Vercel (OQ-023, RISK-015) | Codex | TASK-001 | 3 | Report: cold start, size; decision local vs API | `review` | branch `phase2--masnun-embed-spike` (PR pending) | Local laptop numbers only (`docs/execution/evidence/embedding-spike.md`): q8 112.8 MiB / fp32 448.5 MiB weights, warm cold-start under 1 s, ~5-8 ms/record, synthetic Hit@5 35/60 (source_text) vs 60/60 (description fields). **Vercel limits UNKNOWN (not run on Vercel); local-vs-API decision OPEN.** Not a held-out result. |
 | TASK-009 | District data: 64 rows bn/en/centroids + neighbours | Codex | TASK-002 | 3 | `npm run seed` loads 64 districts | `review` | branch `phase2--masnun-districts` (PR pending) | Unit/lint/typecheck/build green; **`npm run seed` and `test:db` not run (no Docker on this machine)**; data is AI-compiled and UNVERIFIED (DEP-004/A-019 check owner UNKNOWN). See [evidence](evidence/data-districts.md). |
 
 ## Tasks — Mahim (lead)
