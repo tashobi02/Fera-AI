@@ -174,6 +174,7 @@ describe("Polish round 2026-10-16 (TASK-022)", () => {
     const options = elements(picker.tree).filter(n => n.type === "option" && n.props.value !== "");
     expect(options).toHaveLength(2); // matching alias and the currently selected district
     expect(options.some(n => content(n).includes("Chittagong"))).toBe(true);
+    expect(content(picker.tree)).toContain("১টি জেলা মিলেছে।");
     const district = elements(h.tree).find(n => typeof n.type === "function" && n.type.name === "DistrictSelect");
     expect(district).toBeDefined();
     (district!.props.onChange as (value: string) => void)("");

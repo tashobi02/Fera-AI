@@ -88,7 +88,9 @@ export function DistrictSelect({ id, value, search, disabled, describedBy, requi
         return <option key={d.code} value={String(d.code)}>{label}</option>;
       })}
     </select>
-    {query && matches.length === 0 && <p role="status" className="text-body-lg text-body">{t.reviewDistrictNoResults}</p>}
+    {query && <p role="status" aria-live="polite" className="text-body-lg text-body">
+      {matches.length === 0 ? t.reviewDistrictNoResults : t.reviewDistrictResults.replace("{count}", localizeDigits(String(matches.length), locale))}
+    </p>}
   </div>;
 }
 
