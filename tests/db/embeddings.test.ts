@@ -10,7 +10,7 @@ import { loadDistrictData, seedDistricts } from "../../db/seed/districts.mjs";
 // @ts-expect-error -- plain ESM module without type declarations
 import { reembedCases } from "../../scripts/embeddings/reembed-lib.mjs";
 import { fakeEmbedder, seen } from "../embeddings/support";
-import { connect, dbTestsEnabled } from "./support/db";
+import { addCandidate, closedPair, confirmPair, connect, createActors, dbTestsEnabled, insertFound, insertMissing, openMissing, seedReference } from "./support/db";
 
 describe.skipIf(!dbTestsEnabled)("reembed (TASK-016)", () => {
   let admin: Client;
@@ -99,5 +99,79 @@ describe.skipIf(!dbTestsEnabled)("reembed (TASK-016)", () => {
     const skipped = await admin.query("SELECT id FROM cases WHERE embedding IS NULL ORDER BY id");
     expect(skipped.rows.map((r) => r.id).sort()).toEqual([closedId, redactedId].sort());
     expect(await count("SELECT count(*)::int AS n FROM cases WHERE anonymised_at IS NOT NULL AND embedding IS NOT NULL")).toBe(0);
+  });
+
+  it("skips confirmed and referred cases too (and closed via closedPair)", async () => {
+    const app = await connect("app");
+    try {
+      await seedReference(admin);
+      const actors = await createActors(admin);
+      // confirmed (missing) + referred (found)
+      const m = await insertMissing(app);
+      await openMissing(app, m.id);
+      const f = await insertFound(app, actors.staff);
+      const cand = await addCandidate(app, m.id, f.id);
+      await confirmPair(app, { candidateId: cand, missingId: m.id, foundId: f.id, officerId: actors.officer });
+      // closed (missing) + referred (found)
+      const pair = await closedPair(app, actors);
+      const ids = [m.id, f.id, pair.missing.id, pair.found.id];
+      const st = await admin.query("SELECT status FROM cases WHERE id = ANY($1) ORDER BY status", [ids]);
+      expect(st.rows.map((r) => r.status).sort()).toEqual(["closed", "confirmed", "referred", "referred"]);
+      await reembedCases(admin);
+      const after = await admin.query("SELECT embedding_space FROM cases WHERE id = ANY($1)", [ids]);
+      expect(after.rows.every((r) => r.embedding_space !== EMBEDDING.space)).toBe(true); // untouched
+    } finally {
+      await app.end();
+    }
+  });
+
+  it("a concurrent edit between SELECT and UPDATE wins: stale_retry, row left NULL, no overwrite", async () => {
+    await admin.query("UPDATE cases SET embedding = NULL, embedding_model = NULL, embedding_revision = NULL, embedding_space = NULL WHERE status NOT IN ('confirmed','closed','referred') AND anonymised_at IS NULL");
+    const victim = (await admin.query("SELECT id FROM cases WHERE anonymised_at IS NULL AND status NOT IN ('confirmed','closed','referred') ORDER BY id LIMIT 1")).rows[0].id as string;
+    let fired = false;
+    const counts = await reembedCases(admin, {
+      retryStale: false,
+      beforeWrite: async () => {
+        if (fired) return;
+        fired = true;
+        // what editMissingCase does: bump version, change the text, clear the embedding
+        await admin.query("UPDATE cases SET version = version + 1, clothing = 'নতুন নীল জামা' WHERE id = $1", [victim]);
+      },
+    });
+    expect(counts.stale_retry).toBeGreaterThanOrEqual(1);
+    expect(counts.stale_remaining).toBeGreaterThanOrEqual(1);
+    const row = (await admin.query("SELECT embedding, embedding_space FROM cases WHERE id = $1", [victim])).rows[0];
+    expect(row.embedding).toBeNull();
+    expect(row.embedding_space).toBeNull();
+  });
+
+  it("with the default bounded retry pass the edited case is then embedded from its NEW text", async () => {
+    await admin.query("UPDATE cases SET embedding = NULL, embedding_model = NULL, embedding_revision = NULL, embedding_space = NULL WHERE status NOT IN ('confirmed','closed','referred') AND anonymised_at IS NULL");
+    const victim = (await admin.query("SELECT id FROM cases WHERE anonymised_at IS NULL AND status NOT IN ('confirmed','closed','referred') ORDER BY id LIMIT 1")).rows[0].id as string;
+    let fired = false;
+    seen.length = 0;
+    const counts = await reembedCases(admin, {
+      beforeWrite: async () => {
+        if (fired) return;
+        fired = true;
+        await admin.query("UPDATE cases SET version = version + 1, clothing = 'দ্বিতীয় সবুজ জামা' WHERE id = $1", [victim]);
+      },
+    });
+    expect(counts.stale_retry).toBeGreaterThanOrEqual(1);
+    expect(counts.stale_remaining).toBe(0);
+    expect(seen.some((t) => t.includes("দ্বিতীয় সবুজ জামা"))).toBe(true);
+    expect(await count("SELECT count(*)::int AS n FROM cases WHERE embedding IS NULL AND anonymised_at IS NULL AND status NOT IN ('confirmed','closed','referred')")).toBe(0);
+  });
+
+  it("runs as fera_app too (column UPDATE grants suffice)", async () => {
+    await admin.query("UPDATE cases SET embedding = NULL, embedding_model = NULL, embedding_revision = NULL, embedding_space = NULL WHERE status NOT IN ('confirmed','closed','referred') AND anonymised_at IS NULL");
+    const eligible = await count("SELECT count(*)::int AS n FROM cases WHERE anonymised_at IS NULL AND status NOT IN ('confirmed','closed','referred') AND (clothing IS NOT NULL OR marks IS NOT NULL OR circumstances IS NOT NULL OR place_text IS NOT NULL)");
+    const app = await connect("app");
+    try {
+      const counts = await reembedCases(app);
+      expect(counts.embedded).toBe(eligible);
+    } finally {
+      await app.end();
+    }
   });
 });

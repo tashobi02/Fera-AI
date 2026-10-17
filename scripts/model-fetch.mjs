@@ -8,7 +8,11 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { performance } from "node:perf_hooks";
-import { EMBEDDING, EMBEDDING_DIM, MODEL_DTYPE, MODEL_FILES, PREFIX, defaultCacheDir, loadLocalEmbedder } from "../src/server/embeddings/model.ts";
+import { requireTypeStripping } from "./embeddings/preflight.mjs";
+
+requireTypeStripping("model:fetch");
+// Dynamic: on an old Node this .ts import would fail before the preflight message.
+const { EMBEDDING, EMBEDDING_DIM, MODEL_DTYPE, MODEL_FILES, PREFIX, defaultCacheDir, loadLocalEmbedder } = await import("../src/server/embeddings/model.ts");
 
 const sha256 = (buf) => createHash("sha256").update(buf).digest("hex");
 const size = (d) => readdirSync(d, { withFileTypes: true }).reduce((s, e) => s + (e.isDirectory() ? size(join(d, e.name)) : statSync(join(d, e.name)).size), 0);

@@ -68,3 +68,40 @@ describe("caseEmbeddingText", () => {
     expect(caseEmbeddingText({})).toBe("");
   });
 });
+
+describe("caseEmbeddingText golden output (TEXT_RECIPE pin)", () => {
+  // If this test needs updating, the embedded text changed: you MUST bump TEXT_RECIPE in
+  // src/server/embeddings/model.ts so every stored vector is re-embedded by `npm run reembed`.
+  it("pins the exact text for fixed inputs", () => {
+    expect(caseEmbeddingText(flat)).toBe("ছেলে। বয়স ৭ বছর। ধূসর পাঞ্জাবি। বাম পায়ে জন্মদাগ। মেলায় হারিয়ে যায়। জামালপুর রেলস্টেশন");
+    expect(
+      caseEmbeddingText({ sex: "female", age_min: 7, age_max: 10, clothing: "লাল জামা", place_text: "ঢাকা" }),
+    ).toBe("মেয়ে। বয়স ৭–১০ বছর। লাল জামা। ঢাকা");
+    expect(caseEmbeddingText({ sex: "unknown", circumstances: "কাঁদছিল" })).toBe("কাঁদছিল");
+  });
+  it("TEXT_RECIPE is still text-v1 (update together with the golden strings)", async () => {
+    const { TEXT_RECIPE } = await import("../../src/server/embeddings");
+    expect(TEXT_RECIPE).toBe("text-v1");
+  });
+});
+
+describe("phone-like numbers are scrubbed from free text (names typed in free text are NOT detected)", () => {
+  const cases: Array<[string, string]> = [
+    ["ফোন 01200000042 এ জানান", "ফোন এ জানান"],
+    ["ফোন ০১২০০০০০০৪২ এ জানান", "ফোন এ জানান"],
+    ["call 0120-000-0042 now", "call now"],
+    ["call 01200 000 042 now", "call now"],
+    ["call 01200.000.042 now", "call now"],
+    ["call +8801200000042 now", "call now"],
+    ["call 880 1200 000 042 now", "call now"],
+    ["নম্বর +৮৮০১২০০০০০০৪২", "নম্বর"],
+  ];
+  it.each(cases)("scrubs %s", (input, expected) => {
+    for (const field of ["clothing", "marks", "circumstances", "place_text"] as const) {
+      expect(caseEmbeddingText({ [field]: input })).toBe(expected);
+    }
+  });
+  it("keeps ages, heights and short numbers", () => {
+    expect(caseEmbeddingText({ circumstances: "বয়স ৭, উচ্চতা ১১০ সেমি, ২০২৬ সাল" })).toBe("বয়স ৭, উচ্চতা ১১০ সেমি, ২০২৬ সাল");
+  });
+});

@@ -1,6 +1,25 @@
 import { execFileSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
-import { EMBEDDING, EMBEDDING_DIM, EmbeddingNotConfiguredError, caseEmbeddingText, embedText, getEmbedder, setEmbedder } from "../../src/server/embeddings";
+import { createHash } from "node:crypto";
+import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  EMBEDDING,
+  EMBEDDING_DIM,
+  EmbeddingNotConfiguredError,
+  POOLING_OPTIONS,
+  PREFIX,
+  ROLE_BY_KIND,
+  TEXT_RECIPE,
+  buildSpace,
+  caseEmbeddingText,
+  embedText,
+  getEmbedder,
+  loadLocalEmbedder,
+  setEmbedder,
+  verifyModelCache,
+} from "../../src/server/embeddings";
 import { fakeEmbedder, seen } from "./support";
 
 afterEach(() => {
@@ -102,4 +121,79 @@ describe.skipIf(process.env.FERA_REAL_EMBED !== "1")("real model (FERA_REAL_EMBE
     const dot = (x: Float32Array, y: Float32Array) => x.reduce((sum, v, i) => sum + v * y[i], 0);
     expect(dot(a, b)).toBeGreaterThan(dot(a, c));
   }, 130_000);
+});
+
+describe("space string comes from the real constants", () => {
+  const base = {
+    dtype: "q8",
+    dim: 384,
+    textRecipe: TEXT_RECIPE,
+    prefix: PREFIX,
+    roleByKind: ROLE_BY_KIND,
+    pooling: POOLING_OPTIONS.pooling,
+    normalize: POOLING_OPTIONS.normalize,
+  };
+  it("EMBEDDING.space is buildSpace of the exported constants", () => {
+    expect(EMBEDDING.space).toBe(buildSpace(base));
+  });
+  it("changes when each constant changes", () => {
+    const variants = [
+      { ...base, dtype: "fp32" },
+      { ...base, dim: 768 },
+      { ...base, textRecipe: "text-v2" },
+      { ...base, prefix: { ...PREFIX, query: "passage: " } },
+      { ...base, prefix: { ...PREFIX, passage: "query: " } },
+      { ...base, roleByKind: { missing: "passage", found: "passage" } },
+      { ...base, pooling: "cls" },
+      { ...base, normalize: false },
+    ];
+    const spaces = new Set([buildSpace(base), ...variants.map(buildSpace)]);
+    expect(spaces.size).toBe(variants.length + 1);
+  });
+});
+
+describe("model cache integrity (verifyModelCache)", () => {
+  const sha = (s: string) => createHash("sha256").update(s).digest("hex");
+  const model = "Xenova/multilingual-e5-small";
+  let n = 0;
+  function makeCache(files: Record<string, string>): string {
+    const dir = mkdtempSync(join(tmpdir(), `fera-cache-${++n}-`));
+    chmodSync(dir, 0o755);
+    for (const [path, body] of Object.entries(files)) {
+      mkdirSync(join(dir, model, path, ".."), { recursive: true });
+      writeFileSync(join(dir, model, path), body);
+    }
+    chmodSync(join(dir, model), 0o755);
+    return dir;
+  }
+  const list = (files: Record<string, string>) => Object.entries(files).map(([path, body]) => ({ path, sha256: sha(body) }));
+  const good = { "config.json": "{}", "onnx/model_quantized.onnx": "weights" };
+
+  it("passes for intact files", async () => {
+    await expect(verifyModelCache(makeCache(good), list(good))).resolves.toBeUndefined();
+  });
+  it("fails closed on a corrupted file, pointing to model:fetch", async () => {
+    const dir = makeCache({ ...good, "onnx/model_quantized.onnx": "tampered" });
+    await expect(verifyModelCache(dir, list(good))).rejects.toThrow(/SHA-256.*model:fetch/);
+    await expect(loadLocalEmbedder({ cacheDir: dir, files: list(good) })).rejects.toThrow(/model:fetch/);
+  });
+  it("fails closed on a missing file or directory", async () => {
+    const dir = makeCache({ "config.json": "{}" });
+    await expect(verifyModelCache(dir, list(good))).rejects.toThrow(/missing onnx\/model_quantized.onnx.*model:fetch|model:fetch.*missing/);
+    await expect(verifyModelCache(join(dir, "nope"), list(good))).rejects.toThrow(/model:fetch/);
+  });
+  it("refuses a world-writable cache directory", async () => {
+    const dir = makeCache(good);
+    chmodSync(dir, 0o777);
+    await expect(verifyModelCache(dir, list(good))).rejects.toThrow(/world-writable/);
+  });
+});
+
+describe("Node preflight", () => {
+  it("accepts versions with type stripping and rejects older ones", async () => {
+    // @ts-expect-error -- plain ESM module without type declarations
+    const { nodeCanStripTypes } = await import("../../scripts/embeddings/preflight.mjs");
+    for (const v of ["22.18.0", "22.20.1", "23.6.0", "24.0.0", "24.18.0"]) expect(nodeCanStripTypes(v)).toBe(true);
+    for (const v of ["22.12.0", "22.17.9", "23.5.0", "20.19.0"]) expect(nodeCanStripTypes(v)).toBe(false);
+  });
 });
