@@ -11,9 +11,21 @@
 //
 // EVERYTHING NUMERIC BELOW IS UNCALIBRATED. A-014 (+-1 year, 72 h) is provisional; A-029 says there
 // is no fixed raw-cosine identity threshold and one must be calibrated on identity-grouped DEV hard
-// negatives and frozen before test (TASK-064 manifest + TASK-039). None of that has happened, so
-// DUPLICATE_PARAMS are experimental starting values, chosen a priori and NOT fitted to the 200
-// seeded records. Do not quote any accuracy from them as a result.
+// negatives and frozen before test (TASK-064 manifest + TASK-039). None of that has happened.
+// DUPLICATE_PARAMS are experimental starting values chosen before the first smoke run, with ONE
+// disclosed post-hoc change: after a smoke on all 200 records (which include records that will
+// later be test) the role of the embedding cosine was changed from an identity cue to a supporting
+// cue. The rule structure is therefore a prior that has seen the full set, not a held-out
+// design. Do not quote any accuracy from it as a result (docs/execution/evidence/duplicates.md).
+//
+// STORED SCORE: duplicate_links.score is the score at flag time WITHOUT any phone points. A shared
+// phone is listed in the evidence as a separate zero-point cue and never moves a stored, displayed
+// or sorted score. Evidence is recomputed from the current reports on every call (the table has no
+// evidence column), so the stored score and a later evidence list can differ after an edit.
+//
+// ACCESS: links expose the other report's reference code. Callers must apply the verified-officer
+// role/DTO gate (BR-024, role-scoped DTOs) and never pass links to parents, staff or unverified
+// officers. listLinksFor hides links whose counterpart (either case) is redacted.
 //
 // FILE LAYOUT: this file is deliberately self-contained (type-only imports, erasable TypeScript
 // only) so `scripts/dedupe.mjs` can load it with Node's built-in type stripping like reembed does.
@@ -33,7 +45,8 @@ export const DUPLICATE_PARAMS = {
   // decider; 0.85 is a placeholder below the weakest true spike pair (0.90) on structured text.
   cosineCue: 0.85,
   tokenOverlap: { clothing: 0.6, marks: 0.6, place_text: 0.5 }, // Jaccard of words, uncalibrated
-  weights: { name: 25, clothing: 20, marks: 15, place_text: 10, district: 10, embedding_cosine: 10, sex: 5, age_overlap: 5, phoneWeak: 5 },
+  weights: { name: 25, clothing: 20, marks: 15, place_text: 10, district: 10, embedding_cosine: 10, sex: 5, age_overlap: 5 },
+  // A shared phone is listed as a cue worth 0 points: it never enters a score.
   linkMinNonPhone: 45, // score WITHOUT the phone must reach this
   minIdentityCues: 2, // of name, clothing, marks, place_text (sex/age/district/cosine/phone are not enough)
 } as const;
@@ -68,8 +81,8 @@ export interface CaseProfile {
 export interface PairAssessment {
   rejected: RejectReason | null;
   link: boolean;
-  score: number; // 0..100, includes the weak phone points
-  nonPhoneScore: number; // what decides
+  score: number; // 0..100, identity score WITHOUT phone points (what is stored and shown)
+  cueCount: number; // identity cues that fired (name, clothing, marks, place_text)
   evidence: DuplicateCue[];
   unknown: ("age" | "time")[];
 }
@@ -90,7 +103,7 @@ function jaccard(a: string | null, b: string | null): number | null {
 }
 
 function reject(reason: RejectReason): PairAssessment {
-  return { rejected: reason, link: false, score: 0, nonPhoneScore: 0, evidence: [], unknown: [] };
+  return { rejected: reason, link: false, score: 0, cueCount: 0, evidence: [], unknown: [] };
 }
 
 // Age ranges (age_years is stored as min = max). Gap 0 = ranges overlap.
@@ -145,13 +158,12 @@ export function assessPair(a: CaseProfile, b: CaseProfile, cosine: number | null
   if (known(a.sex) && a.sex === b.sex) add("sex", P.weights.sex);
   if (gap === 0) add("age_overlap", P.weights.age_overlap);
 
-  const nonPhoneScore = evidence.reduce((n, e) => n + e.points, 0);
-  const link = nonPhoneScore >= P.linkMinNonPhone && identityCues >= P.minIdentityCues;
-
-  // The phone is added last and is never consulted by `link`.
-  if (a.phone !== null && a.phone === b.phone) add("phone_shared_weak", P.weights.phoneWeak);
   const score = Math.min(100, evidence.reduce((n, e) => n + e.points, 0));
-  return { rejected: null, link, score, nonPhoneScore: Math.min(100, nonPhoneScore), evidence, unknown };
+  const link = score >= P.linkMinNonPhone && identityCues >= P.minIdentityCues;
+
+  // The phone is listed last, worth 0 points, and is never consulted by `link` or `score`.
+  if (a.phone !== null && a.phone === b.phone) add("phone_shared_weak", 0);
+  return { rejected: null, link, score, cueCount: identityCues, evidence, unknown };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -164,14 +176,15 @@ export interface DuplicateLink {
   caseB: string;
   refCodeA: string;
   refCodeB: string;
-  score: number;
+  score: number; // stored identity score at flag time, no phone points
+  cueCount: number; // identity cues in the evidence recomputed now
   rule: "profile"; // 'same_phone' is never written: a phone-only match is not a link
   status: "flagged" | "confirmed_same" | "dismissed";
   evidence: DuplicateCue[]; // recomputed from the current reports; the table has no evidence column
   created: boolean; // true only when this call inserted the row
 }
 
-const PROFILE_COLUMNS = `c.id, c.ref_code, c.kind, c.status, (c.anonymised_at IS NOT NULL) AS anonymised, c.sex::text AS sex,
+export const PROFILE_COLUMNS = `c.id, c.ref_code, c.kind, c.status, (c.anonymised_at IS NOT NULL) AS anonymised, c.sex::text AS sex,
   c.age_min, c.age_max, c.child_name, c.child_name_latin, c.clothing, c.marks, c.place_text, c.district_code,
   COALESCE(c.event_at_lower, c.event_at) AS event_lower, COALESCE(c.event_at_upper, c.event_at) AS event_upper, c.contact_phone`;
 
@@ -186,22 +199,32 @@ const CANDIDATES_SQL = `
    ORDER BY c.id`;
 const ANCHOR_SQL = `SELECT ${PROFILE_COLUMNS} FROM cases c WHERE c.id = $1`;
 
+// Both reports are row-locked FOR SHARE and re-checked (live, not redacted) in the same statement
+// as the insert, so a concurrent redact_case()/terminal step waits for us and a flag is never
+// written for a report that stopped being live a moment ago. Residual race: a report that is
+// redacted AFTER this statement commits keeps its (payload-free) link row; listLinksFor hides it.
 const INSERT_SQL = `
-  INSERT INTO duplicate_links (case_a, case_b, score, rule, status) VALUES ($1, $2, $3, 'profile', 'flagged')
+  WITH locked AS (
+    SELECT id FROM cases WHERE id = ANY($1::uuid[]) AND anonymised_at IS NULL AND status <> ALL($4::case_status[])
+    ORDER BY id FOR SHARE
+  )
+  INSERT INTO duplicate_links (case_a, case_b, score, rule, status)
+  SELECT $2::uuid, $3::uuid, $5::numeric, 'profile', 'flagged' WHERE (SELECT count(*) FROM locked) = 2
   ON CONFLICT (case_a, case_b) DO NOTHING RETURNING id`;
 const EXISTING_SQL = `SELECT id, score::float8 AS score, rule, status FROM duplicate_links WHERE case_a = $1 AND case_b = $2`;
 
 const LIST_SQL = `
   SELECT l.id, l.case_a, l.case_b, a.ref_code AS ref_a, b.ref_code AS ref_b, l.score::float8 AS score, l.rule, l.status
     FROM duplicate_links l JOIN cases a ON a.id = l.case_a JOIN cases b ON b.id = l.case_b
-   WHERE l.case_a = $1 OR l.case_b = $1 ORDER BY l.created_at, l.id`;
+   WHERE (l.case_a = $1 OR l.case_b = $1) AND a.anonymised_at IS NULL AND b.anonymised_at IS NULL
+   ORDER BY l.created_at, l.id`;
 
 type Row = Record<string, unknown>;
 const str = (v: unknown): string | null => (typeof v === "string" ? v : null);
 const num = (v: unknown): number | null => (typeof v === "number" ? v : typeof v === "string" && v !== "" && Number.isFinite(Number(v)) ? Number(v) : null);
 const date = (v: unknown): Date | null => (v instanceof Date ? v : null);
 
-function toProfile(r: Row): CaseProfile {
+export function toProfile(r: Row): CaseProfile {
   return {
     id: String(r.id),
     refCode: String(r.ref_code),
@@ -243,24 +266,26 @@ export async function detectDuplicates(client: Queryable, caseId: string): Promi
     const res = assessPair(anchor, other, num(raw.cosine));
     if (!res.link) continue;
     const [a, b] = anchor.id < other.id ? [anchor, other] : [other, anchor];
-    const inserted = (await client.query(INSERT_SQL, [a.id, b.id, res.score])).rows[0] as Row | undefined;
+    const inserted = (await client.query(INSERT_SQL, [[a.id, b.id], a.id, b.id, [...TERMINAL_STATUSES], res.score])).rows[0] as Row | undefined;
     let id = inserted ? String(inserted.id) : null;
     let score = res.score;
     let status: DuplicateLink["status"] = "flagged";
     if (!inserted) {
       const existing = (await client.query(EXISTING_SQL, [a.id, b.id])).rows[0] as Row | undefined;
-      if (!existing) continue; // vanished between statements; the next run decides
+      if (!existing) continue; // pair stopped being live between statements: no link, the next run decides
       id = String(existing.id);
       score = num(existing.score) ?? score;
       status = existing.status === "confirmed_same" || existing.status === "dismissed" ? existing.status : "flagged";
     }
-    out.push({ id: id as string, caseA: a.id, caseB: b.id, refCodeA: a.refCode, refCodeB: b.refCode, score, rule: "profile", status, evidence: res.evidence, created: inserted !== undefined });
+    out.push({ id: id as string, caseA: a.id, caseB: b.id, refCodeA: a.refCode, refCodeB: b.refCode, score, cueCount: res.cueCount, rule: "profile", status, evidence: res.evidence, created: inserted !== undefined });
   }
   return out;
 }
 
-// Stored links that involve a case (no evidence: the table has none), for the banner.
-export async function listLinksFor(client: Queryable, caseId: string): Promise<Omit<DuplicateLink, "evidence" | "created">[]> {
+// Stored links that involve a case, for the banner. No evidence (the table has none) and no cue
+// count; score is the stored flag-time identity score. Links with a redacted report on either
+// side are excluded. Verified-officer callers only (see the file header).
+export async function listLinksFor(client: Queryable, caseId: string): Promise<Omit<DuplicateLink, "evidence" | "created" | "cueCount">[]> {
   const { rows } = await client.query(LIST_SQL, [caseId]);
   return (rows as Row[]).map((r) => ({
     id: String(r.id), caseA: String(r.case_a), caseB: String(r.case_b), refCodeA: String(r.ref_a), refCodeB: String(r.ref_b),

@@ -100,7 +100,10 @@ describe.skipIf(!dbTestsEnabled)("duplicate detector (TASK-018, TC-013, TC-038)"
         if (kinds.rows[0].n === 1) sameKindPairs++;
       }
     }
-    expect(sameKindPairs).toBeGreaterThanOrEqual(0); // reported in the evidence doc; cross-kind pairs cannot link by construction
+    // Real count: every decoy target is the other kind, so a same-kind detector cannot link these
+    // pairs by construction. This test proves they stay unlinked and visible, not that the shared
+    // phone was resisted; the phone-resistance proof is the pure tests in tests/duplicates.
+    expect(sameKindPairs).toBe(0);
   });
 
   it("no pair is linked on a shared phone alone: every link has non-phone evidence", async () => {
@@ -113,6 +116,9 @@ describe.skipIf(!dbTestsEnabled)("duplicate detector (TASK-018, TC-013, TC-038)"
     }
   });
 
+  // Depends on DUPLICATE_PARAMS: the two reports agree on name, clothing, marks and place, ages and
+  // times are inside the windows. If the params change so that this stops linking, update this test
+  // on purpose (a regression for the TC-013 demo pair), do not loosen it silently.
   it("Mim and her public-post duplicate are linked, with banner data on both sides", async () => {
     const mim = truth.find((t) => t.demo_role === "mim")!;
     const post = truth.find((t) => t.demo_role === "mim_public_post")!;
@@ -127,6 +133,50 @@ describe.skipIf(!dbTestsEnabled)("duplicate detector (TASK-018, TC-013, TC-038)"
     const { rows } = await admin.query("SELECT status FROM cases WHERE id = ANY($1::uuid[])", [[a.id, b.id]]);
     expect(rows).toHaveLength(2);
     expect(rows.every((r) => r.status === "open")).toBe(true);
+  });
+
+  it("never links across kinds (missing vs found)", async () => {
+    const { rows } = await admin.query("SELECT count(*)::int AS n FROM duplicate_links l JOIN cases a ON a.id = l.case_a JOIN cases b ON b.id = l.case_b WHERE a.kind <> b.kind");
+    expect(rows[0].n).toBe(0);
+    // an identical-profile pair of the OTHER kind is never returned for a missing anchor
+    const mim = caseOf.get(truth.find((t) => t.demo_role === "mim")!.record_id)!;
+    for (const l of await detectDuplicates(app, mim.id)) {
+      const kinds = await admin.query("SELECT DISTINCT kind FROM cases WHERE id = ANY($1::uuid[])", [[l.caseA, l.caseB]]);
+      expect(kinds.rows).toHaveLength(1);
+    }
+  });
+
+  async function linkedMissingPairs() {
+    const { rows } = await admin.query(
+      `SELECT l.case_a, l.case_b FROM duplicate_links l JOIN cases a ON a.id = l.case_a
+        WHERE a.kind = 'missing' AND a.status = 'open' ORDER BY l.case_a`);
+    const mimIds = new Set(truth.filter((t) => t.demo_role === "mim" || t.demo_role === "mim_public_post").map((t) => caseOf.get(t.record_id)!.id));
+    return rows.filter((r) => !mimIds.has(r.case_a) && !mimIds.has(r.case_b)) as { case_a: string; case_b: string }[];
+  }
+
+  it("a terminal-status report gets no new link and is not returned as a candidate", async () => {
+    const [pair] = await linkedMissingPairs();
+    expect(pair).toBeDefined();
+    await admin.query("UPDATE cases SET status = 'closed', closed_at = now(), outcome = 'resolved_outside_fera' WHERE id = $1", [pair.case_a]);
+    await admin.query("DELETE FROM duplicate_links WHERE case_a = $1 AND case_b = $2", [pair.case_a, pair.case_b]);
+    expect((await detectDuplicates(app, pair.case_b)).map((l) => [l.caseA, l.caseB])).not.toContainEqual([pair.case_a, pair.case_b]);
+    expect(await detectDuplicates(app, pair.case_a)).toEqual([]);
+    expect((await admin.query("SELECT count(*)::int AS n FROM duplicate_links WHERE case_a = $1 AND case_b = $2", [pair.case_a, pair.case_b])).rows[0].n).toBe(0);
+  });
+
+  it("a redacted report gets no link, and listLinksFor hides an existing link to it", async () => {
+    const [pair] = await linkedMissingPairs();
+    expect(pair).toBeDefined();
+    const adminUser = (await admin.query(`INSERT INTO users (username, display_name, password_hash, role) VALUES ('admin.dup', '[MOCK] অ্যাডমিন', 'x', 'admin') RETURNING id`)).rows[0].id;
+    expect((await listLinksFor(app, pair.case_b)).some((l) => l.caseA === pair.case_a || l.caseB === pair.case_a)).toBe(true);
+    await admin.query("UPDATE cases SET status = 'closed', closed_at = now(), outcome = 'resolved_outside_fera' WHERE id = $1", [pair.case_a]);
+    await admin.query("SELECT redact_case($1, $2)", [pair.case_a, adminUser]);
+    // the stored link row survives (payload-free) but is not exposed
+    expect((await admin.query("SELECT count(*)::int AS n FROM duplicate_links WHERE case_a = $1 AND case_b = $2", [pair.case_a, pair.case_b])).rows[0].n).toBe(1);
+    expect((await listLinksFor(app, pair.case_b)).some((l) => l.caseA === pair.case_a || l.caseB === pair.case_a)).toBe(false);
+    expect(await listLinksFor(app, pair.case_a)).toEqual([]);
+    expect(await detectDuplicates(app, pair.case_a)).toEqual([]);
+    expect((await detectDuplicates(app, pair.case_b)).some((l) => l.caseA === pair.case_a || l.caseB === pair.case_a)).toBe(false);
   });
 
   it("a redacted or unknown case yields no link and no error", async () => {

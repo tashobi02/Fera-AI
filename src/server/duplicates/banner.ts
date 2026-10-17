@@ -1,7 +1,9 @@
 // Officer-side duplicate banner data (COMP-049; SCREEN-010 / SCREEN-012). Copy comes from the
 // locale files; the wording is D3 flow row 5 ("সম্ভাব্য একই শিশু: M-…" / "Possible same child: M-…")
 // plus the D4 duplicate cue suffix ("আলাদা প্রতিবেদন দৃশ্যমান" / "separate reports remain visible").
-// Officer screens only: the other report's reference code is the other party's data (BR-014).
+// Verified officers only (BR-024): the other report's reference code is the other party's data, so
+// never pass links to parent, staff or unverified-officer views. A confirmed_same link still reads
+// "Possible same child" here; S-010/S-012 should show the human decision separately.
 import { locales, type Locale } from "@/locales";
 
 export interface BannerLink {

@@ -105,22 +105,40 @@ describe("phone is a weak cue only (TC-038)", () => {
     expect(cues(r)).toContain("phone_shared_weak");
     expect(r.link).toBe(false);
   });
-  it("phone adds to the score but cannot decide: just under the line stays unlinked with it", () => {
-    // sex 5 + age 5 + district 10 + place 10 = 30 < linkMinNonPhone, phone adds weak points only
+  it("a shared phone is listed as a zero-point cue and never moves the stored score", () => {
     const a = { ...base, nameBn: null, nameLatin: null, clothing: null, marks: null };
-    const b = other({ nameBn: null, nameLatin: null, clothing: null, marks: null });
-    const withPhone = assessPair(a, b, null);
-    const without = assessPair({ ...a, phone: "01200000999" }, b, null);
-    expect(withPhone.link).toBe(false);
-    expect(withPhone.score).toBeGreaterThan(without.score);
-    expect(withPhone.score - without.score).toBe(DUPLICATE_PARAMS.weights.phoneWeak);
-    expect(withPhone.nonPhoneScore).toBe(without.nonPhoneScore);
+    const sharedPhone = assessPair(a, other({ nameBn: null, nameLatin: null, clothing: null, marks: null }), null);
+    const differentPhone = assessPair(a, other({ nameBn: null, nameLatin: null, clothing: null, marks: null, phone: "01200000999" }), null);
+    expect(sharedPhone.evidence.find((e) => e.cue === "phone_shared_weak")).toEqual({ cue: "phone_shared_weak", points: 0 });
+    expect(differentPhone.evidence.some((e) => e.cue === "phone_shared_weak")).toBe(false);
+    expect(sharedPhone.score).toBe(differentPhone.score);
+    expect(sharedPhone.link).toBe(false);
+  });
+  it("phone points could not push a one-identity-cue pair over the line (nonphone 40, line 45)", () => {
+    // clothing 20 + district 10 + sex 5 + age 5 = 40, one identity cue; a counted phone (+5) would reach 45
+    const a = { ...base, nameBn: null, nameLatin: null, marks: null, placeText: null };
+    const b = other({ nameBn: null, nameLatin: null, marks: null, placeText: null });
+    const r = assessPair(a, b, null);
+    expect(r.score).toBe(40);
+    expect(r.score + 5).toBe(DUPLICATE_PARAMS.linkMinNonPhone);
+    expect(r.cueCount).toBe(1);
+    expect(r.evidence.map((e) => e.cue)).toContain("phone_shared_weak");
+    expect(r.link).toBe(false);
+  });
+  it("link and score are invariant when only the phone changes from equal to unequal", () => {
+    for (const over of [{}, { clothing: "অন্য", marks: "অন্য" }]) {
+      const equal = assessPair(base, other(over), 0.9);
+      const unequal = assessPair(base, other({ ...over, phone: "01200000999" }), 0.9);
+      expect(equal.link).toBe(unequal.link);
+      expect(equal.score).toBe(unequal.score);
+      expect(equal.cueCount).toBe(unequal.cueCount);
+    }
   });
   it("a profile that links without the phone links identically with a different phone", () => {
-    const withPhone = assessPair(base, other(), null);
-    const without = assessPair(base, other({ phone: "01200000999" }), null);
-    expect(withPhone.link).toBe(true);
-    expect(without.link).toBe(true);
+    const samePhone = assessPair(base, other(), null);
+    const otherPhone = assessPair(base, other({ phone: "01200000999" }), null);
+    expect(samePhone.link).toBe(true);
+    expect(otherPhone.link).toBe(true);
   });
 });
 
@@ -129,6 +147,7 @@ describe("evidence list and score", () => {
     const r = assessPair(base, other(), 0.97);
     expect(r.link).toBe(true);
     expect(cues(r)).toEqual(expect.arrayContaining(["name", "clothing", "marks", "place_text", "district", "sex", "age_overlap", "embedding_cosine", "phone_shared_weak"]));
+    expect(r.cueCount).toBe(4);;
     expect(r.score).toBeLessThanOrEqual(100);
   });
   it("needs two identity cues beyond sex/age/district: sex+age+district alone is not a link", () => {
