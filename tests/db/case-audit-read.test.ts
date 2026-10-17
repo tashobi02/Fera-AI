@@ -15,6 +15,7 @@
 //   - a parent/staff/unverified-officer principal returns the same `hidden` shape as
 //     an absent case (the route then writes the access.denied audit row)
 import { describe, expect, it } from "vitest";
+import { adminAuditResponseSchema, officerAuditResponseSchema } from "@/contracts";
 import { readCaseAudit } from "@/server/audit/safe-read";
 import type { Queryable } from "@/server/db/queryable";
 import { testUser } from "../support/principals";
@@ -79,8 +80,8 @@ describe("readCaseAudit (API-013)", () => {
   });
 
   it("returns `hidden` (caseId set) when the principal is not officer/admin", async () => {
-    const cases = [caseRow()];
-    const audits = [auditRow()];
+    const cases: ReadonlyArray<Record<string, unknown>> = [caseRow()];
+    const audits: ReadonlyArray<Record<string, unknown>> = [auditRow()];
     // parent
     const parent = testUser(PARENT_SESSION, "officer", { verified: false, isActive: false });
     expect(await readCaseAudit(parent, CASE_ID, { db: q(cases.concat(audits)) })).toEqual({ kind: "hidden", caseId: CASE_ID });
@@ -93,8 +94,8 @@ describe("readCaseAudit (API-013)", () => {
   });
 
   it("returns the officer view with the operational allowlist", async () => {
-    const cases = [caseRow()];
-    const audits = [
+    const cases: ReadonlyArray<Record<string, unknown>> = [caseRow()];
+    const audits: ReadonlyArray<Record<string, unknown>> = [
       auditRow({
         at: "2026-10-17T09:00:00+06:00",
         action: "match.confirm",
@@ -129,11 +130,13 @@ describe("readCaseAudit (API-013)", () => {
     const officer = testUser(OFFICER_ID, "officer", { verified: true, isActive: true });
     const r = await readCaseAudit(officer, CASE_ID, { db: q(cases.concat(audits)) });
     if (r.kind !== "ok") throw new Error(`expected ok, got ${r.kind}`);
-    expect(r.view.data.view).toBe("officer");
-    expect(r.view.data.entries).toHaveLength(2);
-    expect(r.view.data.withheld).toBe(0);
+    expect(r.view.view).toBe("officer");
+    expect(r.view.entries).toHaveLength(2);
+    expect(r.view.withheld).toBe(0);
+    // Parse the role-specific response to verify the allowlist and retain its exact type.
+    const officerView = officerAuditResponseSchema.parse(r.view);
     // Operational allowlist survived: candidate id, score, decision.
-    const decision = r.view.data.entries[0]!;
+    const decision = officerView.entries[0]!;
     expect(decision.action).toBe("match.confirm");
     expect(decision.details.candidate_id).toBe(CANDIDATE_ID);
     expect(decision.details.score).toBe(87);
@@ -144,8 +147,8 @@ describe("readCaseAudit (API-013)", () => {
   });
 
   it("returns the admin view with the metadata allowlist only", async () => {
-    const cases = [caseRow()];
-    const audits = [
+    const cases: ReadonlyArray<Record<string, unknown>> = [caseRow()];
+    const audits: ReadonlyArray<Record<string, unknown>> = [
       auditRow({
         at: "2026-10-17T09:00:00+06:00",
         action: "match.confirm",
@@ -169,13 +172,15 @@ describe("readCaseAudit (API-013)", () => {
     const admin = testUser(ADMIN_ID, "admin", { verified: true, isActive: true });
     const r = await readCaseAudit(admin, CASE_ID, { db: q(cases.concat(audits)) });
     if (r.kind !== "ok") throw new Error(`expected ok, got ${r.kind}`);
-    expect(r.view.data.view).toBe("admin");
-    expect(r.view.data.entries).toHaveLength(1);
-    expect(r.view.data.withheld).toBe(0);
-    const entry = r.view.data.entries[0]!;
-    // Admin gets actor_role only — no actor_id, no actor_display.
-    expect(entry.actor_id).toBeUndefined();
-    expect(entry.actor_display).toBeUndefined();
+    expect(r.view.view).toBe("admin");
+    expect(r.view.entries).toHaveLength(1);
+    expect(r.view.withheld).toBe(0);
+    const entry = adminAuditResponseSchema.parse(r.view).entries[0]!;
+    // Admin gets actor_role only — no actor_id, no actor_display. The admin view is a
+    // discriminated union variant without those keys; we assert the entry's own keys
+    // match the admin allowlist (at, actor_role, action, details) exactly.
+    const ownKeys = Object.keys(entry).sort();
+    expect(ownKeys).toEqual(["action", "actor_role", "at", "details"]);
     // Operational keys are stripped from the admin details.
     const keys = Object.keys(entry.details);
     expect(keys).not.toContain("candidate_id");
@@ -191,8 +196,8 @@ describe("readCaseAudit (API-013)", () => {
   });
 
   it("withholds rows with another case's ref_code and counts them", async () => {
-    const cases = [caseRow()];
-    const audits = [
+    const cases: ReadonlyArray<Record<string, unknown>> = [caseRow()];
+    const audits: ReadonlyArray<Record<string, unknown>> = [
       // A row tagged with another case's ref_code: the per-row ref_code check (D2A
       // "details.ref_code is the audited case's own reference only") must withhold it.
       auditRow({ details: { ref_code: OTHER_CASE_REF, api: "API-011" } }),
@@ -201,10 +206,10 @@ describe("readCaseAudit (API-013)", () => {
     const officer = testUser(OFFICER_ID, "officer", { verified: true, isActive: true });
     const r = await readCaseAudit(officer, CASE_ID, { db: q(cases.concat(audits)) });
     if (r.kind !== "ok") throw new Error(`expected ok, got ${r.kind}`);
-    expect(r.view.data.entries).toHaveLength(1);
-    expect(r.view.data.withheld).toBe(1);
+    expect(r.view.entries).toHaveLength(1);
+    expect(r.view.withheld).toBe(1);
     // The remaining entry is the one whose ref_code matches the audited case.
-    expect(r.view.data.entries[0]!.details.ref_code).toBe(CASE_REF);
+    expect(r.view.entries[0]!.details.ref_code).toBe(CASE_REF);
   });
 
   it("withholds a row whose stored details contain a free-text key", async () => {
@@ -212,20 +217,20 @@ describe("readCaseAudit (API-013)", () => {
     // (free text) makes the row's details fail the per-role schema and the row is
     // withheld (D2A "withheld counts stored rows that failed the allowlist and were
     // left out").
-    const cases = [caseRow()];
-    const audits = [
+    const cases: ReadonlyArray<Record<string, unknown>> = [caseRow()];
+    const audits: ReadonlyArray<Record<string, unknown>> = [
       auditRow({ details: { ref_code: CASE_REF, api: "API-011", note: "free text that should not appear here" } }),
     ];
     const officer = testUser(OFFICER_ID, "officer", { verified: true, isActive: true });
     const r = await readCaseAudit(officer, CASE_ID, { db: q(cases.concat(audits)) });
     if (r.kind !== "ok") throw new Error(`expected ok, got ${r.kind}`);
-    expect(r.view.data.entries).toHaveLength(0);
-    expect(r.view.data.withheld).toBe(1);
+    expect(r.view.entries).toHaveLength(0);
+    expect(r.view.withheld).toBe(1);
   });
 
   it("preserves append-only ordering (no row is rewritten or removed by the read)", async () => {
-    const cases = [caseRow()];
-    const audits = [
+    const cases: ReadonlyArray<Record<string, unknown>> = [caseRow()];
+    const audits: ReadonlyArray<Record<string, unknown>> = [
       auditRow({ at: "2026-10-17T08:00:00+06:00", action: "case.created", details: { ref_code: CASE_REF, version: 1, api: "API-003" } }),
       auditRow({ at: "2026-10-17T09:00:00+06:00", action: "case.state_changed", details: { ref_code: CASE_REF, from_status: "open", to_status: "matched_pending_review", api: "API-008" } }),
       auditRow({ at: "2026-10-17T10:00:00+06:00", action: "case.closed", details: { ref_code: CASE_REF, outcome: "resolved_outside_fera", api: "API-011", reason_recorded: true } }),
@@ -233,7 +238,7 @@ describe("readCaseAudit (API-013)", () => {
     const officer = testUser(OFFICER_ID, "officer", { verified: true, isActive: true });
     const r = await readCaseAudit(officer, CASE_ID, { db: q(cases.concat(audits)) });
     if (r.kind !== "ok") throw new Error(`expected ok, got ${r.kind}`);
-    expect(r.view.data.entries.map((e) => e.action)).toEqual([
+    expect(r.view.entries.map((e) => e.action)).toEqual([
       "case.created",
       "case.state_changed",
       "case.closed",
@@ -268,8 +273,8 @@ describe("readCaseAudit (API-013)", () => {
   it("ignores audit rows from a different case (no row leak across case IDs)", async () => {
     // The query filters by `a.case_id = $1`, and the per-row ref_code check
     // independently confirms `r.case_id === auditedCase.id`. Both guards must hold.
-    const cases = [caseRow()];
-    const audits = [
+    const cases: ReadonlyArray<Record<string, unknown>> = [caseRow()];
+    const audits: ReadonlyArray<Record<string, unknown>> = [
       auditRow({ case_id: OTHER_CASE_ID, action: "case.closed", details: { ref_code: OTHER_CASE_REF, api: "API-011" } }),
     ];
     const officer = testUser(OFFICER_ID, "officer", { verified: true, isActive: true });
@@ -277,7 +282,7 @@ describe("readCaseAudit (API-013)", () => {
     if (r.kind !== "ok") throw new Error(`expected ok, got ${r.kind}`);
     // The stub returns the row, but the projection withholds it (ref_code mismatch
     // OR case_id mismatch). Either guard withholds the row.
-    expect(r.view.data.entries).toHaveLength(0);
-    expect(r.view.data.withheld).toBe(1);
+    expect(r.view.entries).toHaveLength(0);
+    expect(r.view.withheld).toBe(1);
   });
 });

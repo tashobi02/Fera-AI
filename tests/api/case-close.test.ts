@@ -15,7 +15,7 @@ import { ApiError } from "@/app/api/_shared/envelope";
 import { closeCaseResponseSchema, type CloseCaseResponse } from "@/contracts";
 import { closeCase } from "@/server/case";
 import { closePool, setPoolForTests, getPool } from "@/server/db/pool";
-import { testUser } from "../support/principals";
+import { testParent, testUser } from "../support/principals";
 
 const OFFICER_ID = "11111111-1111-4111-8111-111111111101";
 const STAFF_ID = "11111111-1111-4111-8111-111111111102";
@@ -62,12 +62,12 @@ function makeCloseRequest(outcome: "coordination_recorded" | "resolved_outside_f
 
 describe("closeCase role gate", () => {
   it("rejects a parent principal with E-004", async () => {
-    // A parent session is not a user; even if we mint a user principal for it the
-    // service's first guard requires `principal.kind === "user"` with role officer.
-    // The test principal helpers keep this small.
-    const admin = { kind: "user" as const, userId: STAFF_ID, role: "admin" as const, verified: true, isActive: true } as never;
-    await expect(closeCase(admin, CASE_ID, makeCloseRequest("resolved_outside_fera"), { requestId: "test" }))
-      .rejects.toBeInstanceOf(ApiError);
+    // A parent session is not a user principal; the service's first guard requires
+    // `principal.kind === "user"` with role officer, so a parent session is denied
+    // before any database query.
+    const parent = testParent(PARENT_SESSION);
+    await expect(closeCase(parent, CASE_ID, makeCloseRequest("resolved_outside_fera"), { requestId: "test-parent-role" }))
+      .rejects.toMatchObject({ id: "E-004" });
   });
 
   it("rejects a staff (verified, active) principal with E-004", async () => {
@@ -144,13 +144,13 @@ describe("closeCase version & outcome rules", () => {
   });
 });
 
-// The session-scope test: a parent session ID is not a user principal, so the service's
-// user/officer gate denies before any database query.
+// The session-scope test: a parent session is a parent principal (kind "parent"), so the
+// service's user/officer gate denies before any database query.
 describe("closeCase parent session", () => {
   it("a parent session is not eligible", async () => {
     // `effectiveRole(parentPrincipal)` is "parent", so `effectiveRole(...) !== "officer"` → E-004.
-    const parent = testUser(PARENT_SESSION, "officer", { verified: false, isActive: false });
-    await expect(closeCase(parent, CASE_ID, makeCloseRequest("resolved_outside_fera"), { requestId: "test-parent" }))
+    const parent = testParent(PARENT_SESSION);
+    await expect(closeCase(parent, CASE_ID, makeCloseRequest("resolved_outside_fera"), { requestId: "test-parent-session" }))
       .rejects.toMatchObject({ id: "E-004" });
   });
 });

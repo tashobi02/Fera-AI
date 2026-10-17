@@ -5,7 +5,7 @@
 //
 //   const r = await readCaseAudit(principal, params.id, { requestId });
 //   if (r.kind === "hidden") throw new ApiError("E-004", { caseId: r.caseId ?? undefined });
-//   return r.view.data; // officerAuditResponseSchema | adminAuditResponseSchema
+//   return r.view; // officerAuditResponseSchema | adminAuditResponseSchema (discriminated union)
 //
 // The service owns:
 //   - the case metadata lookup (id, ref_code only; no child payload, no contact, no draft);
@@ -33,6 +33,6 @@ export const GET = defineRoute({
   handler: async ({ principal, params: p, requestId }): Promise<AuditResponse> => {
     const r = await readCaseAudit(principal, p.id, { requestId });
     if (r.kind === "hidden") throw new ApiError("E-004", { caseId: r.caseId ?? undefined });
-    return r.view.data;
+    return r.view;
   },
 });

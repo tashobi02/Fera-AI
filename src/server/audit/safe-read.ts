@@ -4,7 +4,7 @@
 //
 //   const r = await readCaseAudit(principal, caseId);
 //   if (r.kind === "hidden") throw new ApiError("E-004", { caseId: r.caseId ?? undefined });
-//   return r.view.data; // officerAuditResponseSchema | adminAuditResponseSchema
+//   return r.view; // officerAuditResponseSchema | adminAuditResponseSchema (discriminated union)
 //
 // - The case row's `ref_code` is needed for the projection's per-row ref_code check
 //   (D2A "details.ref_code is the audited case's own reference only"). The case lookup
