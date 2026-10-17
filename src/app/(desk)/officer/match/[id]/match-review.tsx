@@ -22,6 +22,8 @@ import {
   buildReject,
   compareCases,
   componentEntries,
+  displayComponent,
+  displayScore,
   emptyChecklist,
   requestDecision,
   summarise,
@@ -106,10 +108,13 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
   const noteRef = useRef<HTMLTextAreaElement>(null);
   const busy = useRef(false);
 
-  const rows = compareCases(view.missing, view.found);
+  const rows = compareCases(view.missing, view.found, locale);
   const summary = summarise(rows);
   const duplicates = [...new Set([...view.missing.duplicate_of, ...view.found.duplicate_of])];
-  const decidable = view.qualified && state.status !== "decided";
+  // After a lost or stale reply the decision may already be stored: no second press until the
+  // stored state is reloaded (a blind retry would only be E-005, or a duplicate attempt).
+  const mustReload = state.status === "idle" && state.failure !== null && (state.failure.kind === "stale" || state.failure.kind === "uncertain");
+  const decidable = view.qualified && state.status !== "decided" && !mustReload;
   const submitting = state.status === "submitting";
 
   useEffect(() => {
@@ -198,7 +203,7 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
       <section aria-labelledby={`${uid}-sim`} className="flex flex-col gap-1">
         <h2 id={`${uid}-sim`} className="text-body-sm font-medium text-mute">{t.matchReviewSimilarity}</h2>
         <p className="text-heading-2 font-semibold text-ink">
-          {localizeDigits(view.score, locale)} <span className="text-body-md font-normal text-mute">/ {localizeDigits(100, locale)}</span>
+          {localizeDigits(displayScore(view.score), locale)} <span className="text-body-md font-normal text-mute">/ {localizeDigits(100, locale)}</span>
         </p>
         <p className={`text-mute ${CAPTION}`}>{t.matchReviewSimilarityNote}</p>
       </section>
@@ -309,7 +314,7 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
             {componentEntries(view.components).map((c) => (
               <li key={c.key}>
                 <span lang="en" translate="no" className="font-mono">{c.key}</span>:{" "}
-                {c.value === null ? t.matchReviewComponentUnknown : localizeDigits(c.value, locale)}
+                {c.value === null ? t.matchReviewComponentUnknown : localizeDigits(displayComponent(c.value), locale)}
               </li>
             ))}
           </ul>
@@ -369,6 +374,9 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
                 rows={3}
                 maxLength={500}
                 disabled={!decidable}
+                onChange={() => {
+                  if (state.reasonError) dispatch({ type: "reason", error: null });
+                }}
                 aria-invalid={state.reasonError ? true : undefined}
                 aria-describedby={joinIds(state.reasonError && `${uid}-reason-error`, !view.qualified && `${uid}-notq`)}
                 className="min-h-11 w-full rounded-md border border-control bg-elevated px-3 py-2 text-body-md text-ink hover:border-control-strong focus:border-control-strong aria-invalid:border-danger"

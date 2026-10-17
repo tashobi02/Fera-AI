@@ -80,3 +80,21 @@ describe("COMP-037/038 match review", () => {
     expect((html.match(/disabled=""/g) ?? []).length).toBeGreaterThanOrEqual(2);
   });
 });
+
+describe("display rounding and district language", () => {
+  it("rounds the similarity score and components", () => {
+    const v = { ...view, score: 72.456789, components: { age: 0.123456, sex: 1 } };
+    const html = render("en", v);
+    expect(html).toContain("72 <");
+    expect(html).not.toContain("72.45");
+    expect(html).toContain("0.12");
+    expect(html).not.toContain("0.1234");
+  });
+  it("names the district in English in English mode", () => {
+    const v = { ...view, missing: { ...view.missing, event: { ...view.missing.event, district_code: 14, district_name_bn: "ঢাকা" } } };
+    const en = render("en", v);
+    expect(en).toContain("Dhaka");
+    expect(en).not.toContain("ঢাকা");
+    expect(render("bn", v)).toContain("ঢাকা");
+  });
+});

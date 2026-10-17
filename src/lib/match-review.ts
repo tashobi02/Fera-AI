@@ -17,6 +17,7 @@ import {
   type DecisionResponse,
   type OfficerCaseView,
 } from "@/contracts";
+import districtData from "../../data/districts.json";
 import { retryAfterSeconds } from "@/lib/sign-in-errors";
 import { visibleLength } from "@/lib/visible-text";
 
@@ -42,7 +43,20 @@ function freeText(a: string | null, b: string | null): Verdict {
   return a === null || b === null ? "unknown" : "review";
 }
 
-export function compareCases(missing: OfficerCaseView, found: OfficerCaseView): ComparisonRow[] {
+const DISTRICT_EN = new Map<number, string>(districtData.districts.map((d) => [d.code, d.name_en]));
+// bn: the server-resolved Bangla name; en: the English name from the bundled district list.
+// The code is only a last resort, so a number never replaces a name silently.
+function districtLabel(code: number | null, nameBn: string | null | undefined, locale: "bn" | "en"): string | null {
+  if (code === null) return null;
+  if (locale === "en") return DISTRICT_EN.get(code) ?? nameBn ?? String(code);
+  return nameBn ?? DISTRICT_EN.get(code) ?? String(code);
+}
+
+// Display rounding only: the stored score keeps its precision. Score is 0-100, components 0-1.
+export const displayScore = (n: number): number => Math.round(n);
+export const displayComponent = (n: number): number => Math.round(n * 100) / 100;
+
+export function compareCases(missing: OfficerCaseView, found: OfficerCaseView, locale: "bn" | "en" = "bn"): ComparisonRow[] {
   const rows: ComparisonRow[] = [];
 
   const sm = missing.child.sex === "unknown" ? null : missing.child.sex;
@@ -66,8 +80,8 @@ export function compareCases(missing: OfficerCaseView, found: OfficerCaseView): 
   const df = found.event.district_code;
   rows.push({
     field: "district",
-    missing: dm === null ? null : (missing.event.district_name_bn ?? String(dm)),
-    found: df === null ? null : (found.event.district_name_bn ?? String(df)),
+    missing: districtLabel(dm, missing.event.district_name_bn, locale),
+    found: districtLabel(df, found.event.district_name_bn, locale),
     // A found child often turns up in another district than the one reported missing, so a
     // different district is "review", never a contradiction (district is a bonus, BR-017).
     verdict: dm === null || df === null ? "unknown" : dm === df ? "agree" : "review",

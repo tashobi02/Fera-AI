@@ -1,7 +1,7 @@
 // TASK-026 / TC-008 (client half): the S-007 found-child form logic. Synthetic values only.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  buildFoundRequest, classifyFoundLogFailure, createSaveGuard, dhakaLocalInput, emptyValues, foundLogFailureText,
+  buildFoundRequest, classifyFoundLogFailure, localPhone, createSaveGuard, dhakaLocalInput, emptyValues, foundLogFailureText,
   foundLogReducer, initialFoundLogState, newClientId, requestFoundLog, submissionFor, valuesFromFormData,
   type FoundLogValues,
 } from "@/lib/found-log-flow";
@@ -269,5 +269,46 @@ describe("failure copy", () => {
     expect(foundLogFailureText({ kind: "rate-limited", seconds: 12 }, "en")).toContain("12");
     expect(foundLogFailureText({ kind: "uncertain" }, "en")).toMatch(/If you change nothing/);
     expect(foundLogFailureText({ kind: "conflict" }, "en")).not.toMatch(/reload/i);
+  });
+});
+
+describe("invisible characters and Unicode form (audit WARN)", () => {
+  const build = (over: Partial<FoundLogValues>) => buildFoundRequest(filled(over), { clientSubmissionId: ID, nowMs: NOW });
+
+  it("a place made only of zero-width characters is still required", () => {
+    const r = build({ place: "\u200B\uFEFF\u200C" });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.fields.place).toBe("required");
+  });
+
+  it("strips ZWSP, BOM and soft hyphen from free text, normalises to NFC and keeps ZWNJ/ZWJ", () => {
+    const r = build({
+      place: "কমলা\u200Bপুর\uFEFF",
+      thana: "ক\u00ADমলাপুর",
+      relation: "প্রতিবেশী\u200B",
+      clothing: "লাল\u200B জামা",
+      marks: "e\u0301 mark",
+      circumstances: "র\u200Cে\u200Dল",
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const d = r.request.draft;
+    expect(d.event.place_text).toBe("কমলাপুর");
+    expect(d.event.thana).toBe("কমলাপুর");
+    expect(d.reporter.relation).toBe("প্রতিবেশী");
+    expect(d.child.clothing).toBe("লাল জামা");
+    expect(d.child.marks).toBe("\u00e9 mark");
+    expect(d.event.circumstances).toBe("র\u200Cে\u200Dল");
+  });
+});
+
+describe("localPhone paste cleaning", () => {
+  it("removes zero-width spaces and non-breaking or en dashes from a pasted number", () => {
+    expect(localPhone("+880\u200B1700\u2011000001")).toBe("01700000001");
+    expect(localPhone("8801700\u2013000001")).toBe("01700000001");
+    expect(localPhone("0170\u20110000\u200B001")).toBe("01700000001");
+  });
+  it("leaves anything else for the contract to refuse", () => {
+    expect(localPhone("12345")).toBe("12345");
   });
 });

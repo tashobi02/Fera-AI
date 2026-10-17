@@ -165,6 +165,7 @@ export function FoundLogForm({ locale, districts }: { locale: Locale; districts:
         <div
           ref={savedRef}
           tabIndex={-1}
+          role="group"
           aria-labelledby={`${uid}-saved-title`}
           className="flex flex-col gap-3 rounded-lg border border-hairline bg-surface p-[16px] shadow-1 sm:p-6"
         >

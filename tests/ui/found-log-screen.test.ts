@@ -58,3 +58,13 @@ describe("COMP-034 found-child form", () => {
     }
   });
 });
+
+// The saved panel only renders after a successful save (browser journey, TASK-038), so its
+// markup is guarded at source level: aria-labelledby needs a role to be announced.
+describe("saved panel semantics", () => {
+  it("gives the labelled saved panel role=group", async () => {
+    const { readFileSync } = await import("node:fs");
+    const source = readFileSync("src/app/(desk)/staff/found-log-form.tsx", "utf8");
+    expect(source).toMatch(/role="group"\s+aria-labelledby=\{`\$\{uid\}-saved-title`\}/);
+  });
+});

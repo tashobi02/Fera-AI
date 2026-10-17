@@ -80,13 +80,21 @@ const intOrNull = (v: string): number | null | "bad" => {
   if (t === "") return null;
   return /^\d{1,3}$/.test(t) ? Number(t) : "bad";
 };
-const textOrNull = (v: string) => (v.trim() === "" ? null : v.trim());
+// Free text is stored as NFC with zero-width space, BOM and soft hyphen removed (they are
+// invisible and break equality and search). ZWNJ/ZWJ are kept: Bangla words need them.
+const INVISIBLE_STRIP = /[\u200B\uFEFF\u00AD]/g;
+const cleanText = (v: string) => v.normalize("NFC").replace(INVISIBLE_STRIP, "").trim();
+const textOrNull = (v: string) => {
+  const t = cleanText(v);
+  return t === "" ? null : t;
+};
 
 // +8801XXXXXXXXX / 8801XXXXXXXXX (country code) → 01XXXXXXXXX. Anything else is left for the
 // contract's own phone rule to accept or refuse.
 export function localPhone(raw: string): string {
-  const digits = toLatinDigits(raw).replace(/[\s().-]/g, "");
-  const m = /^\+?88(01[0-9]{9})$/.exec(digits);
+  // Pasted numbers carry spaces, brackets, hyphens, non-breaking/en dashes and zero-width characters.
+  const digits = toLatinDigits(raw).replace(/[\s().\-\u2011\u2013\u200B\uFEFF\u00AD]/g, "");
+  const m = /^(?:\+?88)?(01[0-9]{9})$/.exec(digits);
   return m ? m[1]! : raw;
 }
 
@@ -98,10 +106,10 @@ export function buildFoundRequest(values: FoundLogValues, ids: { clientSubmissio
   // Keep callers honest: the id is always supplied, never invented here.
   const fields: FieldErrors = {};
   // Visible characters only: zero-width spaces must not satisfy the description rule.
-  const description = [values.circumstances, values.clothing, values.marks].join(" ");
+  const description = [values.circumstances, values.clothing, values.marks].map(cleanText).join(" ");
   if (visibleLength(description) < 3) fields.circumstances = "description";
 
-  if (values.place.trim() === "") fields.place = "required";
+  if (visibleLength(cleanText(values.place)) === 0) fields.place = "required";
   if (values.district.trim() === "") fields.district = "required";
   if (values.phone.trim() === "") fields.phone = "required";
 
@@ -151,7 +159,7 @@ export function buildFoundRequest(values: FoundLogValues, ids: { clientSubmissio
         at_lower: at,
         at_upper: at,
         at_approx: false,
-        place_text: values.place.trim(),
+        place_text: cleanText(values.place),
         district_code: district,
         thana: textOrNull(values.thana),
         circumstances: textOrNull(values.circumstances),

@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { decisionResponseSchema, type OfficerCaseView } from "@/contracts";
 import { exampleCandidateDecisionView } from "@/contracts/examples";
 import {
-  buildConfirm, buildReject, candidateDecisionApi, classifyDecisionFailure, compareCases, componentEntries,
+  buildConfirm, buildReject, displayComponent, displayScore, candidateDecisionApi, classifyDecisionFailure, compareCases, componentEntries,
   emptyChecklist, requestDecision, summarise, CHECKLIST_KEYS, type Checklist,
 } from "@/lib/match-review";
 
@@ -190,5 +190,23 @@ describe("requestDecision", () => {
   it("E-005 maps to stale", async () => {
     const out = await requestDecision(view.candidate_id, request, { fetchImpl: json(409, { error: { id: "E-005" } }), parse });
     expect(out).toEqual({ kind: "failure", failure: { kind: "stale" } });
+  });
+});
+
+describe("display rounding and district language (audit WARN)", () => {
+  it("rounds the score to a whole number and components to two decimals", () => {
+    expect(displayScore(72.5)).toBe(73);
+    expect(displayScore(72.4999999)).toBe(72);
+    expect(displayComponent(0.123456)).toBe(0.12);
+    expect(displayComponent(1)).toBe(1);
+    expect(displayComponent(0.8)).toBe(0.8);
+  });
+
+  it("shows the English district name in en and the Bangla name in bn", () => {
+    const m = withChild(view.missing, {}, { district_code: 14, district_name_bn: "ঢাকা" });
+    const f = withChild(view.found, {}, { district_code: 14, district_name_bn: "ঢাকা" });
+    expect(row(compareCases(m, f, "bn"), "district").missing).toBe("ঢাকা");
+    expect(row(compareCases(m, f, "en"), "district").missing).toMatch(/^[\x20-\x7e]+$/);
+    expect(row(compareCases(m, f, "en"), "district").missing).not.toBe("ঢাকা");
   });
 });
