@@ -6,7 +6,6 @@ import { clearIntakeMemory, handOff, noticeAcknowledged, acknowledgeNotice, take
 import { clearDraft, createDeviceDraft, DRAFT_KEY, loadDraft, saveDraft } from "@/lib/intake/draft-store";
 import { createFakeIntakeClient } from "@/lib/intake/fakes/fake-client";
 import { buildSubmission, editField } from "@/lib/intake/review";
-import { localizeDigits } from "@/lib/numerals";
 import { locales } from "@/locales";
 import { button, click, content, elements, mountHooks, settle } from "../../intake-ui/fakes/hook-harness";
 import { memoryStorage } from "./storage";
@@ -55,7 +54,7 @@ describe("SCREEN-003 lifecycle (Node hook harness, no DOM/browser)", () => {
     confirm(h.tree); h.render(); submit(h.tree); await settle(); h.render();
     expect(JSON.parse(fetcher.mock.calls[0][1].body).draft.child.clothing).toBe("[MOCK] parent edit");
     expect(loadDraft(storage)).toBeNull(); expect(push).not.toHaveBeenCalled();
-    expect(content(h.tree)).toContain(localizeDigits(clientExamples.createMissingResponse.ref_code, "bn"));
+    expect(content(h.tree)).toContain(clientExamples.createMissingResponse.ref_code /* identifier: never localised (same as S-004) */);
     expect(content(h.tree)).toContain(locales.bn.reviewOpenReport);
     expect(elements(h.tree).map((e) => e.props.href)).toContain(`/report/${clientExamples.createMissingResponse.id}`); // OD-022-12 → S-004
   });
@@ -66,7 +65,7 @@ describe("SCREEN-003 lifecycle (Node hook harness, no DOM/browser)", () => {
     h.unmount();
     finish(Response.json(clientExamples.createMissingResponse, { status: 201 })); await settle();
     const h2 = mount();
-    expect(content(h2.tree)).toContain(localizeDigits(clientExamples.createMissingResponse.ref_code, "bn"));
+    expect(content(h2.tree)).toContain(clientExamples.createMissingResponse.ref_code /* identifier: never localised (same as S-004) */);
     expect(content(h2.tree)).toContain(locales.bn.reviewOpenReport);
     expect(elements(h2.tree).map((e) => e.props.href)).toContain(`/report/${clientExamples.createMissingResponse.id}`); // OD-022-12 → S-004
     expect(push).not.toHaveBeenCalled();
@@ -256,7 +255,7 @@ describe("A8 Sol recovery regressions", () => {
     expect(fetcher.mock.calls[1][1].body).toBe(fetcher.mock.calls[0][1].body);
     finish(Response.json(clientExamples.createMissingResponse)); await settle(); h.render();
     expect(push).not.toHaveBeenCalled();
-    expect(content(h.tree)).toContain(localizeDigits(clientExamples.createMissingResponse.ref_code, "bn"));
+    expect(content(h.tree)).toContain(clientExamples.createMissingResponse.ref_code /* identifier: never localised (same as S-004) */);
   });
 });
 

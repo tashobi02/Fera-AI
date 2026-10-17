@@ -177,7 +177,19 @@ const bn = {
   reviewSession: "সেশনের সময় শেষ হয়েছে। খসড়া এই ডিভাইসে আছে। আপনার কথার পাতায় ফিরে সেশন শুরু করুন।",
   reviewSessionExpired: "আপনার খসড়ার সময় শেষ। নতুন করে শুরু করুন।", // D3:333 / catalogue E-019, needs human Bangla review
   reviewRetryFrozen: "ফল জানা যায়নি। একই তথ্য ও জমার নম্বর রেখে আবার চেষ্টা করুন।",
-  reviewPlannedManual: "নিজে পূরণ করার ফর্ম", // planned label wraps it; needs human Bangla review
+  reviewOpenManual: "ফর্মে তথ্য বদলান", // ACT-014 from S-003 (TASK-025)
+  // SCREEN-005 manual form (TASK-025). D3: manualNext = ACT-005 "পরের ধাপ"; manualSyntheticNote
+  // is the second sentence of the D4 §15.1 provider notice. Others need human Bangla review.
+  manualFormTitle: "নিজে পূরণ করার ফর্ম",
+  manualSyntheticNote: "এই সংস্করণে বাস্তব শিশুর তথ্য দেবেন না।",
+  manualIntro: "যা জানেন তা লিখুন। যা জানেন না, খালি রাখুন; অনুমান করবেন না।",
+  manualPrefilledAi: "এআই যা বুঝেছিল তা আগে থেকে দেওয়া আছে। প্রতিটি তথ্য যাচাই করে নিন।",
+  manualMockNotUsed: "নমুনা উত্তরের তথ্য ফর্মে নেওয়া হয়নি; শুধু আপনার লেখা রাখা আছে।",
+  manualYourWords: "আপনি যা লিখেছিলেন",
+  manualNext: "পরের ধাপ",
+  manualNextHint: "পরের ধাপে সব তথ্য আরেকবার দেখে নিশ্চিত করে জমা দেবেন।",
+  manualAttemptedPending: "এই ডিভাইসে একটি রিপোর্ট জমা দেওয়ার চেষ্টা চলছিল। আগে সেটি দেখে নিন।",
+  manualOpenReview: "যাচাইয়ের পাতা খুলুন",
   reviewOpenReport: "জিডি খসড়া ও পোস্টার পান", // D4 "জমা দেওয়ার পর জিডি খসড়া ও পোস্টার পাবেন"; links to S-004
   reviewExpired: "আপনার খসড়ার সময় শেষ। নতুন করে শুরু করুন।", // D3:333 / catalogue E-019, needs human Bangla review
   reviewUnknownAdd: "অজানা — যোগ করুন", // needs human Bangla review
@@ -478,7 +490,17 @@ const en = {
   reviewSession: "Your session has expired. The draft is kept on this device. Open your words to start a session.",
   reviewSessionExpired: "Your draft has expired. Please start again.", // D3:333 / catalogue E-019
   reviewRetryFrozen: "The result is unknown. Retry with the same details and submission ID.",
-  reviewPlannedManual: "Manual form", // planned label wraps it; needs human Bangla review
+  reviewOpenManual: "Edit in the form",
+  manualFormTitle: "Fill in the form yourself",
+  manualSyntheticNote: "Do not enter real child information in this version.",
+  manualIntro: "Fill in what you know. Leave anything you don't know empty; don't guess.",
+  manualPrefilledAi: "What the AI understood is filled in. Check every detail.",
+  manualMockNotUsed: "Sample answers were not copied into the form; only your own words are kept.",
+  manualYourWords: "What you wrote",
+  manualNext: "Next",
+  manualNextHint: "On the next step you'll check everything once more, confirm and submit.",
+  manualAttemptedPending: "A report on this device was being submitted. Check it first.",
+  manualOpenReview: "Open the review page",
   reviewOpenReport: "Get the GD draft and poster", // links to S-004
   reviewExpired: "Your draft has expired. Please start again.", // D3:333 / catalogue E-019
   reviewUnknownAdd: "Unknown — add",

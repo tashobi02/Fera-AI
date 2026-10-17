@@ -33,7 +33,7 @@ export function noticeAcknowledged(): boolean {
 }
 
 export const INTAKE_PATH = "/intake"; // SCREEN-002
-// Planned routes owned by other tasks: S-003 review (TASK-022), S-005 form (TASK-025).
+// S-003 review (TASK-022) and S-005 manual form (TASK-025).
 export const REVIEW_PATH = "/intake/review";
 export const MANUAL_FORM_PATH = "/intake/form";
 

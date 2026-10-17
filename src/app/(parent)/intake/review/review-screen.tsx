@@ -8,9 +8,8 @@ import { errorEnvelope, type DraftFieldPath, type ErrorEnvelope } from "@/contra
 import { CircleAlertIcon, InfoIcon, LoaderCircleIcon } from "@/app/components/icons";
 import { FocusHeading } from "@/app/components/focus-heading";
 import { clearSubmittedDraft, clearSubmittedReference, createDeviceDraft, readDraft, readSubmittedReference, saveDraft, type DeviceDraft } from "@/lib/intake/draft-store";
-import { clearIntakeMemory, INTAKE_PATH, takeHandoff, type IntakeHandoff } from "@/lib/intake/handoff";
+import { clearIntakeMemory, INTAKE_PATH, MANUAL_FORM_PATH, takeHandoff, type IntakeHandoff } from "@/lib/intake/handoff";
 import { buildSubmission, createSubmitter, editField, newSubmission, validateReview } from "@/lib/intake/review";
-import { localizeDigits } from "@/lib/numerals";
 import { locales, type Locale } from "@/locales";
 import { CircleCheckIcon, HonestLabel, PRIMARY_BUTTON, TERTIARY_BUTTON, TrashIcon } from "../../parent-ui";
 import { ConfirmBar, ReviewFields, reviewLabel } from "./review-fields";
@@ -233,7 +232,7 @@ export function ReviewScreen({ locale }: { locale: Locale }) {
     <FocusHeading className="text-heading-2 font-semibold text-ink">{t.reviewTitle}</FocusHeading>
     <div className="flex flex-wrap gap-2"><HonestLabel>{t.syntheticBadge}</HonestLabel>{(success?.mock ?? record?.mock) && <HonestLabel lang="en">{t.mockLabel}</HonestLabel>}{(success?.cached ?? record?.cached) && <HonestLabel>{t.cachedBadge}</HonestLabel>}</div>
     <p role="status" aria-live="polite" aria-atomic="true" className="flex items-start gap-2 text-body-lg text-body">
-      {busy ? <><LoaderCircleIcon className="mt-1 size-5" />{t.reviewSubmitting}</> : success ? <><CircleCheckIcon className="mt-1 size-5 text-success-text" />{t.reviewSubmitted.replace("{ref}", localizeDigits(success.ref, locale))}</> : !ready ? <><InfoIcon className="mt-1 size-5" />{t.stillWorking}</> : null}
+      {busy ? <><LoaderCircleIcon className="mt-1 size-5" />{t.reviewSubmitting}</> : success ? <><CircleCheckIcon className="mt-1 size-5 text-success-text" />{t.reviewSubmitted.split("{ref}")[0]}<span lang="en" translate="no" className="font-mono">{success.ref}</span>{t.reviewSubmitted.split("{ref}")[1]}</> : !ready ? <><InfoIcon className="mt-1 size-5" />{t.stillWorking}</> : null}
     </p>
     {storageUnreadable && <p role="status" className="flex items-start gap-2 text-body-lg text-body"><InfoIcon className="mt-1 size-5 text-info" />{t.reviewStorageUnreadable}</p>}
     {corruptAttemptedNotice && <p role="status" className="flex items-start gap-2 text-body-lg text-body"><InfoIcon className="mt-1 size-5 text-info" />{t.reviewCorruptAttempted}</p>}
@@ -317,10 +316,8 @@ export function ReviewScreen({ locale }: { locale: Locale }) {
         <ConfirmBar locale={locale} checked={checked} valid={valid} busy={busy} blocked={conflict || sessionExpired || expired || Boolean(pendingHandoff)} mock={record.mock} describedBy={!valid ? "review-required" : undefined} onCheck={setChecked} />
       </form>
       <Link className={TERTIARY_BUTTON} href={INTAKE_PATH} aria-disabled={busy || undefined} onClick={(e) => { if (busy) e.preventDefault(); }}>{t.reviewBack}</Link>
-      <span className="inline-flex min-h-11 items-center gap-2 text-body-lg text-mute">
-        {t.reviewPlannedManual}
-        <HonestLabel>{t.plannedLabel}</HonestLabel>
-      </span>
+      {/* ACT-014: S-005 manual form (TASK-025) edits the same device draft. */}
+      <Link className={TERTIARY_BUTTON} href={MANUAL_FORM_PATH} aria-disabled={busy || undefined} onClick={(e) => { if (busy) e.preventDefault(); }}>{t.reviewOpenManual}</Link>
       <button type="button" disabled={busy} className={TERTIARY_BUTTON} onClick={discard}><TrashIcon />{t.reviewDiscardDevice}</button>
     </>}
   </div>;
