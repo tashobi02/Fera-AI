@@ -4,7 +4,7 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { DEFAULT_DATABASE_URL, assertDatabaseName, assertLocalDatabaseUrl, scrubbedEnv, withDatabase } from "./guard.mjs";
 
-const FILES = ["tests/db/platform.test.ts", "tests/db/redaction.test.ts", "tests/db/auth.test.ts", "tests/db/case.test.ts", "tests/db/outputs.test.ts", "tests/db/submit.test.ts", "tests/db/admin.test.ts", "tests/db/spend.test.ts", "tests/db/spend-cli.test.ts", "tests/db/districts-seed.test.ts"];
+const FILES = ["tests/db/platform.test.ts", "tests/db/redaction.test.ts", "tests/db/auth.test.ts", "tests/db/case.test.ts", "tests/db/outputs.test.ts", "tests/db/submit.test.ts", "tests/db/admin.test.ts", "tests/db/spend.test.ts", "tests/db/spend-cli.test.ts", "tests/db/districts-seed.test.ts", "tests/db/seed-cases.test.ts"];
 
 function dropDatabase(name) {
   const server = withDatabase(assertLocalDatabaseUrl(process.env.FERA_DB_ADMIN_URL ?? DEFAULT_DATABASE_URL), "postgres");
