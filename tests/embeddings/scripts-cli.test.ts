@@ -15,13 +15,18 @@ import { describe, expect, it } from "vitest";
 
 const reembedCli = fileURLToPath(new URL("../../scripts/reembed.mjs", import.meta.url));
 const modelFetchCli = fileURLToPath(new URL("../../scripts/model-fetch.mjs", import.meta.url));
+const modelFetchTestLoader = fileURLToPath(new URL("./model-fetch-test-loader.mjs", import.meta.url));
+const childTimeoutMs = 4_000;
 
-function run(script: string, env: Record<string, string | undefined>) {
-  return spawnSync("node", [script], {
+function run(script: string, env: Record<string, string | undefined>, nodeArgs: string[] = []) {
+  const result = spawnSync(process.execPath, [...nodeArgs, script], {
     encoding: "utf8",
     env: { ...process.env, ...env } as NodeJS.ProcessEnv,
     stdio: ["ignore", "pipe", "pipe"],
+    timeout: childTimeoutMs,
   });
+  if (result.error) throw result.error;
+  return result;
 }
 
 describe("reembed.mjs refuses a non-loopback host", () => {
@@ -71,19 +76,23 @@ describe("reembed.mjs refuses a non-loopback host", () => {
 
 describe("model-fetch.mjs is database-free and guarded", () => {
   it("does not read FERA_DB_ADMIN_URL or attempt a DB connection (no DB connection error)", () => {
-    // We point at a non-loopback host on purpose. The script must not even
-    // look at this variable (it is database-free), so the failure mode
-    // should be a network error / dynamic import error, NOT a "non-local
-    // database host" guard message and NOT a "connection refused" code
-    // from pg (pg is not imported here at all).
-    const r = run(modelFetchCli, {
-      FERA_DB_ADMIN_URL: "postgresql://postgres:hunter2@db.example.supabase.co:5432/postgres",
-    });
-    // The exact status / message depends on the environment (no network in
-    // CI is the most common case). The point is that the database guard
-    // never fires — the script does not look at FERA_DB_ADMIN_URL.
+    // A hostile database URL must not affect this database-free script. The
+    // test loader supplies a controlled model import failure so the CLI can
+    // run without network access and expose its own error handling.
+    const r = run(
+      modelFetchCli,
+      { FERA_DB_ADMIN_URL: "postgresql://postgres:hunter2@db.example.supabase.co:5432/postgres" },
+      ["--loader", modelFetchTestLoader],
+    );
+    // The loader substitutes only the model package with a deterministic
+    // offline failure. The CLI must reach that path without consulting the
+    // hostile database URL; this keeps the check independent of Hugging Face
+    // availability and model download duration.
+    expect(r.status).toBe(1);
+    expect(r.stderr).toMatch(/model:fetch: download failed: offline test stub/);
     expect(r.stderr).not.toMatch(/non-local database host/);
     expect(r.stderr).not.toMatch(/FERA_DB_NAME must match/);
+    expect(r.stderr).not.toMatch(/connection refused/i);
     // And no part of the URL or the password leaks through.
     expect(r.stderr).not.toContain("hunter2");
     expect(r.stdout).not.toContain("hunter2");
