@@ -1,5 +1,20 @@
 // Bilingual UI strings. Bangla is the parent default (FR-033); exact copy comes
 // from D3/D4 where it exists. Bangla strings use Bangla numerals.
+//
+// Per PHASE_3_PLAN.md §5, after P3-001 new strings live in per-area files
+// (src/locales/areas/*.ts) so waves can edit them without touching this root.
+// Area files export empty objects today; the spread keeps the keyspace stable
+// while allowing waves to add entries in their own area file.
+import { parentIntakeBn, parentIntakeEn } from "./areas/parent-intake";
+import { parentFormBn, parentFormEn } from "./areas/parent-form";
+import { parentStatusBn, parentStatusEn } from "./areas/parent-status";
+import { staffDisasterBn, staffDisasterEn } from "./areas/staff-disaster";
+import { officerQueueBn, officerQueueEn } from "./areas/officer-queue";
+import { officerCaseBn, officerCaseEn } from "./areas/officer-case";
+import { officerMapBn, officerMapEn } from "./areas/officer-map";
+import { officerDuplicatesBn, officerDuplicatesEn } from "./areas/officer-duplicates";
+import { adminImportBn, adminImportEn } from "./areas/admin-import";
+
 const bn = {
   appName: "ফেরা",
   demoBanner: "সিনথেটিক তথ্য · কর্মকর্তা যাচাই সিমুলেশন", // D4 §15.1 demo banner
@@ -304,6 +319,15 @@ const bn = {
   posterFailed: "এখন পোস্টার তৈরি করা গেল না। আবার চেষ্টা করুন বা লেখাটি কপি করে ব্যবহার করুন।",
   posterTooLong: "লেখাটি একটি পোস্টারে ধরছে না। লেখাটি কপি করে ব্যবহার করুন।",
   posterBlocked: "লেখার মধ্যে এখনও একটি ফোন নম্বর আছে, তাই পোস্টার তৈরি হয়নি। সাহায্য লাগলে ১৩২১৯-এ কল করুন।",
+  ...parentIntakeBn,
+  ...parentFormBn,
+  ...parentStatusBn,
+  ...staffDisasterBn,
+  ...officerQueueBn,
+  ...officerCaseBn,
+  ...officerMapBn,
+  ...officerDuplicatesBn,
+  ...adminImportBn,
 } as const;
 
 export type MessageKey = keyof typeof bn;
@@ -598,6 +622,15 @@ const en = {
   posterFailed: "The poster couldn't be made right now. Try again, or copy the text instead.",
   posterTooLong: "The text doesn't fit on one poster. Copy the text instead.",
   posterBlocked: "A phone number is still in the text, so no poster was made. Call 13219 if you need help.",
+  ...parentIntakeEn,
+  ...parentFormEn,
+  ...parentStatusEn,
+  ...staffDisasterEn,
+  ...officerQueueEn,
+  ...officerCaseEn,
+  ...officerMapEn,
+  ...officerDuplicatesEn,
+  ...adminImportEn,
 } as const satisfies Record<MessageKey, string>;
 
 export const locales = { bn, en } as const;
