@@ -1,9 +1,12 @@
 // TASK-016 / COMP-011 / P3-024: canonical text builder for the embedder.
 //
-// The function `canonicalCaseText` builds the text to embed from the structured
-// contract fields only (clothing, marks, circumstances, place_text), with the
-// e5 model prefix on top (`query: ` for missing, `passage: ` for found). It
-// must be deterministic: same row in → same text out, every time.
+// The function `canonicalCaseText` builds the text to embed from the
+// structured contract fields only (clothing, marks, circumstances,
+// place_text), with the e5 model prefix on top (`query: ` for missing,
+// `passage: ` for found). It must be deterministic: same row in → same
+// text out, every time. Free-text fields are scrubbed of phone-like
+// numbers (see text.ts, FREE-TEXT SAFETY).
+
 import { describe, expect, it } from "vitest";
 import { exampleFoundRow, exampleMissingRow } from "@/contracts/examples";
 import type { CaseRow } from "@/contracts/server/rows";
@@ -12,7 +15,9 @@ import {
   QUERY_PREFIX,
   canonicalCaseText,
   canonicalPrefix,
+  caseEmbeddingText,
   prefixForKind,
+  scrubPhones,
   structuredCaseText,
 } from "@/server/embeddings/text";
 
@@ -84,5 +89,45 @@ describe("canonicalCaseText", () => {
     const r = rowWith({ clothing: null, marks: null, circumstances: null, place_text: null });
     expect(canonicalCaseText(r)).toBe(QUERY_PREFIX);
     expect(structuredCaseText(r)).toBe("");
+  });
+});
+
+describe("scrubPhones: phone-like numbers are removed from free text", () => {
+  // scrubPhones replaces each match with a single space and collapses
+  // adjacent whitespace so the removed phone leaves one clean boundary.
+  it.each([
+    ["ফোন 01200000042 এ জানান", "ফোন এ জানান"],
+    ["ফোন ০১২০০০০০০৪২ এ জানান", "ফোন এ জানান"],
+    ["call 0120-000-0042 now", "call now"],
+    ["call 01200 000 042 now", "call now"],
+    ["call 01200.000.042 now", "call now"],
+    ["call +8801200000042 now", "call now"],
+    ["call 880 1200 000 042 now", "call now"],
+    ["নম্বর +৮৮০১৭০০০০০০৪২", "নম্বর "],
+  ])("scrubs %s", (input, expected) => {
+    expect(scrubPhones(input)).toBe(expected);
+  });
+
+  it("keeps ages, heights and short numbers (not 11 digits)", () => {
+    expect(scrubPhones("বয়স ৭, উচ্চতা ১১০ সেমি, ২০২৬ সাল")).toBe("বয়স ৭, উচ্চতা ১১০ সেমি, ২০২৬ সাল");
+    expect(scrubPhones("room 12, level 3, 2026")).toBe("room 12, level 3, 2026");
+  });
+
+  it("leaves names alone (names typed into free text are NOT detected)", () => {
+    expect(scrubPhones("নাম: মীম, বয়স ৭")).toBe("নাম: মীম, বয়স ৭");
+  });
+
+  it("propagates through structuredCaseText and exposes prefix-free reembed text", () => {
+    for (const field of ["clothing", "marks", "circumstances", "place_text"] as const) {
+      const row = rowWith({
+        clothing: null,
+        marks: null,
+        circumstances: null,
+        place_text: null,
+        [field]: "ফোন 01700000042 এ যোগাযোগ",
+      });
+      expect(caseEmbeddingText(row)).toBe("ফোন এ যোগাযোগ");
+      expect(canonicalCaseText(row)).toBe("query: ফোন এ যোগাযোগ");
+    }
   });
 });
