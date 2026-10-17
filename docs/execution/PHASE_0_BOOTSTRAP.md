@@ -59,7 +59,7 @@ This is a living tracker. Every agent working on a task in this phase updates it
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | TASK-004 | Spike: local embedding model on Vercel (OQ-023, RISK-015) | Codex | TASK-001 | 3 | Report: cold start, size; decision local vs API | `todo` | | |
-| TASK-009 | District data: 64 rows bn/en/centroids + neighbours | Codex | TASK-002 | 3 | `npm run seed` loads 64 districts | `review` | branch `phase2--masnun-districts` (PR pending) | Unit/lint/typecheck/build green; **`npm run seed` and `test:db` not run (no Docker on this machine)**; data is AI-compiled and UNVERIFIED (DEP-004/A-019 check owner UNKNOWN). See [evidence](evidence/data-districts.md). |
+| TASK-009 | District data: 64 rows bn/en/centroids + neighbours | Codex | TASK-002 | 3 | `npm run seed` loads 64 districts | `review` | branch `phase2--masnun-districts`, PR #33 open (merged state unknown) | Unit/lint/typecheck/build green; **`npm run seed` and `test:db` not run (no Docker on this machine)**; data is AI-compiled and UNVERIFIED (DEP-004/A-019 check owner UNKNOWN). See [evidence](evidence/data-districts.md). |
 
 ## Tasks — Mahim (lead)
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
