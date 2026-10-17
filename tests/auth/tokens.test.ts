@@ -156,6 +156,18 @@ describe("signing keys", () => {
     expect(message).not.toContain(short);
   });
 
+  it("DRAFT_SIGNING_KEY fails closed when missing in every env, validates length, and never falls back to AUTH_SECRET", () => {
+    const short = Buffer.alloc(8, 3).toString("base64");
+    expect(loadSecret("DRAFT_SIGNING_KEY", { NODE_ENV: "production", DRAFT_SIGNING_KEY: good }).length).toBe(32);
+    expect(() => loadSecret("DRAFT_SIGNING_KEY", { NODE_ENV: "production", AUTH_SECRET: good })).toThrow(SecretConfigError);
+    expect(() => loadSecret("DRAFT_SIGNING_KEY", { NODE_ENV: "development", DRAFT_SIGNING_KEY: short })).toThrow(/DRAFT_SIGNING_KEY/);
+    expect(() => loadSecret("DRAFT_SIGNING_KEY", { NODE_ENV: "test", AUTH_SECRET: good })).toThrow(SecretConfigError);
+    expect(() => loadSecret("DRAFT_SIGNING_KEY", { NODE_ENV: "test" })).toThrow(SecretConfigError);
+    expect(() => loadSecret("DRAFT_SIGNING_KEY", { NODE_ENV: "development", AUTH_SECRET: good })).toThrow(SecretConfigError);
+    expect(() => loadSecret("DRAFT_SIGNING_KEY", { NODE_ENV: "test", DRAFT_SIGNING_KEY: short })).toThrow(SecretConfigError);
+    expect(loadSecret("DRAFT_SIGNING_KEY", { NODE_ENV: "test", DRAFT_SIGNING_KEY: good }).length).toBe(32);
+  });
+
   it("uses one stable random key per process in development when unset", () => {
     const a = loadSecret("PARENT_COOKIE_KEY", { NODE_ENV: "test" });
     expect(a.length).toBe(32);
