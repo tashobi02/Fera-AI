@@ -169,7 +169,10 @@ describe("API-008 review queue route (P3-034a, TASK-027, FR-012)", () => {
   it("tampered cursor (wrong signature) → E-001 by Zod, no denial audit (P3-034a)", async () => {
     // cursorSchema requires `base64url.base64url`; a single-segment base64url
     // payload (no signature segment) is not a cursor at all.
-    const TAMPERED = Buffer.from(JSON.stringify({ v: 1, afterMissingId: OFFICER.id }), "utf8").toString("base64url");
+    // userPrincipal returns null for an invalid row; this test only runs when
+    // the principal is valid, so the non-null branch is reachable.
+    expect(OFFICER).not.toBeNull();
+    const TAMPERED = Buffer.from(JSON.stringify({ v: 1, afterMissingId: OFFICER!.userId }), "utf8").toString("base64url");
     const f = makeFactory(async () => { throw new Error("handler should not run"); }, OFFICER);
     const res = await f.GET(
       new Request(`http://x/api/review-queue?cursor=${encodeURIComponent(TAMPERED)}`),
@@ -190,7 +193,7 @@ describe("API-008 review queue route (P3-034a, TASK-027, FR-012)", () => {
     // does NOT translate it to E-004 (no denial audit). To sign the cursor
     // for this test we re-use the HMAC scheme the same way the service does;
     // a different key produces a different signature, but the format matches.
-    const key = Buffer.from("x".repeat(64, "base64")); // arbitrary 64-byte key
+    const key = Buffer.alloc(64, 0x78); // arbitrary 64-byte key (0x78 = 'x')
     const payload = Buffer.from(JSON.stringify({ v: 1, afterMissingId: "not-a-uuid" }), "utf8").toString("base64url");
     const sig = createHmac("sha256", key).update(payload).digest("base64url");
     const cursor = `${payload}.${sig}`;

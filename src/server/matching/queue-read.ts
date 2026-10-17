@@ -76,7 +76,7 @@ function decodeComponents(value: unknown): Record<string, number | null> {
 
 // --- signed cursor ----------------------------------------------------------
 // `base64url(json) "." base64url(hmacSha256)`, the same shape as cursorSchema
-// in src/contracts/primitives.ts. The payload is `{ v: 1, afterMissingId }` —
+// in src/contracts/primitives.ts. The payload is `{ v: 2, afterCreatedAt, afterMissingId }` —
 // no district (the route filter lives in the request, not the cursor). A
 // missing/short/short payload or a bad signature returns null, which the
 // route layer maps to E-001 (not a denial).
@@ -89,12 +89,25 @@ function macSig(key: Buffer, payload: string): string {
   return createHmac("sha256", key).update(payload).digest("base64url");
 }
 
-function encodeQueueCursor(afterMissingId: string, deps: ReadReviewQueueDeps): string {
-  const payload = Buffer.from(JSON.stringify({ v: 1, afterMissingId }), "utf8").toString("base64url");
+type QueueCursor = { afterCreatedAt: string; afterMissingId: string };
+
+function isCursorTimestamp(value: unknown): value is string {
+  return typeof value === "string" &&
+    value.length <= 64 &&
+    /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}(?::?\d{2})?)$/.test(value) &&
+    Number.isFinite(Date.parse(value));
+}
+
+function encodeQueueCursor(
+  afterMissingId: string,
+  deps: ReadReviewQueueDeps,
+  afterCreatedAt = new Date().toISOString(),
+): string {
+  const payload = Buffer.from(JSON.stringify({ v: 2, afterCreatedAt, afterMissingId }), "utf8").toString("base64url");
   return `${payload}.${macSig(cursorKeyFor(deps), payload)}`;
 }
 
-function decodeQueueCursor(cursor: string, deps: ReadReviewQueueDeps): string | null {
+function decodeQueueCursor(cursor: string, deps: ReadReviewQueueDeps): QueueCursor | null {
   const [payload, sig, extra] = cursor.split(".");
   if (!payload || !sig || extra !== undefined) return null;
   const want = Buffer.from(macSig(cursorKeyFor(deps), payload));
@@ -103,11 +116,15 @@ function decodeQueueCursor(cursor: string, deps: ReadReviewQueueDeps): string | 
   try {
     const value: unknown = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
     if (typeof value !== "object" || value === null) return null;
-    const { v, afterMissingId } = value as { v?: unknown; afterMissingId?: unknown };
-    if (v !== 1) return null;
+    const { v, afterCreatedAt, afterMissingId } = value as {
+      v?: unknown;
+      afterCreatedAt?: unknown;
+      afterMissingId?: unknown;
+    };
+    if (v !== 2 || !isCursorTimestamp(afterCreatedAt)) return null;
     if (typeof afterMissingId !== "string") return null;
     if (!isUuid(afterMissingId)) return null;
-    return afterMissingId;
+    return { afterCreatedAt, afterMissingId };
   } catch {
     return null;
   }
@@ -120,11 +137,11 @@ async function readQueueRows(
   client: Queryable,
   district: number | undefined,
   limit: number,
-  afterMissingId: string | null,
-): Promise<QueueItemInput[]> {
+  after: QueueCursor | null,
+): Promise<{ items: QueueItemInput[]; createdAtByMissingId: Map<string, string> }> {
   // Page the missing side generously so a case with >Q_MAX pending candidates still
-  // leaves a usable page boundary. created_at desc + id desc is the deterministic
-  // missing-side order.
+  // leaves a usable page boundary. Newest cases appear first (D1_PRD_V2 §6); UUID
+  // is the deterministic tie-breaker and both values are carried by the cursor.
   const missingLimit = Math.max(limit * 2, limit + Q_MAX);
   const params: unknown[] = [];
   let districtClause = "";
@@ -133,28 +150,40 @@ async function readQueueRows(
     districtClause = `AND m.district_code = $${params.length}`;
   }
   let cursorClause = "";
-  if (afterMissingId !== null) {
-    params.push(afterMissingId);
-    cursorClause = `AND m.id < $${params.length}`;
+  if (after !== null) {
+    params.push(after.afterCreatedAt, after.afterMissingId);
+    cursorClause = `AND (m.created_at, m.id) < ($${params.length - 1}::timestamptz, $${params.length}::uuid)`;
   }
   params.push(missingLimit);
   const missingLimitClause = `LIMIT $${params.length}`;
   const missingRows = await client.query(
-    `SELECT m.id AS id
+    `SELECT m.id AS id, m.created_at::text AS created_at
        FROM cases m
       WHERE m.kind = 'missing'
         AND m.status = 'matched_pending_review'
         AND m.anonymised_at IS NULL
         AND EXISTS (SELECT 1 FROM match_candidates c
-                    WHERE c.missing_case_id = m.id AND c.status = 'pending')
+                    WHERE c.missing_case_id = m.id
+                      AND c.status = 'pending'
+                      AND NOT EXISTS (SELECT 1 FROM cases fc
+                                      WHERE fc.id = c.found_case_id
+                                        AND fc.anonymised_at IS NOT NULL))
         ${districtClause}
         ${cursorClause}
-      ORDER BY m.id DESC
+      ORDER BY m.created_at DESC, m.id DESC
       ${missingLimitClause}`,
     params,
   );
-  const caseIds = missingRows.rows.map((r) => col.uuid("cases", asRow("cases", r), "id"));
-  if (caseIds.length === 0) return [];
+  const missingCases = missingRows.rows.map((raw) => {
+    const row = asRow("cases", raw);
+    return {
+      id: col.uuid("cases", row, "id"),
+      createdAt: col.text("cases", row, "created_at"),
+    };
+  });
+  const caseIds = missingCases.map((row) => row.id);
+  const createdAtByMissingId = new Map(missingCases.map((row) => [row.id, row.createdAt]));
+  if (caseIds.length === 0) return { items: [], createdAtByMissingId };
 
   // Candidates for those missing cases, ordered by missing_case then similarity desc
   // then rank asc. Best per case first; we slice to Q_MAX in JS so a sub-5 candidate
@@ -266,7 +295,7 @@ async function readQueueRows(
     if (qualifiedCandidates.length === 0) continue; // a missing case with no live candidates is hidden
     items.push({ row: missingRow, ctx: mctx, candidates: qualifiedCandidates });
   }
-  return items;
+  return { items, createdAtByMissingId };
 }
 
 export async function readReviewQueue(
@@ -286,8 +315,8 @@ export async function readReviewQueue(
 
   const limit = Math.min(Math.max(opts.limit ?? DEFAULT_LIMIT, 1), 50);
   const district = opts.district;
-  const afterMissingId = opts.cursor ? decodeQueueCursor(opts.cursor, deps) : null;
-  if (opts.cursor !== undefined && afterMissingId === null) {
+  const after = opts.cursor ? decodeQueueCursor(opts.cursor, deps) : null;
+  if (opts.cursor !== undefined && after === null) {
     throw new ApiError("E-001", { reason: "schema" });
   }
 
@@ -295,12 +324,14 @@ export async function readReviewQueue(
     // One snapshot for every read; an edit between the SELECTs could expose a
     // candidate whose endpoints have moved on (BR-019/020).
     await client.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ");
-    const rows = await readQueueRows(client, district, limit, afterMissingId);
-    const page = rows.slice(0, limit);
+    const result = await readQueueRows(client, district, limit, after);
+    const page = result.items.slice(0, limit);
     let nextCursor: string | null = null;
-    if (rows.length > limit && page.length > 0) {
+    if (result.items.length > limit && page.length > 0) {
       const last = page[page.length - 1];
-      nextCursor = encodeQueueCursor(last.row.id, deps);
+      const createdAt = result.createdAtByMissingId.get(last.row.id);
+      if (createdAt === undefined) throw new RowShapeError("cases", "created_at");
+      nextCursor = encodeQueueCursor(last.row.id, deps, createdAt);
     }
     const view = projectQueueFor(principal, page, nextCursor);
     if (!view) return { kind: "hidden" } as const;

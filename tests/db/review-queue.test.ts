@@ -3,15 +3,15 @@
 // only; no real child data.
 //
 // What these tests cover:
-//   - A verified officer sees seeded pending candidates, ordered by case then
-//     similarity descending, at most LIMITS.candidatesPerQueueItem per case.
+//   - A verified officer sees newest missing cases first, with candidates
+//     ordered by similarity descending and capped per case.
 //   - Rejected, confirmed and voided candidates are absent.
-//   - Stale pending candidates (missing version bumped, found case referred,
-//     found case anonymised) are absent and never leak the partner case.
+//   - Candidates removed through the legal lifecycle leave the queue; redaction
+//     never leaks partner data or suppresses an independent live candidate.
 //   - Pagination: a >limit set of pending missing cases yields a non-null
 //     `next_cursor` that passes reviewQueueResponseSchema; the cursor is
 //     HMAC-signed with subkey(AUTH_SECRET, "cursor.review_queue") and the
-//     second request returns the remaining rows with no overlap and no gap.
+//     subsequent pages return the remaining rows with no overlap and no gap.
 //   - Tampered cursors → E-001 (no access.denied audit row).
 //   - Staff, unverified officer, parent, and admin are all hidden (E-004 from
 //     the route; here the service returns `hidden` and the route throws E-004
@@ -29,15 +29,17 @@ import { encodeQueueCursor, readReviewQueue } from "@/server/matching/queue-read
 import { GET } from "@/app/api/review-queue/route";
 import { defaultAuth } from "@/server/auth/default";
 import { withTransaction } from "@/server/case/internal";
+import { redactCases } from "@/server/admin/redact";
 import type { Pool, PoolClient } from "pg";
-import { dbTestsEnabled, fakePhone, pool, seedReference } from "./support/db";
+import { closeMissing, confirmPair, dbTestsEnabled, fakePhone, pool, seedReference } from "./support/db";
 
 let fixturePool: Pool;
 let appPool: Pool;
+let redactorPool: Pool;
 
 // Fixed cursor key so the HMAC stays stable across the test run. The same key
 // produces the same signature on encode and verifies on decode.
-const TEST_CURSOR_KEY = Buffer.from("a".repeat(64, "utf8")); // 64 bytes, arbitrary
+const TEST_CURSOR_KEY = Buffer.alloc(64, 0x61); // 64 bytes, arbitrary (0x61 = 'a')
 const cursorDeps = { withTransaction, cursorKey: TEST_CURSOR_KEY };
 
 async function asFixtureOwner<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
@@ -55,16 +57,13 @@ async function asFixtureOwner<T>(fn: (client: PoolClient) => Promise<T>): Promis
   }
 }
 
-// Bypass the BEFORE INSERT/UPDATE triggers in this session only (case state
-// machine + integrity checks). The throwaway local DB is not relied on for
-// real guarantees; the fixture wants a specific lifecycle state without
-// replaying the full workflow. DECLAREd CONSTRAINT triggers (e.g. candidate
-// integrity) are NOT affected by session_replication_role, so non-pending
-// candidates still need the matching decision / referral rows in the same
-// transaction — see `insertCandidate`.
-async function asReplica<T>(c: PoolClient, fn: () => Promise<T>): Promise<T> {
-  await c.query("SET session_replication_role = replica");
-  try { return await fn(); } finally { await c.query("SET session_replication_role = DEFAULT"); }
+async function asAppClient<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
+  const client = await appPool.connect();
+  try {
+    return await fn(client);
+  } finally {
+    client.release();
+  }
 }
 
 async function insertVerifiedOfficer(): Promise<string> {
@@ -165,12 +164,9 @@ async function seedFoundOpen(staffId: string, district = 1): Promise<{ id: strin
   });
 }
 
-// Insert a synthetic match_candidate in the requested state. The pending and
-// voided states just write the match_candidates row. Rejected and confirmed
-// states also write the supporting review_decisions / referrals rows and
-// advance the cases to their terminal states so the deferred check_pair_integrity
-// trigger fires clean at COMMIT (BR-013, BR-020). CONSTRAINT triggers always
-// fire regardless of session_replication_role, so the workflow has to be real.
+// Insert a synthetic candidate. A rejected fixture includes its required
+// decision and audit rows; confirmed pairs use `confirmPair` through the normal
+// lifecycle so the state guard and deferred integrity checks both run.
 // Module-level so the helper's default argument can see it (assigned in beforeAll).
 let verifiedOfficerId!: string;
 
@@ -179,7 +175,7 @@ async function insertCandidate(
   foundId: string,
   rank: number,
   score: number,
-  status: "pending" | "rejected" | "confirmed" | "voided" = "pending",
+  status: "pending" | "rejected" | "voided" = "pending",
   officerId: string = verifiedOfficerId,
 ): Promise<string> {
   return asFixtureOwner(async (c) => {
@@ -208,31 +204,6 @@ async function insertCandidate(
          VALUES ('officer', $1, $2, $3, $4, '{}'::jsonb)`,
         [officerId, "match.reject", missingId, candidateId],
       );
-    } else if (status === "confirmed") {
-      await c.query(
-        `INSERT INTO review_decisions (candidate_id, officer_id, decision, decided_at)
-         VALUES ($1, $2, 'confirm', now())`,
-        [candidateId, officerId],
-      );
-      // The schema requires an officer audit event for every review decision (deferred trigger).
-      await c.query(
-        `INSERT INTO audit_log (actor_type, actor_user_id, action, case_id, candidate_id, details)
-         VALUES ('officer', $1, $2, $3, $4, '{}'::jsonb)`,
-        [officerId, "match.confirm", missingId, candidateId],
-      );
-      await c.query(
-        `INSERT INTO referrals (candidate_id, found_case_id, missing_case_id, referred_by, note)
-         VALUES ($1, $2, $3, $4, '[MOCK] synthetic referral')`,
-        [candidateId, foundId, missingId, officerId],
-      );
-      // Terminal case states required by the deferred integrity trigger.
-      // The transition guard only allows open -> matched_pending_review -> confirmed through the
-      // full workflow; the fixture only needs the end states, so skip that row trigger (the deferred
-      // integrity trigger still runs at commit).
-      await c.query("SET LOCAL session_replication_role = replica");
-      await c.query("UPDATE cases SET status = 'confirmed' WHERE id = $1", [missingId]);
-      await c.query("UPDATE cases SET status = 'referred', closed_at = now() WHERE id = $1", [foundId]);
-      await c.query("SET LOCAL session_replication_role = DEFAULT");
     }
     return candidateId;
   });
@@ -259,6 +230,7 @@ describe.skipIf(!dbTestsEnabled)("API-008 review queue (P3-034a, TASK-027, FR-01
   beforeAll(async () => {
     fixturePool = pool("admin");
     appPool = pool("app");
+    redactorPool = pool("redactor");
     setPoolForTests(appPool);
     const fixtureClient = await fixturePool.connect();
     try {
@@ -311,8 +283,8 @@ describe.skipIf(!dbTestsEnabled)("API-008 review queue (P3-034a, TASK-027, FR-01
     await insertCandidate(missingA.id, foundB1.id, 1, 99, "rejected");
     // Case B: one pending candidate.
     await insertCandidate(missingB.id, foundB2.id, 1, 75);
-    // Case C: confirmed and voided candidates only (both must be absent from the queue).
-    await insertCandidate(missingC.id, foundC1.id, 1, 65, "confirmed");
+    // Case C: a valid confirmed pair plus a voided candidate (both are absent).
+    const confirmedCandidate = await insertCandidate(missingC.id, foundC1.id, 1, 65);
     await insertCandidate(missingC.id, foundC2.id, 2, 60, "voided");
 
     // Now that pending candidates exist for both missing cases, the legal
@@ -320,13 +292,20 @@ describe.skipIf(!dbTestsEnabled)("API-008 review queue (P3-034a, TASK-027, FR-01
     // integrity trigger.
     await moveToMatchedReview(missingA.id);
     await moveToMatchedReview(missingB.id);
+    await moveToMatchedReview(missingC.id);
+    await moveToMatchedReview(foundC1.id);
+    await asAppClient((client) => confirmPair(client, {
+      candidateId: confirmedCandidate,
+      missingId: missingC.id,
+      foundId: foundC1.id,
+      officerId: verifiedOfficerId,
+    }));
   });
 
   afterEach(() => vi.restoreAllMocks());
   afterAll(async () => {
     setPoolForTests(null);
-    if (appPool) await appPool.end();
-    if (fixturePool) await fixturePool.end();
+    await Promise.all([appPool?.end(), fixturePool?.end(), redactorPool?.end()]);
   });
 
   async function getAs(principal: Principal, qs = ""): Promise<Response> {
@@ -475,19 +454,31 @@ describe.skipIf(!dbTestsEnabled)("API-008 review queue (P3-034a, TASK-027, FR-01
         pageIds.push(m.id);
       }
 
+      // D1 says new candidates appear first. Compare against the database's
+      // newest-first order, with UUID as the deterministic timestamp tie-breaker.
+      const expectedRows = await fixturePool.query<{ id: string }>(
+        `SELECT id FROM cases WHERE id = ANY($1::uuid[]) ORDER BY created_at DESC, id DESC`,
+        [pageIds],
+      );
+      const expectedPageIds = expectedRows.rows.map((row) => row.id);
+
       // First page: limit=2.
-      const first = await readReviewQueue(principal!, { limit: 2 }, cursorDeps);
+      const first = await readReviewQueue(principal!, { limit: 2, district: DISTRICT }, cursorDeps);
       expect(first.kind).toBe("ok");
       if (first.kind !== "ok") throw new Error("expected ok");
       const firstParsed = reviewQueueResponseSchema.parse(first.view); // strict allowlist — cursors must match the regex
       expect(firstParsed.items.length).toBe(2);
-      expect(firstParsed.items.map((i) => i.case.id)).toEqual(pageIds.slice(0, 2));
+      expect(firstParsed.items.map((i) => i.case.id)).toEqual(expectedPageIds.slice(0, 2));
       expect(firstParsed.next_cursor).not.toBeNull();
       // The cursor must match the contract cursorSchema (signed base64url payload + HMAC).
       expect(firstParsed.next_cursor).toMatch(/^[A-Za-z0-9_-]{8,400}\.[A-Za-z0-9_-]{16,100}$/);
 
       // Second page: use the cursor verbatim.
-      const second = await readReviewQueue(principal!, { limit: 2, cursor: firstParsed.next_cursor ?? undefined }, cursorDeps);
+      const second = await readReviewQueue(
+        principal!,
+        { limit: 2, district: DISTRICT, cursor: firstParsed.next_cursor ?? undefined },
+        cursorDeps,
+      );
       expect(second.kind).toBe("ok");
       if (second.kind !== "ok") throw new Error("expected ok");
       const secondParsed = reviewQueueResponseSchema.parse(second.view);
@@ -495,15 +486,19 @@ describe.skipIf(!dbTestsEnabled)("API-008 review queue (P3-034a, TASK-027, FR-01
       const seenIds = [firstParsed, secondParsed].flatMap((p) => p.items.map((i) => i.case.id));
       // No overlap between the first and second page.
       expect(seenIds.length).toBe(new Set(seenIds).size);
-      // No gap: second page continues descending id order.
-      expect(secondParsed.items.map((i) => i.case.id)).toEqual(pageIds.slice(2, 4));
+      // No gap: second page continues newest-first order.
+      expect(secondParsed.items.map((i) => i.case.id)).toEqual(expectedPageIds.slice(2, 4));
 
       // Third page picks up the last case and ends the queue.
-      const third = await readReviewQueue(principal!, { limit: 2, cursor: secondParsed.next_cursor ?? undefined }, cursorDeps);
+      const third = await readReviewQueue(
+        principal!,
+        { limit: 2, district: DISTRICT, cursor: secondParsed.next_cursor ?? undefined },
+        cursorDeps,
+      );
       expect(third.kind).toBe("ok");
       if (third.kind !== "ok") throw new Error("expected ok");
       const thirdParsed = reviewQueueResponseSchema.parse(third.view);
-      expect(thirdParsed.items.map((i) => i.case.id)).toEqual(pageIds.slice(4));
+      expect(thirdParsed.items.map((i) => i.case.id)).toEqual(expectedPageIds.slice(4));
       expect(thirdParsed.next_cursor).toBeNull();
     });
 
@@ -551,96 +546,62 @@ describe.skipIf(!dbTestsEnabled)("API-008 review queue (P3-034a, TASK-027, FR-01
     });
   });
 
-  // P3-034a: staleness predicate mirrors API-009 — the queue must drop candidates
-  // whose endpoints have moved (version, status, anonymised_at) and must never
-  // leak the partner case.
-  describe("qualified predicate: stale candidates are dropped (P3-034a)", () => {
-    // The cases_integrity CONSTRAINT TRIGGER enforces the qualified invariant
-    // at COMMIT and is NOT affected by session_replication_role. To reach a
-    // fixture state where a pending candidate's stored version mismatches the
-    // case version, or whose endpoint is in a terminal state, the test admin
-    // (local superuser) temporarily disables ALL triggers on `cases`. The row
-    // triggers (state machine, version guard) and the before update of cases
-    // are bypassed; the queue's JS-side predicate is what we are testing.
-    async function forceCaseState(client: PoolClient, id: string, sets: { sql: string; params: unknown[] }): Promise<void> {
-      await client.query("BEGIN");
-      try {
-        await client.query("ALTER TABLE cases DISABLE TRIGGER ALL");
-        try {
-          await client.query(sets.sql, sets.params);
-        } finally {
-          await client.query("ALTER TABLE cases ENABLE TRIGGER ALL");
-        }
-        await client.query("COMMIT");
-      } catch (err) {
-        try { await client.query("ROLLBACK"); } catch { /* ignore */ }
-        throw err;
-      }
-    }
-
-    it("a stale missing version (case version bumped) is dropped and the missing case is absent", async () => {
+  // P3-034a: enforce the queue projection over valid lifecycle states; the DB
+  // invariant prevents a stale pending candidate from being committed.
+  describe("qualified predicate: reports leave through valid lifecycle states (P3-034a)", () => {
+    it("a candidate invalidated through the normal lifecycle leaves the missing case absent", async () => {
       const principal = userPrincipal({ id: verifiedOfficerId, role: "officer", verified: true, is_active: true });
       expect(principal).not.toBeNull();
       // A fresh isolated case so we do not collide with prior fixtures.
-      const staleMissing = await seedMissingOpen();
-      const staleFound = await seedFoundOpen(staffUserId);
-      await insertCandidate(staleMissing.id, staleFound.id, 1, 80);
-      await moveToMatchedReview(staleMissing.id);
+      const invalidatedMissing = await seedMissingOpen();
+      const invalidatedFound = await seedFoundOpen(staffUserId);
+      const candidateId = await insertCandidate(invalidatedMissing.id, invalidatedFound.id, 1, 80);
+      await moveToMatchedReview(invalidatedMissing.id);
 
-      // Before staleness: present.
+      // Before invalidation: present.
       const before = await readReviewQueue(principal!, { limit: 50 }, cursorDeps);
       expect(before.kind).toBe("ok");
       if (before.kind !== "ok") throw new Error("expected ok");
       const idsBefore = before.view.items.map((i) => i.case.id);
-      expect(idsBefore).toContain(staleMissing.id);
+      expect(idsBefore).toContain(invalidatedMissing.id);
 
-      // Bump the missing case version. The cases_integrity CONSTRAINT TRIGGER
-      // would otherwise reject this at COMMIT (pending candidate's missing_version
-      // no longer matches the case version); the test admin temporarily disables
-      // ALL triggers to simulate the eventual-consistency case (e.g. a concurrent
-      // candidate update that races with a case edit).
-      const adminClient = await fixturePool.connect();
-      try {
-        await forceCaseState(adminClient, staleMissing.id, {
-          sql: "UPDATE cases SET version = version + 1 WHERE id = $1",
-          params: [staleMissing.id],
-        });
-      } finally { adminClient.release(); }
+      // A pending candidate must match both current versions at commit, so a
+      // stale pending row is not a valid database fixture. Exercise the same
+      // queue removal through the legal invalidation path: void the candidate
+      // and return the missing report to open in one transaction.
+      await asFixtureOwner(async (client) => {
+        await client.query("UPDATE match_candidates SET status = 'voided', decided_at = now() WHERE id = $1", [candidateId]);
+        await client.query("UPDATE cases SET status = 'open' WHERE id = $1", [invalidatedMissing.id]);
+      });
 
-      // After staleness: gone. The candidate still exists in the DB but fails the
-      // qualified predicate, so it is dropped; with no surviving candidates the
-      // missing case is omitted from the projection.
+      // After invalidation: the candidate is no longer pending and the missing
+      // case is omitted from the projection.
       const after = await readReviewQueue(principal!, { limit: 50 }, cursorDeps);
       expect(after.kind).toBe("ok");
       if (after.kind !== "ok") throw new Error("expected ok");
       const idsAfter = after.view.items.map((i) => i.case.id);
-      expect(idsAfter).not.toContain(staleMissing.id);
-      // And the partner found case data is NEVER leaked: scan every item for any
-      // reference to the stale found case.
+      expect(idsAfter).not.toContain(invalidatedMissing.id);
+      // The partner found case data is NEVER leaked.
       for (const it of after.view.items) {
-        for (const c of it.candidates) expect(c.counterpart.id).not.toBe(staleFound.id);
+        for (const c of it.candidates) expect(c.counterpart.id).not.toBe(invalidatedFound.id);
       }
     });
 
-    it("a referred found case (no longer in a queue status) is dropped and the missing case is absent", async () => {
+    it("a valid referred pair leaves the queue and never exposes the found case", async () => {
       const principal = userPrincipal({ id: verifiedOfficerId, role: "officer", verified: true, is_active: true });
       expect(principal).not.toBeNull();
       const refMissing = await seedMissingOpen();
       const refFound = await seedFoundOpen(staffUserId);
-      await insertCandidate(refMissing.id, refFound.id, 1, 80);
+      const candidateId = await insertCandidate(refMissing.id, refFound.id, 1, 80);
       await moveToMatchedReview(refMissing.id);
-
-      // Force the found case to 'referred'. closed_at is required by the CHECK
-      // `(status IN ('closed','referred')) = (closed_at IS NOT NULL)`. The
-      // CONSTRAINT TRIGGER would refuse this (pending candidate on a non-queue
-      // endpoint), so we temporarily disable ALL triggers.
-      const adminClient = await fixturePool.connect();
-      try {
-        await forceCaseState(adminClient, refFound.id, {
-          sql: "UPDATE cases SET status = 'referred', closed_at = now() WHERE id = $1",
-          params: [refFound.id],
-        });
-      } finally { adminClient.release(); }
+      await moveToMatchedReview(refFound.id);
+      await asAppClient((client) => confirmPair(client, {
+        candidateId,
+        missingId: refMissing.id,
+        foundId: refFound.id,
+        officerId: verifiedOfficerId,
+      }));
+      await asAppClient((client) => closeMissing(client, refMissing.id));
 
       const r = await readReviewQueue(principal!, { limit: 50 }, cursorDeps);
       expect(r.kind).toBe("ok");
@@ -654,32 +615,47 @@ describe.skipIf(!dbTestsEnabled)("API-008 review queue (P3-034a, TASK-027, FR-01
       }
     });
 
-    it("a redacted (anonymised_at NOT NULL) found case is dropped and the missing case is absent", async () => {
+    it("redacts a valid referred pair without hiding an independent live candidate", async () => {
       const principal = userPrincipal({ id: verifiedOfficerId, role: "officer", verified: true, is_active: true });
       expect(principal).not.toBeNull();
       const redMissing = await seedMissingOpen();
       const redFound = await seedFoundOpen(staffUserId);
-      await insertCandidate(redMissing.id, redFound.id, 1, 80);
+      const redCandidateId = await insertCandidate(redMissing.id, redFound.id, 1, 80);
       await moveToMatchedReview(redMissing.id);
+      await moveToMatchedReview(redFound.id);
+      await asAppClient((client) => confirmPair(client, {
+        candidateId: redCandidateId,
+        missingId: redMissing.id,
+        foundId: redFound.id,
+        officerId: verifiedOfficerId,
+      }));
+      await asAppClient((client) => closeMissing(client, redMissing.id));
+      const adminPrincipal = userPrincipal({ id: adminUserId, role: "admin", verified: false, is_active: true });
+      expect(adminPrincipal).not.toBeNull();
+      const redaction = await redactCases(redactorPool, adminPrincipal!, {
+        case_ids: [redFound.id],
+        confirmation: "বেনামী",
+      });
+      expect(redaction).toMatchObject({ redacted: 1, skipped_not_eligible: 0 });
+      const redactionState = await appPool.query<{ redacted: boolean }>(
+        "SELECT anonymised_at IS NOT NULL AS redacted FROM cases WHERE id = $1",
+        [redFound.id],
+      );
+      expect(redactionState.rows[0]?.redacted).toBe(true);
 
-      // Force the found case into a terminal status with anonymised_at set. The
-      // CHECK constraint requires `anonymised_at IS NULL OR status IN ('closed',
-      // 'referred')`, so we set both. The CONSTRAINT TRIGGER would refuse this
-      // (pending candidate on a non-queue, redacted endpoint), so we temporarily
-      // disable ALL triggers.
-      const adminClient = await fixturePool.connect();
-      try {
-        await forceCaseState(adminClient, redFound.id, {
-          sql: "UPDATE cases SET status = 'referred', closed_at = now(), anonymised_at = now() WHERE id = $1",
-          params: [redFound.id],
-        });
-      } finally { adminClient.release(); }
+      // A separate live pair remains eligible for the officer queue. This
+      // proves the redacted-endpoint filter is candidate-scoped, not queue-wide.
+      const liveMissing = await seedMissingOpen();
+      const liveFound = await seedFoundOpen(staffUserId);
+      await insertCandidate(liveMissing.id, liveFound.id, 1, 85);
+      await moveToMatchedReview(liveMissing.id);
 
       const r = await readReviewQueue(principal!, { limit: 50 }, cursorDeps);
       expect(r.kind).toBe("ok");
       if (r.kind !== "ok") throw new Error("expected ok");
       const idsAfter = r.view.items.map((i) => i.case.id);
       expect(idsAfter).not.toContain(redMissing.id);
+      expect(idsAfter).toContain(liveMissing.id);
       // Redacted found case data is NEVER served.
       for (const it of r.view.items) {
         for (const c of it.candidates) expect(c.counterpart.id).not.toBe(redFound.id);
