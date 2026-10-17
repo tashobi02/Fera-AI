@@ -12,7 +12,7 @@ All data is synthetic. This is a candidate split only: OD-010-1 (which records c
 | `eval/build-manifest.mjs` | `npm run eval:manifest` writes; `npm run eval:manifest -- --check` verifies bytes and hash. |
 | `eval/manifest.json` / `manifest.sha256` | One row per record (spec fields plus `role`, `decoy_target_ids`, `demo_role`) and a `counts` block. sha256 `896cf616ad85505efad2dac2aa1d67294d913ea89276e1f8d7b65ab061c6b110`. |
 | `eval/FREEZE.md` | What is and is not frozen. `FREEZE_FLAG: NOT SET`. |
-| `tests/eval/manifest.test.ts` | 9 tests. |
+| `tests/eval/manifest.test.ts` | 11 tests. |
 
 ## Assignment
 
@@ -42,7 +42,13 @@ Record-level dev share is exactly 40% here by greedy fill, but the effective sam
 
 ## Verification
 
-See task-7 report for command output: `npx vitest run tests/eval` 9 passed; `node eval/build-manifest.mjs --check` OK.
+Run 2026-10-18 01:25 (Asia/Dhaka) against code at commit `be77e1d`:
+
+| Command | Result |
+|---|---|
+| `npx vitest run tests/eval` | 11 passed (11) |
+| `node eval/build-manifest.mjs --check` | manifest check OK |
+| `shasum -a 256 eval/manifest.json` | `896cf616ad85505efad2dac2aa1d67294d913ea89276e1f8d7b65ab061c6b110` (equals `eval/manifest.sha256`) |
 
 ## Open items
 
