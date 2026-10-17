@@ -17,6 +17,7 @@
     "seed": "node db/seed/index.mjs",
     "synth": "node db/seed/synthetic.mjs",
     "reembed": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/reembed.mjs",
+    "dedupe": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/dedupe.mjs",
     "spend": "node scripts/spend.mjs",
     "smoke": "node -e \"console.error('smoke: not implemented'); process.exit(1)\"",
     "eval:all": "node -e \"console.error('eval:all: not implemented'); process.exit(1)\"",

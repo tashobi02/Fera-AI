@@ -110,6 +110,7 @@ const bn = {
   matchReviewNotQualified: "এই প্রস্তাবটি আর বর্তমান নয়: রিপোর্ট বদলেছে বা সিদ্ধান্ত হয়ে গেছে। এখন সিদ্ধান্ত নথিভুক্ত করা যাবে না।",
   matchReviewDuplicate: "সম্ভাব্য একই শিশু",
   matchReviewDuplicateNote: "এই রিপোর্টের সঙ্গে আরও রিপোর্ট জড়িত থাকতে পারে:",
+  duplicateSeparateVisible: "আলাদা প্রতিবেদন দৃশ্যমান", // D4 duplicate cue, second half
   matchReviewMissing: "নিখোঁজ রিপোর্ট",
   matchReviewFound: "খুঁজে পাওয়া রিপোর্ট",
   matchReviewField: "বিষয়",
@@ -540,6 +541,7 @@ const en = {
   matchReviewNotQualified: "This suggestion is no longer current: a report changed or it was already decided. No decision can be recorded.",
   matchReviewDuplicate: "Possible same child",
   matchReviewDuplicateNote: "Other reports may be about the same child:",
+  duplicateSeparateVisible: "separate reports remain visible", // D4 duplicate cue, second half
   matchReviewMissing: "Missing report",
   matchReviewFound: "Found report",
   matchReviewField: "Field",
