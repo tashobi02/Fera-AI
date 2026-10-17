@@ -133,7 +133,7 @@ describe("manifest (TASK-064 / TC-064 / FV-11)", () => {
     expect(checkManifest(inputs, committedBody, wrongHash)).toMatch(/hash drift/);
   });
 
-  it("records the D2 Part B §17 categories in the manifest and the split is roughly 70/30 by group", () => {
+  it("records the D2 Part B §17 categories in the manifest and the split is roughly 40/60 dev/test by group", () => {
     const m = build() as Manifest;
     for (const side of [m.counts.by_split.dev, m.counts.by_split.heldout]) {
       expect(side).toHaveProperty("true_pairs");
@@ -144,7 +144,7 @@ describe("manifest (TASK-064 / TC-064 / FV-11)", () => {
     }
     const total = m.counts.groups;
     const devShare = m.counts.by_split.dev.groups / total;
-    expect(devShare).toBeGreaterThanOrEqual(0.65);
-    expect(devShare).toBeLessThanOrEqual(0.75);
+    expect(devShare).toBeGreaterThanOrEqual(0.35);
+    expect(devShare).toBeLessThanOrEqual(0.45);
   });
 });

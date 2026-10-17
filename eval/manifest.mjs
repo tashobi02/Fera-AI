@@ -4,7 +4,7 @@
 // records.jsonl), rebuilds the connected-component groups (identity, duplicate,
 // partner and decoy-target links — same rules as db/seed/synthetic.mjs uses to
 // stamp split_group_id) and assigns each whole group to "dev" or "heldout"
-// under a fixed seed at ~70/30 by group. A group never spans both splits. The
+// under a fixed seed at ~40/60 dev/test by group. A group never spans both splits. The
 // manifest records per-split counts of the categories D2 Part B §17 names
 // (true pairs, no-match queries, duplicate links, shared-phone decoys, decoys)
 // and the SHA-256 of every input plus of the manifest itself.
@@ -30,8 +30,9 @@ const HASH_PATH = join(SYNTH_DIR, "manifest.sha256");
 
 export const MANIFEST_REVISION = "manifest-1";
 export const MANIFEST_SEED = 2020;
-// TC-064 target: dev gets the larger share, held-out is the freeze set.
-export const DEV_FRACTION = 0.7;
+// D2 Part B §17 and OD-010-2 (docs/execution/evidence/synthetic-set.md): 40% dev / 60% test by
+// identity/duplicate-connected group. Whole groups are assigned, so the record split drifts a little.
+export const DEV_FRACTION = 0.4;
 
 /* ---------- deterministic helpers ---------- */
 
@@ -110,7 +111,7 @@ function countByCategory(records, ids) {
   };
 }
 
-/* ---------- split: ~70/30 by group, fixed seed, stable order ---------- */
+/* ---------- split: ~40/60 dev/test by group, fixed seed, stable order ---------- */
 
 function assignSplits(groups) {
   // Stable order: sort groups by their lowest record_id so the seed shuffle is
