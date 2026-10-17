@@ -62,7 +62,7 @@ const INDEPENDENT_SQL = `
            count(*) FILTER (WHERE status IN ('submitted','open'))::int AS open_count,
            count(*) FILTER (WHERE status IN ('matched_pending_review','confirmed'))::int AS matched_count,
            count(*) FILTER (WHERE status = 'closed')::int AS closed_count
-    FROM cases WHERE kind = 'missing' AND anonymised_at IS NULL
+    FROM cases WHERE kind = 'missing'
     GROUP BY district_code
   ),
   f AS (
@@ -70,7 +70,7 @@ const INDEPENDENT_SQL = `
            count(*) FILTER (WHERE status = 'open')::int AS open_count,
            count(*) FILTER (WHERE status = 'matched_pending_review')::int AS matched_count,
            count(*) FILTER (WHERE status = 'referred')::int AS referral_recorded
-    FROM cases WHERE kind = 'found' AND anonymised_at IS NULL
+    FROM cases WHERE kind = 'found'
     GROUP BY district_code
   ),
   p AS (
@@ -111,7 +111,7 @@ async function totalCounts(client: Client): Promise<{
         count(*) FILTER (WHERE status IN ('matched_pending_review','confirmed'))::int AS matched_count,
         count(*) FILTER (WHERE status = 'closed')::int AS closed_count,
         count(*)::int AS total
-      FROM cases WHERE kind = 'missing' AND anonymised_at IS NULL
+      FROM cases WHERE kind = 'missing'
     ),
     f AS (
       SELECT
@@ -119,7 +119,7 @@ async function totalCounts(client: Client): Promise<{
         count(*) FILTER (WHERE status = 'matched_pending_review')::int AS matched_count,
         count(*) FILTER (WHERE status = 'referred')::int AS referral_recorded,
         count(*)::int AS total
-      FROM cases WHERE kind = 'found' AND anonymised_at IS NULL
+      FROM cases WHERE kind = 'found'
     ),
     p AS (SELECT count(*)::int AS pairs FROM match_candidates WHERE status = 'confirmed')
     SELECT
@@ -288,22 +288,18 @@ describe.skipIf(!dbTestsEnabled)("API-012 dashboard stats (P3-041, TC-012/TC-055
     expect(d1Before.found_reports.open).toBe(beforeOpenFound);
   });
 
-  it("anonymised cases are excluded from every count", async () => {
-    // Anonymisation moves a case out of the dashboard picture (BR-009/014).
-    // Insert a missing case and immediately mark it anonymised; it must not show up.
+  it("redacting a case leaves every count unchanged (TC-015, aggregate lifecycle fields are kept)", async () => {
     const m = await insertMissing(dbClient);
     await openMissing(dbClient, m.id);
+    // A redaction may not rewrite the lifecycle in the same UPDATE: close first, snapshot, then redact.
     await asFixtureOwner(async (c) => {
-      // The transition guard (cases_transition_guard) forbids changing status /
-      // outcome / closed_at in the same UPDATE that flips anonymised_at from NULL
-      // to NOT NULL ("redaction must preserve aggregate lifecycle fields"). The
-      // CHECK (status IN ('closed','referred')) = (closed_at IS NOT NULL) also
-      // requires the case be closed first. So: close, then redact (two UPDATEs).
-      // closeMissing uses the same schema-valid status transition (open→closed).
       await c.query(
         "UPDATE cases SET status = 'closed', outcome = 'resolved_outside_fera', outcome_note = '[MOCK] synthetic closure note', closed_at = now() WHERE id = $1",
         [m.id],
       );
+    });
+    const beforeRedaction = (await districtStats(dbClient)).find((r) => r.code === 1)!;
+    await asFixtureOwner(async (c) => {
       await c.query(
         `UPDATE cases SET anonymised_at = now(),
                            child_name = NULL, child_name_latin = NULL, contact_phone = NULL,
@@ -319,28 +315,16 @@ describe.skipIf(!dbTestsEnabled)("API-012 dashboard stats (P3-041, TC-012/TC-055
         [m.id],
       );
     });
-    const after = await districtStats(dbClient);
-    const afterDistrict = after.find((r) => r.code === 1)!;
-    // The STATS_SQL filters on `anonymised_at IS NULL`, so an anonymised case is
-    // not counted in any bucket. The independent SQL uses the same filter.
-    const independent = await independentDistrictRows(dbClient);
-    const d1Ind = independent.find((g) => g.code === 1)!;
-    expect(afterDistrict.missing_reports).toEqual({
-      open: d1Ind.missing_open,
-      matched: d1Ind.missing_matched,
-      closed: d1Ind.missing_closed,
-    });
-    expect(afterDistrict.found_reports).toEqual({
-      open: d1Ind.found_open,
-      matched: d1Ind.found_matched,
-      referral_recorded: d1Ind.found_referral,
-    });
-    expect(afterDistrict.confirmed_pairs).toBe(d1Ind.pairs);
-    // The anonymised case must be absent: confirm by directly querying the table.
-    const { rows } = await dbClient.query<{ id: string; anonymised_at: string | null }>(
-      "SELECT id, anonymised_at FROM cases WHERE id = $1",
-      [m.id],
-    );
+    const afterRedaction = (await districtStats(dbClient)).find((r) => r.code === 1)!;
+    // Redaction clears identifying fields only; the pseudonymous counts do not move.
+    expect(afterRedaction.missing_reports).toEqual(beforeRedaction.missing_reports);
+    expect(afterRedaction.found_reports).toEqual(beforeRedaction.found_reports);
+    expect(afterRedaction.confirmed_pairs).toBe(beforeRedaction.confirmed_pairs);
+    // And the counts still agree with an independent GROUP BY over the same rows.
+    const d1Ind = (await independentDistrictRows(dbClient)).find((g) => g.code === 1)!;
+    expect(afterRedaction.missing_reports.closed).toBe(d1Ind.missing_closed);
+    expect(afterRedaction.confirmed_pairs).toBe(d1Ind.pairs);
+    const { rows } = await dbClient.query<{ anonymised_at: string | null }>("SELECT anonymised_at FROM cases WHERE id = $1", [m.id]);
     expect(rows[0]?.anonymised_at).not.toBeNull();
   });
 

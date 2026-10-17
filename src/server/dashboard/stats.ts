@@ -9,9 +9,9 @@
 //   Every cell is an SQL aggregate over the same dataset an independent GROUP BY
 //   would produce; the DB test asserts equality.
 // - listCasesForDistrict(db, query) returns the API-022 drill-through: cases
-//   optionally filtered by district, kind and status group (BR-007/024; officer
-//   gets a full per-role DTO row, admin gets the metadata-only row; the route's
-//   per-role response schema is the allowlist). One cursor = the last id of the
+//   optionally filtered by district, kind and status group (BR-007/024). API-022 is
+//   officer-only (D2A §9.2: admin has no access); no route serves it yet (open item:
+//   the case service must expose a row fetch). One cursor = the last id of the
 //   previous page; the page is filtered to id < cursor to match the API-008
 //   ordering documented in D2A.
 //
@@ -48,9 +48,8 @@ export type CaseListQuery = {
   limit?: number;
 };
 
-// Internal decoded shape for both kinds of list rows (officer and admin use the
-// same five fields; the officer route projects a richer row via projectCaseListFor,
-// the admin route narrows to the admin metadata shape at the schema boundary).
+// Internal decoded shape for list rows (the officer route would project a richer row via
+// projectCaseListFor; API-022 is officer-only, admin has no access).
 export type CaseListRow = {
   id: string;
   ref_code: string;
@@ -68,6 +67,10 @@ export type CaseListResult = { rows: CaseListRow[]; nextCursor: string | null };
 // appears once even when its counts are zero. The GROUP BY uses a CASE clause on
 // status so each row contributes to exactly one bucket; a pair-referral update
 // changes found counts and confirmed_pairs (BR-014).
+// Counts are by lifecycle state and DO include payload-redacted cases: redaction keeps status, district
+// and closed_at "to preserve aggregate lifecycle fields" (schema redaction guard, TC-015 "pseudonymous
+// counts unchanged"), and the pair count below is not filtered either, so excluding them here would make
+// confirmed_pairs disagree with referral_recorded and fail the strict response schema (E-021).
 const STATS_SQL = `
   WITH d AS (SELECT code, name_bn, name_en, lat, lng FROM districts),
   m AS (
@@ -75,7 +78,7 @@ const STATS_SQL = `
            count(*) FILTER (WHERE status IN ('submitted','open'))::int AS open_count,
            count(*) FILTER (WHERE status IN ('matched_pending_review','confirmed'))::int AS matched_count,
            count(*) FILTER (WHERE status = 'closed')::int AS closed_count
-    FROM cases WHERE kind = 'missing' AND anonymised_at IS NULL
+    FROM cases WHERE kind = 'missing'
     GROUP BY district_code
   ),
   f AS (
@@ -83,7 +86,7 @@ const STATS_SQL = `
            count(*) FILTER (WHERE status = 'open')::int AS open_count,
            count(*) FILTER (WHERE status = 'matched_pending_review')::int AS matched_count,
            count(*) FILTER (WHERE status = 'referred')::int AS referral_recorded
-    FROM cases WHERE kind = 'found' AND anonymised_at IS NULL
+    FROM cases WHERE kind = 'found'
     GROUP BY district_code
   ),
   p AS (
@@ -150,7 +153,7 @@ export async function districtStats(db: Queryable): Promise<DistrictCountRow[]> 
 }
 
 // Decode a case-list row. Schema matches what the dashboard listing uses: the
-// fields shared between officer and admin views. Officer fields beyond these
+// fields the listing needs. Officer fields beyond these
 // (child details, contact_phone_masked, etc.) are filled by projectCaseListFor
 // from the full CaseRow, not here. Timestamps arrive as Date from node-pg (the
 // cases columns are timestamptz); decode with col.dateOrNull and re-emit a
