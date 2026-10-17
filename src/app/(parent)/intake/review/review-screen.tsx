@@ -12,7 +12,7 @@ import { clearIntakeMemory, INTAKE_PATH, takeHandoff, type IntakeHandoff } from 
 import { buildSubmission, createSubmitter, editField, newSubmission, validateReview } from "@/lib/intake/review";
 import { localizeDigits } from "@/lib/numerals";
 import { locales, type Locale } from "@/locales";
-import { CircleCheckIcon, HonestLabel, TERTIARY_BUTTON, TrashIcon } from "../../parent-ui";
+import { CircleCheckIcon, HonestLabel, PRIMARY_BUTTON, TERTIARY_BUTTON, TrashIcon } from "../../parent-ui";
 import { ConfirmBar, ReviewFields, reviewLabel } from "./review-fields";
 
 export function ReviewScreen({ locale }: { locale: Locale }) {
@@ -240,10 +240,10 @@ export function ReviewScreen({ locale }: { locale: Locale }) {
     {clearFailed && <p role="alert" className="flex items-start gap-2 text-body-lg text-body"><InfoIcon className="mt-1 size-5 text-info" />{t.reviewClearFailed}</p>}
     {success ? (
       <div className="flex flex-col gap-4">
-        <span className="inline-flex min-h-11 items-center gap-2 text-body-lg text-mute">
-          {t.reviewPlannedReport}
-          <HonestLabel>{t.plannedLabel}</HonestLabel>
-        </span>
+        {/* OD-022-12: S-004 exists (TASK-024), so the success screen links to it. */}
+        <Link className={`${PRIMARY_BUTTON} self-start`} href={`/report/${encodeURIComponent(success.id)}`}>
+          {t.reviewOpenReport}
+        </Link>
         <Link className={TERTIARY_BUTTON} href={INTAKE_PATH} onClick={() => { clearSubmittedReference(); }}>
           {t.reviewBack}
         </Link>

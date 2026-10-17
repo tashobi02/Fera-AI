@@ -178,7 +178,7 @@ const bn = {
   reviewSessionExpired: "আপনার খসড়ার সময় শেষ। নতুন করে শুরু করুন।", // D3:333 / catalogue E-019, needs human Bangla review
   reviewRetryFrozen: "ফল জানা যায়নি। একই তথ্য ও জমার নম্বর রেখে আবার চেষ্টা করুন।",
   reviewPlannedManual: "নিজে পূরণ করার ফর্ম", // planned label wraps it; needs human Bangla review
-  reviewPlannedReport: "জমা দেওয়া রিপোর্টের পাতা", // planned label wraps it; needs human Bangla review
+  reviewOpenReport: "জিডি খসড়া ও পোস্টার পান", // D4 "জমা দেওয়ার পর জিডি খসড়া ও পোস্টার পাবেন"; links to S-004
   reviewExpired: "আপনার খসড়ার সময় শেষ। নতুন করে শুরু করুন।", // D3:333 / catalogue E-019, needs human Bangla review
   reviewUnknownAdd: "অজানা — যোগ করুন", // needs human Bangla review
   reviewDiscardWarn: "এই খসড়া জমা দেওয়ার চেষ্টা হয়েছে। সার্ভারে ইতিমধ্যে পৌঁছে থাকতে পারে — মুছলে আর ডিভাইসে খুঁজে পাবেন না।", // needs human Bangla review
@@ -480,7 +480,7 @@ const en = {
   reviewSessionExpired: "Your draft has expired. Please start again.", // D3:333 / catalogue E-019
   reviewRetryFrozen: "The result is unknown. Retry with the same details and submission ID.",
   reviewPlannedManual: "Manual form", // planned label wraps it; needs human Bangla review
-  reviewPlannedReport: "Submitted report page", // planned label wraps it; needs human Bangla review
+  reviewOpenReport: "Get the GD draft and poster", // links to S-004
   reviewExpired: "Your draft has expired. Please start again.", // D3:333 / catalogue E-019
   reviewUnknownAdd: "Unknown — add",
   reviewDiscardWarn: "This draft was already attempted. The server may have received it — deleting it removes the device copy.",

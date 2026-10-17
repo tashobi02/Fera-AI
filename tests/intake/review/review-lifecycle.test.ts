@@ -56,7 +56,8 @@ describe("SCREEN-003 lifecycle (Node hook harness, no DOM/browser)", () => {
     expect(JSON.parse(fetcher.mock.calls[0][1].body).draft.child.clothing).toBe("[MOCK] parent edit");
     expect(loadDraft(storage)).toBeNull(); expect(push).not.toHaveBeenCalled();
     expect(content(h.tree)).toContain(localizeDigits(clientExamples.createMissingResponse.ref_code, "bn"));
-    expect(content(h.tree)).toContain(locales.bn.reviewPlannedReport);
+    expect(content(h.tree)).toContain(locales.bn.reviewOpenReport);
+    expect(elements(h.tree).map((e) => e.props.href)).toContain(`/report/${clientExamples.createMissingResponse.id}`); // OD-022-12 → S-004
   });
   it("persists submitted reference on 2xx so unmount mid-request displays it on return (W2 + SG1)", async () => {
     handOff(handoff()); let finish!: (r: Response) => void;
@@ -66,7 +67,8 @@ describe("SCREEN-003 lifecycle (Node hook harness, no DOM/browser)", () => {
     finish(Response.json(clientExamples.createMissingResponse, { status: 201 })); await settle();
     const h2 = mount();
     expect(content(h2.tree)).toContain(localizeDigits(clientExamples.createMissingResponse.ref_code, "bn"));
-    expect(content(h2.tree)).toContain(locales.bn.reviewPlannedReport);
+    expect(content(h2.tree)).toContain(locales.bn.reviewOpenReport);
+    expect(elements(h2.tree).map((e) => e.props.href)).toContain(`/report/${clientExamples.createMissingResponse.id}`); // OD-022-12 → S-004
     expect(push).not.toHaveBeenCalled();
   });
   it.each(["E-002"] as const)("retains draft and offers intake recovery for %s", async (id) => {
