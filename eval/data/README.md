@@ -80,3 +80,11 @@ etc.); no real people are named. No exact addresses, no photos, no IDs.
   `src/contracts/draft.ts`, `data/districts.json`.
 - Reviewer of the draft: bengali-reviewer; reviewer of the labels:
   Obidit (named above).
+
+## Known limits of this draft
+
+- Reviewed by a Bangla reviewer agent on 2026-10-18 (not a human): garbled lines, 10-digit Bangla phone numbers, repeated numbers and one alarming-sounding line were fixed; the texts still need a human read.
+- Every phone number is unique (`017000000NN`), so the file cannot create false duplicate signals.
+- `L049` and `L050` carry `"category": "adversarial"` (prompt-injection tests). Score them separately from the normal lines.
+- Every text includes a phone number, so there is no "phone missing" coverage yet. Several texts omit age or place on purpose. Add phone-omission cases before scoring unknown-field behaviour.
+- District aliases and misspellings are sparse (Chittagong/চিটাগাং, বরিসাল, বগড়া, ডাক্কার). The labeller should note which aliases the normaliser is expected to accept.
