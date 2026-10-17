@@ -1,8 +1,10 @@
 // npm run seed [-- --set demo|full] [--allow-recode] — loads the synthetic reference/demo data (TASK-009).
 //
-// Today this loads the 64 districts and their adjacency only. The synthetic case set and
-// demo users arrive with TASK-010/TASK-019; `--set` is accepted so the command line is
-// already stable, and it does not load records yet (it says so).
+// Always loads the 64 districts and their adjacency. With `--set demo|full` it then loads the
+// synthetic cases (db/seed/cases.mjs, TASK-019): `demo` = Kamalapur boy, Narayanganj decoy,
+// Mim, Mim's public-post duplicate and Sabbir (Rafi is created live by voice, OD-010-4);
+// `full` = all 200 records. It needs the staff accounts from `npm run seed:users`. Re-running
+// inserts no case twice. Without `--set` no case is loaded.
 //
 // Local only, like seed-users: it connects with the owner URL (FERA_DB_ADMIN_URL, default
 // the local fera-db container) to FERA_DB_NAME (default `fera`) through guard.mjs, which
@@ -10,6 +12,7 @@
 import { pathToFileURL } from "node:url";
 import pg from "pg";
 import { DEFAULT_DATABASE_URL, assertDatabaseName, assertLocalDatabaseUrl, withDatabase } from "../../scripts/db/guard.mjs";
+import { seedCases } from "./cases.mjs";
 import { loadDistrictData, seedDistricts } from "./districts.mjs";
 
 const SETS = new Set(["demo", "full"]);
@@ -44,8 +47,11 @@ async function main() {
   const client = new pg.Client({ connectionString: target.href, connectionTimeoutMillis: 10_000 });
   await client.connect();
   let counts;
+  let cases;
+  const started = Date.now();
   try {
     counts = await seedDistricts(client, data, { allowRecode });
+    if (set) cases = await seedCases(client, { set });
   } finally {
     await client.end();
   }
@@ -53,7 +59,8 @@ async function main() {
     database: target.pathname.slice(1),
     loaded: counts,
     set: set ?? null,
-    note: set ? "records for --set are not loaded yet (TASK-010/TASK-019); districts only" : undefined,
+    cases,
+    elapsed_ms: Date.now() - started,
   }));
 }
 
