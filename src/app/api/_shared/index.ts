@@ -66,7 +66,8 @@ export const stubResolver: PrincipalResolver = async () => {
 };
 
 // TASK-006: principals come from the database on every request (src/server/auth). The
-// parent session is minted only on API-001/002 (D2A §9.1). TASK-015: every signed-in
+// parent session is minted on API-001/002 (D2A §9.1) and on API-003 when no parent
+// cookie is present (OD-022-5). TASK-015: every signed-in
 // E-003/E-004 denial writes one access.denied row (src/server/audit/denied.ts); if that
 // write fails the request still fails closed with E-021.
 const resolvePrincipal: PrincipalResolver = (input) => defaultAuth().resolvePrincipal(input);

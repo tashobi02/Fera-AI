@@ -97,6 +97,7 @@ describe("spec limits", () => {
     expect(RATE_LIMITS.preAuthNetwork).toMatchObject({ limit: 300, windowMs: 60_000, scope: "network", onStoreError: "allow" });
     // TASK-032 admin writes (OD-032-4): both fail closed.
     expect(RATE_LIMITS.adminRedaction).toMatchObject({ limit: 5, windowMs: 60_000, scope: "principal", onStoreError: "deny" });
+    expect(RATE_LIMITS.submitNetwork).toMatchObject({ limit: 30, windowMs: 60_000, scope: "network", onStoreError: "allow" }); // OD-022-5/6
     expect(RATE_LIMITS.adminVerify).toMatchObject({ limit: 30, windowMs: 60_000, scope: "principal", onStoreError: "deny" });
   });
 });

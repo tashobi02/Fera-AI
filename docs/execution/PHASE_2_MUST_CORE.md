@@ -230,6 +230,7 @@ Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 - 2026-10-16 10:15 · Claude Code · mahim-outputs · TASK-024 `todo` → `review`; S-004 + poster PNG; TC-006 passes locally (browser smoke, checked by hand); test 1278 (52 new); lint/typecheck/build 0; Playwright pending.
 - 2026-10-16 10:32 · Claude Code · mahim-outputs · TASK-024 fera-review BLOCKs (react 1, a11y 2) fixed; test 1317 (91 new); second browser smoke passes (race, focus, 320 px).
 - 2026-10-16 10:43 · Claude Code · mahim-outputs · TASK-024 second round: impeccable finish fixes + react re-review fix; test 1323 (97 new); third browser smoke passes; PR into phase2.
+- 2026-10-17 13:06 · Claude Code · mahim-parent-session · OD-022-5 decided (Mahim): API-003 mints a parent session only when no parent cookie is present; DRAFT_SIGNING_KEY added to secrets.ts (unblocks TASK-014/020 part 2); OTP logged under OQ-020 for after the finale.
 
 ## Audit amendments (2026-10-12)
 
