@@ -1,6 +1,315 @@
 #!/usr/bin/env node
-// P3-001 stub for `npm run eval:match`. Behaviour matches the previous inline
-// `node -e "console.error(...); process.exit(1)"`: prints to stderr and exits 1.
-// Replaced by P3-211 with the matcher recall@5 / abstention / coverage eval.
-console.error("eval:match: not implemented");
-process.exit(1);
+// eval:match — P3-211 / TC-020 / TASK-039 GOAL-003.
+//
+// D2B §17 matcher evaluation: Recall@5 on true pairs, top-1 accuracy,
+// coverage, abstention, P@5 and an aggregate shortlist precision.
+// Identity-grouped dev/test split (TASK-064 / TC-064) is loaded from the
+// committed manifest. Held-out (test) split requires the freeze gate. We
+// compute against an explicit --prediction file: {id, ranked: [foundId, ...]}.
+// We never call a model. Predictions without a label are excluded and
+// counted. Cache / fixture hits are excluded and counted (TC-056).
+import {
+  REPO_ROOT, checkFreezeGate, fileSha256, safeReadJsonl, safeReadJson,
+  notMeasuredMessage, gitHeadShort, loadManifest, loadSplitRecords,
+  pct, fmtPercent,
+} from "./metric-utils.mjs";
+import { existsSync } from "node:fs";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { dirname, join } from "node:path";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const USAGE = "Usage: node eval/match.mjs [--split dev|heldout] [--prediction <file>]";
+
+function parseArgs(argv) {
+  const out = { split: "dev", prediction: null, help: false, errors: [] };
+  for (let i = 2; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === "--help" || a === "-h") out.help = true;
+    else if (a === "--split") out.split = argv[++i];
+    else if (a === "--prediction") out.prediction = argv[++i];
+    else if (a === "--heldout") out.split = "heldout";
+    else if (a === "--dev") out.split = "dev";
+    else out.errors.push(`unknown argument: ${a}`);
+  }
+  if (!["dev", "heldout", "test"].includes(out.split)) {
+    out.errors.push(`split must be dev|heldout|test, got ${out.split}`);
+  }
+  if (out.errors.length && !out.help) {
+    process.stderr.write(`eval:match: ${out.errors.join("; ")}\n${USAGE}\n`);
+    process.exit(2);
+  }
+  return out;
+}
+
+function helpText() {
+  return [
+    "node eval/match.mjs — Matching evaluation (D2B §17, GOAL-003, TC-020).",
+    "",
+    "Reads the committed synthetic manifest (data/synthetic/manifest.json),",
+    "computes identity-grouped split membership, and evaluates an explicit",
+    "--prediction file of {id, ranked: [foundId, ...]} against true partners",
+    "and no-match labels.",
+    "",
+    "Options:",
+    "  --split dev|heldout   which split to evaluate (default dev)",
+    "  --prediction <file>   JSONL predictions, one per query id",
+    "  --heldout             shortcut for --split heldout",
+    "  --help                this help",
+    "",
+    "Held-out runs (AMD-3-3) require FERA_FREEZE_COMMIT, FERA_FREEZE_MODEL",
+    "and FERA_MANIFEST_SHA256 to match the live tree.",
+  ].join("\n");
+}
+
+function detectCacheHit(prediction) {
+  if (prediction && prediction.fixture_id) return true;
+  if (prediction && prediction.cache_hit === true) return true;
+  if (prediction && prediction.source === "fixture") return true;
+  if (prediction && prediction.source === "cache") return true;
+  return false;
+}
+
+function loadGroundTruth() {
+  const f = safeReadJson(join(REPO_ROOT, "data", "synthetic", "ground_truth.json"));
+  if (!f.present || f.malformed || !f.value || !Array.isArray(f.value.records)) return null;
+  return f.value;
+}
+
+/**
+ * Build the labelled query set from the ground truth + manifest split.
+ *   - pair_query rows with at least one true_partner_id are TRUE-PAIR queries.
+ *     The set of ground-truth true partners is the union of true_partner_ids.
+ *   - no_match_query rows (kind=missing, no_match=true) are NO-MATCH queries:
+ *     they should be empty/abstain.
+ * Duplicate / decoy rows are NOT queries.
+ */
+export function buildQueries({ records, manifest, split }) {
+  // split may be "test" (alias for held-out).
+  const targetSplit = split === "test" ? "heldout" : split;
+  const splitInfo = manifest?.splits?.[targetSplit];
+  if (!splitInfo) return { present: false, splitInfo: null };
+  const ids = new Set(splitInfo.record_ids);
+  const truthPairQueries = [];
+  const noMatchQueries = [];
+  const falseCandidates = []; // decoys that should be excluded from partner lists
+  const decoysByQuery = new Map(); // queryId -> { decoys: [...] }
+  const partnerSet = new Map(); // queryId -> Set of true partner ids
+  for (const r of records) {
+    if (!ids.has(r.record_id)) continue;
+    if (r.role === "pair_query") {
+      truthPairQueries.push(r.record_id);
+      partnerSet.set(r.record_id, new Set(r.true_partner_ids || []));
+    }
+    if (r.kind === "missing" && r.no_match) {
+      noMatchQueries.push(r.record_id);
+    }
+    // decoy: should NOT be in the partner list of any same-query
+    if (r.role === "decoy" || (r.decoy_type && r.decoy_type !== null)) {
+      const targets = r.decoy_target_ids || [];
+      for (const t of targets) {
+        if (!decoysByQuery.has(t)) decoysByQuery.set(t, []);
+        decoysByQuery.get(t).push(r.record_id);
+      }
+      if (r.role === "decoy") falseCandidates.push(r.record_id);
+    }
+  }
+  return {
+    present: true,
+    splitInfo,
+    truthPairQueries,
+    noMatchQueries,
+    falseCandidates,
+    decoysByQuery,
+    partnerSet,
+  };
+}
+
+export function scorePredictions({ queries, predictionsById }) {
+  let recallAt5Hits = 0;       // of TRUE-pair queries, did the top-5 contain ANY true partner?
+  let top1Hits = 0;            // of TRUE-pair queries, was the top-1 a true partner?
+  let top1Considered = 0;
+  let coveredShortlists = 0;
+  let emptyShortlists = 0;
+  let falsePositiveSuggestions = 0; // of NO-MATCH queries, did we return ANY candidate?
+  // P@5 = among all queries with a prediction, average precision @ 5.
+  const pAt5Deno = 0;
+  let pAt5Num = 0;
+  const falsePosDecoysAcross = new Map(); // queryId -> number of decoys
+  const failuresRecallAt5 = [];
+  for (const qid of queries.truthPairQueries) {
+    const partners = queries.partnerSet.get(qid) || new Set();
+    const p = predictionsById.get(qid);
+    if (!p) {
+      emptyShortlists += 1;
+      failuresRecallAt5.push(qid);
+      continue;
+    }
+    const ranked = Array.isArray(p.ranked) ? p.ranked.slice(0, 5) : [];
+    if (ranked.length === 0) {
+      emptyShortlists += 1;
+      failuresRecallAt5.push(qid);
+      continue;
+    }
+    const decoys = queries.decoysByQuery.get(qid) || [];
+    const decoysRecommended = ranked.filter((c) => decoys.includes(c)).length;
+    if (decoysRecommended > 0) falsePosDecoysAcross.set(qid, decoysRecommended);
+    // top-1
+    top1Considered += 1;
+    if (partners.has(ranked[0])) top1Hits += 1;
+    // recall@5: any true partner in the top-5
+    const hit = ranked.some((c) => partners.has(c));
+    if (hit) recallAt5Hits += 1;
+    coveredShortlists += 1;
+    // P@5
+    const relevant = ranked.filter((c) => partners.has(c)).length;
+    pAt5Num += relevant / Math.max(1, ranked.length);
+  }
+  for (const qid of queries.noMatchQueries) {
+    const p = predictionsById.get(qid);
+    if (!p) continue;
+    const ranked = Array.isArray(p.ranked) ? p.ranked : [];
+    if (ranked.length > 0) {
+      falsePositiveSuggestions += 1;
+      failuresRecallAt5.push(qid);
+    }
+  }
+  const totalTruth = queries.truthPairQueries.length;
+  const totalNoMatch = queries.noMatchQueries.length;
+  const recallAt5 = pct(recallAt5Hits, totalTruth);
+  const top1 = pct(top1Hits, top1Considered === 0 ? 0 : top1Considered);
+  const coverage = pct(coveredShortlists, totalTruth);
+  const abstention = pct(emptyShortlists, totalTruth);
+  const pAt5 = pAt5Deno === 0 ? pct(pAt5Num, queries.truthPairQueries.length) : pct(pAt5Num, pAt5Deno);
+  const falsePosRate = pct(falsePositiveSuggestions, totalNoMatch);
+  return {
+    totalTruthPairs: totalTruth,
+    totalNoMatchQueries: totalNoMatch,
+    recallAt5,
+    top1,
+    coverage,
+    abstention,
+    pAt5,
+    falsePosRate,
+    failures: Array.from(new Set(failuresRecallAt5)),
+    falsePosDecoysAcross: Array.from(falsePosDecoysAcross.entries()),
+  };
+}
+
+export async function run({ split, predictionPath, stdout }) {
+  const out = (s) => stdout(s);
+
+  // 1. Held-out gate.
+  const gate = checkFreezeGate(split);
+  if (!gate.ok) {
+    out(notMeasuredMessage("eval:match", `freeze gate refused: ${gate.reason}`) + "\n");
+    return { measured: false, reason: "freeze-gate", split };
+  }
+
+  // 2. Manifest.
+  const manifest = loadManifest();
+  if (!manifest) {
+    out(notMeasuredMessage("eval:match", "manifest.json missing or malformed; the held-out split depends on it (TC-064)") + "\n");
+    return { measured: false, reason: "no-manifest", split };
+  }
+
+  // 3. Ground truth.
+  const truth = loadGroundTruth();
+  if (!truth) {
+    out(notMeasuredMessage("eval:match", "ground_truth.json missing or malformed") + "\n");
+    return { measured: false, reason: "no-truth", split };
+  }
+
+  // 4. Splits.
+  const splitInfo = loadSplitRecords(split);
+  if (!splitInfo) {
+    out(notMeasuredMessage("eval:match", `manifest does not contain split "${split}"`) + "\n");
+    return { measured: false, reason: "no-split", split };
+  }
+
+  // 5. Build queries.
+  const queries = buildQueries({ records: truth.records, manifest, split });
+  if (!queries.present) {
+    out(notMeasuredMessage("eval:match", "split has no records") + "\n");
+    return { measured: false, reason: "empty-split", split };
+  }
+
+  // 6. Prediction file is mandatory and explicit.
+  if (!predictionPath) {
+    out(notMeasuredMessage("eval:match", "no --prediction file provided") + "\n");
+    return { measured: false, reason: "no-prediction", split };
+  }
+  const pred = safeReadJsonl(predictionPath);
+  if (!pred.present) {
+    out(notMeasuredMessage("eval:match", `prediction file missing: ${predictionPath}`) + "\n");
+    return { measured: false, reason: "missing-prediction", split };
+  }
+  if (pred.rows.length === 0) {
+    out(notMeasuredMessage("eval:match", "0 prediction rows") + "\n");
+    return { measured: false, reason: "empty-prediction", split };
+  }
+  const clean = pred.rows.filter((p) => !detectCacheHit(p));
+  const cacheHits = pred.rows.length - clean.length;
+  if (clean.length === 0) {
+    out(notMeasuredMessage("eval:match", `all ${cacheHits} predictions were cache/fixture hits`) + "\n");
+    return { measured: false, reason: "all-cache", split, cacheHits };
+  }
+  const predictionsById = new Map();
+  for (const p of clean) predictionsById.set(p.id, p);
+
+  // 7. Score.
+  const scored = scorePredictions({ queries, predictionsById });
+
+  // 8. Report.
+  const lines = [];
+  lines.push("eval:match summary");
+  lines.push(`  split:                  ${split}`);
+  lines.push(`  commit:                 ${gitHeadShort() ?? "n/a"}`);
+  lines.push(`  manifest hash:          ${manifest.inputs?.ground_truth_sha256?.slice(0, 12) ?? "n/a"}...`);
+  lines.push(`  prediction file:        ${predictionPath}`);
+  lines.push(`  cache/fixture excluded: ${cacheHits}`);
+  lines.push(`  truth-pair queries (denom): ${scored.totalTruthPairs}`);
+  lines.push(`  no-match queries (denom):   ${scored.totalNoMatchQueries}`);
+  lines.push(`  recall@5 on truth pairs:    ${fmtPercent(scored.recallAt5)} (${scored.failures.length} missed)`);
+  lines.push(`  top-1 accuracy on covered:  ${fmtPercent(scored.top1)}`);
+  lines.push(`  P@5 (truth pairs):          ${fmtPercent(scored.pAt5)}`);
+  lines.push(`  coverage (non-empty shortlist on truth pairs): ${fmtPercent(scored.coverage)}`);
+  lines.push(`  abstention (empty shortlist on truth pairs):   ${fmtPercent(scored.abstention)}`);
+  lines.push(`  false-positive suggestion rate on no-match:    ${fmtPercent(scored.falsePosRate)}`);
+  if (scored.failures.length === 0) {
+    lines.push("  failures: none observed");
+  } else {
+    const sample = scored.failures.slice(0, 5);
+    lines.push(`  failures (first 5 missed or no-match false positives): ${sample.join(", ")}`);
+  }
+  out(lines.join("\n") + "\n");
+
+  return { measured: true, split, ...scored, cacheHits, totalQueries: queries.truthPairQueries.length + queries.noMatchQueries.length };
+}
+
+async function main() {
+  const args = parseArgs(process.argv);
+  if (args.help) {
+    process.stdout.write(helpText());
+    process.exit(0);
+  }
+  try {
+    const result = await run({
+      split: args.split,
+      predictionPath: args.prediction,
+      stdout: process.stdout.write.bind(process.stdout),
+    });
+    process.exit(0);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`eval:match: ${msg}\n`);
+    process.exit(1);
+  }
+}
+
+const invokedDirectly =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (invokedDirectly) {
+  main();
+}
+
+export const __test = { parseArgs, buildQueries, scorePredictions, detectCacheHit, notMeasuredMessage };
