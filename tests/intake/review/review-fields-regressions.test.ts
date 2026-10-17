@@ -147,15 +147,24 @@ describe("Polish round 2026-10-16 (TASK-022)", () => {
     expect(get2().edits["event.place_text"]).toBe("স্কুলের সামনেবটতলা");
     expect(get2().edits["event.place_text"]).not.toMatch(/[\r\n]/);
   });
-  it("PR3: name, phone, place, district are <input> with phone carrying inputMode tel and autoComplete tel", () => {
+  it("PR3: name, phone and place are inputs; phone carries tel attributes", () => {
     const { h } = harness();
-    for (const id of ["review-child.name", "review-reporter.phone", "review-event.place_text", "review-event.district_code"]) {
+    for (const id of ["review-child.name", "review-reporter.phone", "review-event.place_text"]) {
       const n = input(h.tree, id);
       expect(n.type, id).toBe("input");
     }
     const phone = input(h.tree, "review-reporter.phone");
     expect(phone.props.inputMode).toBe("tel");
     expect(phone.props.autoComplete).toBe("tel");
+  });
+  it("records a selected district code for the final reviewed submission", () => {
+    const { h, record } = harness();
+    const district = elements(h.tree).find(n => typeof n.type === "function" && n.type.name === "DistrictSelect");
+    expect(district).toBeDefined();
+    (district!.props.onChange as (value: string) => void)("17");
+    h.render();
+    expect(record().edits["event.district_code"]).toBe("17");
+    expect(buildSubmission(record(), true)?.draft.event.district_code).toBe(17);
   });
 });
 

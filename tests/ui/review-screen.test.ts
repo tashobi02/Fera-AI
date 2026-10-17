@@ -18,6 +18,22 @@ describe("SCREEN-003 static markup (no browser)", () => {
     expect(html).toContain("অজানা"); expect(html).toContain('for="review-child.height_cm"'); expect(html).toContain('lang="bn"');
     expect(html).toContain("min-h-11"); expect(html).not.toMatch(/(?:red-|danger|#[fF]{2}0000)/);
   });
+  it("lists all 64 districts in the active language with a required placeholder", () => {
+    const r = record();
+    const bn = renderToStaticMarkup(createElement(ReviewFields, { record: r, locale: "bn", errors: [], onEdit: noop, onBatch: noop, onApprox: noop, onBlur: noop, locked: false }));
+    const en = renderToStaticMarkup(createElement(ReviewFields, { record: r, locale: "en", errors: [], onEdit: noop, onBatch: noop, onApprox: noop, onBlur: noop, locked: false }));
+    for (const html of [bn, en]) {
+      const select = html.split('<select id="review-event.district_code"')[1]?.split("</select>")[0];
+      expect(select).toBeDefined();
+      expect(select!.match(/<option /g)).toHaveLength(65);
+      expect(select).toContain('<option value=""');
+      expect(select).toContain('disabled=""');
+    }
+    expect(bn).toContain('lang="bn"');
+    expect(bn).toContain("(১৭)");
+    expect(en).toContain('lang="en"');
+    expect(en).toContain("(17)");
+  });
   it("SC1: wraps field label and required badge with flex-wrap and no ml-2", () => {
     const r = record();
     const html = renderToStaticMarkup(createElement(ReviewFields, { record: r, locale: "bn", errors: [], onEdit: noop, onBatch: noop, onApprox: noop, onBlur: noop, locked: false }));
@@ -110,10 +126,11 @@ it("mock submission status has an icon as well as its visible label", () => {
   expect(html).toContain("[MOCK]");
 });
 
-it("district is labelled MOCK and every unknown card invites adding a value", () => {
+it("district has a named select and every unknown card invites adding a value", () => {
   const r = record(); r.draft.child.height_cm = null; r.draft.child.sex = "unknown";
   const html = renderToStaticMarkup(createElement(ReviewFields, { record: r, locale: "bn", errors: [], onEdit: noop, onBatch: noop, onApprox: noop, onBlur: noop, locked: false }));
-  expect(html.split('id="review-event.district_code-label"')[1]?.split("</label>")[0]).toContain("[MOCK]");
+  expect(html).toContain('<select id="review-event.district_code"');
+  expect(html.split('id="review-event.district_code-label"')[1]?.split("</label>")[0]).not.toContain("[MOCK]");
   expect(html.split('for="review-child.height_cm"')[1]?.split("<input")[0]).toContain("অজানা — যোগ করুন");
   // Polish round: the sex radio's empty option now uses the plain "অজানা" label
   // (item 1), not the "add" copy that empty text inputs keep.
@@ -161,14 +178,15 @@ describe("Polish round 2026-10-16 (TASK-022)", () => {
       expect(html.match(new RegExp(`>${shortLabel}<`, "g"))?.length ?? 0).toBeGreaterThanOrEqual(3);
     }
   });
-  it("PR3: name, phone, place, district render as <input> not <textarea>; phone has inputMode=tel and autoComplete=tel", () => {
+  it("PR3: name, phone and place are inputs; district is a select", () => {
     const r = record();
     const html = renderToStaticMarkup(createElement(ReviewFields, { record: r, locale: "en", errors: [], onEdit: noop, onBatch: noop, onApprox: noop, onBlur: noop, locked: false }));
-    for (const path of ["child.name", "reporter.phone", "event.place_text", "event.district_code"]) {
+    for (const path of ["child.name", "reporter.phone", "event.place_text"]) {
       const tag = new RegExp(`<(input|textarea)[^>]*id="review-${path.replace(/\./g, "\\.")}"`).exec(html);
       expect(tag, path).toBeDefined();
       expect(tag![1], path).toBe("input");
     }
+    expect(html).toContain('<select id="review-event.district_code"');
     // The phone input is a self-closing tag; renderToStaticMarkup expands it to <input ...></input>.
     const phoneBlock = html.match(/<input\b[^>]*id="review-reporter\.phone"[^>]*>(?:<\/input>)?/)?.[0];
     expect(phoneBlock).toBeDefined();

@@ -180,8 +180,8 @@ const bn = {
   reviewPhoneInvalid: "০১ দিয়ে শুরু ১১ সংখ্যার নম্বর দিন", // D4 §11
   reviewTimeInvalid: "সঠিক সময় ও সীমা দিন। ভবিষ্যতের সময় দেওয়া যাবে না।",
   reviewTimeHint: "তারিখ: বছর-মাস-দিন। সময়: ঘণ্টা:মিনিট (২৪ ঘণ্টা)। সঠিক সময় হলে দুই সীমাতেও একই সময় দিন।", // needs human Bangla review
-  reviewDistrictCode: "জেলার নম্বর (সিনথেটিক নমুনা)",
-  reviewDistrictHint: "জেলার নামের তালিকা এখনও যুক্ত হয়নি। নমুনার জেলার নম্বর জানা থাকলে দিন (১–৬৪)। আন্দাজ করবেন না।",
+  reviewDistrictCode: "জেলা",
+  reviewDistrictHint: "শেষবার যেখানে দেখা গিয়েছিল সেই জেলা নিশ্চিত করে বাছাই করুন। না জানলে আন্দাজ করবেন না; জেলা ছাড়া এই ফর্ম জমা দেওয়া যাবে না।",
   reviewAgeMin: "বয়সের নিচের সীমা (বছর)",
   reviewAgeMax: "বয়সের উপরের সীমা (বছর)",
   reviewTimeLower: "শেষবার দেখার সময়ের নিচের সীমা",
@@ -490,8 +490,8 @@ const en = {
   reviewPhoneInvalid: "Enter an 11-digit number starting 01",
   reviewTimeInvalid: "Enter a valid time and bounds. The time cannot be in the future.",
   reviewTimeHint: "Date: year-month-day. Time: HH:mm (24-hour). For an exact time, use the same time in both bounds.", // needs human Bangla review
-  reviewDistrictCode: "District number (synthetic sample)",
-  reviewDistrictHint: "The district name list is not connected yet. Enter the sample’s district number if known (1–64). Do not guess.",
+  reviewDistrictCode: "District",
+  reviewDistrictHint: "Confirm the district where last seen. Do not guess; this form cannot be submitted without a district.",
   reviewAgeMin: "Lower age bound (years)",
   reviewAgeMax: "Upper age bound (years)",
   reviewTimeLower: "Earliest last-seen time",
