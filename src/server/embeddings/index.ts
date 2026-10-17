@@ -1,35 +1,42 @@
 // TASK-016 / COMP-011: the embed-and-store service (P3-024).
 //
-// `reembedAll` recomputes the embedding for every non-redacted case row and
-// stores the model / revision / space with the vector. It refuses to leave
-// the table in a mixed state (TC-059): if any row already has a different
-// `embedding_space` it rewrites the whole table in a single transaction, or
-// aborts untouched. The matcher compares cosine, so mixing spaces is unsafe.
+// `reembedAll` recomputes the embedding for every non-redacted case row
+// and stores the model / revision / space with the vector. It refuses to
+// leave the table in a mixed state (TC-059): if any row already has a
+// different `embedding_space` it rewrites the whole table in a single
+// transaction, or aborts untouched. The matcher compares cosine, so
+// mixing spaces is unsafe.
 //
 // The function never reaches for a real model by itself; it takes an
-// `Embedder` (production passes the local Transformers.js one, tests pass
-// `createFakeEmbedder`). That keeps tests fast and offline, and keeps the
-// "no network in tests" rule in the AGENTS file.
+// `Embedder` (production passes the local Transformers.js one, tests
+// pass `createFakeEmbedder`). That keeps tests fast and offline, and
+// keeps the "no network in tests" rule in the AGENTS file.
 //
 // Output vector format: pgvector accepts `[v0,v1,...]` text. The schema
-// `vector(384)` enforces the dimension; the column is `vector_cosine_ops`
-// in the HNSW index. We use a single quoted string parameter so the driver
-// never has to escape the values.
+// `vector(384)` enforces the dimension; the column is
+// `vector_cosine_ops` in the HNSW index. We use a single quoted string
+// parameter so the driver never has to escape the values.
 //
 // SECURITY HARDENING (P3-024, this lane):
 //   * Rows whose canonical embed text is empty (only the `query: ` /
-//     `passage: ` prefix remains after the structured fields are dropped)
-//     MUST NOT be updated with a bare-prefix embedding: a uniform fallback
-//     vector makes every such row look identical to the matcher, so any
-//     similarity threshold the team later chooses would treat them all as
-//     the same. The fix: skip the UPDATE for empty-text rows. They remain
-//     `embedding IS NULL` and the schema CHECK
-//     (embedding IS NULL OR (embedding_model IS NOT NULL AND ...)) is
-//     satisfied. The summary's `skippedEmpty` counter reports the count
-//     so the operator can see the number in the wave gate.
+//     `passage: ` prefix remains after the structured fields are
+//     dropped) MUST NOT be updated with a bare-prefix embedding: a
+//     uniform fallback vector makes every such row look identical to
+//     the matcher, so any similarity threshold the team later chooses
+//     would treat them all as the same. The fix: skip the UPDATE for
+//     empty-text rows. They remain `embedding IS NULL` and the schema
+//     CHECK
+//     (embedding IS NULL OR (embedding_model IS NOT NULL AND ...))
+//     is satisfied. The summary's `skippedEmpty` counter reports the
+//     count so the operator can see the number in the wave gate.
 
 import { type Queryable } from "@/server/db/queryable";
-import { type Embedder, EMBEDDING_DIM, EmbeddingShapeError, normaliseVectors } from "./model";
+import {
+  type Embedder,
+  EMBEDDING_DIM,
+  EmbeddingShapeError,
+  normaliseVectors,
+} from "./model";
 import { canonicalCaseText, structuredCaseText } from "./text";
 
 /** Minimal row shape we need to embed. Other columns are unused. */
@@ -108,19 +115,19 @@ export type ReembedDeps = {
  * Re-embed every non-redacted case row.
  *
  * - Reads the row id, kind, and the four structured fields.
- * - Embeds non-empty rows in one batch with the supplied Embedder. Empty
- *   rows (only the prefix remains after structured fields are dropped)
- *   are SKIPPED — we do not embed the bare prefix, and we do not UPDATE
- *   the row. Skipped rows keep `embedding = NULL` so they never compete
- *   with a real partner on cosine.
+ * - Embeds non-empty rows in one batch with the supplied Embedder.
+ *   Empty rows (only the prefix remains after structured fields are
+ *   dropped) are SKIPPED — we do not embed the bare prefix, and we do
+ *   not UPDATE the row. Skipped rows keep `embedding = NULL` so they
+ *   never compete with a real partner on cosine.
  * - If ANY existing row already has a different `embedding_space` from
  *   the embedder's, the whole operation is wrapped in a single
- *   transaction: we rewrite every row, then COMMIT. If anything throws,
- *   the transaction aborts and no row changes (TC-059, "REFUSES to leave
- *   mixed spaces: if any row has a different embedding_space it
- *   rewrites all rows in one transaction or aborts untouched"). When the
- *   spaces already match, the loop is still inside the transaction so a
- *   partial failure rolls back.
+ *   transaction: we rewrite every row, then COMMIT. If anything
+ *   throws, the transaction aborts and no row changes (TC-059,
+ *   "REFUSES to leave mixed spaces: if any row has a different
+ *   embedding_space it rewrites all rows in one transaction or aborts
+ *   untouched"). When the spaces already match, the loop is still
+ *   inside the transaction so a partial failure rolls back.
  * - Returns a summary; never throws on per-row problems that can be
  *   skipped (an empty row is reported in `skippedEmpty` instead of
  *   throwing).
@@ -172,12 +179,13 @@ export async function reembedAll(
 
     if (records.length === 0) return summary;
 
-    // 2) Split rows by whether their canonical body is non-empty. A row
-    // whose structured fields are all null/whitespace produces the bare
-    // prefix string ("query: " or "passage: "); we MUST NOT embed it
-    // (every such row would map to the same generic vector and the
-    // matcher would treat them as duplicates) and MUST NOT UPDATE it
-    // (the row keeps embedding=NULL, which the schema CHECK allows).
+    // 2) Split rows by whether their canonical body is non-empty. A
+    // row whose structured fields are all null/whitespace produces
+    // the bare prefix string ("query: " or "passage: "); we MUST NOT
+    // embed it (every such row would map to the same generic vector
+    // and the matcher would treat them as duplicates) and MUST NOT
+    // UPDATE it (the row keeps embedding=NULL, which the schema CHECK
+    // allows).
     const PREFIX_RE = /^(query|passage): /;
     const embeddable: Array<{ index: number; text: string }> = [];
     const skippedIdx: number[] = [];
@@ -193,9 +201,9 @@ export async function reembedAll(
     summary.skippedEmpty = skippedIdx.length;
 
     if (embeddable.length === 0) {
-      // Nothing to embed. The table is already consistent (skipped rows
-      // are NULL and we have not written to any non-skipped row in this
-      // transaction), so we can return without throwing.
+      // Nothing to embed. The table is already consistent (skipped
+      // rows are NULL and we have not written to any non-skipped row
+      // in this transaction), so we can return without throwing.
       return summary;
     }
 
@@ -209,8 +217,9 @@ export async function reembedAll(
       );
     }
 
-    // 4) Persist each non-empty row with the matching model / revision /
-    //    space. Skipped rows are NOT updated and keep embedding=NULL.
+    // 4) Persist each non-empty row with the matching model /
+    //    revision / space. Skipped rows are NOT updated and keep
+    //    embedding=NULL.
     for (let k = 0; k < embeddable.length; k++) {
       const srcIdx = embeddable[k].index;
       const r = records[srcIdx];
@@ -225,3 +234,48 @@ export async function reembedAll(
     return summary;
   });
 }
+
+// Re-export the symbols the matcher / reembed scripts need so a
+// single import line covers them. The list is intentionally explicit;
+// it does not include the un-exported constants the loader uses
+// internally.
+export {
+  DEFAULT_CACHE_DIR,
+  EMBEDDING,
+  EMBEDDING_DIM,
+  EmbeddingNotConfiguredError,
+  EmbeddingShapeError,
+  MODEL_FILES,
+  POOLING_OPTIONS,
+  PREFIX,
+  ROLE_BY_KIND,
+  TEXT_RECIPE,
+  _resetLocalEmbedderForTests,
+  buildSpace,
+  createFakeEmbedder,
+  defaultCacheDir,
+  embedOneText,
+  getEmbedder,
+  loadLocalEmbedder,
+  makeEmbeddingSpace,
+  normaliseVectors,
+  setEmbedder,
+  verifyModelCache,
+} from "./model";
+export type {
+  Embedder,
+  EmbeddingRole,
+  FakeEmbedderOptions,
+  LocalEmbedderOptions,
+  ModelFile,
+  SpaceInputs,
+} from "./model";
+export {
+  PASSAGE_PREFIX,
+  QUERY_PREFIX,
+  canonicalCaseText,
+  canonicalPrefix,
+  prefixForKind,
+  scrubPhones,
+  structuredCaseText,
+} from "./text";

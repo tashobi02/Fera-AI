@@ -11,9 +11,33 @@ dependencies. No invented numbers — every line is either a `package.json`
   is the version TASK-016 ships. AGENTS.md pins the local
   `multilingual-e5-small` (Xenova export) as the embedding model — 384-d,
   mean pooling, L2-normalised, `query:` / `passage:` prefix policy. The
-  security hardening in P3-024 keeps the runtime path local; only
-  `scripts/model-fetch.mjs` is allowed to fetch from huggingface.co
-  (with an explicit `allowRemote: true`), and the cache is gitignored.
+  security hardening in P3-024 keeps the runtime path local;
+  `scripts/model-fetch.mjs` is the supported entry point that fetches
+  from huggingface.co. It uses fixed pinned asset URLs and verifies each
+  SHA-256 before the runtime loader opens the local cache with remote
+  access disabled. The cache is gitignored.
+  The follow-up pin is `Xenova/multilingual-e5-small` revision
+  `761b726dd34fb83930e26aab4e9ac3899aa1fa78`, q8. The canonical space
+  digest includes model, revision and the full vector recipe, so a revision
+  bump makes stored vectors visibly stale.
+
+## Local pin verification (2026-10-18)
+
+The authorized `npm run model:fetch` run found all four pinned files already
+in the ignored worktree cache. It reported each as cached, verified their
+SHA-256 values against `src/server/embeddings/model.ts`, and completed the
+runtime warm-up with remote models disabled; no asset download was needed.
+The pinned files were 658 B (`config.json`), 443 B (`tokenizer_config.json`),
+17,082,730 B (`tokenizer.json`), and 118,308,185 B
+(`onnx/model_quantized.onnx`). The script reported 1,212 ms elapsed and a
+577.6 MiB cache total. That total includes an extra, unpinned
+`onnx/model.onnx` file of 470,268,533 B already present in the cache; runtime
+verification requires only the four listed pinned files.
+
+`FERA_REAL_EMBED=1 npm test -- tests/embeddings/embed.test.ts` passed all six
+tests with the local CPU runtime, including Bangla query/passage vectors of
+dimension 384 whose L2 norms are within `1e-3` of 1. The runtime test uses the
+verified local cache and keeps remote model downloads disabled.
 
 ## Transitive dependencies worth knowing about
 
@@ -58,17 +82,14 @@ been changed by this lane.
 Items the lead or a follow-up lane must resolve. None of them is
 "blocked" today; each is a deliberate decision left to the human.
 
-1. **Model revision pin.** `docs/execution/evidence/embedding-spike.md`
-   does not record a specific revision/commit hash for
-   `Xenova/multilingual-e5-small`. Per the P3-024 brief, when no hash
-   is recorded we do NOT invent one: the loader passes only the model
-   id and reads the optional `refs/main` file best-effort after the
-   pipeline is built. The relevant comment in
-   `src/server/embeddings/model.ts` and `scripts/reembed.mjs` is
-   `UNKNOWN: model revision not pinned (not recorded in
-   embedding-spike.md)`. The decision is whether to run a second spike
-   that records a specific hash and update the spike doc so a future
-   loader change can pin it via the `revision` option.
+1. **Model pin provenance.** The initial spike did not record a model
+   revision. The follow-up source comment records the Hugging Face model
+   API lookup on 17 and 18 Oct 2026 and pins revision
+   `761b726dd34fb83930e26aab4e9ac3899aa1fa78` in code. Four local asset
+   hashes were verified on 18 Oct 2026 as documented above. Keep the source
+   revision and asset hashes synchronized when intentionally changing the
+   model; the pinned asset hashes, not a mutable `main` reference, guard the
+   runtime cache.
 2. **`ONNXRUNTIME_NODE_INSTALL=skip` in CI / deploy.** Recommended in
    the section above; not done by this lane. The decision is whether
    to set the env var in `.github/workflows/*.yml` and in the Vercel
@@ -84,9 +105,9 @@ Items the lead or a follow-up lane must resolve. None of them is
 ## Files touched in P3-024 (security hardening)
 
 - `src/server/embeddings/model.ts` — adds `allowRemote` (default
-  `false`), per-`(model, cacheDir)` cache key, repo-root-anchored
-  default cache dir, and the `UNKNOWN: model revision not pinned`
-  comment.
+  `false`), per-model/cache/recipe pipeline cache key, repo-root-anchored
+  default cache dir, and the offline cache verification path. The later
+  model-pin follow-up below records the pinned revision and hashes.
 - `src/server/embeddings/index.ts` — `reembedAll` now SKIPS rows whose
   canonical embed text is empty (only the prefix remains) instead of
   embedding the bare prefix. Skipped rows keep `embedding=NULL` and
@@ -96,15 +117,29 @@ Items the lead or a follow-up lane must resolve. None of them is
 - `scripts/reembed.mjs` — sets `env.allowRemoteModels = false`, skips
   empty rows from the embed call and from the UPDATE, anchors the
   cache dir at the repo root via `import.meta.url`.
-- `scripts/model-fetch.mjs` — the only path that sets
-  `env.allowRemoteModels = true`; anchors the cache dir at the repo
-  root via `import.meta.url`.
+- `scripts/model-fetch.mjs` — downloads only fixed pinned asset URLs,
+  verifies their hashes, then warms up via the runtime loader with remote
+  access disabled; anchors the cache dir at the repo root via
+  `import.meta.url`.
 - `tests/embeddings/model.test.ts` — adds a mocked-loader suite that
   asserts the default `loadLocalEmbedder` sets
   `env.allowRemoteModels = false`, that `allowRemote: true` is the only
-  way to flip it on, and that the per-`(model, cacheDir)` cache key
+  way to flip it on, and that model/cache/recipe cache configurations
   works.
 - `tests/db/reembed.test.ts` — the "skippedEmpty" test now asserts the
   row's `embedding`, `embedding_model`, `embedding_revision`, and
   `embedding_space` are all NULL after the run (it previously expected
   a prefix-only vector to be stored).
+
+## Model pin follow-up
+
+- `src/server/embeddings/model.ts` — pins the Xenova revision and four
+  SHA-256 asset digests; includes model and revision in the canonical
+  embedding-space hash.
+- `src/server/embeddings/text.ts` — exposes prefix-free structured text
+  for the reembed worker; phone removal leaves one normalized boundary.
+- `scripts/embeddings/reembed-lib.mjs` — checks persisted vector metadata
+  before re-embedding and invalidates pending candidates and active match
+  state before writing vectors from a new space.
+- `tests/embeddings/` — covers model/revision space identity, pinned cache
+  verification, phone scrubbing, and stale-vector upgrade ordering.
