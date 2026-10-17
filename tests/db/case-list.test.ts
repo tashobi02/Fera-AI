@@ -18,12 +18,14 @@
 import type { Client, Pool, PoolClient } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { listCasesForDistrict, type CaseListRow } from "@/server/dashboard";
-import { toDhakaIso } from "@/contracts";
+import { caseListResponseSchema, cursorSchema, officerCaseRowSchema, toDhakaIso } from "@/contracts";
+import { userPrincipal } from "@/contracts/server";
+import { listOfficerCases } from "@/server/case";
 import { setPoolForTests } from "@/server/db/pool";
 // @ts-expect-error -- plain ESM script without type declarations
 import { loadDistrictData, seedDistricts } from "../../db/seed/districts.mjs";
 import {
-  addCandidate, closeMissing, closedPair, confirmPair, connect, createActors, dbTestsEnabled,
+  addCandidate, closeMissing, closedPair, connect, createActors, dbTestsEnabled,
   insertFound, insertMissing, openMissing, pool, type Actors,
 } from "./support/db";
 
@@ -122,7 +124,7 @@ describe.skipIf(!dbTestsEnabled)("API-022 case list (P3-041)", () => {
     // anonymised (must not appear), all in district 1.
     const m1 = await insertMissing(dbClient); await openMissing(dbClient, m1.id);
     const m2 = await insertMissing(dbClient); await openMissing(dbClient, m2.id);
-    const f1 = await insertFound(dbClient, actors.staff);
+    await insertFound(dbClient, actors.staff);
     // A matched pair (missing matched, found matched_pending_review, but missing
     // still 'open' before addCandidate). After addCandidate, both go to matched.
     const m3 = await insertMissing(dbClient); await openMissing(dbClient, m3.id);
@@ -255,5 +257,44 @@ describe.skipIf(!dbTestsEnabled)("API-022 case list (P3-041)", () => {
     expect(tiny.rows.length).toBeLessThanOrEqual(1);
     const huge = await listCasesForDistrict(dbClient, { district: "1", limit: 999 });
     expect(huge.rows.length).toBeLessThanOrEqual(50);
+  });
+
+  it("returns a nonempty, contract-valid officer drill-through and continues with its opaque cursor", async () => {
+    const firstFixture = await insertMissing(dbClient);
+    await openMissing(dbClient, firstFixture.id);
+    const secondFixture = await insertMissing(dbClient);
+    await openMissing(dbClient, secondFixture.id);
+    const principal = userPrincipal({
+      id: actors.officer,
+      role: "officer",
+      verified: true,
+      is_active: true,
+    });
+    if (!principal) throw new Error("fixture officer principal was invalid");
+
+    const filter = { district: "1", kind: "missing" as const, status_group: "open" as const, limit: 1 };
+    const firstPage = await listOfficerCases(principal, filter, dbClient);
+
+    expect(firstPage.cases).toHaveLength(1);
+    expect(caseListResponseSchema.safeParse(firstPage).success).toBe(true);
+    expect(cursorSchema.safeParse(firstPage.next_cursor).success).toBe(true);
+    expect(firstPage.cases[0]).toMatchObject({ kind: "missing", status_group: "open", is_synthetic: true, contact_phone: null });
+    expect(Object.keys(firstPage.cases[0]!).sort()).toEqual(Object.keys(officerCaseRowSchema.shape).sort());
+    expect(firstPage.cases[0]).not.toHaveProperty("raw_text");
+    expect(firstPage.cases[0]).not.toHaveProperty("candidate_id");
+    expect(firstPage.cases[0]).not.toHaveProperty("score");
+
+    const cursor = firstPage.next_cursor;
+    if (cursor === null) throw new Error("expected another page for the populated district");
+    const secondPage = await listOfficerCases(principal, { ...filter, cursor }, dbClient);
+
+    expect(secondPage.cases).toHaveLength(1);
+    expect(secondPage.cases[0]?.id).not.toBe(firstPage.cases[0]?.id);
+    expect(secondPage.cases[0]).toMatchObject({ kind: "missing", status_group: "open", event: { district_code: 1 } });
+    expect(caseListResponseSchema.safeParse(secondPage).success).toBe(true);
+
+    await expect(
+      listOfficerCases(principal, { ...filter, cursor: "abcdefgh.abcdefghijklmnop" }, dbClient),
+    ).rejects.toMatchObject({ id: "E-001" });
   });
 });
