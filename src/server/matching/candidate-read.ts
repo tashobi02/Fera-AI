@@ -48,6 +48,10 @@ export async function readCandidate(
   const { requestId, ...txOpts } = ctx;
 
   return deps.withTransaction(async (client) => {
+    // One snapshot for the candidate and both reports (no locks, nothing here decides): without
+    // it an edit between the SELECTs could pair a candidate with a report it was not made for.
+    // Must be the first statement of the transaction; the audit inserts below still write.
+    await client.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ");
     const found = await client.query(
       `SELECT id, missing_case_id, found_case_id, missing_version, found_version, score, components, status
        FROM match_candidates WHERE id = $1`,
