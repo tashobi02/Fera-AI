@@ -1,0 +1,3597 @@
+{
+  "ground_truth_revision": "gt-1",
+  "seed": 1010,
+  "synthetic": true,
+  "counts": {
+    "total": 200,
+    "missing_canonical": 80,
+    "found_canonical": 80,
+    "decoys": 40,
+    "true_pairs": 60,
+    "no_match_queries": 20,
+    "duplicate_links": 25,
+    "shared_phone_decoys": 7
+  },
+  "records": [
+    {
+      "record_id": "1c624fe5-a281-4017-9eec-a2a92f7d3dd3",
+      "label": "SYN-M-001",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-001",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "dfc58a62-e932-4cad-acc4-8b1928f74c33"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": "rafi",
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "dfc58a62-e932-4cad-acc4-8b1928f74c33",
+      "label": "SYN-F-001",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-001",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "1c624fe5-a281-4017-9eec-a2a92f7d3dd3"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": "kamalapur_boy",
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "b42a48be-0c9f-4c5d-8a12-38bfc883cc53",
+      "label": "SYN-M-002",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-002",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "583803b4-5320-4f26-9254-75ed270fa18f"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "583803b4-5320-4f26-9254-75ed270fa18f",
+      "label": "SYN-F-002",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-002",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "b42a48be-0c9f-4c5d-8a12-38bfc883cc53"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "f3766d22-9a4f-498b-8db5-3f6765d51536",
+      "label": "SYN-M-003",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-003",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "4faf4592-6ace-4c6e-b36d-dfe7bbe37c1e"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "mixed",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "4faf4592-6ace-4c6e-b36d-dfe7bbe37c1e",
+      "label": "SYN-F-003",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-003",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "f3766d22-9a4f-498b-8db5-3f6765d51536"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "e660aa16-77f4-498a-b603-b041f2366c8f",
+      "label": "SYN-M-004",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-004",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "650cf0f5-a1cc-4c61-a37c-9535f5427c6e"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "650cf0f5-a1cc-4c61-a37c-9535f5427c6e",
+      "label": "SYN-F-004",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-004",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "e660aa16-77f4-498a-b603-b041f2366c8f"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "dc5307f6-4cd0-4690-9763-961a8a85f5f3",
+      "label": "SYN-M-005",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-005",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "a95abfd3-90f1-4f78-af24-2d141feca42e",
+        "3d9c4610-3085-41b9-a655-6594b56e1664"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "a95abfd3-90f1-4f78-af24-2d141feca42e",
+      "label": "SYN-F-005",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-005",
+      "duplicate_group_id": "DUP-F-007",
+      "true_partner_ids": [
+        "dc5307f6-4cd0-4690-9763-961a8a85f5f3"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "712d27f8-cfac-4a43-ab88-460eec4fb990",
+      "label": "SYN-M-006",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-006",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "065ab3b5-803d-4aa6-8e46-c881ae3724ef"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "065ab3b5-803d-4aa6-8e46-c881ae3724ef",
+      "label": "SYN-F-006",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-006",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "712d27f8-cfac-4a43-ab88-460eec4fb990"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "554e09f6-f48e-48d5-8e69-101647d06c27",
+      "label": "SYN-M-007",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-007",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "851a7f55-f8bc-4f50-af73-c47c4f62ccc9",
+        "3e397725-cd18-4ee4-a9a2-9f8428ae206c"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "851a7f55-f8bc-4f50-af73-c47c4f62ccc9",
+      "label": "SYN-F-007",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-007",
+      "duplicate_group_id": "DUP-F-008",
+      "true_partner_ids": [
+        "554e09f6-f48e-48d5-8e69-101647d06c27"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "40839c63-d0b8-4d0d-bcbd-0f0890c19a5c",
+      "label": "SYN-M-008",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-008",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "d4dae77e-7bab-4add-bfd4-d10d42aaf294"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "d4dae77e-7bab-4add-bfd4-d10d42aaf294",
+      "label": "SYN-F-008",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-008",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "40839c63-d0b8-4d0d-bcbd-0f0890c19a5c"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "1e05076a-6b0d-4ec8-870a-d2bfe4feecda",
+      "label": "SYN-M-009",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-009",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "4a26161d-dbb0-4f98-b610-f9c80841360f"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "mixed",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "4a26161d-dbb0-4f98-b610-f9c80841360f",
+      "label": "SYN-F-009",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-009",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "1e05076a-6b0d-4ec8-870a-d2bfe4feecda"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "6f4cdc1d-bd83-45b2-a34f-2fd47a4b15a2",
+      "label": "SYN-M-010",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-010",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "f4fcdc6c-a73e-4e3e-97d1-17f520466fab"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "mixed",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "f4fcdc6c-a73e-4e3e-97d1-17f520466fab",
+      "label": "SYN-F-010",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-010",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "6f4cdc1d-bd83-45b2-a34f-2fd47a4b15a2"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "e06bc523-74ab-4fc7-9b43-8ab0a07f9ff2",
+      "label": "SYN-M-011",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-011",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "9d926051-14b7-4aa5-8f32-f0036b4382ea",
+        "8dd83f8b-438b-466b-8f95-ddff3edad58f"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "9d926051-14b7-4aa5-8f32-f0036b4382ea",
+      "label": "SYN-F-011",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-011",
+      "duplicate_group_id": "DUP-F-003",
+      "true_partner_ids": [
+        "e06bc523-74ab-4fc7-9b43-8ab0a07f9ff2"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "1026431b-8b3d-4438-9477-8ead920b9b70",
+      "label": "SYN-M-012",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-012",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "c3c3b66f-b5e7-4c54-8d13-1b771473565e"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "c3c3b66f-b5e7-4c54-8d13-1b771473565e",
+      "label": "SYN-F-012",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-012",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "1026431b-8b3d-4438-9477-8ead920b9b70"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "55171a63-3db1-4bb4-8ae6-ee44a2df1132",
+      "label": "SYN-M-013",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-013",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "a6b5e33d-7057-4615-9830-7f1bb41d7b20"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "a6b5e33d-7057-4615-9830-7f1bb41d7b20",
+      "label": "SYN-F-013",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-013",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "55171a63-3db1-4bb4-8ae6-ee44a2df1132"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "c1f50b4a-853a-4831-a802-0559427647f9",
+      "label": "SYN-M-014",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-014",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "9f36c47a-d77e-4889-94f2-f2d85ae73726",
+        "da2ba27e-a72c-486f-bb4b-637a879e6eb6"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "mixed",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "9f36c47a-d77e-4889-94f2-f2d85ae73726",
+      "label": "SYN-F-014",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-014",
+      "duplicate_group_id": "DUP-F-017",
+      "true_partner_ids": [
+        "c1f50b4a-853a-4831-a802-0559427647f9"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "dd7d249d-08b1-463d-97f2-6b5887e991d6",
+      "label": "SYN-M-015",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-015",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "db402322-d70a-47e7-a234-e2f7bb0aa0b3"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "db402322-d70a-47e7-a234-e2f7bb0aa0b3",
+      "label": "SYN-F-015",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-015",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "dd7d249d-08b1-463d-97f2-6b5887e991d6"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "d9063ad2-c063-4150-9c42-435553431e42",
+      "label": "SYN-M-016",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-016",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "2d71df09-496e-4651-9646-df427f5604c4",
+        "b39fb07e-5b48-46aa-a837-0335454cb08d"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "2d71df09-496e-4651-9646-df427f5604c4",
+      "label": "SYN-F-016",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-016",
+      "duplicate_group_id": "DUP-F-004",
+      "true_partner_ids": [
+        "d9063ad2-c063-4150-9c42-435553431e42"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "06a0f362-7a2a-4354-8389-9ff22a85a973",
+      "label": "SYN-M-017",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-017",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "bb3ec237-1ac7-4e47-8bf1-d1484369d638"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "mixed",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "bb3ec237-1ac7-4e47-8bf1-d1484369d638",
+      "label": "SYN-F-017",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-017",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "06a0f362-7a2a-4354-8389-9ff22a85a973"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "5b7fcd42-783d-4c59-9d71-89d4585422eb",
+      "label": "SYN-M-018",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-018",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "31b1de51-afb2-40a5-bd05-d86c74775d5b"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "31b1de51-afb2-40a5-bd05-d86c74775d5b",
+      "label": "SYN-F-018",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-018",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "5b7fcd42-783d-4c59-9d71-89d4585422eb"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "1f3942eb-a2c7-44f2-b324-5d24dd92884a",
+      "label": "SYN-M-019",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-019",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "e4a282de-30e1-4190-a53d-e58542d0db95"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "e4a282de-30e1-4190-a53d-e58542d0db95",
+      "label": "SYN-F-019",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-019",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "1f3942eb-a2c7-44f2-b324-5d24dd92884a"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "d2e9447d-a53c-478e-b663-6c9ff7bc44f5",
+      "label": "SYN-M-020",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-020",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "8f791117-a136-411f-a43b-cf0cb5a9a74e"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "8f791117-a136-411f-a43b-cf0cb5a9a74e",
+      "label": "SYN-F-020",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-020",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "d2e9447d-a53c-478e-b663-6c9ff7bc44f5"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "35db9089-fbd4-4da9-9130-1c071230a6ff",
+      "label": "SYN-M-021",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-021",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "ec9188aa-eedb-436c-88cb-ed79b99a3c56"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "ec9188aa-eedb-436c-88cb-ed79b99a3c56",
+      "label": "SYN-F-021",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-021",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "35db9089-fbd4-4da9-9130-1c071230a6ff"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "71c18529-d87a-471b-ae49-8dcbe9f76651",
+      "label": "SYN-M-022",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-022",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "6959a453-eab1-40dc-b44e-1ec1d5dc02ee"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "6959a453-eab1-40dc-b44e-1ec1d5dc02ee",
+      "label": "SYN-F-022",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-022",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "71c18529-d87a-471b-ae49-8dcbe9f76651"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "38c43df0-c3c1-4c66-a39b-ad148e9bd753",
+      "label": "SYN-M-023",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-023",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "7885a2a0-858b-4efc-8216-2d24eed3a6a8",
+        "c0d2b8a2-a128-4816-8510-ec99912d0d32"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "7885a2a0-858b-4efc-8216-2d24eed3a6a8",
+      "label": "SYN-F-023",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-023",
+      "duplicate_group_id": "DUP-F-015",
+      "true_partner_ids": [
+        "38c43df0-c3c1-4c66-a39b-ad148e9bd753"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "e14abd67-bc3b-4280-a43f-3ac00ee011e1",
+      "label": "SYN-M-024",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-024",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "0d6e3127-788b-4e77-bd09-fcaa4902a154"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "0d6e3127-788b-4e77-bd09-fcaa4902a154",
+      "label": "SYN-F-024",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-024",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "e14abd67-bc3b-4280-a43f-3ac00ee011e1"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "d9998f2a-75ed-41e6-a561-3d2e7b8c1d5f",
+      "label": "SYN-M-025",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-025",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "c44bb5c0-872c-4c4a-924f-534f3a0e3a63",
+        "91e136c8-062a-4749-b0ae-32f6c90226a1"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "mixed",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "c44bb5c0-872c-4c4a-924f-534f3a0e3a63",
+      "label": "SYN-F-025",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-025",
+      "duplicate_group_id": "DUP-F-009",
+      "true_partner_ids": [
+        "d9998f2a-75ed-41e6-a561-3d2e7b8c1d5f"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "6a096dd9-be89-4a9c-8d4f-6e4d938f354f",
+      "label": "SYN-M-026",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-026",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "59a4a664-9c68-4b95-ad4a-185138702894"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "mixed",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "59a4a664-9c68-4b95-ad4a-185138702894",
+      "label": "SYN-F-026",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-026",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "6a096dd9-be89-4a9c-8d4f-6e4d938f354f"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "98f0a9c5-b041-4722-aaa7-df8cf8f7d9a1",
+      "label": "SYN-M-027",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-027",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "19c866fb-a2ab-4cf6-9eec-2766ae99c1d9"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "19c866fb-a2ab-4cf6-9eec-2766ae99c1d9",
+      "label": "SYN-F-027",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-027",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "98f0a9c5-b041-4722-aaa7-df8cf8f7d9a1"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "ceb60060-790f-473d-8382-0df2727db9da",
+      "label": "SYN-M-028",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-028",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "b115fcaa-b3d0-438c-8f57-6662ff8826e8"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "mixed",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "b115fcaa-b3d0-438c-8f57-6662ff8826e8",
+      "label": "SYN-F-028",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-028",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "ceb60060-790f-473d-8382-0df2727db9da"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "7b9b95e5-e9c4-46f2-8aa3-36977ca0154f",
+      "label": "SYN-M-029",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-029",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "f61065ab-d7ca-4917-b9ea-b2b83d6dc9f5"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "f61065ab-d7ca-4917-b9ea-b2b83d6dc9f5",
+      "label": "SYN-F-029",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-029",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "7b9b95e5-e9c4-46f2-8aa3-36977ca0154f"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "b82016b2-4aef-40bb-b373-a5d81abe94af",
+      "label": "SYN-M-030",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-030",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "77091227-b903-45c5-92e1-ddca90e35130"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "77091227-b903-45c5-92e1-ddca90e35130",
+      "label": "SYN-F-030",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-030",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "b82016b2-4aef-40bb-b373-a5d81abe94af"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "42b162b1-3179-48a0-98c3-0556334a8ac8",
+      "label": "SYN-M-031",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-031",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "2b1989ce-b11f-4210-bd30-80a48917cb1e"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "2b1989ce-b11f-4210-bd30-80a48917cb1e",
+      "label": "SYN-F-031",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-031",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "42b162b1-3179-48a0-98c3-0556334a8ac8"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "4d5f4854-632d-41c7-8505-5368735c6dd0",
+      "label": "SYN-M-032",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-032",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "38b8526b-122a-4069-8ae3-ed06c58fc857",
+        "4c84ded9-1532-4ffb-aee7-2a01f5c756c0"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "38b8526b-122a-4069-8ae3-ed06c58fc857",
+      "label": "SYN-F-032",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-032",
+      "duplicate_group_id": "DUP-F-001",
+      "true_partner_ids": [
+        "4d5f4854-632d-41c7-8505-5368735c6dd0"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "b5388455-1a17-49b7-8d74-fea1c155becf",
+      "label": "SYN-M-033",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-033",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "4bca3e50-4f26-4286-8937-cd793a8c41a2"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "4bca3e50-4f26-4286-8937-cd793a8c41a2",
+      "label": "SYN-F-033",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-033",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "b5388455-1a17-49b7-8d74-fea1c155becf"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "63979042-8e99-4579-9b89-65faf0b0f820",
+      "label": "SYN-M-034",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-034",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "34b482e3-6d60-4b76-a86f-c99a8978f497"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "34b482e3-6d60-4b76-a86f-c99a8978f497",
+      "label": "SYN-F-034",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-034",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "63979042-8e99-4579-9b89-65faf0b0f820"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "1a72ca8d-9707-4ad3-a2c4-091767b9492b",
+      "label": "SYN-M-035",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-035",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "a70e2c92-dbfd-4626-908b-2b70c2f605ce"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "mixed",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "a70e2c92-dbfd-4626-908b-2b70c2f605ce",
+      "label": "SYN-F-035",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-035",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "1a72ca8d-9707-4ad3-a2c4-091767b9492b"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "35341a99-5cd0-47ae-9dfb-21ce6187f489",
+      "label": "SYN-M-036",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-036",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "605b8eb2-5f7b-4e9e-950e-913ae99b4b39",
+        "d4c4c167-4c8e-4675-a39b-ecdf1a873077"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "605b8eb2-5f7b-4e9e-950e-913ae99b4b39",
+      "label": "SYN-F-036",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-036",
+      "duplicate_group_id": "DUP-F-010",
+      "true_partner_ids": [
+        "35341a99-5cd0-47ae-9dfb-21ce6187f489"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "0bd045cf-736a-4150-b786-849f2efd4b86",
+      "label": "SYN-M-037",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-037",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "991e0c29-a7ab-4d7a-bd2f-70948a606b1e",
+        "1ed2d6a6-7281-49dc-bf78-f1acd1611c7c"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "991e0c29-a7ab-4d7a-bd2f-70948a606b1e",
+      "label": "SYN-F-037",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-037",
+      "duplicate_group_id": "DUP-F-013",
+      "true_partner_ids": [
+        "0bd045cf-736a-4150-b786-849f2efd4b86"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "92404fd3-5a9c-4535-ac70-16d940abc8de",
+      "label": "SYN-M-038",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-038",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "054c7389-14e4-4ba0-b413-73d26e64ccd5",
+        "e3a69370-505c-4eae-af91-b50df2f39e9e"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "054c7389-14e4-4ba0-b413-73d26e64ccd5",
+      "label": "SYN-F-038",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-038",
+      "duplicate_group_id": "DUP-F-012",
+      "true_partner_ids": [
+        "92404fd3-5a9c-4535-ac70-16d940abc8de"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "1bcdacc0-691f-4b79-9716-6281066aed86",
+      "label": "SYN-M-039",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-039",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "db7730cd-81fd-45fc-aa61-daff442227ce"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "mixed",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "db7730cd-81fd-45fc-aa61-daff442227ce",
+      "label": "SYN-F-039",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-039",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "1bcdacc0-691f-4b79-9716-6281066aed86"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "436d725f-e038-4780-9e86-7915dce4b56e",
+      "label": "SYN-M-040",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-040",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "6bd5a17f-7175-4712-ab23-9973c5656924"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "6bd5a17f-7175-4712-ab23-9973c5656924",
+      "label": "SYN-F-040",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-040",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "436d725f-e038-4780-9e86-7915dce4b56e"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "09db8358-9c31-4779-817b-b43ff7886d84",
+      "label": "SYN-M-041",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-041",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "6b3f1f40-9410-47f8-8ceb-63a2cb3dfc53",
+        "364bd07d-cbe1-459f-91e9-12e97fc9be96"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "mixed",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "6b3f1f40-9410-47f8-8ceb-63a2cb3dfc53",
+      "label": "SYN-F-041",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-041",
+      "duplicate_group_id": "DUP-F-005",
+      "true_partner_ids": [
+        "09db8358-9c31-4779-817b-b43ff7886d84"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "9b0fa341-8f6e-4e9a-8e68-4f4e0a23d222",
+      "label": "SYN-M-042",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-042",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "6b0e165c-9f29-4bc1-a178-7a6ccb34b429",
+        "ebe417b2-fa5d-445a-a0da-45c63f291d58"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "6b0e165c-9f29-4bc1-a178-7a6ccb34b429",
+      "label": "SYN-F-042",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-042",
+      "duplicate_group_id": "DUP-F-016",
+      "true_partner_ids": [
+        "9b0fa341-8f6e-4e9a-8e68-4f4e0a23d222"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "273ef109-9f87-40d7-b9aa-54319cb5c38e",
+      "label": "SYN-M-043",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-043",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "8678c026-39c6-4ac5-af2d-9a164cf14d11"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "mixed",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "8678c026-39c6-4ac5-af2d-9a164cf14d11",
+      "label": "SYN-F-043",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-043",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "273ef109-9f87-40d7-b9aa-54319cb5c38e"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "a0fae4d6-8f84-4327-94e2-a9a36bae09ca",
+      "label": "SYN-M-044",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-044",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "c3708460-e297-4085-84ce-c0d64e171475",
+        "e7004a43-dddd-48b1-afcc-19e25cb2b39a"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "c3708460-e297-4085-84ce-c0d64e171475",
+      "label": "SYN-F-044",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-044",
+      "duplicate_group_id": "DUP-F-014",
+      "true_partner_ids": [
+        "a0fae4d6-8f84-4327-94e2-a9a36bae09ca"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "0435e7cd-577b-4d86-8f4a-11e3c0ee5165",
+      "label": "SYN-M-045",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-045",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "f61439a9-4a15-4400-b235-c69127e68352"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "f61439a9-4a15-4400-b235-c69127e68352",
+      "label": "SYN-F-045",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-045",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "0435e7cd-577b-4d86-8f4a-11e3c0ee5165"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "eef5551f-0e02-4217-a07d-ef567b324a42",
+      "label": "SYN-M-046",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-046",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "743d4477-303a-4cfb-b0ed-cc25d8755f71",
+        "d4f1996d-963c-41d0-b86b-15dc985e5718"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "743d4477-303a-4cfb-b0ed-cc25d8755f71",
+      "label": "SYN-F-046",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-046",
+      "duplicate_group_id": "DUP-F-018",
+      "true_partner_ids": [
+        "eef5551f-0e02-4217-a07d-ef567b324a42"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "2482999c-02be-43f1-9af7-58550ee645fa",
+      "label": "SYN-M-047",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-047",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "e6acc56d-3b21-40d2-a496-62f8f63a983b",
+        "b130386a-0b42-472b-8050-c93f06e77b17"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "e6acc56d-3b21-40d2-a496-62f8f63a983b",
+      "label": "SYN-F-047",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-047",
+      "duplicate_group_id": "DUP-F-006",
+      "true_partner_ids": [
+        "2482999c-02be-43f1-9af7-58550ee645fa"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "44048618-fd34-404d-8cb5-81b0d3daff34",
+      "label": "SYN-M-048",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-048",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "9cfee09a-49c5-48bd-9a12-98ae4900dc3b"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "9cfee09a-49c5-48bd-9a12-98ae4900dc3b",
+      "label": "SYN-F-048",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-048",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "44048618-fd34-404d-8cb5-81b0d3daff34"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "594e6907-ee88-4b36-8524-d828ae50c571",
+      "label": "SYN-M-049",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-049",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "9df12ad1-89f9-4ae3-8dcd-95679181dd03"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "9df12ad1-89f9-4ae3-8dcd-95679181dd03",
+      "label": "SYN-F-049",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-049",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "594e6907-ee88-4b36-8524-d828ae50c571"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "42e6dea4-0a5d-4c04-8214-c44f9dfddf3f",
+      "label": "SYN-M-050",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-050",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "077f65ee-6604-4fc9-af2e-d192af26e328"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "077f65ee-6604-4fc9-af2e-d192af26e328",
+      "label": "SYN-F-050",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-050",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "42e6dea4-0a5d-4c04-8214-c44f9dfddf3f"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "9f4789d0-f7ab-40fc-a6ac-c0f578c75d75",
+      "label": "SYN-M-051",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-051",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "cc610a6b-7356-4829-9dda-be4b44177383",
+        "31c67837-18f1-4d19-add9-264c8988d734"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "cc610a6b-7356-4829-9dda-be4b44177383",
+      "label": "SYN-F-051",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-051",
+      "duplicate_group_id": "DUP-F-019",
+      "true_partner_ids": [
+        "9f4789d0-f7ab-40fc-a6ac-c0f578c75d75"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "481d1978-a352-4b27-8a17-0542a698e3c3",
+      "label": "SYN-M-052",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-052",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "18c0113e-8aeb-499e-afb3-bf8488f34cde",
+        "69dac66d-d618-40ac-9a86-a42c454406b6"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "mixed",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "18c0113e-8aeb-499e-afb3-bf8488f34cde",
+      "label": "SYN-F-052",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-052",
+      "duplicate_group_id": "DUP-F-002",
+      "true_partner_ids": [
+        "481d1978-a352-4b27-8a17-0542a698e3c3"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "851cc7f5-6836-4bee-b412-f3d535f6995f",
+      "label": "SYN-M-053",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-053",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "07434b2a-80f4-405f-83c7-aed686219679",
+        "6d9ef562-38eb-4d9b-89bf-2ddb96bb7f4c"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "07434b2a-80f4-405f-83c7-aed686219679",
+      "label": "SYN-F-053",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-053",
+      "duplicate_group_id": "DUP-F-011",
+      "true_partner_ids": [
+        "851cc7f5-6836-4bee-b412-f3d535f6995f"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "e5ba704d-6d03-45e6-9f89-62cef67d1d1f",
+      "label": "SYN-M-054",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-054",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "61dab950-22d9-458d-ad6c-b14388942bb5"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "61dab950-22d9-458d-ad6c-b14388942bb5",
+      "label": "SYN-F-054",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-054",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "e5ba704d-6d03-45e6-9f89-62cef67d1d1f"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "b0e93ae1-e897-44e1-819b-d09c5b6113b1",
+      "label": "SYN-M-055",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-055",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "52c7c635-f09f-4189-91c7-889e3ad1d1de"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "52c7c635-f09f-4189-91c7-889e3ad1d1de",
+      "label": "SYN-F-055",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-055",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "b0e93ae1-e897-44e1-819b-d09c5b6113b1"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "1bb43a12-6b6e-4dd8-988a-48956806e713",
+      "label": "SYN-M-056",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-056",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "49d5408f-4fe8-4ef9-9d0f-0af7ba1428a3",
+        "7b5f8148-20a2-4b56-adc7-ac00e32b62c0"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "49d5408f-4fe8-4ef9-9d0f-0af7ba1428a3",
+      "label": "SYN-F-056",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-056",
+      "duplicate_group_id": "DUP-F-020",
+      "true_partner_ids": [
+        "1bb43a12-6b6e-4dd8-988a-48956806e713"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "2710c759-4447-447c-be72-9fd14116496d",
+      "label": "SYN-M-057",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-057",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "68db7feb-800d-4253-85ca-0d4d2f3cd58f"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "68db7feb-800d-4253-85ca-0d4d2f3cd58f",
+      "label": "SYN-F-057",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-057",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "2710c759-4447-447c-be72-9fd14116496d"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "cf06810d-5ffa-47c5-882b-423835d77608",
+      "label": "SYN-M-058",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-058",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "0c1e6c97-beb2-4ad8-ac25-e4b191703180"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "mixed",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "0c1e6c97-beb2-4ad8-ac25-e4b191703180",
+      "label": "SYN-F-058",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-058",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "cf06810d-5ffa-47c5-882b-423835d77608"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "f0b8ac02-b83d-4f02-b366-2a88c9e77b0e",
+      "label": "SYN-M-059",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-059",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "abf6863b-b136-49ca-bcff-f2b7581d769b"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "mixed",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "abf6863b-b136-49ca-bcff-f2b7581d769b",
+      "label": "SYN-F-059",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-059",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "f0b8ac02-b83d-4f02-b366-2a88c9e77b0e"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "95e5967b-c760-446b-b14f-4afd108b56f3",
+      "label": "SYN-M-060",
+      "kind": "missing",
+      "role": "pair_query",
+      "identity_id": "ID-P-060",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "7c53c62c-994c-4c2b-8095-b3b0947ae3bc"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "7c53c62c-994c-4c2b-8095-b3b0947ae3bc",
+      "label": "SYN-F-060",
+      "kind": "found",
+      "role": "pair_found",
+      "identity_id": "ID-P-060",
+      "duplicate_group_id": null,
+      "true_partner_ids": [
+        "95e5967b-c760-446b-b14f-4afd108b56f3"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "4c84ded9-1532-4ffb-aee7-2a01f5c756c0",
+      "label": "SYN-F-061",
+      "kind": "found",
+      "role": "dup_found",
+      "identity_id": "ID-P-032",
+      "duplicate_group_id": "DUP-F-001",
+      "true_partner_ids": [
+        "4d5f4854-632d-41c7-8505-5368735c6dd0"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "69dac66d-d618-40ac-9a86-a42c454406b6",
+      "label": "SYN-F-062",
+      "kind": "found",
+      "role": "dup_found",
+      "identity_id": "ID-P-052",
+      "duplicate_group_id": "DUP-F-002",
+      "true_partner_ids": [
+        "481d1978-a352-4b27-8a17-0542a698e3c3"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "8dd83f8b-438b-466b-8f95-ddff3edad58f",
+      "label": "SYN-F-063",
+      "kind": "found",
+      "role": "dup_found",
+      "identity_id": "ID-P-011",
+      "duplicate_group_id": "DUP-F-003",
+      "true_partner_ids": [
+        "e06bc523-74ab-4fc7-9b43-8ab0a07f9ff2"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "b39fb07e-5b48-46aa-a837-0335454cb08d",
+      "label": "SYN-F-064",
+      "kind": "found",
+      "role": "dup_found",
+      "identity_id": "ID-P-016",
+      "duplicate_group_id": "DUP-F-004",
+      "true_partner_ids": [
+        "d9063ad2-c063-4150-9c42-435553431e42"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "364bd07d-cbe1-459f-91e9-12e97fc9be96",
+      "label": "SYN-F-065",
+      "kind": "found",
+      "role": "dup_found",
+      "identity_id": "ID-P-041",
+      "duplicate_group_id": "DUP-F-005",
+      "true_partner_ids": [
+        "09db8358-9c31-4779-817b-b43ff7886d84"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "b130386a-0b42-472b-8050-c93f06e77b17",
+      "label": "SYN-F-066",
+      "kind": "found",
+      "role": "dup_found",
+      "identity_id": "ID-P-047",
+      "duplicate_group_id": "DUP-F-006",
+      "true_partner_ids": [
+        "2482999c-02be-43f1-9af7-58550ee645fa"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "3d9c4610-3085-41b9-a655-6594b56e1664",
+      "label": "SYN-F-067",
+      "kind": "found",
+      "role": "dup_found",
+      "identity_id": "ID-P-005",
+      "duplicate_group_id": "DUP-F-007",
+      "true_partner_ids": [
+        "dc5307f6-4cd0-4690-9763-961a8a85f5f3"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "3e397725-cd18-4ee4-a9a2-9f8428ae206c",
+      "label": "SYN-F-068",
+      "kind": "found",
+      "role": "dup_found",
+      "identity_id": "ID-P-007",
+      "duplicate_group_id": "DUP-F-008",
+      "true_partner_ids": [
+        "554e09f6-f48e-48d5-8e69-101647d06c27"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "91e136c8-062a-4749-b0ae-32f6c90226a1",
+      "label": "SYN-F-069",
+      "kind": "found",
+      "role": "dup_found",
+      "identity_id": "ID-P-025",
+      "duplicate_group_id": "DUP-F-009",
+      "true_partner_ids": [
+        "d9998f2a-75ed-41e6-a561-3d2e7b8c1d5f"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "d4c4c167-4c8e-4675-a39b-ecdf1a873077",
+      "label": "SYN-F-070",
+      "kind": "found",
+      "role": "dup_found",
+      "identity_id": "ID-P-036",
+      "duplicate_group_id": "DUP-F-010",
+      "true_partner_ids": [
+        "35341a99-5cd0-47ae-9dfb-21ce6187f489"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "6d9ef562-38eb-4d9b-89bf-2ddb96bb7f4c",
+      "label": "SYN-F-071",
+      "kind": "found",
+      "role": "dup_found",
+      "identity_id": "ID-P-053",
+      "duplicate_group_id": "DUP-F-011",
+      "true_partner_ids": [
+        "851cc7f5-6836-4bee-b412-f3d535f6995f"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "e3a69370-505c-4eae-af91-b50df2f39e9e",
+      "label": "SYN-F-072",
+      "kind": "found",
+      "role": "dup_found",
+      "identity_id": "ID-P-038",
+      "duplicate_group_id": "DUP-F-012",
+      "true_partner_ids": [
+        "92404fd3-5a9c-4535-ac70-16d940abc8de"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "1ed2d6a6-7281-49dc-bf78-f1acd1611c7c",
+      "label": "SYN-F-073",
+      "kind": "found",
+      "role": "dup_found",
+      "identity_id": "ID-P-037",
+      "duplicate_group_id": "DUP-F-013",
+      "true_partner_ids": [
+        "0bd045cf-736a-4150-b786-849f2efd4b86"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "e7004a43-dddd-48b1-afcc-19e25cb2b39a",
+      "label": "SYN-F-074",
+      "kind": "found",
+      "role": "dup_found",
+      "identity_id": "ID-P-044",
+      "duplicate_group_id": "DUP-F-014",
+      "true_partner_ids": [
+        "a0fae4d6-8f84-4327-94e2-a9a36bae09ca"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "c0d2b8a2-a128-4816-8510-ec99912d0d32",
+      "label": "SYN-F-075",
+      "kind": "found",
+      "role": "dup_found",
+      "identity_id": "ID-P-023",
+      "duplicate_group_id": "DUP-F-015",
+      "true_partner_ids": [
+        "38c43df0-c3c1-4c66-a39b-ad148e9bd753"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "ebe417b2-fa5d-445a-a0da-45c63f291d58",
+      "label": "SYN-F-076",
+      "kind": "found",
+      "role": "dup_found",
+      "identity_id": "ID-P-042",
+      "duplicate_group_id": "DUP-F-016",
+      "true_partner_ids": [
+        "9b0fa341-8f6e-4e9a-8e68-4f4e0a23d222"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "da2ba27e-a72c-486f-bb4b-637a879e6eb6",
+      "label": "SYN-F-077",
+      "kind": "found",
+      "role": "dup_found",
+      "identity_id": "ID-P-014",
+      "duplicate_group_id": "DUP-F-017",
+      "true_partner_ids": [
+        "c1f50b4a-853a-4831-a802-0559427647f9"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "d4f1996d-963c-41d0-b86b-15dc985e5718",
+      "label": "SYN-F-078",
+      "kind": "found",
+      "role": "dup_found",
+      "identity_id": "ID-P-046",
+      "duplicate_group_id": "DUP-F-018",
+      "true_partner_ids": [
+        "eef5551f-0e02-4217-a07d-ef567b324a42"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "31c67837-18f1-4d19-add9-264c8988d734",
+      "label": "SYN-F-079",
+      "kind": "found",
+      "role": "dup_found",
+      "identity_id": "ID-P-051",
+      "duplicate_group_id": "DUP-F-019",
+      "true_partner_ids": [
+        "9f4789d0-f7ab-40fc-a6ac-c0f578c75d75"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "7b5f8148-20a2-4b56-adc7-ac00e32b62c0",
+      "label": "SYN-F-080",
+      "kind": "found",
+      "role": "dup_found",
+      "identity_id": "ID-P-056",
+      "duplicate_group_id": "DUP-F-020",
+      "true_partner_ids": [
+        "1bb43a12-6b6e-4dd8-988a-48956806e713"
+      ],
+      "no_match": false,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "8f475a87-1588-4510-b9aa-64538333fd44",
+      "label": "SYN-M-061",
+      "kind": "missing",
+      "role": "no_match_query",
+      "identity_id": "ID-N-001",
+      "duplicate_group_id": "DUP-M-001",
+      "true_partner_ids": [],
+      "no_match": true,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": "mim",
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "c53f1a8b-4f44-4f70-9e65-3d9a09bc11b3",
+      "label": "SYN-M-062",
+      "kind": "missing",
+      "role": "no_match_query",
+      "identity_id": "ID-N-002",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": true,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": "sabbir",
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "e99c6fed-395d-4d51-8d34-315287e8703c",
+      "label": "SYN-M-063",
+      "kind": "missing",
+      "role": "no_match_query",
+      "identity_id": "ID-N-003",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": true,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "mixed",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "935957fb-26b2-480f-8663-9be6a0b7cfe0",
+      "label": "SYN-M-064",
+      "kind": "missing",
+      "role": "no_match_query",
+      "identity_id": "ID-N-004",
+      "duplicate_group_id": "DUP-M-002",
+      "true_partner_ids": [],
+      "no_match": true,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "mixed",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "6aa81211-38aa-471d-8d8a-adf02e94b8dc",
+      "label": "SYN-M-065",
+      "kind": "missing",
+      "role": "no_match_query",
+      "identity_id": "ID-N-005",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": true,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "706d8f10-62b0-43c6-84ba-b9d1963358e0",
+      "label": "SYN-M-066",
+      "kind": "missing",
+      "role": "no_match_query",
+      "identity_id": "ID-N-006",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": true,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "83b8b4c3-7e24-457b-8a89-25e6f76cec28",
+      "label": "SYN-M-067",
+      "kind": "missing",
+      "role": "no_match_query",
+      "identity_id": "ID-N-007",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": true,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "f5ffc68e-1953-4e88-86b1-06919900c9dc",
+      "label": "SYN-M-068",
+      "kind": "missing",
+      "role": "no_match_query",
+      "identity_id": "ID-N-008",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": true,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "2f5f578b-1148-48c0-b841-7047ab0fb9a1",
+      "label": "SYN-M-069",
+      "kind": "missing",
+      "role": "no_match_query",
+      "identity_id": "ID-N-009",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": true,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "d7c0fe40-4910-43e9-a3eb-c6b8f567afb9",
+      "label": "SYN-M-070",
+      "kind": "missing",
+      "role": "no_match_query",
+      "identity_id": "ID-N-010",
+      "duplicate_group_id": "DUP-M-004",
+      "true_partner_ids": [],
+      "no_match": true,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "8da0ed3b-5131-4eee-a50b-0bea16198d46",
+      "label": "SYN-M-071",
+      "kind": "missing",
+      "role": "no_match_query",
+      "identity_id": "ID-N-011",
+      "duplicate_group_id": "DUP-M-005",
+      "true_partner_ids": [],
+      "no_match": true,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "0c3f9c2b-586d-4fe9-b44c-833a9503044d",
+      "label": "SYN-M-072",
+      "kind": "missing",
+      "role": "no_match_query",
+      "identity_id": "ID-N-012",
+      "duplicate_group_id": "DUP-M-003",
+      "true_partner_ids": [],
+      "no_match": true,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "96cd1a70-3cc0-4978-90c3-2ab116fe4fb4",
+      "label": "SYN-M-073",
+      "kind": "missing",
+      "role": "no_match_query",
+      "identity_id": "ID-N-013",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": true,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "6dc9a1aa-238b-4000-af8e-ac78f513a3d7",
+      "label": "SYN-M-074",
+      "kind": "missing",
+      "role": "no_match_query",
+      "identity_id": "ID-N-014",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": true,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "mixed",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "bf7236fe-db55-403b-afab-4d7fd127e9f8",
+      "label": "SYN-M-075",
+      "kind": "missing",
+      "role": "no_match_query",
+      "identity_id": "ID-N-015",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": true,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "2162a98f-0215-4f78-8039-11afba6c0784",
+      "label": "SYN-M-076",
+      "kind": "missing",
+      "role": "dup_missing",
+      "identity_id": "ID-N-001",
+      "duplicate_group_id": "DUP-M-001",
+      "true_partner_ids": [],
+      "no_match": true,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "public_post",
+      "demo_role": "mim_public_post",
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "b1260177-3f27-45c3-a6a9-eb44c27c76c5",
+      "label": "SYN-M-077",
+      "kind": "missing",
+      "role": "dup_missing",
+      "identity_id": "ID-N-004",
+      "duplicate_group_id": "DUP-M-002",
+      "true_partner_ids": [],
+      "no_match": true,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "public_post",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "fc2b074c-b27c-41c0-87c2-1c7a1401869d",
+      "label": "SYN-M-078",
+      "kind": "missing",
+      "role": "dup_missing",
+      "identity_id": "ID-N-012",
+      "duplicate_group_id": "DUP-M-003",
+      "true_partner_ids": [],
+      "no_match": true,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "public_post",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "f0fe44b8-4921-4c07-8058-9549aad34e6e",
+      "label": "SYN-M-079",
+      "kind": "missing",
+      "role": "dup_missing",
+      "identity_id": "ID-N-010",
+      "duplicate_group_id": "DUP-M-004",
+      "true_partner_ids": [],
+      "no_match": true,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "public_post",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "de607fcd-f014-4dfe-985b-54d5320e9c87",
+      "label": "SYN-M-080",
+      "kind": "missing",
+      "role": "dup_missing",
+      "identity_id": "ID-N-011",
+      "duplicate_group_id": "DUP-M-005",
+      "true_partner_ids": [],
+      "no_match": true,
+      "decoy_type": null,
+      "decoy_target_ids": [],
+      "source_variant": "public_post",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "14080151-dde7-4847-8815-bd6c9a6cb716",
+      "label": "SYN-DF-001",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-001",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "wrong_district",
+      "decoy_target_ids": [
+        "1c624fe5-a281-4017-9eec-a2a92f7d3dd3"
+      ],
+      "source_variant": "bn",
+      "demo_role": "narayanganj_decoy",
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "dcda9443-c97f-4796-8adc-83acadabb70f",
+      "label": "SYN-DF-002",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-002",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "wrong_district",
+      "decoy_target_ids": [
+        "6aa81211-38aa-471d-8d8a-adf02e94b8dc"
+      ],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "4363f44d-0688-4671-a381-33877251cc64",
+      "label": "SYN-DF-003",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-003",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "same_clothing_diff_age",
+      "decoy_target_ids": [
+        "706d8f10-62b0-43c6-84ba-b9d1963358e0"
+      ],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "f077f7ed-c1a0-4511-bcde-4361c45099b3",
+      "label": "SYN-DF-004",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-004",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "unknown_age",
+      "decoy_target_ids": [
+        "e99c6fed-395d-4d51-8d34-315287e8703c"
+      ],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "844b6295-e73f-4145-b81c-a9bcfd8aa117",
+      "label": "SYN-DF-005",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-005",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "contradiction",
+      "decoy_target_ids": [
+        "0c3f9c2b-586d-4fe9-b44c-833a9503044d"
+      ],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "4427b1ee-a65c-4460-a192-ebc62e568ea0",
+      "label": "SYN-DF-006",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-006",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "same_clothing_diff_age",
+      "decoy_target_ids": [
+        "8f475a87-1588-4510-b9aa-64538333fd44"
+      ],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "3753cf82-08e8-48e6-bb37-306404fec436",
+      "label": "SYN-DF-007",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-007",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "unknown_age",
+      "decoy_target_ids": [
+        "bf7236fe-db55-403b-afab-4d7fd127e9f8"
+      ],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "75f52f84-0ae4-4da9-b659-e93a7df3540f",
+      "label": "SYN-DF-008",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-008",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "same_clothing_diff_age",
+      "decoy_target_ids": [
+        "935957fb-26b2-480f-8663-9be6a0b7cfe0"
+      ],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "622d256d-53ee-468e-9f9c-6d22cdc50dd7",
+      "label": "SYN-DF-009",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-009",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "shared_phone",
+      "decoy_target_ids": [
+        "96cd1a70-3cc0-4978-90c3-2ab116fe4fb4"
+      ],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "fce6baa2-197d-4bdb-8986-0b7322eff1f1",
+      "label": "SYN-DF-010",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-010",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "overlapping_time",
+      "decoy_target_ids": [
+        "83b8b4c3-7e24-457b-8a89-25e6f76cec28"
+      ],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "00727a31-66b3-4ddc-8e49-38969390f2d4",
+      "label": "SYN-DF-011",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-011",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "similar_name",
+      "decoy_target_ids": [
+        "6dc9a1aa-238b-4000-af8e-ac78f513a3d7"
+      ],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "45c8733b-77d5-4f63-a71b-b67d291d9457",
+      "label": "SYN-DF-012",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-012",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "shared_phone",
+      "decoy_target_ids": [
+        "2f5f578b-1148-48c0-b841-7047ab0fb9a1"
+      ],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "f82462d0-e67c-43f2-a914-90a5c482eb3b",
+      "label": "SYN-DF-013",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-013",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "similar_name",
+      "decoy_target_ids": [
+        "c53f1a8b-4f44-4f70-9e65-3d9a09bc11b3"
+      ],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "7e744356-b785-4c50-ac8f-69b2d464a947",
+      "label": "SYN-DF-014",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-014",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "overlapping_time",
+      "decoy_target_ids": [
+        "09db8358-9c31-4779-817b-b43ff7886d84"
+      ],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "ff81ffbf-6a82-4915-98ee-3d609eb859c8",
+      "label": "SYN-DF-015",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-015",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "similar_name",
+      "decoy_target_ids": [
+        "d9063ad2-c063-4150-9c42-435553431e42"
+      ],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "e9cf2106-f87b-4f1f-8625-695f7677a7a2",
+      "label": "SYN-DF-016",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-016",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "overlapping_time",
+      "decoy_target_ids": [
+        "712d27f8-cfac-4a43-ab88-460eec4fb990"
+      ],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "329a60aa-76f3-4477-b943-39aa828e7258",
+      "label": "SYN-DF-017",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-017",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "contradiction",
+      "decoy_target_ids": [
+        "35db9089-fbd4-4da9-9130-1c071230a6ff"
+      ],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "87f633f9-d146-4612-9f07-9be947392156",
+      "label": "SYN-DF-018",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-018",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "unknown_age",
+      "decoy_target_ids": [
+        "ceb60060-790f-473d-8382-0df2727db9da"
+      ],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "ad140a45-8ee9-44f2-86c3-29398f1f112c",
+      "label": "SYN-DF-019",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-019",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "contradiction",
+      "decoy_target_ids": [
+        "481d1978-a352-4b27-8a17-0542a698e3c3"
+      ],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "eec9ed90-6b18-4abc-b5c8-755c2fb64669",
+      "label": "SYN-DF-020",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-020",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "same_clothing_diff_age",
+      "decoy_target_ids": [
+        "f3766d22-9a4f-498b-8db5-3f6765d51536"
+      ],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "baa7caf3-9a6d-42cd-a5b6-0f15a2282c74",
+      "label": "SYN-DF-021",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-021",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "shared_phone",
+      "decoy_target_ids": [
+        "4d5f4854-632d-41c7-8505-5368735c6dd0"
+      ],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "60c31e05-36da-4c23-aaef-a0f5cdaf585f",
+      "label": "SYN-DF-022",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-022",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "contradiction",
+      "decoy_target_ids": [
+        "6a096dd9-be89-4a9c-8d4f-6e4d938f354f"
+      ],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "01d7d1b4-6bca-42c3-abe1-d7011cfae2e0",
+      "label": "SYN-DF-023",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-023",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "unknown_age",
+      "decoy_target_ids": [
+        "6f4cdc1d-bd83-45b2-a34f-2fd47a4b15a2"
+      ],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "0093dcd3-7773-4959-89d2-26c6d14b795f",
+      "label": "SYN-DF-024",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-024",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "same_clothing_diff_age",
+      "decoy_target_ids": [
+        "44048618-fd34-404d-8cb5-81b0d3daff34"
+      ],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "c744fbb4-e849-4069-8b2d-016736c07b0c",
+      "label": "SYN-DF-025",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-025",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "contradiction",
+      "decoy_target_ids": [
+        "1026431b-8b3d-4438-9477-8ead920b9b70"
+      ],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "f70bd886-c412-4d39-9a93-86fd382f953d",
+      "label": "SYN-DF-026",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-026",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "similar_name",
+      "decoy_target_ids": [
+        "63979042-8e99-4579-9b89-65faf0b0f820"
+      ],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "cfac878e-e767-47f1-9427-6db9adbe42d2",
+      "label": "SYN-DF-027",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-027",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "wrong_district",
+      "decoy_target_ids": [
+        "cf06810d-5ffa-47c5-882b-423835d77608"
+      ],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "e9e5b008-f923-4759-a7f0-8acac74663a8",
+      "label": "SYN-DF-028",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-028",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "wrong_district",
+      "decoy_target_ids": [
+        "1bb43a12-6b6e-4dd8-988a-48956806e713"
+      ],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "f4579b79-76f3-410d-a8e0-e1e2e3b3ba75",
+      "label": "SYN-DF-029",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-029",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "similar_name",
+      "decoy_target_ids": [
+        "42e6dea4-0a5d-4c04-8214-c44f9dfddf3f"
+      ],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "0beb5c90-08ac-4cd7-a638-7d45e5341d47",
+      "label": "SYN-DF-030",
+      "kind": "found",
+      "role": "decoy",
+      "identity_id": "ID-D-030",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "wrong_district",
+      "decoy_target_ids": [
+        "a0fae4d6-8f84-4327-94e2-a9a36bae09ca"
+      ],
+      "source_variant": "short",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "6efa676b-bd38-45e3-822c-3c5160981d54",
+      "label": "SYN-DM-001",
+      "kind": "missing",
+      "role": "decoy",
+      "identity_id": "ID-D-031",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "similar_name",
+      "decoy_target_ids": [
+        "ec9188aa-eedb-436c-88cb-ed79b99a3c56"
+      ],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "1f0b4689-ae92-4852-a5f5-49f58da805c4",
+      "label": "SYN-DM-002",
+      "kind": "missing",
+      "role": "decoy",
+      "identity_id": "ID-D-032",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "similar_name",
+      "decoy_target_ids": [
+        "19c866fb-a2ab-4cf6-9eec-2766ae99c1d9"
+      ],
+      "source_variant": "mixed",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "24b64a25-6b16-44b4-87fc-b5b54ce0ce79",
+      "label": "SYN-DM-003",
+      "kind": "missing",
+      "role": "decoy",
+      "identity_id": "ID-D-033",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "similar_name",
+      "decoy_target_ids": [
+        "f61439a9-4a15-4400-b235-c69127e68352"
+      ],
+      "source_variant": "mixed",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "cfab0144-33ca-4aba-9b31-f5f4fe8119a3",
+      "label": "SYN-DM-004",
+      "kind": "missing",
+      "role": "decoy",
+      "identity_id": "ID-D-034",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "wrong_district",
+      "decoy_target_ids": [
+        "a70e2c92-dbfd-4626-908b-2b70c2f605ce"
+      ],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "45a5f2d0-0b71-4868-b7c6-8bf4162c414b",
+      "label": "SYN-DM-005",
+      "kind": "missing",
+      "role": "decoy",
+      "identity_id": "ID-D-035",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "wrong_district",
+      "decoy_target_ids": [
+        "59a4a664-9c68-4b95-ad4a-185138702894"
+      ],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "5913bbe6-6706-43ce-908c-3c8536048239",
+      "label": "SYN-DM-006",
+      "kind": "missing",
+      "role": "decoy",
+      "identity_id": "ID-D-036",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "wrong_district",
+      "decoy_target_ids": [
+        "68db7feb-800d-4253-85ca-0d4d2f3cd58f"
+      ],
+      "source_variant": "en",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "4e7aa502-f36a-4de2-9c75-3fedc41d3b2f",
+      "label": "SYN-DM-007",
+      "kind": "missing",
+      "role": "decoy",
+      "identity_id": "ID-D-037",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "shared_phone",
+      "decoy_target_ids": [
+        "605b8eb2-5f7b-4e9e-950e-913ae99b4b39"
+      ],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "48412f71-e347-46f6-b26f-4c6f616b8215",
+      "label": "SYN-DM-008",
+      "kind": "missing",
+      "role": "decoy",
+      "identity_id": "ID-D-038",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "shared_phone",
+      "decoy_target_ids": [
+        "d4dae77e-7bab-4add-bfd4-d10d42aaf294"
+      ],
+      "source_variant": "mixed",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "401112e7-78ff-464d-99f3-ba10cc781b34",
+      "label": "SYN-DM-009",
+      "kind": "missing",
+      "role": "decoy",
+      "identity_id": "ID-D-039",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "shared_phone",
+      "decoy_target_ids": [
+        "c3c3b66f-b5e7-4c54-8d13-1b771473565e"
+      ],
+      "source_variant": "mixed",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    },
+    {
+      "record_id": "6cb13c96-6f4e-4533-9150-0df85467a7c9",
+      "label": "SYN-DM-010",
+      "kind": "missing",
+      "role": "decoy",
+      "identity_id": "ID-D-040",
+      "duplicate_group_id": null,
+      "true_partner_ids": [],
+      "no_match": false,
+      "decoy_type": "shared_phone",
+      "decoy_target_ids": [
+        "6bd5a17f-7175-4712-ab23-9973c5656924"
+      ],
+      "source_variant": "bn",
+      "demo_role": null,
+      "speaker_id": null,
+      "ground_truth_revision": "gt-1"
+    }
+  ]
+}

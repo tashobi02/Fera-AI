@@ -15,6 +15,7 @@
     "test:db": "node scripts/db/test-db.mjs",
     "model:fetch": "node -e \"console.error('model:fetch: not implemented'); process.exit(1)\"",
     "seed": "node db/seed/index.mjs",
+    "synth": "node db/seed/synthetic.mjs",
     "reembed": "node -e \"console.error('reembed: not implemented'); process.exit(1)\"",
     "spend": "node scripts/spend.mjs",
     "smoke": "node -e \"console.error('smoke: not implemented'); process.exit(1)\"",
