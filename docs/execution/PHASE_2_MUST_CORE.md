@@ -102,7 +102,7 @@ When one of these merges, tell the waiting person straight away; they rebase and
 ## Tasks — Masnun
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| TASK-016 | Embedding service + `npm run reembed` (COMP-011) | A · Codex | TASK-004 | 3 | 200 records embedded | `todo` | | |
+| TASK-016 | Embedding service + `npm run reembed` (COMP-011) | A · Codex | TASK-004 | 3 | 200 records embedded | `review` | branch `phase2--masnun-embeddings` (not pushed) | [embeddings.md](evidence/embeddings.md): real model, 200 records embedded locally; review pending |
 | TASK-017 | Matcher: BR-017 filters, national cosine, bonuses, qualify-or-abstain, template reasons (COMP-012) | A · Codex + `mle-reviewer` | TASK-015, 016 | 7 | TC-009 passes; first recall@5 printed (dev split only) | `todo` | | |
 | TASK-018 | Duplicate detector; shared phone only a weak cue (COMP-013) | A · Codex | TASK-016 | 3 | TC-013 passes | `todo` | | |
 | TASK-019 | Seed loader with synthetic labels and 3 demo cases | A · Codex | TASK-010 | 2 | `npm run seed -- --set demo` < 2 min | `review` | branch `phase2--masnun-seed` (PR pending; stacked on #33/#34) | [seed-cases.md](evidence/seed-cases.md): `seedCases` in `db/seed/cases.mjs`, seed-only path mirroring the case service (service takes no fixed id; `client_submission_id = record_id`), real audit rows. `demo` = 5 records, Rafi withheld (OD-010-4); `full` = 200. Demo run on a fresh local DB: under 1 s. 9 DB tests pass. `fera-review` not yet run. |
