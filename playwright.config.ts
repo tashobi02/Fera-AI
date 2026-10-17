@@ -96,6 +96,10 @@ export default defineConfig({
       FERA_DB_NAME: E2E_DB_NAME,
       DATABASE_URL: E2E_DATABASE_URL,
       FERA_E2E: "1",
+      // `npm start` runs in production mode, which refuses missing signing keys (D2B §15.1: 32+ random
+      // bytes, base64). Throwaway per-run keys; nothing real is signed.
+      AUTH_SECRET: randomBytes(32).toString("base64"),
+      PARENT_COOKIE_KEY: randomBytes(32).toString("base64"),
       // Synthetic-only prototype; no live provider call is made.
       DEMO_MODE: "1",
     },
