@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 // P3-213 unit tests for scripts/smoke.mjs. No network; every request is
 // served by a fake fetch passed into runSmoke. Also asserts the contract
 // between the .mjs literal and the Bangla locale it mirrors.
@@ -77,6 +78,41 @@ describe("runSmoke (P3-213, TASK-042)", () => {
     const skipped = getCheck(results, "synthetic-submit");
     expect(skipped.ok).toBe(true);
     expect(skipped.detail).toBe("skipped: synthetic submit not implemented");
+  });
+
+  it("fails the health check when the body is JSON but not synthetic_only", async () => {
+    const origin = "http://127.0.0.1:3000";
+    const base = okFetch(origin);
+    const fetchImpl = (input: string) => {
+      if (new URL(input, origin).pathname === "/api/health") return json({ version: "0.0.0", synthetic_only: false })();
+      return base(input);
+    };
+    const health = getCheck(await runSmoke(origin, fetchImpl as unknown as typeof fetch), "health");
+    expect(health.ok).toBe(false);
+    expect(health.detail).toContain("not synthetic");
+  });
+
+  it("reports a body read that times out as a fixed 'timeout' reason", async () => {
+    const origin = "http://127.0.0.1:3000";
+    const base = okFetch(origin);
+    const fetchImpl = (input: string) => {
+      if (new URL(input, origin).pathname !== "/api/health") return base(input);
+      const stalled = { status: 200, headers: new Headers(), text: () => Promise.reject(Object.assign(new Error(BODY_MARKER), { name: "TimeoutError" })) };
+      return Promise.resolve(stalled as unknown as Response);
+    };
+    const health = getCheck(await runSmoke(origin, fetchImpl as unknown as typeof fetch), "health");
+    expect(health.ok).toBe(false);
+    expect(health.detail).toContain("timeout");
+    expect(health.detail).not.toContain(BODY_MARKER);
+  });
+
+  it("CLI: a base URL with a path or an unknown flag exits 2 and never echoes the flag value", () => {
+    const run = (...args: string[]) => spawnSync(process.execPath, ["scripts/smoke.mjs", ...args], { encoding: "utf8" });
+    const pathUrl = run("http://127.0.0.1:1/fera");
+    expect(pathUrl.status).toBe(2);
+    const flag = run("--token=hunter2");
+    expect(flag.status).toBe(2);
+    expect(flag.stderr + flag.stdout).not.toContain("hunter2");
   });
 
   it("fails the health check when /api/health returns 500 JSON", async () => {

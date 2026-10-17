@@ -27,6 +27,9 @@
 // .mjs cannot import the TS locale, so the expected Bangla badge text is
 // duplicated here and asserted to match the locale value in the unit test
 // (tests/scripts/smoke.test.ts reads the locale source).
+import { realpathSync } from "node:fs";
+import { pathToFileURL } from "node:url";
+
 const SYNTHETIC_BADGE_BN = "সিনথেটিক"; // src/locales/index.ts bn.syntheticBadge
 
 const DEFAULT_BASE_URL = "http://127.0.0.1:3000";
@@ -72,10 +75,13 @@ function safeOrigin(rawBaseUrl) {
   if (!ALLOWED_PROTOCOLS.has(url.protocol)) {
     throw new SmokeUsageError(`invalid base URL: protocol must be http or https`);
   }
+  if (url.pathname !== "/" || url.search || url.hash) {
+    throw new SmokeUsageError("invalid base URL: give an origin without a path");
+  }
   // Strip userinfo defensively; we never want credentials in the request path.
   url.username = "";
   url.password = "";
-  return url.toString().replace(/\/$/, "");
+  return url.origin;
 }
 
 async function fetchOnce(origin, path, fetchImpl) {
@@ -83,27 +89,24 @@ async function fetchOnce(origin, path, fetchImpl) {
   // Strip any userinfo that could ride along if origin was passed in unexpectedly.
   target.username = "";
   target.password = "";
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const signal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
   let res;
+  let text = "";
   try {
     res = await fetchImpl(target.toString(), {
       method: "GET",
       redirect: "manual",
-      signal: controller.signal,
+      signal,
       // No credentials: cookies/auth are never sent by a smoke check.
       credentials: "omit",
       headers: { accept: "application/json, text/html;q=0.9, */*;q=0.1" },
     });
+    // 3xx bodies are never read; every other body is read while the timeout is live.
+    if (res.status < 300 || res.status >= 400) text = await res.text();
   } catch (err) {
-    clearTimeout(timer);
     // Do not echo the URL, the body, or the raw error; only a short, fixed reason.
-    if (err && typeof err === "object" && "name" in err && err.name === "AbortError") {
-      return { ok: false, reason: "timeout" };
-    }
-    return { ok: false, reason: "network error" };
-  } finally {
-    clearTimeout(timer);
+    const timedOut = err && typeof err === "object" && "name" in err && (err.name === "AbortError" || err.name === "TimeoutError");
+    return { ok: false, reason: timedOut ? "timeout" : "network error" };
   }
 
   // Refuse to follow redirects to a different origin; report as a failure with
@@ -125,7 +128,7 @@ async function fetchOnce(origin, path, fetchImpl) {
     return { ok: false, reason: "redirect" };
   }
 
-  return { ok: true, status: res.status, response: res, target };
+  return { ok: true, status: res.status, text };
 }
 
 async function checkHealth(origin, fetchImpl) {
@@ -136,13 +139,16 @@ async function checkHealth(origin, fetchImpl) {
   if (r.status !== 200) {
     return { name: "health", ok: false, detail: `fail (status ${r.status})` };
   }
-  // Read a small slice of the body to confirm JSON; do not keep it.
+  // Confirm JSON from the body already read; never print it.
   try {
-    const text = await r.response.text();
+    const text = r.text;
     if (!text) {
       return { name: "health", ok: false, detail: "fail (empty body)" };
     }
-    JSON.parse(text);
+    // API-019 publishes synthetic_only: a deployment without it must not pass.
+    if (JSON.parse(text)?.synthetic_only !== true) {
+      return { name: "health", ok: false, detail: "fail (not synthetic)" };
+    }
   } catch {
     return { name: "health", ok: false, detail: "fail (not JSON)" };
   }
@@ -157,7 +163,7 @@ async function checkHomeBadge(origin, fetchImpl) {
   if (r.status !== 200) {
     return { name: "home-badge", ok: false, detail: `fail (status ${r.status})` };
   }
-  const html = await r.response.text();
+  const html = r.text;
   if (!html.includes(SYNTHETIC_BADGE_BN)) {
     return { name: "home-badge", ok: false, detail: "fail (badge missing)" };
   }
@@ -172,7 +178,7 @@ async function checkSignInForm(origin, fetchImpl) {
   if (r.status !== 200) {
     return { name: "sign-in-form", ok: false, detail: `fail (status ${r.status})` };
   }
-  const html = await r.response.text();
+  const html = r.text;
   if (!/<form\b/i.test(html)) {
     return { name: "sign-in-form", ok: false, detail: "fail (no <form>)" };
   }
@@ -193,41 +199,42 @@ function parseArgs(argv) {
     if (typeof a !== "string") continue;
     if (a.startsWith("--")) {
       // The smoke CLI has no flags today; any flag is a usage error.
-      throw new SmokeUsageError(`unknown flag: ${a}`);
+      throw new SmokeUsageError("unknown flag");
     }
     positional.push(a);
   }
   return positional;
 }
 
-function main(argv) {
-  const args = parseArgs(argv);
-  const baseUrl = args[0] || process.env.SMOKE_BASE_URL || DEFAULT_BASE_URL;
+async function main(argv) {
   let origin;
   try {
-    origin = safeOrigin(baseUrl);
+    const args = parseArgs(argv);
+    origin = safeOrigin(args[0] || process.env.SMOKE_BASE_URL || DEFAULT_BASE_URL);
   } catch (err) {
-    process.stderr.write(`smoke: ${err && err.message ? err.message : "invalid base URL"}\n`);
-    process.stderr.write("usage: smoke.mjs <base-url>\n");
+    const usage = err instanceof SmokeUsageError;
+    process.stderr.write(`smoke: ${usage ? err.message : "invalid arguments"}\nusage: smoke.mjs <base-url>\n`);
     return 2;
   }
-  return runSmoke(origin).then((results) => {
-    // Print one line per check. Status code 0 iff every non-skipped check passed.
-    const counted = results.filter((r) => r.name !== "synthetic-submit");
-    const allOk = counted.every((r) => r.ok);
-    for (const r of results) {
-      process.stdout.write(`${r.name}: ${r.detail}\n`);
-    }
-    return allOk ? 0 : 1;
-  });
+  let results;
+  try {
+    results = await runSmoke(origin);
+  } catch {
+    process.stderr.write("smoke: internal error\n");
+    return 1;
+  }
+  // Exit 0 iff every non-skipped check passed; the skipped step is printed, not counted.
+  for (const r of results) process.stdout.write(`${r.name}: ${r.detail}\n`);
+  return results.filter((r) => r.name !== "synthetic-submit").every((r) => r.ok) ? 0 : 1;
 }
 
-// Run only when invoked directly (not when imported by the unit test).
-const invokedDirectly =
-  typeof process !== "undefined" &&
-  process.argv[1] &&
-  (process.argv[1].endsWith("/smoke.mjs") || process.argv[1].endsWith("\\smoke.mjs"));
-if (invokedDirectly) {
-  const code = await main(process.argv.slice(2));
-  process.exit(code);
-}
+// Run only when invoked directly (not when imported by the unit test). Compared by real
+// path so a symlink or renamed copy still runs instead of silently exiting 0.
+const invokedDirectly = (() => {
+  try {
+    return Boolean(process.argv[1]) && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href;
+  } catch {
+    return false;
+  }
+})();
+if (invokedDirectly) process.exit(await main(process.argv.slice(2)));
