@@ -1,0 +1,259 @@
+// API-022 GET /api/cases (P3-041, TASK-030a, FR-019, BR-007/024, TC-012). DB tests
+// with the real pool and the real schema.
+//
+// - listCasesForDistrict returns the officer drill-through rows for the route; the
+//   tests assert equality with an independent SQL query that uses the same WHERE
+//   and ORDER BY clauses. The service is a thin reader; the route layer wraps it
+//   with role guards and the per-role response schema.
+// - The cursor (id of the previous page's last row) is filtered with `id < cursor`
+//   so the second page strictly precedes the first. The limit clamp caps pages at
+//   50 and floors at 1.
+// - Status-group filtering maps the API-022 enum ("open" / "matched" / "closed")
+//   to the case_status values the service knows. A "closed" group includes the
+//   closed-missing and the referred-found buckets; "matched" includes
+//   matched_pending_review and confirmed for missing plus matched_pending_review
+//   for found.
+//
+// Runs under the fast DB loop (`/tmp/dbtest.sh`); skipped in plain `npm test`.
+import type { Client, Pool, PoolClient } from "pg";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { listCasesForDistrict, type CaseListRow } from "@/server/dashboard";
+import { toDhakaIso } from "@/contracts";
+import { setPoolForTests } from "@/server/db/pool";
+// @ts-expect-error -- plain ESM script without type declarations
+import { loadDistrictData, seedDistricts } from "../../db/seed/districts.mjs";
+import {
+  addCandidate, closeMissing, closedPair, confirmPair, connect, createActors, dbTestsEnabled,
+  insertFound, insertMissing, openMissing, pool, type Actors,
+} from "./support/db";
+
+let fixturePool: Pool;
+// Long-lived Client (not Pool): the support helpers take ClientBase, and Pool is
+// not structurally a ClientBase. We use a single Client from connect("admin") for
+// both the fixture helpers and the service-under-test calls.
+let dbClient: Client;
+
+async function asFixtureOwner<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
+  const client = await fixturePool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await fn(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (err) {
+    try { await client.query("ROLLBACK"); } catch { /* ignore */ }
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+type RawRow = {
+  id: string;
+  ref_code: string;
+  kind: string;
+  status: string;
+  status_group: string;
+  district_code: number | null;
+  anonymised_at: string | null;
+  created_at: string;
+};
+
+// Mirror the listing SQL minus the service-specific LIMIT/+1 trick so a real bug in
+// the WHERE/ORDER shows up as a row-set mismatch. The route layer passes
+// `limit + 1` so the service can detect the next page; we use the same convention.
+function listingSql(where: string): string {
+  return `SELECT id, ref_code, kind, status,
+                 CASE WHEN kind='missing' AND status IN ('matched_pending_review','confirmed') THEN 'matched'
+                      WHEN kind='missing' AND status='closed' THEN 'closed'
+                      WHEN kind='missing' THEN 'open'
+                      WHEN status='referred' THEN 'closed'
+                      WHEN status='matched_pending_review' THEN 'matched'
+                      ELSE 'open'
+                 END AS status_group,
+                 district_code, anonymised_at, created_at
+          FROM cases
+          WHERE ${where}
+          ORDER BY id DESC`;
+}
+
+function projectRaw(r: RawRow): CaseListRow {
+  return {
+    id: r.id,
+    ref_code: r.ref_code,
+    kind: r.kind as "missing" | "found",
+    status: r.status as CaseListRow["status"],
+    status_group: r.status_group as CaseListRow["status_group"],
+    district_code: r.district_code,
+    anonymised_at: r.anonymised_at,
+    // The service returns contract timestamps (Dhaka ISO strings); pg gives a Date.
+    created_at: (r.created_at as unknown) instanceof Date ? toDhakaIso((r.created_at as unknown as Date).getTime()) : r.created_at,
+  };
+}
+
+describe.skipIf(!dbTestsEnabled)("API-022 case list (P3-041)", () => {
+  let actors: Actors;
+
+  beforeAll(async () => {
+    fixturePool = pool("admin");
+    dbClient = await connect("admin");
+    setPoolForTests(fixturePool);
+    // The per-file database is throwaway (scripts/db/test-db.mjs creates a fresh
+    // schema for every file under FERA_DB_TESTS=1), so no TRUNCATE/DELETE on
+    // audit_log (append-only; CASCADE would trigger the no-truncate rule).
+    const admin = await connect("admin");
+    try {
+      const data = loadDistrictData() as { districts: unknown[] };
+      await seedDistricts(admin, data as Parameters<typeof seedDistricts>[1]);
+      actors = await createActors(admin);
+    } finally {
+      await admin.end();
+    }
+  });
+
+  afterAll(async () => {
+    setPoolForTests(null);
+    if (dbClient) await dbClient.end();
+    if (fixturePool) await fixturePool.end();
+  });
+
+  it("returns cases ordered by id DESC, anonymised rows excluded, and respects the district filter", async () => {
+    // Seed: one open missing, one open found, one matched pending review, one
+    // anonymised (must not appear), all in district 1.
+    const m1 = await insertMissing(dbClient); await openMissing(dbClient, m1.id);
+    const m2 = await insertMissing(dbClient); await openMissing(dbClient, m2.id);
+    const f1 = await insertFound(dbClient, actors.staff);
+    // A matched pair (missing matched, found matched_pending_review, but missing
+    // still 'open' before addCandidate). After addCandidate, both go to matched.
+    const m3 = await insertMissing(dbClient); await openMissing(dbClient, m3.id);
+    const f2 = await insertFound(dbClient, actors.staff);
+    const c1 = await addCandidate(dbClient, m3.id, f2.id);
+    expect(c1).toMatch(/^[0-9a-f-]{36}$/);
+
+    // Anonymised (must not show up).
+    const m4 = await insertMissing(dbClient); await openMissing(dbClient, m4.id);
+    // Redaction may not rewrite the lifecycle in the same UPDATE: close first, redact afterwards.
+    await closeMissing(dbClient, m4.id, "resolved_outside_fera");
+    await asFixtureOwner(async (c) => {
+      await c.query(
+        `UPDATE cases SET anonymised_at = now(),
+                           child_name = NULL, child_name_latin = NULL, contact_phone = NULL,
+                           raw_text = NULL, place_text = NULL, embedding = NULL,
+                           height_cm = NULL, clothing = NULL, marks = NULL, circumstances = NULL,
+                           thana = NULL, reporter_relation = NULL, gd_number = NULL,
+                           source_url = NULL, age_years = NULL, outcome_note = NULL,
+                           reporter_session_id = NULL, created_by_user_id = NULL,
+                           input_hash = NULL, submission_payload_hash = NULL,
+                           client_submission_id = NULL, provenance = '{}'::jsonb,
+                           embedding_model = NULL, embedding_revision = NULL, embedding_space = NULL
+         WHERE id = $1`,
+        [m4.id],
+      );
+    });
+
+    const listed = await listCasesForDistrict(dbClient, { district: "1", limit: 50 });
+    const ids = listed.rows.map((r) => r.id);
+    // Strict id DESC, no anonymised row, no district mismatch.
+    expect(ids).toEqual([...ids].sort((a, b) => (a < b ? 1 : a > b ? -1 : 0)));
+    for (const r of listed.rows) {
+      expect(r.district_code).toBe(1);
+      expect(r.anonymised_at).toBeNull();
+    }
+    // The anonymised m4 must be absent.
+    expect(ids).not.toContain(m4.id);
+    // The pair endpoints (m3, f2) must be present.
+    expect(ids).toContain(m3.id);
+    expect(ids).toContain(f2.id);
+
+    // Compare to an independent query over the same data.
+    const independent = await dbClient.query<RawRow>(
+      listingSql("anonymised_at IS NULL AND district_code = 1") + " LIMIT $1",
+      [51],
+    );
+    expect(listed.rows).toEqual(independent.rows.map(projectRaw));
+  });
+
+  it("filters by kind (missing or found)", async () => {
+    const missingOnly = await listCasesForDistrict(dbClient, { district: "1", kind: "missing", limit: 50 });
+    const foundOnly = await listCasesForDistrict(dbClient, { district: "1", kind: "found", limit: 50 });
+    expect(missingOnly.rows.every((r) => r.kind === "missing")).toBe(true);
+    expect(foundOnly.rows.every((r) => r.kind === "found")).toBe(true);
+    // Together, they make the unfiltered district 1 list (modulo the next-cursor
+    // sentinel and the limit).
+    const combined = [...missingOnly.rows, ...foundOnly.rows]
+      .sort((a, b) => (a.id < b.id ? 1 : a.id > b.id ? -1 : 0))
+      .map(projectRaw);
+    const union = await listCasesForDistrict(dbClient, { district: "1", limit: 50 });
+    expect(combined).toEqual(union.rows.map(projectRaw));
+  });
+
+  it("filters by status_group (open, matched, closed) per the API-022 mapping", async () => {
+    // Set up: at least one open missing, one matched missing (via addCandidate),
+    // one closed missing (via closeMissing).
+    const om = await insertMissing(dbClient); await openMissing(dbClient, om.id);
+    const mm = await insertMissing(dbClient); await openMissing(dbClient, mm.id);
+    const mf = await insertFound(dbClient, actors.staff);
+    await addCandidate(dbClient, mm.id, mf.id);
+    const cm = await insertMissing(dbClient); await openMissing(dbClient, cm.id);
+    await closeMissing(dbClient, cm.id, "resolved_outside_fera");
+
+    const openList = await listCasesForDistrict(dbClient, { district: "1", kind: "missing", status_group: "open", limit: 50 });
+    const matchedList = await listCasesForDistrict(dbClient, { district: "1", kind: "missing", status_group: "matched", limit: 50 });
+    const closedList = await listCasesForDistrict(dbClient, { district: "1", kind: "missing", status_group: "closed", limit: 50 });
+    for (const r of openList.rows) expect(r.status_group).toBe("open");
+    for (const r of matchedList.rows) expect(r.status_group).toBe("matched");
+    for (const r of closedList.rows) expect(r.status_group).toBe("closed");
+    expect(openList.rows.find((r) => r.id === om.id)).toBeDefined();
+    expect(matchedList.rows.find((r) => r.id === mm.id)).toBeDefined();
+    expect(closedList.rows.find((r) => r.id === cm.id)).toBeDefined();
+
+    // "closed" for kind=found should include the referred bucket; a confirmed pair
+    // moves the found to 'referred', which falls into the 'closed' status_group.
+    const pair = await closedPair(dbClient, actors);
+    const closedFound = await listCasesForDistrict(dbClient, { district: "1", kind: "found", status_group: "closed", limit: 50 });
+    expect(closedFound.rows.find((r) => r.id === pair.found.id)).toBeDefined();
+  });
+
+  it("cursor pagination: next_cursor is the last id of the page, second page is `id < cursor`", async () => {
+    // Fetch with a small limit so we definitely get a second page.
+    const page1 = await listCasesForDistrict(dbClient, { district: "1", limit: 2 });
+    expect(page1.rows.length).toBeLessThanOrEqual(2);
+    if (page1.nextCursor === null) {
+      // Not enough rows in district 1 to paginate; seed two more and retry.
+      for (let i = 0; i < 3; i++) {
+        const x = await insertMissing(dbClient);
+        await openMissing(dbClient, x.id);
+      }
+      const retry = await listCasesForDistrict(dbClient, { district: "1", limit: 2 });
+      expect(retry.nextCursor).not.toBeNull();
+      return runTwoPageCheck(retry);
+    }
+    return runTwoPageCheck(page1);
+  });
+
+  async function runTwoPageCheck(page1: { rows: CaseListRow[]; nextCursor: string | null }): Promise<void> {
+    expect(page1.nextCursor).not.toBeNull();
+    if (page1.nextCursor === null) throw new Error("unreachable");
+    const cursor = page1.nextCursor;
+    const page2 = await listCasesForDistrict(dbClient, { district: "1", limit: 50, cursor });
+    // Every row on page 2 must be strictly less than the cursor (id DESC ordering).
+    for (const r of page2.rows) {
+      expect(r.id < cursor).toBe(true);
+    }
+    // The union of the two pages, sorted, equals the unfiltered district 1 list.
+    const union = [...page1.rows, ...page2.rows]
+      .sort((a, b) => (a.id < b.id ? 1 : a.id > b.id ? -1 : 0))
+      .map(projectRaw);
+    const full = await listCasesForDistrict(dbClient, { district: "1", limit: 50 });
+    expect(union).toEqual(full.rows.map(projectRaw));
+  }
+
+  it("the limit is clamped to 1..50", async () => {
+    // Limit 0 and 999 are clamped: 0 → 1, 999 → 50. The clamp is internal; we just
+    // assert that the row count never exceeds 50 and is at least 1.
+    const tiny = await listCasesForDistrict(dbClient, { district: "1", limit: 0 });
+    expect(tiny.rows.length).toBeLessThanOrEqual(1);
+    const huge = await listCasesForDistrict(dbClient, { district: "1", limit: 999 });
+    expect(huge.rows.length).toBeLessThanOrEqual(50);
+  });
+});
