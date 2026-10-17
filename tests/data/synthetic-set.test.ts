@@ -8,7 +8,7 @@ import { foundSubmissionDraftSchema, missingSubmissionDraftSchema } from "../../
 // @ts-expect-error -- plain ESM module without type declarations
 import { loadDistrictData } from "../../db/seed/districts.mjs";
 // @ts-expect-error -- plain ESM module without type declarations
-import { outputs } from "../../db/seed/synthetic.mjs";
+import { NAMES, outputs } from "../../db/seed/synthetic.mjs";
 
 const dir = join(process.cwd(), "data", "synthetic");
 const read = (n: string) => readFileSync(join(dir, n), "utf8");
@@ -32,7 +32,12 @@ const rows = gt.records;
 const byId = new Map(rows.map((r) => [r.record_id, r]));
 const recById = new Map(records.map((r) => [r.record_id, r]));
 const districts = loadDistrictData().districts as { code: number; neighbours: number[] }[];
-const near = (a: number, b: number) => a === b || districts.find((d) => d.code === a)!.neighbours.includes(b);
+function must<T>(m: Map<string, T>, k: string): T {
+  const v = m.get(k);
+  if (v === undefined) throw new Error(`missing id ${k}`);
+  return v;
+}
+const near = (a: number, b: number) => a === b || (districts.find((d) => d.code === a)?.neighbours ?? []).includes(b);
 const mid = (c: Draft["child"]) => (c.age_years ?? ((c.age_min ?? NaN) + (c.age_max ?? NaN)) / 2);
 
 describe("synthetic set (A-039)", () => {
@@ -74,6 +79,21 @@ describe("synthetic set (A-039)", () => {
     }
   });
 
+  it("record ids are v4-shaped UUIDs", () => {
+    for (const r of records) expect(r.record_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+
+  it("every phone number inside the report text is in the fictional block too", () => {
+    let seen = 0;
+    for (const r of records) {
+      for (const m of r.draft.source_text.match(/01\d{9}|০১[০-৯]{9}/g) ?? []) {
+        seen++;
+        expect(m.startsWith("0120000") || m.startsWith("০১২০০০০"), `${r.record_id}: ${m}`).toBe(true);
+      }
+    }
+    expect(seen).toBeGreaterThan(50);
+  });
+
   it("uses only the fictional phone block, with no photo or coordinate key", () => {
     for (const r of records) {
       expect(r.draft.reporter.phone).toMatch(/^0120000\d{4}$/);
@@ -88,7 +108,7 @@ describe("ground truth consistency", () => {
     for (const r of rows) {
       for (const pid of r.true_partner_ids) {
         expect(byId.has(pid), `${r.label} partner ${pid}`).toBe(true);
-        const p = byId.get(pid)!;
+        const p = must(byId, pid);
         expect(p.kind).not.toBe(r.kind);
         expect(p.identity_id).toBe(r.identity_id);
         expect(p.true_partner_ids).toContain(r.record_id);
@@ -119,7 +139,7 @@ describe("ground truth consistency", () => {
   });
 
   it("split groups keep identities, duplicates, partners and decoy+target together", () => {
-    const groupOf = (id: string) => byId.get(id)!.split_group_id;
+    const groupOf = (id: string) => must(byId, id).split_group_id;
     for (const r of rows) {
       for (const id of [...r.true_partner_ids, ...r.decoy_target_ids]) expect(groupOf(id)).toBe(r.split_group_id);
       for (const o of rows) if (o.identity_id === r.identity_id || (r.duplicate_group_id && o.duplicate_group_id === r.duplicate_group_id)) expect(o.split_group_id).toBe(r.split_group_id);
@@ -136,7 +156,7 @@ describe("decoys have the property their type names", () => {
     for (const d of decoys) {
       expect(d.true_partner_ids).toEqual([]);
       expect(d.decoy_target_ids).toHaveLength(1);
-      const t = byId.get(d.decoy_target_ids[0])!;
+      const t = must(byId, d.decoy_target_ids[0]);
       expect(t.kind).not.toBe(d.kind);
       expect(t.identity_id).not.toBe(d.identity_id);
     }
@@ -145,8 +165,16 @@ describe("decoys have the property their type names", () => {
 
   it.each([
     ["wrong_district", (d: Draft, t: Draft) => expect(near(d.event.district_code, t.event.district_code)).toBe(false)],
-    ["similar_name", (d: Draft, t: Draft) => { if (d.child.name && t.child.name) expect(d.child.name).not.toBe(t.child.name); }],
+    ["similar_name", (d: Draft, t: Draft) => {
+      if (!d.child.name || !t.child.name) return;
+      const pool = [...(NAMES.MALE as string[][]), ...(NAMES.FEMALE as string[][])];
+      const pair = pool.find((n) => n[0] === t.child.name || n[2] === t.child.name);
+      expect(pair, `${t.child.name} is in the name pool`).toBeDefined();
+      expect([pair![2], pair![0]]).toContain(d.child.name);
+      expect(d.child.name).not.toBe(t.child.name);
+    }],
     ["same_clothing_diff_age", (d: Draft, t: Draft) => {
+      expect(d.child.clothing).toBe(t.child.clothing);
       expect(Math.abs(mid(d.child) - mid(t.child))).toBeGreaterThanOrEqual(3);
     }],
     ["contradiction", (d: Draft, t: Draft) => expect(d.child.sex !== t.child.sex || d.child.marks !== t.child.marks).toBe(true)],
@@ -156,12 +184,12 @@ describe("decoys have the property their type names", () => {
   ] as const)("%s", (type, check) => {
     const mine = decoys.filter((d) => d.decoy_type === type);
     expect(mine.length).toBeGreaterThan(0);
-    for (const r of mine) check(recById.get(r.record_id)!.draft, recById.get(r.decoy_target_ids[0])!.draft);
+    for (const r of mine) check(must(recById, r.record_id).draft, must(recById, r.decoy_target_ids[0]).draft);
   });
 
   it("similar_name found decoys carry a name; only same-sex confusables are used", () => {
     for (const r of decoys.filter((d) => d.decoy_type === "similar_name" && d.kind === "found")) {
-      const d = recById.get(r.record_id)!.draft, t = recById.get(r.decoy_target_ids[0])!.draft;
+      const d = must(recById, r.record_id).draft, t = must(recById, r.decoy_target_ids[0]).draft;
       expect(d.child.name).not.toBeNull();
       expect(d.child.sex).toBe(t.child.sex);
     }
@@ -176,15 +204,15 @@ describe("no shortcuts (RISK-007)", () => {
   });
 
   it("phone does not separate the classes: true pairs and unrelated records both share contacts", () => {
-    const sharedPairs = rows.filter((r) => r.role === "pair_found" && r.true_partner_ids.some((p) => recById.get(p)!.draft.reporter.phone === recById.get(r.record_id)!.draft.reporter.phone));
+    const sharedPairs = rows.filter((r) => r.role === "pair_found" && r.true_partner_ids.some((p) => must(recById, p).draft.reporter.phone === must(recById, r.record_id).draft.reporter.phone));
     expect(sharedPairs.length).toBeGreaterThanOrEqual(5);
-    const foundFound = rows.filter((r) => r.kind === "found" && r.decoy_type === null && r.phone_shared_with_other_identities.some((id) => byId.get(id)!.kind === "found"));
+    const foundFound = rows.filter((r) => r.kind === "found" && r.decoy_type === null && r.phone_shared_with_other_identities.some((id) => must(byId, id).kind === "found"));
     expect(foundFound.length).toBeGreaterThanOrEqual(5);
-    const missingMissing = rows.filter((r) => r.kind === "missing" && r.decoy_type === null && r.phone_shared_with_other_identities.some((id) => byId.get(id)!.kind === "missing"));
+    const missingMissing = rows.filter((r) => r.kind === "missing" && r.decoy_type === null && r.phone_shared_with_other_identities.some((id) => must(byId, id).kind === "missing"));
     expect(missingMissing.length).toBeGreaterThanOrEqual(4);
     for (const r of rows) {
-      const phone = recById.get(r.record_id)!.draft.reporter.phone;
-      for (const id of r.phone_shared_with_other_identities) expect(recById.get(id)!.draft.reporter.phone).toBe(phone);
+      const phone = must(recById, r.record_id).draft.reporter.phone;
+      for (const id of r.phone_shared_with_other_identities) expect(must(recById, id).draft.reporter.phone).toBe(phone);
     }
   });
 
@@ -199,7 +227,7 @@ describe("no shortcuts (RISK-007)", () => {
 
   it("duplicates do not all repeat the place string or the phone", () => {
     const groups = new Map<string, Rec[]>();
-    for (const r of rows) if (r.duplicate_group_id) groups.set(r.duplicate_group_id, [...(groups.get(r.duplicate_group_id) ?? []), recById.get(r.record_id)!]);
+    for (const r of rows) if (r.duplicate_group_id) groups.set(r.duplicate_group_id, [...(groups.get(r.duplicate_group_id) ?? []), must(recById, r.record_id)]);
     const samePlace = [...groups.values()].filter(([a, b]) => a.draft.event.place_text === b.draft.event.place_text).length;
     expect(samePlace).toBeLessThan(25);
     expect(samePlace).toBeGreaterThan(0);
@@ -222,9 +250,9 @@ describe("demo cases and plausibility", () => {
 
   it("a true pair shares sex, and the found age range covers the missing age", () => {
     for (const r of rows.filter((x) => x.role === "pair_query")) {
-      const m = recById.get(r.record_id)!.draft;
+      const m = must(recById, r.record_id).draft;
       for (const pid of r.true_partner_ids) {
-        const f = recById.get(pid)!.draft;
+        const f = must(recById, pid).draft;
         expect(f.child.sex).toBe(m.child.sex);
         if (f.child.age_min !== null) {
           expect(f.child.age_min).toBeLessThanOrEqual(m.child.age_years!);

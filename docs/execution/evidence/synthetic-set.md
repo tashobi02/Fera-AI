@@ -13,8 +13,8 @@ All records are **synthetic**. No real child, photo, face, ID document or exact 
 | `db/seed/synthetic.mjs` | Deterministic generator (seed 1010, revision `synth-2`). `npm run synth` writes; `npm run synth -- --check` fails if the committed files differ; unknown arguments are rejected. The random-draw order is frozen once TASK-064 freezes the manifest. |
 | `data/synthetic/records.jsonl` | 200 lines, in shuffled order: opaque `record_id`, `kind`, `is_synthetic: true`, `draft` (a submission draft). No label, role or partner. |
 | `data/synthetic/ground_truth.json` | Per record: label, role, identity, duplicate group, **`split_group_id`**, true partners, no-match flag, decoy type and target, source variant, demo role, other-identity phone sharing, `ground_truth_revision` (`gt-1`). Also the `districts.json` SHA-256 the set was built from. |
-| `data/synthetic/{ground_truth,records}.sha256` | SHA-256 of each file. ground_truth.json: `4d58c21c86cdfc48fdc0007c6fa81f9ee2dcc251d3f051431fff4bd45c1e11b0`. records.jsonl: `6d848e5226ba6f8cfbf1cbdf2a22f5d83561e3bf3abffa7b1682ddd363c17a9f`. |
-| `tests/data/synthetic-set.test.ts` | 27 tests: composition, determinism, hashes, schema parse, symmetry, split-group closure, one assertion per decoy type, and anti-leakage checks. |
+| `data/synthetic/{ground_truth,records}.sha256` | SHA-256 of each file. ground_truth.json: `4d58c21c86cdfc48fdc0007c6fa81f9ee2dcc251d3f051431fff4bd45c1e11b0`. records.jsonl: `0391c36d8ae40b6bfb7494ab2ee2f7552e48ea8431fe910623eb4c9dce5bfde1`. |
+| `tests/data/synthetic-set.test.ts` | 29 tests: composition, determinism, hashes, schema parse, symmetry, split-group closure, one assertion per decoy type, and anti-leakage checks. |
 
 ## Composition (OD-010-1)
 
@@ -55,7 +55,15 @@ Decoy types: wrong_district, similar_name, same_clothing_diff_age, contradiction
 
 | Command | Result |
 |---|---|
-| `npx vitest run tests/data/synthetic-set.test.ts` | 27 passed |
+| `npx vitest run tests/data/synthetic-set.test.ts` | 29 passed |
 | `npm run synth -- --check` | committed files match the generator |
 
-Full lint/typecheck/test/build and `fera-review` results are in the PR.
+`fera-review` round 2 on commit `1faa0f1`: safeguarding PASS; typescript and mle no BLOCK; bengali APPROVE. Round 1 had a safeguarding BLOCK (017 prefix) and an mle BLOCK (leakage), both fixed. A final polish commit followed (temple place, colour guard, stronger tests).
+
+## Residual signals the evaluation must disclose (MLE round 2)
+
+- Missing-side variants differ by role: `mixed` text appears for 19 of 60 pair queries but for none of the 15 no-match queries (small-n effect); `public_post` is also missing-side only. Found-side variants are balanced across roles.
+- Place equality is a weak-to-moderate duplicate signal (19 of 25 duplicate groups share the place string; 15 of 29 found-found same-place pairs are duplicates). Name + place + sex is still a strong duplicate rule: report it as such.
+- Found-before-missing never occurs for true pairs but occurs for 10 of 40 decoys, so a "found must not precede missing" filter helps; report results with and without it.
+- Phone: sharing a number is 71 % precise and 25 % sensitive for true pairs here; report phone-sharing, place-equality and time-window results separately.
+- Effective n is small (see Denominators). Do not claim national accuracy from this set.

@@ -32,6 +32,7 @@ const OUT = join(ROOT, "data", "synthetic");
 export const GROUND_TRUTH_REVISION = "gt-1";
 export const GENERATOR_REVISION = "synth-2";
 export const SEED = 1010;
+export const NAMES = { MALE: null, FEMALE: null }; // filled below so tests can check confusable pairs
 
 /* ---------- deterministic helpers ---------- */
 
@@ -70,13 +71,15 @@ const FEMALE = [
   ["পারভীন", "Parvin", "পারুল", "Parul"], ["শিউলি", "Shiuli", "শিমুল", "Shimul"], ["মারিয়া", "Maria", "মরিয়ম", "Moriom"],
   ["রূপা", "Rupa", "রূপালী", "Rupali"], ["প্রিয়া", "Priya", "প্রিয়াঙ্কা", "Priyanka"], ["মিতা", "Mita", "মিনা", "Mina"],
 ];
+NAMES.MALE = MALE;
+NAMES.FEMALE = FEMALE;
 const COLOURS = [
   ["নীল", "blue"], ["লাল", "red"], ["সবুজ", "green"], ["হলুদ", "yellow"], ["সাদা", "white"],
   ["কালো", "black"], ["কমলা", "orange"], ["বেগুনি", "purple"], ["ধূসর", "grey"],
 ];
 const TOPS_M = [["শার্ট", "shirt"], ["গেঞ্জি", "t-shirt"], ["পাঞ্জাবি", "panjabi"]];
 const BOTTOMS_M = [["হাফ প্যান্ট", "shorts"], ["জিন্স", "jeans"], ["প্যান্ট", "trousers"]];
-const TOPS_F = [["জামা", "dress top"], ["ফ্রক", "frock"], ["কুর্তি", "kurti"]];
+const TOPS_F = [["জামা", "top"], ["ফ্রক", "frock"], ["কুর্তি", "kurti"]];
 const BOTTOMS_F = [["পায়জামা", "pyjamas"], ["জিন্স", "jeans"], ["লেগিংস", "leggings"]];
 const MARKS = [
   ["বাম হাতে কাটা দাগ", "scar on the left hand"], ["ডান গালে তিল", "mole on the right cheek"],
@@ -88,11 +91,11 @@ const MARKS = [
 const FOUND_PLACES = [
   ["রেলস্টেশন", "at the railway station"], ["বাসস্ট্যান্ড", "at the bus stand"], ["বাজার", "at the market"], ["মসজিদের সামনে", "outside the mosque"],
   ["লঞ্চঘাট", "at the launch ghat"], ["স্কুলের কাছে", "near the school"], ["হাসপাতালের সামনে", "outside the hospital"], ["মেলা প্রাঙ্গণ", "at the fairground"],
-  ["ফেরিঘাট", "at the ferry ghat"], ["চায়ের দোকানের সামনে", "outside a tea stall"],
+  ["ফেরিঘাট", "at the ferry ghat"], ["মন্দিরের সামনে", "outside the temple"], ["চায়ের দোকানের সামনে", "outside a tea stall"],
 ];
 const HOME_PLACES = [
   ["বাসার কাছে", "near home"], ["মাদ্রাসার কাছে", "near the madrasa"], ["খেলার মাঠ", "at the playground"], ["বাজার", "at the market"],
-  ["স্কুলের সামনে", "outside the school"], ["মসজিদের কাছে", "near the mosque"], ["পুকুরপাড়", "by the pond"], ["বাস্তুহারা কলোনির মোড়", "at the colony crossing"],
+  ["স্কুলের সামনে", "outside the school"], ["মসজিদের কাছে", "near the mosque"], ["পুকুরপাড়", "by the pond"], ["মন্দিরের কাছে", "near the temple"], ["বাস্তুহারা কলোনির মোড়", "at the colony crossing"],
 ];
 const CIRCUMSTANCES = [
   ["একা ঘুরছিল", "was wandering alone"], ["কাঁদছিল", "was crying"], ["নিজের বাড়ির ঠিকানা বলতে পারছিল না", "could not give a home address"],
@@ -114,6 +117,7 @@ const dhakaParts = (ms) => {
 };
 const todBn = (h) => (h < 4 ? "রাতে" : h < 6 ? "ভোরে" : h < 12 ? "সকালে" : h < 15 ? "দুপুরে" : h < 18 ? "বিকেলে" : h < 20 ? "সন্ধ্যায়" : "রাতে");
 const todEn = (h) => (h < 4 ? "at night" : h < 6 ? "at dawn" : h < 12 ? "in the morning" : h < 15 ? "at midday" : h < 18 ? "in the afternoon" : h < 20 ? "in the evening" : "at night");
+const distinctColours = (c) => (c.topC[1] === c.botC[1] ? { ...c, botC: COLOURS[(COLOURS.indexOf(COLOURS.find((x) => x[1] === c.botC[1])) + 3) % COLOURS.length] } : c);
 const aOrAn = (w) => (/^[aeiou]/i.test(w) ? "an" : "a");
 // Genitive attached to a place name: vowel ending takes র, consonant ending takes ের.
 const genBn = (name) => (/[অ-ঔা-ৌ]$/u.test(name) ? `${name}র` : `${name}ের`);
@@ -188,23 +192,24 @@ export function generate(districtData, districtsSha256 = "") {
     const child = t.sex === "male" ? terms.m : terms.f;
     const phone = over.phone ?? t.phone;
     const phoneText = chance(0.25) ? bnNum(phone) : phone; // some parents type Bangla digits
+    const clothes = distinctColours(t.clothing);
     const hour = dhakaParts(at).hour;
     const marksBn = t.mark ? ` ${t.mark[0]} আছে।` : "";
     const marksEn = t.mark ? ` ${he(t.sex)} has a ${t.mark[1]}.` : "";
     const [nameBn, nameEn] = t.name;
     let text;
     if (variant === "en") {
-      text = `My ${t.sex === "male" ? "son" : "daughter"} ${nameEn}, ${t.age} years old, went missing ${place[1]} in ${d.name_en} on ${dateEn(at)} ${todEn(hour)}. ${he(t.sex)} was wearing ${clothesEn(t.clothing)}.${marksEn} Please call ${phone}.`;
+      text = `My ${t.sex === "male" ? "son" : "daughter"} ${nameEn}, ${t.age} years old, went missing ${place[1]} in ${d.name_en} on ${dateEn(at)} ${todEn(hour)}. ${he(t.sex)} was wearing ${clothesEn(clothes)}.${marksEn} Please call ${phone}.`;
     } else if (variant === "mixed") {
-      text = `আমার ${child} ${nameBn} (${nameEn}), বয়স ${bnNum(t.age)}, ${dateBn(at)} ${todBn(hour)} ${genBn(d.name_bn)} ${fromBn(place)} missing। ${t.clothing.topC[1]} ${t.clothing.top[1]} আর ${t.clothing.botC[1]} ${t.clothing.bottom[1]} পরা ছিল।${marksBn} ফোন ${phone}`;
+      text = `আমার ${child} ${nameBn} (${nameEn}), বয়স ${bnNum(t.age)}, ${dateBn(at)} ${todBn(hour)} ${genBn(d.name_bn)} ${fromBn(place)} missing। ${clothes.topC[1]} ${clothes.top[1]} আর ${clothes.botC[1]} ${clothes.bottom[1]} পরা ছিল।${marksBn} ফোন ${phone}`;
     } else if (variant === "public_post") {
-      text = `জরুরি: ${bnNum(t.age)} বছরের একটি ${t.sex === "male" ? "ছেলে" : "মেয়ে"}, নাম ${nameBn}, ${dateBn(at)} ${genBn(d.name_bn)} ${fromBn(place)} নিখোঁজ। পরনে ${clothesBn(t.clothing, true)}।${marksBn} খোঁজ পেলে ${phoneText} নম্বরে জানান।`;
+      text = `জরুরি: ${bnNum(t.age)} বছরের একটি ${t.sex === "male" ? "ছেলে" : "মেয়ে"}, নাম ${nameBn}, ${dateBn(at)} ${genBn(d.name_bn)} ${fromBn(place)} নিখোঁজ। পরনে ${clothesBn(clothes, true)}।${marksBn} খোঁজ পেলে ${phoneText} নম্বরে জানান।`;
     } else {
-      text = `আমার ${child} ${nameBn}, বয়স ${bnNum(t.age)} বছর। ${dateBn(at)} ${todBn(hour)} ${genBn(d.name_bn)} ${fromBn(place)} হারিয়ে গেছে। পরনে ${clothesBn(t.clothing)} ছিল।${marksBn} যোগাযোগ: ${phoneText}`;
+      text = `আমার ${child} ${nameBn}, বয়স ${bnNum(t.age)} বছর। ${dateBn(at)} ${todBn(hour)} ${genBn(d.name_bn)} ${fromBn(place)} হারিয়ে গেছে। পরনে ${clothesBn(clothes)} ছিল।${marksBn} যোগাযোগ: ${phoneText}`;
     }
     const draft = {
       kind: "missing", source_text: text,
-      child: { name: nameBn, name_latin: nameEn, sex: t.sex, height_cm: t.height, clothing: clothesBn(t.clothing), marks: t.mark ? t.mark[0] : null, age_years: t.age, age_min: t.age, age_max: t.age },
+      child: { name: nameBn, name_latin: nameEn, sex: t.sex, height_cm: t.height, clothing: clothesBn(clothes), marks: t.mark ? t.mark[0] : null, age_years: t.age, age_min: t.age, age_max: t.age },
       event: { at_approx: !exact, thana: null, circumstances: null, at: toIso(at), at_lower: toIso(exact ? at : at - 2 * HOUR), at_upper: toIso(exact ? at : at + 2 * HOUR), place_text: `${d.name_bn} ${place[0]}`, district_text: null, district_code: d.code },
       reporter: { relation: rel, phone }, evidence: {},
     };
@@ -223,7 +228,7 @@ export function generate(districtData, districtsSha256 = "") {
     const sex = over.sex ?? t.sex;
     const nameKnown = over.nameKnown ?? chance(0.35);
     const name = over.name ?? t.name;
-    const clothing = over.clothing ?? t.clothing;
+    const clothing = distinctColours(over.clothing ?? t.clothing);
     const mark = over.mark === undefined ? t.mark : over.mark;
     const circ = over.circ ?? pick(CIRCUMSTANCES);
     const baseHeight = over.age !== undefined ? heightFor(over.age) : t.height;
