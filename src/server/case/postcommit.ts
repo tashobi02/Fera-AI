@@ -1,9 +1,9 @@
-// Awaited matcher trigger after the case/status transaction has committed.
+// Awaited matcher trigger after the case create/edit transaction has committed.
 // Dynamic imports keep the case command -> matcher -> case internals graph acyclic.
 import type { ServiceContext } from "./state";
 import type { MatcherRunResult } from "@/server/matching/run";
 
-export type MatcherPostcommitApi = "API-003" | "API-007";
+export type MatcherPostcommitApi = "API-003" | "API-005" | "API-007";
 export type MatcherPostcommit = (
   caseId: string,
   ctx: ServiceContext,
@@ -17,7 +17,7 @@ async function markPostcommitFailure(caseId: string, ctx: ServiceContext, api: M
   await withTransaction(async (client) => {
     const rows = await lockCases(client, [caseId]);
     const row = rows.get(caseId);
-    const kind = api === "API-003" ? "missing" : "found";
+    const kind = api === "API-007" ? "found" : "missing";
     if (!row || row.kind !== kind || row.anonymised_at !== null) return;
     await client.query(
       `UPDATE cases SET matching_state = 'failed', matched_at = NULL, match_error_id = 'E-021'
@@ -59,7 +59,7 @@ export function setMatcherPostcommit(fn: MatcherPostcommit): void {
 }
 
 /**
- * Run matching synchronously after the create/open transaction has committed.
+ * Run matching synchronously after the create/open/edit transaction has committed.
  * The run uses the runtime's bounded PostgreSQL statement timeout and the
  * found-report fan-out is capped with deferred missing rows left `queued` for
  * API-014. A rejection is never detached from the serverless request.

@@ -19,6 +19,7 @@ import { errorEnvelopeSchema, type MissingSubmissionDraft, type UpdateCaseReques
 import { parentPrincipal, type Principal } from "@/contracts/server";
 import { PATCH } from "@/app/api/cases/[id]/route";
 import { defaultAuth } from "@/server/auth/default";
+import { editOwnerCase, type EditOwnerCaseDeps } from "@/server/parent/edit-view";
 import type { Pool, PoolClient } from "pg";
 import { closeMissing, dbTestsEnabled, fakePhone, openMissing, pool, seedReference } from "./support/db";
 
@@ -176,6 +177,38 @@ describe.skipIf(!dbTestsEnabled)("API-005 cases edit (P3-102, TC-018)", () => {
     );
     expect(audits.rows.length).toBe(1);
     expect(audits.rows[0]?.actor_session_id).toBe(parentSessionId);
+  });
+
+  it("awaits matching after a committed edit, rereads its failed state, and skips stale or terminal edits", async () => {
+    const principal = parentPrincipal({ id: parentSessionId, expires_at: "2099-01-01T00:00:00+06:00", revoked_at: null });
+    expect(principal).not.toBeNull();
+    const fixture = await insertSubmittedMissingCase(parentSessionId);
+    await transitionMissingCase(fixture.id, "open");
+    const calls: Array<{ caseId: string; api: string }> = [];
+    const deps: EditOwnerCaseDeps = {
+      runMatcherPostcommit: async (caseId, _ctx, api) => {
+        calls.push({ caseId, api });
+        const committed = await appPool.query<{ version: number; child_name: string }>(
+          "SELECT version, child_name FROM cases WHERE id = $1",
+          [caseId],
+        );
+        expect(committed.rows[0]).toEqual({ version: fixture.version + 1, child_name: "[MOCK] Updated" });
+        await appPool.query(
+          `UPDATE cases SET matching_state = 'failed', matched_at = NULL, match_error_id = 'E-021' WHERE id = $1`,
+          [caseId],
+        );
+        return { caseId, state: "failed", candidates: [], considered: 0, abstained: false, errorId: "E-021" };
+      },
+    };
+    const ctx = { requestId: "api005-postcommit-test", pool: appPool };
+    const view = await editOwnerCase(principal!, fixture.id, REQUEST(fixture.version), ctx, deps);
+    expect(view.version).toBe(fixture.version + 1);
+    expect(view.matching_state).toBe("failed");
+    expect(calls).toEqual([{ caseId: fixture.id, api: "API-005" }]);
+
+    await expect(editOwnerCase(principal!, fixture.id, REQUEST(fixture.version), ctx, deps)).rejects.toMatchObject({ id: "E-005" });
+    await expect(editOwnerCase(principal!, closedCaseId, REQUEST(closedVersion), ctx, deps)).rejects.toMatchObject({ id: "E-018" });
+    expect(calls).toHaveLength(1);
   });
 
   it("other-party parent → E-004 envelope and access.denied with the real case FK", async () => {

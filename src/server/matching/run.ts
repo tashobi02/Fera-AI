@@ -23,7 +23,7 @@
 //      'failed' / `match_error_id` on the error path).
 //
 // The run is the SINGLE place candidates are ever created; API-014 calls it on
-// demand, and the API-003/API-007 route hooks call it after commit.
+// demand, and API-003/API-005/API-007 hooks call it after their writes commit.
 //
 // `runMatcherForCase(db, missingCaseId, opts)` is the only public entry point.
 // Everything else is internal. `opts.embedder` is required; tests inject
@@ -57,8 +57,8 @@ import { districtNeighbourFor, loadNeighbourSet } from "./neighbour";
 export type MatcherRunOptions = {
   /** Tests inject a deterministic embedder; production lazily loads the local E5 model. */
   embedder?: Embedder;
-  /** Source of the run for the audit. API-014 rematch → "API-014"; after-commit → "API-007"/"API-003". */
-  api: "API-003" | "API-007" | "API-014";
+  /** Source of the run for the audit: API-014 rematch or API-003/005/007 after-commit. */
+  api: "API-003" | "API-005" | "API-007" | "API-014";
   requestId?: string | null;
   /** Test seam: replace the transaction wrapper. */
   withTransaction?: typeof withTransaction;
