@@ -23,7 +23,7 @@ import { describe, expect, it } from "vitest";
 import { adminAuditResponseSchema, officerAuditResponseSchema } from "@/contracts";
 import { readCaseAudit } from "@/server/audit/safe-read";
 import type { Queryable } from "@/server/db/queryable";
-import { testUser } from "../support/principals";
+import { testParent, testUser } from "../support/principals";
 
 const CASE_ID = "33333333-3333-4333-8333-333333333301";
 const CASE_REF = "M-300001";
@@ -90,7 +90,7 @@ function auditRow(overrides: Partial<{
     actor_type: overrides.actor_type ?? "officer",
     actor_user_id: overrides.actor_user_id ?? OFFICER_ID,
     actor_session_id: overrides.actor_session_id ?? null,
-    actor_display: overrides.actor_display ?? "Anika Rahman",
+    actor_display: overrides.actor_display ?? "[MOCK] কর্মকর্তা",
     action: overrides.action ?? "case.closed",
     case_id: overrides.case_id ?? CASE_ID,
     candidate_id: overrides.candidate_id ?? null,
@@ -115,7 +115,7 @@ describe("readCaseAudit (API-013)", () => {
     const cases: ReadonlyArray<Record<string, unknown>> = [caseRow()];
     const audits: ReadonlyArray<Record<string, unknown>> = [auditRow()];
     // parent
-    const parent = testUser(PARENT_SESSION, "officer", { verified: false, isActive: false });
+    const parent = testParent(PARENT_SESSION);
     expect(await readCaseAudit(parent, CASE_ID, { db: q(cases, audits) })).toEqual({ kind: "hidden", caseId: CASE_ID });
     // staff
     const staff = testUser(STAFF_ID, "staff", { verified: true, isActive: true });
@@ -132,7 +132,7 @@ describe("readCaseAudit (API-013)", () => {
         at: "2026-10-17T09:00:00+06:00",
         action: "match.confirm",
         actor_user_id: OFFICER_ID,
-        actor_display: "Anika Rahman",
+        actor_display: "[MOCK] কর্মকর্তা",
         case_id: CASE_ID,
         candidate_id: CANDIDATE_ID,
         details: {
@@ -154,7 +154,7 @@ describe("readCaseAudit (API-013)", () => {
         at: "2026-10-17T10:00:00+06:00",
         action: "case.closed",
         actor_user_id: OFFICER_ID,
-        actor_display: "Anika Rahman",
+        actor_display: "[MOCK] কর্মকর্তা",
         case_id: CASE_ID,
         details: { ref_code: CASE_REF, outcome: "resolved_outside_fera", api: "API-011", reason_recorded: true },
       }),
@@ -175,7 +175,7 @@ describe("readCaseAudit (API-013)", () => {
     expect(decision.details.decision).toBe("confirm");
     // Officer sees actor identity (their own and any other officer/admin).
     expect(decision.actor_id).toBe(OFFICER_ID);
-    expect(decision.actor_display).toBe("Anika Rahman");
+    expect(decision.actor_display).toBe("[MOCK] কর্মকর্তা");
   });
 
   it("returns the admin view with the metadata allowlist only", async () => {
@@ -282,7 +282,7 @@ describe("readCaseAudit (API-013)", () => {
     // free text stored on `cases` is never read.
     const queries: string[] = [];
     const db: Queryable = {
-      query: async (text, values) => {
+      query: async (text) => {
         queries.push(text);
         if (text.startsWith("SELECT id, ref_code FROM cases")) return { rows: [caseRow()] };
         if (text.includes("FROM audit_log")) return { rows: [] };
@@ -327,7 +327,7 @@ describe("readCaseAudit (API-013)", () => {
     // parent → hidden, audit_log SELECT not issued
     {
       const { db, queries } = spyDb(cases, audits);
-      const parent = testUser(PARENT_SESSION, "officer", { verified: false, isActive: false });
+      const parent = testParent(PARENT_SESSION);
       const r = await readCaseAudit(parent, CASE_ID, { db });
       expect(r).toEqual({ kind: "hidden", caseId: CASE_ID });
       expect(queries.some((t) => t.includes("FROM audit_log"))).toBe(false);

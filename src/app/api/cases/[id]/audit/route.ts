@@ -18,8 +18,8 @@
 // per-row ref_code check inside the projection is what guarantees no row from another
 // case is exposed under this URL.
 import { z } from "zod";
-import { auditResponseSchema, type AuditResponse } from "@/contracts";
-import { ApiError, defineRoute } from "../../../_shared";
+import { adminAuditResponseSchema, officerAuditResponseSchema, type AuditResponse } from "@/contracts";
+import { ApiError, defineRoute, type RateLimitRule } from "../../../_shared";
 import { readCaseAudit } from "@/server/audit/safe-read";
 
 export const runtime = "nodejs"; // pg
@@ -27,10 +27,16 @@ export const runtime = "nodejs"; // pg
 // Keep malformed path IDs inside the authenticated E-004 path (as API-004): the service guards isUuid.
 const params = z.strictObject({ id: z.string() });
 
+// Not from the spec pack: a documented default, same shape as API-004. Every denial appends a
+// permanent access.denied row, so a signed-in principal must not be able to probe unbounded.
+const CASE_AUDIT_READ: RateLimitRule = { id: "case.audit.principal", limit: 240, windowMs: 60_000, scope: "principal", onStoreError: "allow" };
+
 export const GET = defineRoute({
   api: "API-013",
   params,
-  response: auditResponseSchema,
+  rateLimit: [CASE_AUDIT_READ],
+  // Per-role map (as API-004) so an officer-shaped body can never pass for an admin caller.
+  response: { officer: officerAuditResponseSchema, admin: adminAuditResponseSchema },
   handler: async ({ principal, params: p, requestId }): Promise<AuditResponse> => {
     const r = await readCaseAudit(principal, p.id, { requestId });
     if (r.kind === "hidden") throw new ApiError("E-004", { caseId: r.caseId ?? undefined });

@@ -38,11 +38,10 @@ const T = "audit_log";
 
 type AuditDetail = Record<string, unknown>;
 
-// pg returns jsonb as parsed objects; safe-typed as unknown here.
+// pg returns jsonb as parsed objects. A stored null, array or scalar is passed through
+// unchanged so projectAuditFor withholds and counts the row instead of showing it empty.
 function detailOf(r: unknown): AuditDetail {
-  const v = (asRow(T, r) as Record<string, unknown>).details;
-  if (typeof v !== "object" || v === null || Array.isArray(v)) return {};
-  return v as AuditDetail;
+  return (asRow(T, r) as Record<string, unknown>).details as AuditDetail;
 }
 
 function mapAuditRow(value: unknown): AuditRow {
