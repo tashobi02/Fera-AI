@@ -96,15 +96,16 @@ export function createAuth(deps: AuthDeps) {
     const principal = await principalFrom(source, cookies.secure);
     if (principal) return principal;
     const names = cookieNames(cookies.secure);
-    const parentCookie = singleCookie(source, names.parent).state;
-    if (MINTING_IF_NO_PARENT_COOKIE.includes(api) && parentCookie !== "absent") {
-      cookies.clear(names.parent); // E-002 now; the next submit mints (OD-022-5)
+    // A credential cookie that failed means "sign in again", never "become a parent",
+    // and never touch the parent cookie: it may still be valid (the credential cookie
+    // decided alone, so the parent cookie was not even read).
+    if (singleCookie(source, names.session).state !== "absent") return null;
+    if (MINTING_IF_NO_PARENT_COOKIE.includes(api) && singleCookie(source, names.parent).state !== "absent") {
+      cookies.clear(names.parent); // dead parent cookie: E-002 now; the next submit mints (OD-022-5)
       return null;
     }
     const mints = MINTING_APIS.includes(api) || MINTING_IF_NO_PARENT_COOKIE.includes(api);
     if (!mints) return null;
-    // A credential cookie that failed means "sign in again", never "become a parent".
-    if (singleCookie(source, names.session).state !== "absent") return null;
     return mintParent(cookies);
   };
 

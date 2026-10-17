@@ -266,6 +266,17 @@ describe("parent sessions (D2A §9.1, BR-007 ownership)", () => {
     expect(t.store.created).toBe(0);
   });
 
+  it("a failed credential cookie never clears a valid parent cookie on API-003", async () => {
+    const t = setup();
+    const row = t.store.addSession();
+    const res = await call(t.route("API-003"), `${t.names.session}=garbage; ${t.parent(row.id)}`);
+    await expectError(res, "E-002");
+    expect(res.headers.getSetCookie()).toEqual([]);
+    expect(t.store.created).toBe(0);
+    // The parent cookie still works once the stale credential cookie is gone.
+    expect(await (await call(t.route("API-003"), t.parent(row.id))).json()).toEqual({ role: "parent", id: row.id });
+  });
+
   it("with Secure cookies, API-003 ignores an unprefixed fera_ps and mints a __Host- session", async () => {
     const t = setup({ secure: true });
     const row = t.store.addSession();
