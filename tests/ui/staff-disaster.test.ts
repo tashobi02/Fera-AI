@@ -66,7 +66,7 @@ describe("SCREEN-015 disaster mode page", () => {
     expect(en).toContain("Planned expansion");
     expect(en).toContain("Flood and cyclone shelters");
     expect(bn).toContain("পরিকল্পিত সম্প্রসারণ");
-    expect(bn).toContain("বন্যা ও ঘূর্ণিঝড় আশ্রয়কেন্দ্র");
+    expect(bn).toContain("বন্যা ও ঘূর্ণিঝড়ের আশ্রয়কেন্দ্র");
   });
 
   it("shows the honest intro and the synthetic-data note in both languages", async () => {
@@ -74,7 +74,7 @@ describe("SCREEN-015 disaster mode page", () => {
     const bn = await page("bn");
     expect(en).toContain("This mode is not live yet");
     expect(en).toContain("Synthetic data");
-    expect(bn).toContain("এই মোড এখনো চালু নেই");
+    expect(bn).toContain("এই মোড এখনো চালু হয়নি");
     expect(bn).toContain("সিনথেটিক তথ্য");
     // the [MOCK] badge is reused from the shared locale
     expect(en).toContain("[MOCK]");
