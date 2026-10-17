@@ -7,6 +7,18 @@
 // thing that does the work: it does NOT touch the database and does NOT
 // read .env* files.
 //
+// SECURITY HARDENING (P3-024, this lane):
+//   * The runtime loader (src/server/embeddings/model.ts) refuses remote
+//     downloads by default (`env.allowRemoteModels = false`). This script
+//     is the ONLY entry point that enables remote fetching, via the
+//     explicit `allowRemote: true` option. Without the option the call
+//     would be allowed to fail and the operator would have to set
+//     `FERA_EMBED_ALLOW_REMOTE=1` as a separate, auditable step.
+//   * The cache directory is resolved from the repository root via
+//     `import.meta.url`, so this script and `scripts/reembed.mjs` and the
+//     loader all agree on the same `.cache/models` path regardless of
+//     the cwd.
+//
 // Behaviour
 //   * Refuses to run if the cache directory is not gitignored — a hard
 //     guard against accidentally committing a 100-MiB ONNX file.
@@ -25,14 +37,20 @@
 //   2  the cache dir is not gitignored (refused)
 
 import { existsSync, readFileSync, readdirSync, statSync, mkdirSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const MODEL = "Xenova/multilingual-e5-small";
-const CACHE_DIR = resolve(".cache/models");
+// Resolve the cache dir from the repository root (this file lives at
+// scripts/model-fetch.mjs, so two `..` get us to the repo root), and then
+// join with the gitignored .cache/models. The same path is used by
+// scripts/reembed.mjs and src/server/embeddings/model.ts so all three
+// agree when run from any directory.
+const CACHE_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..", ".cache", "models");
 const DTYPE = "fp32";
 const ONNX_NAME = DTYPE === "fp32" ? "model.onnx" : DTYPE === "q8" ? "model_quantized.onnx" : `model_${DTYPE}.onnx`;
 
-const GITIGNORE = resolve(".gitignore");
+const GITIGNORE = resolve(dirname(fileURLToPath(import.meta.url)), "..", ".gitignore");
 const REQUIRED_GITIGNORE_LINE = ".cache/";
 
 function dirSize(dir) {
@@ -80,6 +98,11 @@ async function main() {
   // loaded when the script actually runs, so a syntax check of the file
   // never triggers a download.
   const { env, pipeline } = await import("@huggingface/transformers");
+  // SECURITY HARDENING: this script is the one place that is allowed to
+  // turn remote downloads on. Every other code path (the loader and
+  // reembed.mjs) keeps `env.allowRemoteModels = false`. The setting is
+  // local to this script's process; nothing else inherits it.
+  env.allowRemoteModels = true;
   env.cacheDir = CACHE_DIR;
 
   const t0 = Date.now();

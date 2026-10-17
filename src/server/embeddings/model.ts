@@ -4,8 +4,9 @@
 // Tests pass a FAKE embedder (deterministic 384-d vectors) and never download
 // the model. Production calls `loadLocalEmbedder` which lazily imports
 // `@huggingface/transformers`, downloads the model into a gitignored cache
-// directory the first time, and is cached on `globalThis` so a Next.js dev
-// hot reload does not leak a pipeline per edit.
+// directory the first time, and is cached per (model, cacheDir) on `globalThis`
+// so a Next.js dev hot reload does not leak a pipeline per edit and so calls
+// with different cache directories do not collide.
 //
 // `embedTexts` always returns L2-normalised Float32Array of length 384
 // (D2A §2.3, schema_v2.sql `vector(384)`). The contract from the brief:
@@ -17,9 +18,39 @@
 // `loadLocalEmbedder` so a unit test that only uses FakeEmbedder never touches
 // onnxruntime-node. `createFakeEmbedder` returns deterministic vectors derived
 // from the text, so a test can assert on a known input/output pair.
+//
+// Security hardening (P3-024, this lane):
+//   * The default loader refuses to fetch from huggingface.co: it sets
+//     `env.allowRemoteModels = false` on the Transformers.js environment
+//     before calling `pipeline()`. Only callers that pass
+//     `allowRemote: true` (currently `scripts/model-fetch.mjs` and ad-hoc
+//     CI priming scripts) can reach the network.
+//   * The default cache directory is resolved from the repository root via
+//     `import.meta.url`, not the current working directory, so the loader,
+//     `scripts/reembed.mjs`, and `scripts/model-fetch.mjs` agree when run
+//     from anywhere.
+//   * Model revision: docs/execution/evidence/embedding-spike.md does not
+//     record a specific revision hash, so we do NOT pin one. UNKNOWN: model
+//     revision not pinned (not recorded in embedding-spike.md). The open
+//     decision is listed in docs/execution/evidence/embedding-dependency-note.md.
 import { existsSync, readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 export const EMBEDDING_DIM = 384;
+
+/**
+ * Resolve the repository root from this module's URL. Used to anchor the
+ * default `.cache/models` directory so the loader, `scripts/reembed.mjs`,
+ * and `scripts/model-fetch.mjs` all agree regardless of the cwd.
+ */
+function repoRoot(): string {
+  // src/server/embeddings/model.ts → ../../../  (repo root)
+  return resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+}
+
+/** Default gitignored cache directory (relative to the repository root). */
+export const DEFAULT_CACHE_DIR = resolve(repoRoot(), ".cache/models");
 
 /**
  * The space tag we store with each vector. Switching the model, the dtype, the
@@ -54,6 +85,15 @@ export type LocalEmbedderOptions = {
   queryPrefix?: string;
   passagePrefix?: string;
   revision?: string;
+  /**
+   * Allow the pipeline to fetch model files from huggingface.co.
+   * Defaults to `false`; only scripts that explicitly need to populate the
+   * cache (`scripts/model-fetch.mjs`, occasional CI priming) pass `true`.
+   * The runtime path (loader + `scripts/reembed.mjs`) must never go
+   * remote: if the cache is empty the call is allowed to fail and the
+   * operator must prime the cache with `npm run model:fetch`.
+   */
+  allowRemote?: boolean;
 };
 
 export type Embedder = {
@@ -119,7 +159,7 @@ export function normaliseVectors(
  * the e5 production policy in `docs/execution/evidence/embedding-spike.md`:
  * query: / passage: prefix, mean pooling, L2 normalisation, fp32 dtype.
  */
-export const DEFAULT_LOCAL_OPTIONS: Required<Omit<LocalEmbedderOptions, "revision" | "cacheDir">> = {
+export const DEFAULT_LOCAL_OPTIONS: Required<Omit<LocalEmbedderOptions, "revision" | "cacheDir" | "allowRemote">> = {
   model: "Xenova/multilingual-e5-small",
   dtype: "fp32",
   pooling: "mean",
@@ -129,61 +169,94 @@ export const DEFAULT_LOCAL_OPTIONS: Required<Omit<LocalEmbedderOptions, "revisio
 };
 
 /**
- * Cached pipeline slot. Survives Next.js dev hot reloads via globalThis so we
- * do not download the model every edit.
+ * Cached pipeline slots. Keyed by `(model, cacheDir)` on globalThis so a
+ * Next.js dev hot reload does not leak a pipeline per edit AND so calls
+ * with different cache directories (e.g. a unit test that wants its own
+ * cache root) do not collide.
  */
 type CachedSlot = { promise: Promise<Embedder> | null };
+type SlotTable = Record<string, CachedSlot>;
 
-function slot(): CachedSlot {
-  const g = globalThis as unknown as { __feraEmbedderSlot?: CachedSlot };
-  if (!g.__feraEmbedderSlot) g.__feraEmbedderSlot = { promise: null };
-  return g.__feraEmbedderSlot;
+function slotTable(): SlotTable {
+  const g = globalThis as unknown as { __feraEmbedderSlots?: SlotTable };
+  if (!g.__feraEmbedderSlots) g.__feraEmbedderSlots = {};
+  return g.__feraEmbedderSlots;
+}
+
+function cacheKey(model: string, cacheDir: string): string {
+  return `${model}::${cacheDir}`;
 }
 
 /**
  * Lazily load the local Transformers.js pipeline and return an Embedder.
- * The first call downloads the model into `cacheDir` (default `.cache/models`,
- * already gitignored). Subsequent calls reuse the cached pipeline.
+ * The first call downloads the model into `cacheDir` (default `.cache/models`
+ * anchored at the repository root, already gitignored). Subsequent calls
+ * with the same `(model, cacheDir)` reuse the cached pipeline.
+ *
+ * By default the loader REFUSES to fetch from huggingface.co: it sets
+ * `env.allowRemoteModels = false` on the Transformers.js environment
+ * before calling `pipeline()`. Operators must prime the cache with
+ * `scripts/model-fetch.mjs` (which passes `allowRemote: true`). This is
+ * the security hardening required by the runtime path of P3-024.
  *
  * The import of `@huggingface/transformers` is inside the function so a test
  * that only uses FakeEmbedder never touches the heavy native dependency.
+ *
+ * UNKNOWN: model revision not pinned (not recorded in
+ * docs/execution/evidence/embedding-spike.md). We do not invent a hash;
+ * the loader uses the model id alone and reads the optional `refs/main`
+ * file best-effort after the pipeline is built. Listed as an open decision
+ * in `docs/execution/evidence/embedding-dependency-note.md`.
  */
 export async function loadLocalEmbedder(opts: LocalEmbedderOptions = {}): Promise<Embedder> {
-  const s = slot();
-  if (s.promise) return s.promise;
   const merged = { ...DEFAULT_LOCAL_OPTIONS, ...opts };
-  const cacheDir = merged.cacheDir ?? ".cache/models";
-  s.promise = (async (): Promise<Embedder> => {
+  const cacheDir = merged.cacheDir ?? DEFAULT_CACHE_DIR;
+  const allowRemote = merged.allowRemote === true;
+  const key = cacheKey(merged.model, cacheDir);
+  const table = slotTable();
+  const slot = table[key] ?? { promise: null };
+  if (slot.promise) return slot.promise;
+
+  const mergedOpts = { ...merged, cacheDir, allowRemote };
+  slot.promise = (async (): Promise<Embedder> => {
     // Dynamic import: the heavy onnxruntime-node bundle is only loaded when
     // this function is actually called. Unit tests with FakeEmbedder skip it.
     const mod = await import("@huggingface/transformers");
     const { env, pipeline } = mod as unknown as {
-      env: { cacheDir: string; localModelPath?: string };
+      env: { cacheDir: string; allowRemoteModels: boolean; localModelPath?: string };
       pipeline: (
         task: "feature-extraction",
         model: string,
         options: Record<string, unknown>,
       ) => Promise<(text: string | string[], options: Record<string, unknown>) => Promise<{ data: Float32Array; dims: number[] }>>;
     };
+    // SECURITY HARDENING: default the loader to refuse remote downloads.
+    // The brief is explicit: only scripts/model-fetch.mjs passes
+    // allowRemote=true (see LocalEmbedderOptions.allowRemote).
+    env.allowRemoteModels = allowRemote;
     env.cacheDir = cacheDir;
-    const extractor = await pipeline("feature-extraction", merged.model, { dtype: merged.dtype });
+    const pipelineOptions: Record<string, unknown> = { dtype: mergedOpts.dtype };
+    if (typeof mergedOpts.revision === "string" && mergedOpts.revision.length > 0) {
+      pipelineOptions.revision = mergedOpts.revision;
+    }
+    const extractor = await pipeline("feature-extraction", mergedOpts.model, pipelineOptions);
     // Warm up so the first user call has a known cost shape; failures throw here.
-    await extractor(merged.passagePrefix + "warm", {
-      pooling: merged.pooling,
-      normalize: merged.normalize,
+    await extractor(mergedOpts.passagePrefix + "warm", {
+      pooling: mergedOpts.pooling,
+      normalize: mergedOpts.normalize,
     });
-    const revision = readRevisionFromCache(cacheDir, merged.model) ?? null;
-    const space = makeEmbeddingSpace(merged);
+    const revision = mergedOpts.revision ?? readRevisionFromCache(cacheDir, mergedOpts.model) ?? null;
+    const space = makeEmbeddingSpace(mergedOpts);
     return {
-      model: merged.model,
+      model: mergedOpts.model,
       revision,
       space,
       dimension: EMBEDDING_DIM,
       async embed(texts: readonly string[]): Promise<Float32Array[]> {
         if (texts.length === 0) return [];
         const out = await extractor(texts as string[], {
-          pooling: merged.pooling,
-          normalize: merged.normalize,
+          pooling: mergedOpts.pooling,
+          normalize: mergedOpts.normalize,
         });
         // Transformers.js returns a single tensor when input is a single string,
         // and one row per text otherwise; we always pass an array, so we get an
@@ -205,7 +278,8 @@ export async function loadLocalEmbedder(opts: LocalEmbedderOptions = {}): Promis
       },
     };
   })();
-  return s.promise;
+  table[key] = slot;
+  return slot.promise;
 }
 
 function readRevisionFromCache(cacheDir: string, model: string): string | null {
@@ -226,7 +300,8 @@ function readRevisionFromCache(cacheDir: string, model: string): string | null {
 
 /** Test-only seam: forget the cached pipeline so a test can re-load. */
 export function _resetLocalEmbedderForTests(): void {
-  slot().promise = null;
+  const table = slotTable();
+  for (const key of Object.keys(table)) delete table[key];
 }
 
 /* ---------------------------------------------------------------- *

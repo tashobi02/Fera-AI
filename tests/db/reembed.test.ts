@@ -336,10 +336,13 @@ describe.skipIf(!dbTestsEnabled)("reembedAll on PostgreSQL 16 (P3-024, TASK-016,
     expect(summary.embedded).toBeGreaterThanOrEqual(2);
   });
 
-  it("skippedEmpty counts rows whose body is empty (prefix only)", async () => {
+  it("skippedEmpty counts rows whose body is empty and keeps their embedding NULL", async () => {
     // One row has no embeddable structured fields at all, so its canonical
-    // text is just the prefix; the embedder still produces a vector, but
-    // the summary must report one skipped-empty row.
+    // text is just the prefix. SECURITY HARDENING (P3-024): a bare-prefix
+    // vector would be generic and identical across rows, so we MUST NOT
+    // embed it. The fix: skip the UPDATE; the row keeps `embedding=NULL`
+    // (the schema CHECK `embedding IS NULL OR (embedding_model IS NOT
+    // NULL AND ...)` is satisfied) and the summary records the count.
     //
     // The cases table requires a non-redacted row to carry at least
     // place_text (cases_check10: anonymised_at IS NOT NULL OR (place_text
@@ -382,15 +385,25 @@ describe.skipIf(!dbTestsEnabled)("reembedAll on PostgreSQL 16 (P3-024, TASK-016,
     });
     expect(summary.skippedEmpty).toBeGreaterThanOrEqual(1);
 
-    // And the row has a real vector (the brief forbids a literal empty input;
-    // the embedder we use gives a deterministic non-zero vector for the
-    // prefix-only string).
-    const { rows } = await appPool.query<{ embedding_model: string }>(
-      `SELECT embedding_model FROM cases WHERE id = $1`,
+    // The skipped row MUST keep embedding=NULL and embedding_model=NULL —
+    // we MUST NOT have written a bare-prefix vector. The schema CHECK
+    // permits this (embedding IS NULL OR (embedding_model IS NOT NULL
+    // AND ...)).
+    const { rows } = await appPool.query<{
+      embedding: string | null;
+      embedding_model: string | null;
+      embedding_revision: string | null;
+      embedding_space: string | null;
+    }>(
+      `SELECT embedding::text AS embedding, embedding_model, embedding_revision, embedding_space
+       FROM cases WHERE id = $1`,
       [emptyId],
     );
     expect(rows).toHaveLength(1);
-    expect(rows[0]!.embedding_model).not.toBeNull();
+    expect(rows[0]!.embedding).toBeNull();
+    expect(rows[0]!.embedding_model).toBeNull();
+    expect(rows[0]!.embedding_revision).toBeNull();
+    expect(rows[0]!.embedding_space).toBeNull();
   });
 
   it("two distinct rows produce two distinct vectors (FakeEmbedder is content-aware)", async () => {

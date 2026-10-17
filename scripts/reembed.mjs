@@ -10,6 +10,14 @@
 //   * Loads multilingual-e5-small lazily with @huggingface/transformers.
 //     The heavy onnxruntime-node bundle is loaded inside the async fn, so a
 //     syntax-only check of the script never triggers a download.
+//   * SECURITY HARDENING: sets `env.allowRemoteModels = false` BEFORE the
+//     pipeline call, so the runtime path never reaches huggingface.co.
+//     The cache MUST be primed with `npm run model:fetch` first; if the
+//     cache is empty the call is allowed to fail and the operator sees
+//     the actionable hint pointing at the priming script.
+//   * Resolves the cache directory from the repository root via
+//     `import.meta.url` so the script agrees with model.ts and
+//     model-fetch.mjs when run from any cwd.
 //   * Computes vectors in one batch with the e5 `query:` / `passage:` prefix
 //     (per docs/execution/evidence/embedding-spike.md production policy).
 //   * Stores the model id, optional revision (read from `refs/main` in the
@@ -17,6 +25,11 @@
 //   * REFUSES to leave the table in a mixed state (TC-059): when any row
 //     already has a different embedding_space, every row is rewritten in
 //     one transaction so the table ends with exactly one space.
+//   * Rows whose canonical text is empty (bare prefix only) are SKIPPED
+//     from the embed call and from the UPDATE. They keep `embedding =
+//     NULL`. A bare-prefix vector would be generic and identical across
+//     rows, which is unsafe for cosine matching. The summary's
+//     `skipped_empty` counter reports the count.
 //   * Prints only counts to stdout and pg error codes to stderr — never
 //     the connection string, never a password.
 //
@@ -27,7 +40,8 @@
 //      — distinct from a real failure so wave gates can tell
 
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import {
   DEFAULT_DATABASE_URL,
@@ -42,8 +56,17 @@ import { rolePasswordEnv } from "./db/roles.mjs";
 const require = createRequire(import.meta.url);
 const { Client } = require("pg");
 
+// UNKNOWN: model revision not pinned (not recorded in embedding-spike.md).
+// We do not invent a hash; the loader passes only the model id and the
+// optional `refs/main` lookup happens after the pipeline is built. Listed
+// in docs/execution/evidence/embedding-dependency-note.md.
 const MODEL = "Xenova/multilingual-e5-small";
-const CACHE_DIR = ".cache/models";
+// Resolve the cache dir from the repository root (this file lives at
+// scripts/reembed.mjs, so two `..` get us to the repo root), and then join
+// with the gitignored .cache/models. The same path is used by
+// model-fetch.mjs and src/server/embeddings/model.ts so all three agree
+// when run from any directory.
+const CACHE_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..", ".cache", "models");
 const EMBEDDING_DIM = 384;
 
 // TC-059: the embedding space tag we store with each vector. The model,
@@ -99,6 +122,11 @@ function l2norm(v) {
 async function loadLocalEmbedder() {
   const mod = await import("@huggingface/transformers");
   const { env, pipeline } = mod;
+  // SECURITY HARDENING: refuse remote downloads on the runtime path. The
+  // cache MUST be primed with `npm run model:fetch` (which calls into
+  // model.ts with allowRemote=true); if it is empty the call is allowed
+  // to fail and the operator sees the actionable hint.
+  env.allowRemoteModels = false;
   env.cacheDir = CACHE_DIR;
   const extractor = await pipeline("feature-extraction", MODEL, { dtype: "fp32" });
   // Warm-up so the first user-visible call has a known cost shape and any
@@ -226,11 +254,47 @@ async function main() {
       const body = [r.clothing, r.marks, r.circumstances, r.place_text].filter(Boolean).join("। ");
       return prefixFor(r.kind) + body;
     });
-    const empties = new Set();
-    for (let i = 0; i < texts.length; i++) {
+    // SECURITY: skip empty-text rows from the embed call AND from the
+    // UPDATE. A bare-prefix vector would be generic and identical across
+    // rows, which is unsafe for cosine matching. The skipped rows keep
+    // embedding=NULL (the schema CHECK allows that). We track the row
+    // ids so the UPDATE loop only touches non-skipped rows.
+    const skipSet = new Set();
+    const emptyIds = [];
+    for (let i = 0; i < rows.length; i++) {
       if (isEmpty(texts[i])) {
-        empties.add(i);
+        skipSet.add(i);
+        emptyIds.push(rows[i].id);
       }
+    }
+    const skippedEmpty = skipSet.size;
+    const embedTextsFiltered = [];
+    const embedIdx = []; // index back into `rows`
+    for (let i = 0; i < rows.length; i++) {
+      if (!skipSet.has(i)) {
+        embedTextsFiltered.push(texts[i]);
+        embedIdx.push(i);
+      }
+    }
+
+    if (embedTextsFiltered.length === 0) {
+      // Every row had an empty body. We did not load the model, we did not
+      // write anything, and every row keeps embedding=NULL. Surface the
+      // summary so the operator can act.
+      process.stdout.write(
+        [
+          `reembed: rows=${rows.length}`,
+          `updated=0`,
+          `skipped_empty=${skippedEmpty}`,
+          `previous_space=${previousSpace ?? "(none)"}`,
+          `conflicting=${conflicting}`,
+          `space=${SPACE}`,
+          `model=${MODEL}`,
+          `revision=NULL`,
+          `cache_bytes=${cacheSize()}`,
+        ].join(" ") + "\n",
+      );
+      process.exit(0);
     }
 
     let embedder;
@@ -250,13 +314,15 @@ async function main() {
 
     let vectors;
     try {
-      vectors = await embedder.embed(texts);
+      vectors = await embedder.embed(embedTextsFiltered);
     } catch (err) {
       process.stderr.write(`reembed: embedding failed (${err instanceof Error ? err.message : String(err)})\n`);
       process.exit(1);
     }
-    if (vectors.length !== rows.length) {
-      process.stderr.write(`reembed: shape mismatch (got ${vectors.length}, expected ${rows.length})\n`);
+    if (vectors.length !== embedTextsFiltered.length) {
+      process.stderr.write(
+        `reembed: shape mismatch (got ${vectors.length}, expected ${embedTextsFiltered.length})\n`,
+      );
       process.exit(1);
     }
 
@@ -265,15 +331,14 @@ async function main() {
     await client.query("BEGIN");
     try {
       let updated = 0;
-      let skippedEmpty = 0;
-      for (let i = 0; i < rows.length; i++) {
+      for (let k = 0; k < embedIdx.length; k++) {
+        const rowIdx = embedIdx[k];
         await client.query(
           "UPDATE cases SET embedding = $1::vector, embedding_model = $2, " +
             "embedding_revision = $3, embedding_space = $4 WHERE id = $5",
-          [vectorToSql(vectors[i]), MODEL, embedder.revision, SPACE, rows[i].id],
+          [vectorToSql(vectors[k]), MODEL, embedder.revision, SPACE, rows[rowIdx].id],
         );
-        if (empties.has(i)) skippedEmpty += 1;
-        else updated += 1;
+        updated += 1;
       }
       await client.query("COMMIT");
       process.stdout.write(
@@ -319,4 +384,4 @@ if (invokedDirectly) {
 // Touch `maskUrl`/`scrubbedEnv` so the bundler / linter does not strip the
 // safety helpers — they are part of the public surface so future scripts can
 // import them too.
-export { SPACE as REEMBED_SPACE, makeSpace, vectorToSql, loadLocalEmbedder, scrubbedEnv, maskUrl };
+export { SPACE as REEMBED_SPACE, makeSpace, vectorToSql, loadLocalEmbedder, scrubbedEnv, maskUrl, CACHE_DIR as REEMBED_CACHE_DIR };

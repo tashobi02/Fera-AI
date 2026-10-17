@@ -15,6 +15,18 @@
 // `vector(384)` enforces the dimension; the column is `vector_cosine_ops`
 // in the HNSW index. We use a single quoted string parameter so the driver
 // never has to escape the values.
+//
+// SECURITY HARDENING (P3-024, this lane):
+//   * Rows whose canonical embed text is empty (only the `query: ` /
+//     `passage: ` prefix remains after the structured fields are dropped)
+//     MUST NOT be updated with a bare-prefix embedding: a uniform fallback
+//     vector makes every such row look identical to the matcher, so any
+//     similarity threshold the team later chooses would treat them all as
+//     the same. The fix: skip the UPDATE for empty-text rows. They remain
+//     `embedding IS NULL` and the schema CHECK
+//     (embedding IS NULL OR (embedding_model IS NOT NULL AND ...)) is
+//     satisfied. The summary's `skippedEmpty` counter reports the count
+//     so the operator can see the number in the wave gate.
 
 import { type Queryable } from "@/server/db/queryable";
 import { type Embedder, EMBEDDING_DIM, EmbeddingShapeError, normaliseVectors } from "./model";
@@ -85,10 +97,6 @@ function decodeRow(raw: Record<string, unknown>): EmbeddableCaseRow {
 
 function toEmbeddableRow(raw: Record<string, unknown>): EmbeddableCaseRow & { _structured: string } {
   const row = decodeRow(raw);
-  // structuredCaseText is deterministic; if it is empty we still embed (the
-  // brief never says to skip — and a uniform fallback vector is the honest
-  // behaviour for rows the schema requires to exist with at least one of
-  // circumstances/clothing/marks for found rows).
   return { ...row, _structured: structuredCaseText(row) };
 }
 
@@ -100,17 +108,22 @@ export type ReembedDeps = {
  * Re-embed every non-redacted case row.
  *
  * - Reads the row id, kind, and the four structured fields.
- * - Embeds in one batch with the supplied Embedder.
- * - If ANY existing row already has a different `embedding_space` from the
- *   embedder's, the whole operation is wrapped in a single transaction: we
- *   rewrite every row, then COMMIT. If anything throws, the transaction
- *   aborts and no row changes (TC-059, "REFUSES to leave mixed spaces: if
- *   any row has a different embedding_space it rewrites all rows in one
- *   transaction or aborts untouched"). When the spaces already match, the
- *   loop is still inside the transaction so a partial failure rolls back.
- * - Returns a summary; never throws on per-row problems that can be skipped
- *   (a row with no structured text contributes a zero-length input, but we
- *   still embed and store — see `skippedEmpty`).
+ * - Embeds non-empty rows in one batch with the supplied Embedder. Empty
+ *   rows (only the prefix remains after structured fields are dropped)
+ *   are SKIPPED — we do not embed the bare prefix, and we do not UPDATE
+ *   the row. Skipped rows keep `embedding = NULL` so they never compete
+ *   with a real partner on cosine.
+ * - If ANY existing row already has a different `embedding_space` from
+ *   the embedder's, the whole operation is wrapped in a single
+ *   transaction: we rewrite every row, then COMMIT. If anything throws,
+ *   the transaction aborts and no row changes (TC-059, "REFUSES to leave
+ *   mixed spaces: if any row has a different embedding_space it
+ *   rewrites all rows in one transaction or aborts untouched"). When the
+ *   spaces already match, the loop is still inside the transaction so a
+ *   partial failure rolls back.
+ * - Returns a summary; never throws on per-row problems that can be
+ *   skipped (an empty row is reported in `skippedEmpty` instead of
+ *   throwing).
  */
 export async function reembedAll(
   db: Queryable,
@@ -140,7 +153,7 @@ export async function reembedAll(
         "FROM cases WHERE anonymised_at IS NULL ORDER BY created_at, id",
     );
 
-    const records: Array<EmbeddableCaseRow & { _structured: string }> = [];
+    const records: Array<EmbeddableCaseRow & { _structured: string; _canonical: string }> = [];
     let firstExistingSpace: string | null = null;
     let conflictingRows = 0;
     for (const r of rows) {
@@ -150,51 +163,64 @@ export async function reembedAll(
         if (firstExistingSpace === null) firstExistingSpace = rec.embedding_space;
         if (rec.embedding_space !== embedder.space) conflictingRows += 1;
       }
-      records.push(rec);
+      const canonical = canonicalCaseText(rec);
+      records.push({ ...rec, _canonical: canonical });
     }
     summary.considered = records.length;
     summary.previousSpace = firstExistingSpace;
     summary.previousConflicting = conflictingRows;
 
-    if (conflictingRows > 0) {
-      // The brief says: REFUSES to leave mixed spaces — rewrite every row in
-      // one transaction (TC-059). We are already inside `withTransaction`, so
-      // the next UPDATE loop commits a single, consistent space. The summary
-      // records the conflict count for the operator; the table itself never
-      // holds two spaces at the end.
-    }
-
     if (records.length === 0) return summary;
 
-    // 2) Build the texts to embed.
-    const texts: string[] = records.map((r) => canonicalCaseText(r));
-    const emptyIdx = new Set<number>();
-    for (let i = 0; i < texts.length; i++) {
-      // strip the prefix and check the body
-      const body = texts[i].replace(/^(query|passage): /, "");
-      if (body.length === 0) emptyIdx.add(i);
+    // 2) Split rows by whether their canonical body is non-empty. A row
+    // whose structured fields are all null/whitespace produces the bare
+    // prefix string ("query: " or "passage: "); we MUST NOT embed it
+    // (every such row would map to the same generic vector and the
+    // matcher would treat them as duplicates) and MUST NOT UPDATE it
+    // (the row keeps embedding=NULL, which the schema CHECK allows).
+    const PREFIX_RE = /^(query|passage): /;
+    const embeddable: Array<{ index: number; text: string }> = [];
+    const skippedIdx: number[] = [];
+    for (let i = 0; i < records.length; i++) {
+      const text = records[i]._canonical;
+      const body = PREFIX_RE.test(text) ? text.replace(PREFIX_RE, "") : text;
+      if (body.length === 0) {
+        skippedIdx.push(i);
+      } else {
+        embeddable.push({ index: i, text });
+      }
+    }
+    summary.skippedEmpty = skippedIdx.length;
+
+    if (embeddable.length === 0) {
+      // Nothing to embed. The table is already consistent (skipped rows
+      // are NULL and we have not written to any non-skipped row in this
+      // transaction), so we can return without throwing.
+      return summary;
     }
 
-    // 3) Embed in one batch.
-    const vectors = await embedder.embed(texts);
+    // 3) Embed only the non-empty rows in one batch.
+    const embedTexts = embeddable.map((e) => e.text);
+    const vectors = await embedder.embed(embedTexts);
     const normalised = normaliseVectors(vectors, EMBEDDING_DIM);
-    if (normalised.length !== records.length) {
+    if (normalised.length !== embeddable.length) {
       throw new EmbeddingShapeError(
-        `embedder returned ${normalised.length} vectors for ${records.length} rows`,
+        `embedder returned ${normalised.length} vectors for ${embeddable.length} rows`,
       );
     }
 
-    // 4) Persist each row with the matching model / revision / space.
-    for (let i = 0; i < records.length; i++) {
-      const r = records[i];
-      const v = normalised[i];
+    // 4) Persist each non-empty row with the matching model / revision /
+    //    space. Skipped rows are NOT updated and keep embedding=NULL.
+    for (let k = 0; k < embeddable.length; k++) {
+      const srcIdx = embeddable[k].index;
+      const r = records[srcIdx];
+      const v = normalised[k];
       await client.query(
         "UPDATE cases SET embedding = $1::vector, embedding_model = $2, " +
           "embedding_revision = $3, embedding_space = $4 WHERE id = $5",
         [vectorToSql(v), embedder.model, embedder.revision, embedder.space, r.id],
       );
-      if (emptyIdx.has(i)) summary.skippedEmpty += 1;
-      else summary.embedded += 1;
+      summary.embedded += 1;
     }
     return summary;
   });
