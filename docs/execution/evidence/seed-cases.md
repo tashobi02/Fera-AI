@@ -41,12 +41,20 @@ The plan row says "3 demo cases"; the synthetic set's demo script needs more (a 
 
 | Check | Result |
 |---|---|
-| `tests/db/seed-cases.test.ts` (9 tests, in `npm run test:db`) | pass: demo = 5 and no Rafi in < 120 s; full = 200 synthetic, 0 other; second run inserts 0 and adds no audit row; owners per service rules; audit rows; hash equals contracts; no embedding, queue untouched; fails closed without staff accounts |
+| `tests/db/seed-cases.test.ts` (12 tests: 2 always-on guard tests, 10 in `npm run test:db`) | pass: demo = 5 and no Rafi in < 120 s; full = 200 synthetic, 0 other; second run inserts 0 and adds no audit row; owners per service rules; audit rows; hash equals contracts; no embedding, queue untouched; fails closed without staff accounts |
 | `npm run seed -- --set demo` on a fresh local DB (`db:reset`, `seed:users`) | inserted 5, elapsed 19 ms in-process, whole command under 1 s wall time; second run inserted 0 / skipped 5; `--set full` afterwards inserted 195 / skipped 5 in 136 ms (200 cases) |
 
 Elapsed times are single local runs on this laptop's PostgreSQL 16, not a benchmark. The test's 120 s assertion is a smoke bound only: the real run takes tens of milliseconds, so the assertion cannot detect a mild slowdown.
 
-**Drift guard:** `tests/db/seed-cases-parity.test.ts` (2 tests) creates one missing report (`createMissingCase` + `openCase`) and one found report (`createFoundCase`) through the case service on the `fera_app` pool, from the same draft as a seeded record, and compares the service row with the seeded row column by column (everything except id, ref_code, timestamps, owner ids and client_submission_id; so raw_text, provenance, source, status, matching_state, version, hash are included) plus the audit actions, actor types and detail keys. `request_id` is not compared (the seed writes `seed-cases`, the test passes none). Both pass. `tests/db/seed-cases.test.ts` also checks that a changed stored hash stops the run and writes nothing.
+**Drift guard:** `tests/db/seed-cases-parity.test.ts` (3 tests) creates missing reports (`createMissingCase` + `openCase`) and found reports (`createFoundCase`) through the case service on the `fera_app` pool, from the same drafts as seeded records (one record per property combination present in the set: age_years vs age_min/age_max, exact vs approximate time, named vs unnamed child; plus the shortest source_text), and compares the service row with the seeded row column by column (everything except id, ref_code, timestamps, owner ids and client_submission_id; so raw_text, provenance, source, status, matching_state, version, hash are included) plus the audit actions, actor types and detail keys. `request_id` is not compared (the seed writes `seed-cases`, the test passes none). Both pass. `tests/db/seed-cases.test.ts` also checks that a changed stored hash stops the run and writes nothing.
+
+The "stores the service\'s payload hash" test hashes all 200 stored cases against the contracts\' `submissionPayloadHash` of the schema-parsed draft, so loader hash drift fails for every record. Not covered because the committed set has none: empty `source_text` and a null phone (the loader refuses a phone outside the fictional block `0120000NNNN`, OD-010-6). The parity test also runs two seed runs at once (advisory lock `pg_advisory_xact_lock(190019)` serialises them: 200 inserted once, no unique violation).
+
+## Audit rows and later edge cases
+
+- Seeded audit rows carry `actor_type` `parent`/`staff`/`system` like real ones, with `request_id = 'seed-cases'`. GOAL-008, `eval:audit` and any audit view must filter or label `request_id = 'seed-cases'`, or seeded rows will read as real activity.
+- Re-seeding after `redact_case()`: redaction clears `client_submission_id`, so the loader no longer finds that record and would insert it again as a duplicate. Reset the database (`db:reset`) after redacting seeded cases.
+- `--set demo` fails if a `DEMO_ROLES` role does not match exactly one record, so a regenerated set cannot silently load a partial demo.
 
 ## Session deletion (Minor 6)
 

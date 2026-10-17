@@ -30,6 +30,8 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const REF_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const REF_ATTEMPTS = 5;
 const REQUEST_ID = "seed-cases";
+// Arbitrary fixed key for this loader.
+const SEED_LOCK_KEY = 190019;
 const STAFF_USERNAMES = ["staff.demo", "staff2.demo"];
 
 // demo_role values loaded by --set demo. Rafi is live-created by voice in the demo
@@ -72,7 +74,13 @@ export function loadSyntheticSet(set) {
   if (set === "full") return records;
   const truth = JSON.parse(readFileSync(join(ROOT, "data/synthetic/ground_truth.json"), "utf8"));
   const keep = new Set(truth.records.filter((r) => DEMO_ROLES.includes(r.demo_role)).map((r) => r.record_id));
-  return records.filter((r) => keep.has(r.record_id));
+  const chosen = records.filter((r) => keep.has(r.record_id));
+  // A regenerated set that lost or doubled a demo role must not silently load a partial demo.
+  const roleCounts = DEMO_ROLES.map((role) => truth.records.filter((t) => t.demo_role === role && chosen.some((c) => c.record_id === t.record_id)).length);
+  if (chosen.length !== DEMO_ROLES.length || roleCounts.some((n) => n !== 1)) {
+    throw new Error("the demo set is incomplete: every demo_role in DEMO_ROLES must match exactly one record");
+  }
+  return chosen;
 }
 
 function newRefCode(kind) {
@@ -81,8 +89,13 @@ function newRefCode(kind) {
   return `${kind === "missing" ? "M-" : "F-"}${suffix}`;
 }
 
-function assertSynthetic(rec) {
+// Fictional block 0120000NNNN (OD-010-6). A record outside it could carry a real number: refuse.
+const SYNTHETIC_PHONE = /^0120000\d{4}$/;
+export function assertSynthetic(rec) {
   if (rec.is_synthetic !== true) throw new Error("refusing a record that is not marked synthetic");
+  if (typeof rec.draft?.reporter?.phone !== "string" || !SYNTHETIC_PHONE.test(rec.draft.reporter.phone)) {
+    throw new Error("refusing a record whose phone is outside the synthetic block");
+  }
 }
 
 function insertSql(scopeColumn) {
@@ -139,6 +152,8 @@ export async function seedCases(client, { set }) {
   let skipped = 0;
   await client.query("BEGIN");
   try {
+    // Serialise concurrent seed runs (two `npm run seed` at once): the second waits, then skips.
+    await client.query("SELECT pg_advisory_xact_lock($1)", [SEED_LOCK_KEY]);
     for (const rec of records) {
       assertSynthetic(rec);
       const record = { ...rec, draft: parsedDraft(rec.draft) };
@@ -150,10 +165,13 @@ export async function seedCases(client, { set }) {
         continue;
       }
       if (rec.kind === "missing") {
+        // DO UPDATE, not DO NOTHING: a live session that happens to carry this id is revoked, never silently reused.
         await client.query("INSERT INTO parent_sessions (id, revoked_at) VALUES ($1, now()) ON CONFLICT (id) DO UPDATE SET revoked_at = COALESCE(parent_sessions.revoked_at, now())", [rec.record_id]);
         const row = await insertCase(client, record, rec.record_id, hash);
         await audit(client, { type: "parent", sessionId: rec.record_id, action: "case.created", caseId: row.id,
           details: { ref_code: row.ref_code, version: row.version, to_status: "submitted", api: "API-003", replayed: false } });
+        // D2A seed rule: load missing reports as submitted, then open them. No FOR UPDATE: the row is
+        // uncommitted, so no other transaction can see it (and the advisory lock serialises runs).
         await client.query("UPDATE cases SET status = 'open' WHERE id = $1", [row.id]);
         await audit(client, { type: "system", action: "case.state_changed", caseId: row.id,
           details: { ref_code: row.ref_code, version: row.version, from_status: "submitted", to_status: "open", api: "API-003" } });

@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { foundSubmissionDraftSchema, missingSubmissionDraftSchema } from "../../src/contracts/draft";
 import { submissionPayloadHash } from "../../src/contracts/server";
 // @ts-expect-error -- plain ESM module without type declarations
-import { DEMO_ROLES, loadSyntheticSet, seedCases } from "../../db/seed/cases.mjs";
+import { DEMO_ROLES, assertSynthetic, loadSyntheticSet, seedCases } from "../../db/seed/cases.mjs";
 // @ts-expect-error -- plain ESM module without type declarations
 import { loadDistrictData, seedDistricts } from "../../db/seed/districts.mjs";
 import { connect, dbTestsEnabled } from "./support/db";
@@ -22,6 +22,21 @@ const FOUND = records.length - MISSING;
 const truth: { records: Array<{ record_id: string; demo_role: string | null }> } = JSON.parse(
   readFileSync(join(process.cwd(), "data/synthetic/ground_truth.json"), "utf8"),
 );
+
+describe("synthetic-only guard (TASK-019)", () => {
+  const good = { is_synthetic: true, draft: { reporter: { phone: "01200001234" } } };
+  it("accepts the fictional phone block and refuses anything else", () => {
+    expect(() => assertSynthetic(good)).not.toThrow();
+    for (const phone of ["01712345678", "01200000", "012000012345", null, undefined]) {
+      expect(() => assertSynthetic({ ...good, draft: { reporter: { phone } } })).toThrow(/synthetic block/);
+    }
+    expect(() => assertSynthetic({ ...good, is_synthetic: false })).toThrow(/not marked synthetic/);
+    expect(() => assertSynthetic({ is_synthetic: true, draft: {} })).toThrow(/synthetic block/);
+  });
+  it("every committed record passes it", () => {
+    for (const r of records) expect(() => assertSynthetic(r)).not.toThrow();
+  });
+});
 
 describe.skipIf(!dbTestsEnabled)("case seed (TASK-019)", () => {
   let admin: Client;
