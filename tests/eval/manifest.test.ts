@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 // @ts-expect-error -- plain ESM module without type declarations
-import { assertHeldOutAllowed, assertManifest, buildManifest, serializeManifest } from "../../eval/manifest-lib.mjs";
+import { __testOnly_heldOutCheck, assertHeldOutAllowed, assertManifest, buildManifest, loadSplit, serializeManifest } from "../../eval/manifest-lib.mjs";
 
 const root = process.cwd();
 const read = (p: string) => readFileSync(join(root, p), "utf8");
@@ -46,10 +46,10 @@ describe("TASK-064 manifest", () => {
     expect(c.records.dev + c.records.test).toBe(200);
     expect(c.true_pairs_by_split.dev + c.true_pairs_by_split.test).toBe(60);
     expect(c.no_match_identities_by_split.dev + c.no_match_identities_by_split.test).toBe(15);
+    expect(c.no_match_queries_by_split.dev + c.no_match_queries_by_split.test).toBe(20);
     expect(c.duplicate_groups_by_split.dev + c.duplicate_groups_by_split.test).toBe(25);
     expect(rows.filter((r) => r.split === "dev")).toHaveLength(c.records.dev);
     // intent is 40/60; the grouped result is reported, not forced
-    console.log("actual grouped counts", JSON.stringify(c));
     expect(Math.abs(c.records.dev - 80)).toBeLessThanOrEqual(4);
   });
 
@@ -90,11 +90,35 @@ describe("TASK-064 manifest", () => {
     expect(() => assertManifest(manifest, gt, { sha256: "0".repeat(64) })).toThrow(/hash/);
   });
 
+  it("adds count-assertion cases where ground truth and manifest are doctored consistently", () => {
+    const gt21 = JSON.parse(JSON.stringify(gt));
+    const m21 = clone();
+    const id = m21.records.find((r: { role: string }) => r.role === "pair_query").record_id;
+    gt21.records.find((r: { record_id: string }) => r.record_id === id).no_match = true;
+    m21.records.find((r: { record_id: string }) => r.record_id === id).no_match = true;
+    expect(() => assertManifest(m21, gt21)).toThrow(/count no_match_queries is 21/);
+
+    const gt79 = JSON.parse(JSON.stringify(gt));
+    const m79 = clone();
+    const id2 = m79.records.find((r: { role: string }) => r.role === "pair_query").record_id;
+    gt79.records.find((r: { record_id: string }) => r.record_id === id2).kind = "found";
+    m79.records.find((r: { record_id: string }) => r.record_id === id2).kind = "found";
+    expect(() => assertManifest(m79, gt79)).toThrow(/count missing_canonical is 79/);
+  });
+
   it("locks the held-out test split until the freeze flag is set", () => {
     expect(() => assertHeldOutAllowed(manifest)).toThrow(/freeze/i);
-    expect(() => assertHeldOutAllowed(manifest, { freezeText: "FREEZE_FLAG: SET\n" })).not.toThrow();
-    expect(() => assertHeldOutAllowed(manifest, { freezeText: "FREEZE_FLAG: NOT SET\n" })).toThrow(/freeze/i);
-    expect(() => assertHeldOutAllowed(manifest, { freezeText: "FREEZE_FLAG: SET\n", sha256: "0".repeat(64) })).toThrow(/hash/);
+    expect(() => loadSplit(manifest, "test")).toThrow(/refused/);
+    expect(() => __testOnly_heldOutCheck(manifest, "FREEZE_FLAG: SET\n", committedHash)).not.toThrow();
+    expect(() => __testOnly_heldOutCheck(manifest, "FREEZE_FLAG: NOT SET\n", committedHash)).toThrow(/freeze/i);
+    expect(() => __testOnly_heldOutCheck(manifest, "FREEZE_FLAG: SET\n", "0".repeat(64))).toThrow(/hash/);
+  });
+
+  it("loadSplit dev returns exactly the dev rows; unknown splits are rejected", () => {
+    const dev = loadSplit(manifest, "dev");
+    expect(dev).toHaveLength(manifest.counts.records.dev);
+    expect(dev.every((r: Row) => r.split === "dev")).toBe(true);
+    expect(() => loadSplit(manifest, "all")).toThrow(/unknown split/);
   });
 
   it("FREEZE.md says NOT FROZEN and leaves model/prefix values UNKNOWN", () => {

@@ -47,6 +47,8 @@ export function computeCounts(rows) {
     split_groups: per((x) => distinct(x.map((r) => r.split_group_id))),
     identities: per((x) => distinct(x.map((r) => r.identity_id))),
     no_match_identities_by_split: per((x) => distinct(x.filter((r) => r.no_match && nonDecoy(r)).map((r) => r.identity_id))),
+    no_match_queries_by_split: per((x) => x.filter((r) => r.kind === "missing" && r.no_match && nonDecoy(r)).length),
+    demo_role_records_by_split: per((x) => x.filter((r) => r.demo_role).length),
     duplicate_groups_by_split: per((x) => distinct(x.filter((r) => r.duplicate_group_id).map((r) => r.duplicate_group_id))),
     true_pairs_by_split: per((x) => distinct(x.filter((r) => r.role === "pair_query").map((r) => r.identity_id))),
     decoys_by_split: per((x) => x.filter((r) => r.role === "decoy").length),
@@ -145,10 +147,27 @@ export function assertManifest(manifest, groundTruth, opts = {}) {
   return c;
 }
 
+function heldOutCheck(manifest, freezeText, expectedHash) {
+  if (!/^FREEZE_FLAG: SET\s*$/m.test(freezeText)) throw new Error("held-out evaluation refused: freeze flag is not set in eval/FREEZE.md");
+  if (sha256(serializeManifest(manifest)) !== expectedHash) throw new Error("held-out evaluation refused: manifest hash differs from the committed hash");
+}
+
 /** The held-out test split may only be used after FREEZE.md carries `FREEZE_FLAG: SET` (it does not yet). */
-export function assertHeldOutAllowed(manifest, opts = {}) {
-  const text = opts.freezeText ?? readFileSync(paths.freeze, "utf8");
-  if (!/^FREEZE_FLAG: SET\s*$/m.test(text)) throw new Error("held-out evaluation refused: freeze flag is not set in eval/FREEZE.md");
-  const expected = opts.sha256 ?? readFileSync(paths.hash, "utf8").trim().split(/\s+/)[0];
-  if (sha256(serializeManifest(manifest)) !== expected) throw new Error("held-out evaluation refused: manifest hash differs from the committed hash");
+export function assertHeldOutAllowed(manifest) {
+  heldOutCheck(manifest, readFileSync(paths.freeze, "utf8"), readFileSync(paths.hash, "utf8").trim().split(/\s+/)[0]);
+}
+
+/** Test-only: same check with injected freeze text and hash. Production code must not import this. */
+export function __testOnly_heldOutCheck(manifest, freezeText, expectedHash) {
+  heldOutCheck(manifest, freezeText, expectedHash);
+}
+
+/**
+ * The ONLY accessor for the rows of a split. Eval code (including TASK-039) must go through it.
+ * "test" is the held-out split and throws until the freeze flag is set.
+ */
+export function loadSplit(manifest, split) {
+  if (split !== "dev" && split !== "test") throw new Error(`unknown split: ${split}`);
+  if (split === "test") assertHeldOutAllowed(manifest);
+  return manifest.records.filter((r) => r.split === split);
 }

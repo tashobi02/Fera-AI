@@ -2,7 +2,7 @@
 
 FREEZE_FLAG: NOT SET
 
-Status: **NOT FROZEN.** The guard (`assertHeldOutAllowed` in `eval/manifest-lib.mjs`) refuse any held-out (test split) run until the line above reads exactly `FREEZE_FLAG: SET` in a reviewed PR and the manifest hash still matches `eval/manifest.sha256`. Source: D2 TRD Part B §17; TEAM_HANDOVER_V2 §8.
+Status: **NOT FROZEN.** The guard (`assertHeldOutAllowed` in `eval/manifest-lib.mjs`) refuses any held-out (test split) run until the line above reads exactly `FREEZE_FLAG: SET` in a reviewed PR and the manifest hash still matches `eval/manifest.sha256`. Source: D2 TRD Part B §17; TEAM_HANDOVER_V2 §8.
 
 ## Why not frozen yet
 
@@ -32,3 +32,14 @@ Status: **NOT FROZEN.** The guard (`assertHeldOutAllowed` in `eval/manifest-lib.
 - Intent is 40% dev / 60% test by record. Actual result: see `counts` in `eval/manifest.json` and `docs/execution/evidence/manifest.md`. Groups are never broken to hit the ratio.
 - Demo-role groups (rafi, kamalapur_boy, narayanganj_decoy, mim, mim_public_post, sabbir) are forced into dev so demo tuning never touches the held-out split.
 - Tune on dev only. `speaker_id` stays null (no speech recordings exist yet).
+
+## Access rule and limits
+
+- Later eval code (TASK-039 and others) must read split rows only through `loadSplit(manifest, split)` in `eval/manifest-lib.mjs`. `loadSplit(manifest, "test")` calls `assertHeldOutAllowed` and throws while the flag is NOT SET.
+- Matcher and runtime code must never import `eval/manifest.json` (it carries labels).
+- Test split is thin: 37 true pairs, **6 no-match identities** (8 no-match queries; dev has 9 identities / 12 queries). Abstention results on test rest on 6 identities.
+- Dev is not a random sample: 6 dev records (7.5% of dev; the 3 demo groups hold 8 records, 10%) are curated demo scenario records, including a no-match query, a decoy and a duplicate. Dev-tuned thresholds can lean toward demo cases.
+
+## OPEN DECISION (owner: Mahim, CI owner)
+
+Flipping `FREEZE_FLAG` needs a reviewed PR; nothing enforces review today. No CODEOWNERS or CI rule protects `eval/FREEZE.md` or `eval/manifest.sha256`. Whether to add one is a repo-level decision, not made here.
