@@ -18,13 +18,14 @@
 // per-row ref_code check inside the projection is what guarantees no row from another
 // case is exposed under this URL.
 import { z } from "zod";
-import { auditResponseSchema, uuidSchema, type AuditResponse } from "@/contracts";
+import { auditResponseSchema, type AuditResponse } from "@/contracts";
 import { ApiError, defineRoute } from "../../../_shared";
 import { readCaseAudit } from "@/server/audit/safe-read";
 
 export const runtime = "nodejs"; // pg
 
-const params = z.strictObject({ id: uuidSchema });
+// Keep malformed path IDs inside the authenticated E-004 path (as API-004): the service guards isUuid.
+const params = z.strictObject({ id: z.string() });
 
 export const GET = defineRoute({
   api: "API-013",

@@ -3,14 +3,15 @@
 // return or reunification. The closeCase service does the version recheck and audit;
 // this layer only owns HTTP, the per-role response schema and the officer-only gate
 // (the service re-checks verified+active inside the transaction).
-import { closeCaseRequestSchema, closeCaseResponseSchema, uuidSchema, type CloseCaseRequest, type CloseCaseResponse } from "@/contracts";
+import { closeCaseRequestSchema, closeCaseResponseSchema, type CloseCaseRequest, type CloseCaseResponse } from "@/contracts";
 import { z } from "zod";
 import { closeCase } from "@/server/case";
 import { defineRoute } from "../../../_shared";
 
 export const runtime = "nodejs"; // pg
 
-const params = z.strictObject({ id: uuidSchema });
+// Keep malformed path IDs inside the authenticated E-004 path (as API-004): the service guards isUuid.
+const params = z.strictObject({ id: z.string() });
 
 export const POST = defineRoute({
   api: "API-011",

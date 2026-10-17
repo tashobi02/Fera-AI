@@ -22,6 +22,9 @@
 //   allowlist, another case's ref_code, or a free-text key) is withheld and counted
 //   instead of failing the response (D2A "withheld counts stored rows that failed the
 //   allowlist and were left out").
+// - Role eligibility is decided against the case metadata *before* the audit_log
+//   SELECT is issued: a parent, staff or unverified-officer principal returns hidden
+//   without scanning the audit history for a case it cannot see.
 // - No child payload, contact, score, reason, note, free text, URL or raw network
 //   address is read here. The raw query selects only the audit_log columns the
 //   projection needs.
@@ -84,7 +87,14 @@ export async function readCaseAudit(
   if (!metaRow) return { kind: "hidden", caseId: null };
   const meta: AuditedCase = { id: col.uuid("cases", metaRow, "id"), ref_code: col.text("cases", metaRow, "ref_code") };
 
-  // Step 2: audit rows for this case, joined with the actor's display name.
+  // Step 2: per-role eligibility. Anything but officer/admin is null → the route
+  // answers E-003/E-004. We decide eligibility against an empty row set so a
+  // denied principal never causes the audit_log SELECT to be issued (no scan of
+  // history for callers who cannot see it). Officer/admin are the only callers
+  // for whom the audit_log query runs.
+  if (!projectAuditFor(principal, meta, [])) return { kind: "hidden", caseId: meta.id };
+
+  // Step 3: audit rows for this case, joined with the actor's display name.
   const { rows } = await db.query(
     `SELECT a.at, a.actor_type, a.actor_user_id, a.actor_session_id, u.display_name AS actor_display,
             a.action, a.case_id, a.candidate_id, a.details
@@ -96,8 +106,7 @@ export async function readCaseAudit(
   );
   const auditRows: AuditRow[] = rows.map(mapAuditRow);
 
-  // Step 3: per-role projection. Anything but officer/admin is null → the route
-  // answers E-003/E-004.
+  // Step 4: per-role projection of the actual rows.
   const projected = projectAuditFor(principal, meta, auditRows);
   if (!projected) return { kind: "hidden", caseId: meta.id };
   return { kind: "ok", view: projected };

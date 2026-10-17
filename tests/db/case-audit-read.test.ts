@@ -1,4 +1,4 @@
-// Safe audit projection reader (API-013; TASK-015; BR-010/024; FR-021; TC-016/052).
+// Safe audit projection reader (API-013; TASK-029 part; BR-010/024; FR-021; TC-016/052).
 //
 // The route is HTTP-only; the projection is `readCaseAudit(principal, caseId)`. These
 // tests drive the service directly with a stub `Queryable`, so they don't need a
@@ -13,7 +13,12 @@
 //   - a row whose stored details fail the per-role schema (unsafe value, another
 //     case's ref_code, free-text key) is withheld and counted, not surfaced
 //   - a parent/staff/unverified-officer principal returns the same `hidden` shape as
-//     an absent case (the route then writes the access.denied audit row)
+//     an absent case (the route then writes the access.denied audit row), and the
+//     audit_log query is NEVER issued for those callers.
+//
+// The stub `q` returns the supplied `caseRows` for the cases query and the
+// supplied `auditRows` for the audit_log query. Mixing the two (the old fixture)
+// tripped the decoder because the case row lacks the `at` column.
 import { describe, expect, it } from "vitest";
 import { adminAuditResponseSchema, officerAuditResponseSchema } from "@/contracts";
 import { readCaseAudit } from "@/server/audit/safe-read";
@@ -21,21 +26,43 @@ import type { Queryable } from "@/server/db/queryable";
 import { testUser } from "../support/principals";
 
 const CASE_ID = "33333333-3333-4333-8333-333333333301";
-const CASE_REF = "M-3001";
+const CASE_REF = "M-300001";
 const OTHER_CASE_ID = "33333333-3333-4333-8333-333333333399";
-const OTHER_CASE_REF = "M-3099";
+const OTHER_CASE_REF = "M-300099";
 const OFFICER_ID = "33333333-3333-4333-8333-333333333302";
 const ADMIN_ID = "33333333-3333-4333-8333-333333333303";
 const STAFF_ID = "33333333-3333-4333-8333-333333333304";
 const PARENT_SESSION = "33333333-3333-4333-8333-333333333305";
 const CANDIDATE_ID = "33333333-3333-4333-8333-333333333306";
 
-function q<T>(rows: T[]): Queryable {
-  return { query: async () => ({ rows: rows as unknown[] }) };
+// Two-array stub: the cases query gets the metadata rows, the audit_log query gets
+// the audit rows. Mixing them in a single array previously made the audit row decoder
+// trip on a case row (no `at`).
+function q(caseRows: ReadonlyArray<Record<string, unknown>>, auditRows: ReadonlyArray<Record<string, unknown>>): Queryable {
+  return {
+    query: async (text: string) => {
+      if (text.includes("FROM audit_log")) return { rows: auditRows as unknown[] };
+      return { rows: caseRows as unknown[] };
+    },
+  };
 }
 
-function date(iso: string): Date {
-  return new Date(iso);
+// Spy stub: records every query and returns the given audit rows only for an
+// audit_log query. Used to prove the audit_log SELECT is not issued for callers
+// who cannot see it.
+function spyDb(caseRows: ReadonlyArray<Record<string, unknown>>, auditRows: ReadonlyArray<Record<string, unknown>>): {
+  db: Queryable;
+  queries: string[];
+} {
+  const queries: string[] = [];
+  const db: Queryable = {
+    query: async (text: string, values?: unknown[]) => {
+      queries.push(`${text} -- values=${JSON.stringify(values ?? [])}`);
+      if (text.includes("FROM audit_log")) return { rows: auditRows as unknown[] };
+      return { rows: caseRows as unknown[] };
+    },
+  };
+  return { db, queries };
 }
 
 function caseRow(id = CASE_ID, ref = CASE_REF) {
@@ -53,6 +80,11 @@ function auditRow(overrides: Partial<{
   candidate_id: string | null;
   details: Record<string, unknown>;
 }> = {}) {
+  // The decoder (col.dateOrNull in src/server/db/decode.ts) accepts a Date OR an ISO
+  // string ending in `Z` or `±hh:mm`. The default fixture is a UTC offset in the
+  // Asia/Dhaka convention and parses cleanly. The bug fixed here was at the level of
+  // the stub `q()`: it previously returned case rows and audit rows together for every
+  // query, so the case row (no `at`) tripped the decoder on the audit iteration.
   return {
     at: overrides.at ?? "2026-10-17T10:00:00+06:00",
     actor_type: overrides.actor_type ?? "officer",
@@ -75,7 +107,7 @@ describe("readCaseAudit (API-013)", () => {
 
   it("returns `hidden` (caseId null) when the case row is absent", async () => {
     const officer = testUser(OFFICER_ID, "officer", { verified: true, isActive: true });
-    const r = await readCaseAudit(officer, CASE_ID, { db: q([]) });
+    const r = await readCaseAudit(officer, CASE_ID, { db: q([], []) });
     expect(r).toEqual({ kind: "hidden", caseId: null });
   });
 
@@ -84,13 +116,13 @@ describe("readCaseAudit (API-013)", () => {
     const audits: ReadonlyArray<Record<string, unknown>> = [auditRow()];
     // parent
     const parent = testUser(PARENT_SESSION, "officer", { verified: false, isActive: false });
-    expect(await readCaseAudit(parent, CASE_ID, { db: q(cases.concat(audits)) })).toEqual({ kind: "hidden", caseId: CASE_ID });
+    expect(await readCaseAudit(parent, CASE_ID, { db: q(cases, audits) })).toEqual({ kind: "hidden", caseId: CASE_ID });
     // staff
     const staff = testUser(STAFF_ID, "staff", { verified: true, isActive: true });
-    expect(await readCaseAudit(staff, CASE_ID, { db: q(cases.concat(audits)) })).toEqual({ kind: "hidden", caseId: CASE_ID });
+    expect(await readCaseAudit(staff, CASE_ID, { db: q(cases, audits) })).toEqual({ kind: "hidden", caseId: CASE_ID });
     // unverified officer
     const unverified = testUser(OFFICER_ID, "officer", { verified: false, isActive: true });
-    expect(await readCaseAudit(unverified, CASE_ID, { db: q(cases.concat(audits)) })).toEqual({ kind: "hidden", caseId: CASE_ID });
+    expect(await readCaseAudit(unverified, CASE_ID, { db: q(cases, audits) })).toEqual({ kind: "hidden", caseId: CASE_ID });
   });
 
   it("returns the officer view with the operational allowlist", async () => {
@@ -106,8 +138,8 @@ describe("readCaseAudit (API-013)", () => {
         details: {
           ref_code: CASE_REF,
           candidate_id: CANDIDATE_ID,
-          missing_ref: "M-2001",
-          found_ref: "F-2001",
+          missing_ref: "M-100001",
+          found_ref: "F-100001",
           missing_version: 2,
           found_version: 1,
           score: 87,
@@ -128,7 +160,7 @@ describe("readCaseAudit (API-013)", () => {
       }),
     ];
     const officer = testUser(OFFICER_ID, "officer", { verified: true, isActive: true });
-    const r = await readCaseAudit(officer, CASE_ID, { db: q(cases.concat(audits)) });
+    const r = await readCaseAudit(officer, CASE_ID, { db: q(cases, audits) });
     if (r.kind !== "ok") throw new Error(`expected ok, got ${r.kind}`);
     expect(r.view.view).toBe("officer");
     expect(r.view.entries).toHaveLength(2);
@@ -156,8 +188,8 @@ describe("readCaseAudit (API-013)", () => {
         details: {
           ref_code: CASE_REF,
           candidate_id: CANDIDATE_ID,
-          missing_ref: "M-2001",
-          found_ref: "F-2001",
+          missing_ref: "M-100001",
+          found_ref: "F-100001",
           missing_version: 2,
           found_version: 1,
           score: 87,
@@ -170,7 +202,7 @@ describe("readCaseAudit (API-013)", () => {
       }),
     ];
     const admin = testUser(ADMIN_ID, "admin", { verified: true, isActive: true });
-    const r = await readCaseAudit(admin, CASE_ID, { db: q(cases.concat(audits)) });
+    const r = await readCaseAudit(admin, CASE_ID, { db: q(cases, audits) });
     if (r.kind !== "ok") throw new Error(`expected ok, got ${r.kind}`);
     expect(r.view.view).toBe("admin");
     expect(r.view.entries).toHaveLength(1);
@@ -204,7 +236,7 @@ describe("readCaseAudit (API-013)", () => {
       auditRow(), // this one is fine
     ];
     const officer = testUser(OFFICER_ID, "officer", { verified: true, isActive: true });
-    const r = await readCaseAudit(officer, CASE_ID, { db: q(cases.concat(audits)) });
+    const r = await readCaseAudit(officer, CASE_ID, { db: q(cases, audits) });
     if (r.kind !== "ok") throw new Error(`expected ok, got ${r.kind}`);
     expect(r.view.entries).toHaveLength(1);
     expect(r.view.withheld).toBe(1);
@@ -212,20 +244,19 @@ describe("readCaseAudit (API-013)", () => {
     expect(r.view.entries[0]!.details.ref_code).toBe(CASE_REF);
   });
 
-  it("withholds a row whose stored details contain a free-text key", async () => {
-    // The contracts' audit details schemas are strict allowlists; a stored `note`
-    // (free text) makes the row's details fail the per-role schema and the row is
-    // withheld (D2A "withheld counts stored rows that failed the allowlist and were
-    // left out").
+  it("strips a non-allowlisted free-text key from the details instead of serving it", async () => {
+    // projectAuditFor keeps only the role's allowlisted keys (pick), so a stored `note`
+    // never reaches the response; the row itself is still a valid audit entry.
     const cases: ReadonlyArray<Record<string, unknown>> = [caseRow()];
     const audits: ReadonlyArray<Record<string, unknown>> = [
       auditRow({ details: { ref_code: CASE_REF, api: "API-011", note: "free text that should not appear here" } }),
     ];
     const officer = testUser(OFFICER_ID, "officer", { verified: true, isActive: true });
-    const r = await readCaseAudit(officer, CASE_ID, { db: q(cases.concat(audits)) });
+    const r = await readCaseAudit(officer, CASE_ID, { db: q(cases, audits) });
     if (r.kind !== "ok") throw new Error(`expected ok, got ${r.kind}`);
-    expect(r.view.entries).toHaveLength(0);
-    expect(r.view.withheld).toBe(1);
+    expect(r.view.entries).toHaveLength(1);
+    expect(r.view.withheld).toBe(0);
+    expect(JSON.stringify(r.view)).not.toContain("free text");
   });
 
   it("preserves append-only ordering (no row is rewritten or removed by the read)", async () => {
@@ -236,7 +267,7 @@ describe("readCaseAudit (API-013)", () => {
       auditRow({ at: "2026-10-17T10:00:00+06:00", action: "case.closed", details: { ref_code: CASE_REF, outcome: "resolved_outside_fera", api: "API-011", reason_recorded: true } }),
     ];
     const officer = testUser(OFFICER_ID, "officer", { verified: true, isActive: true });
-    const r = await readCaseAudit(officer, CASE_ID, { db: q(cases.concat(audits)) });
+    const r = await readCaseAudit(officer, CASE_ID, { db: q(cases, audits) });
     if (r.kind !== "ok") throw new Error(`expected ok, got ${r.kind}`);
     expect(r.view.entries.map((e) => e.action)).toEqual([
       "case.created",
@@ -278,11 +309,66 @@ describe("readCaseAudit (API-013)", () => {
       auditRow({ case_id: OTHER_CASE_ID, action: "case.closed", details: { ref_code: OTHER_CASE_REF, api: "API-011" } }),
     ];
     const officer = testUser(OFFICER_ID, "officer", { verified: true, isActive: true });
-    const r = await readCaseAudit(officer, CASE_ID, { db: q(cases.concat(audits)) });
+    const r = await readCaseAudit(officer, CASE_ID, { db: q(cases, audits) });
     if (r.kind !== "ok") throw new Error(`expected ok, got ${r.kind}`);
     // The stub returns the row, but the projection withholds it (ref_code mismatch
     // OR case_id mismatch). Either guard withholds the row.
     expect(r.view.entries).toHaveLength(0);
     expect(r.view.withheld).toBe(1);
+  });
+
+  it("does NOT issue the audit_log SELECT for parent, staff, or unverified-officer principals", async () => {
+    // Role eligibility is decided against the case metadata only. A caller who
+    // cannot see the audit history never triggers the audit_log SELECT. Officer and
+    // admin still get the audit view.
+    const cases: ReadonlyArray<Record<string, unknown>> = [caseRow()];
+    const audits: ReadonlyArray<Record<string, unknown>> = [auditRow()];
+
+    // parent → hidden, audit_log SELECT not issued
+    {
+      const { db, queries } = spyDb(cases, audits);
+      const parent = testUser(PARENT_SESSION, "officer", { verified: false, isActive: false });
+      const r = await readCaseAudit(parent, CASE_ID, { db });
+      expect(r).toEqual({ kind: "hidden", caseId: CASE_ID });
+      expect(queries.some((t) => t.includes("FROM audit_log"))).toBe(false);
+    }
+
+    // staff → hidden, audit_log SELECT not issued
+    {
+      const { db, queries } = spyDb(cases, audits);
+      const staff = testUser(STAFF_ID, "staff", { verified: true, isActive: true });
+      const r = await readCaseAudit(staff, CASE_ID, { db });
+      expect(r).toEqual({ kind: "hidden", caseId: CASE_ID });
+      expect(queries.some((t) => t.includes("FROM audit_log"))).toBe(false);
+    }
+
+    // unverified officer → hidden, audit_log SELECT not issued
+    {
+      const { db, queries } = spyDb(cases, audits);
+      const unverified = testUser(OFFICER_ID, "officer", { verified: false, isActive: true });
+      const r = await readCaseAudit(unverified, CASE_ID, { db });
+      expect(r).toEqual({ kind: "hidden", caseId: CASE_ID });
+      expect(queries.some((t) => t.includes("FROM audit_log"))).toBe(false);
+    }
+
+    // officer → still gets the view (audit_log SELECT issued exactly once)
+    {
+      const { db, queries } = spyDb(cases, audits);
+      const officer = testUser(OFFICER_ID, "officer", { verified: true, isActive: true });
+      const r = await readCaseAudit(officer, CASE_ID, { db });
+      if (r.kind !== "ok") throw new Error(`expected ok, got ${r.kind}`);
+      expect(r.view.view).toBe("officer");
+      expect(queries.filter((t) => t.includes("FROM audit_log"))).toHaveLength(1);
+    }
+
+    // admin → still gets the view (audit_log SELECT issued exactly once)
+    {
+      const { db, queries } = spyDb(cases, audits);
+      const admin = testUser(ADMIN_ID, "admin", { verified: true, isActive: true });
+      const r = await readCaseAudit(admin, CASE_ID, { db });
+      if (r.kind !== "ok") throw new Error(`expected ok, got ${r.kind}`);
+      expect(r.view.view).toBe("admin");
+      expect(queries.filter((t) => t.includes("FROM audit_log"))).toHaveLength(1);
+    }
   });
 });
