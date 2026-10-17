@@ -24,6 +24,7 @@ import { staffDisasterBn, staffDisasterEn } from "@/locales/areas/staff-disaster
 import { officerQueueBn, officerQueueEn } from "@/locales/areas/officer-queue";
 import { officerCaseBn, officerCaseEn } from "@/locales/areas/officer-case";
 import { officerMapBn, officerMapEn } from "@/locales/areas/officer-map";
+import { officerMatchBn, officerMatchEn } from "@/locales/areas/officer-match";
 import { officerDuplicatesBn, officerDuplicatesEn } from "@/locales/areas/officer-duplicates";
 import { adminImportBn, adminImportEn } from "@/locales/areas/admin-import";
 
@@ -41,6 +42,7 @@ const AREAS: readonly AreaPair[] = [
   { name: "officer-queue", bn: officerQueueBn, en: officerQueueEn },
   { name: "officer-case", bn: officerCaseBn, en: officerCaseEn },
   { name: "officer-map", bn: officerMapBn, en: officerMapEn },
+  { name: "officer-match", bn: officerMatchBn, en: officerMatchEn },
   { name: "officer-duplicates", bn: officerDuplicatesBn, en: officerDuplicatesEn },
   { name: "admin-import", bn: adminImportBn, en: adminImportEn },
 ];
@@ -196,13 +198,14 @@ describe("locales areas (P3-001)", () => {
     }
   });
 
-  it("uses the nine planned area files", () => {
+  it("uses the planned area files and officer-match disclaimers", () => {
     expect(AREAS.map((a) => a.name).sort()).toEqual(
       [
         "admin-import",
         "officer-case",
         "officer-duplicates",
         "officer-map",
+        "officer-match",
         "officer-queue",
         "parent-form",
         "parent-intake",
