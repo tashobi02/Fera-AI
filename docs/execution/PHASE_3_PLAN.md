@@ -1,6 +1,6 @@
 # Phase 3 plan: Wave 0 unblockers, features, quality, release
 
-**Branch:** `phase-3-obidit` (from `origin/phase-2-obidit-handoff` 82e1c08, plus merges of `phase-2-masnun` and `phase2--mahim-outputs`). **Written:** 2026-10-17 (Asia/Dhaka) by the planner (Claude Code, Opus 5.5). **Status:** executing; the user reported Mahim's approval of the rebaseline (§2) and D-A on 17 Oct. Other §3 decisions remain open.
+**Branch:** `phase-3-obidit` (from `origin/phase-2-obidit-handoff` 82e1c08, plus merges of `phase-2-masnun` and `phase2--mahim-outputs`). **Written:** 2026-10-17 (Asia/Dhaka) by the planner (Claude Code, Opus 5.5). **Status:** executing; at writing, the user reported Mahim's approval of the rebaseline (§2) and D-A. See §3 for 18 Oct USER-DELEGATED AGENT decisions; human evidence and external facts remain UNKNOWN.
 **Tracker:** task status lives in §9 of this file. Log lines go in the owner sections of [PHASE_3_FULL_SCOPE_QUALITY.md](PHASE_3_FULL_SCOPE_QUALITY.md#log). The orchestrator alone updates TASK rows in the Phase 2 and Phase 3 trackers when every sub-task of a TASK is merged (single writer, so there are no row conflicts).
 **Rules:** [AGENTS.md](../../AGENTS.md) first. Synthetic data only. No paid provider call until TASK-003 is done by a human (spend cap USD 25). Never cut review-before-submit, officer confirm, referral, audit or redaction.
 
@@ -46,30 +46,30 @@ Cut triggers (D6 §11 order, lead approves each cut; a cut is recorded as an omi
 
 ---
 
-## 3. Open decisions and assumptions (not resolved here)
+## 3. Recorded decisions and unresolved assumptions (2026-10-18)
 
-Tasks marked **GATED** do not start until their decision is recorded in the Phase 3 tracker log by the person named.
+The user explicitly delegated Phase 3 technical decisions and work across all owner lanes to the orchestrating agent on 18 Oct. New entries below are **USER-DELEGATED AGENT decisions**. They are not approvals by Mahim, Masnun, or Obidit. Keep the independent technical reviews and evidence gates in §7. Human-owned evidence and external facts stay **UNKNOWN** until recorded from evidence. The full decision rationale and acceptance notes are in [phase3-resume-decisions.md](handoff/phase3-resume-decisions.md); the live work queue is [phase3-resume-board.md](handoff/phase3-resume-board.md).
 
-| ID | Question | Blocks | Who decides | Planner's note |
+| ID | Question | Blocks | Authority / status | Decision or remaining fact |
 |---|---|---|---|---|
-| D-A | How to fix the two merge-caused test failures | P3-002, P3-003 | Lead + Obidit (guard) | **Approved by Mahim, as reported by the user on 17 Oct:** (1) add `matchReviewSimilarityNote` and `matchReviewDialogBody` to `NEGATED_DISCLAIMER_KEYS` and update the pinned assertion: they are the honest negations D4 asks for ("not a probability", "referral recorded (simulation)"); (2) narrow the photo regex so `getUserMedia({ audio: true })` passes but any `video` constraint fails (TC-026 allows audio input) |
-| OD-014-7 | API-001: notice acknowledgement mechanism, draft creation, token signing, route/session/codec validation, cache | P3-017 | Obidit + Mahim | Blueprint: `docs/execution/handoff/obidit/task-014-blueprint.md` |
-| OD-020-3 | Authoritative follow-up round storage: `intake_drafts` has no round column; a client token cannot be the counter (D2A:1300) | P3-005, P3-020 | Obidit + Masnun + Mahim (schema change = all-owner review) | Option to evaluate: add `follow_up_rounds smallint NOT NULL DEFAULT 0 CHECK (0..4)` with atomic increment. Not decided |
-| OD-022-5 | Who mints the parent session on the direct S-005 submit path | P3-013 | Mahim | **Decided by Mahim in `c1269e7` (17 Oct, on `origin/phase2--mahim-parent-session`, not yet merged into `phase2`):** API-003 mints the anonymous parent session only when no parent cookie is sent. A present unusable parent cookie remains E-002/E-019; later branch fixes `f863070`/`570cd28` handle dead-cookie clearing without replacing a valid parent cookie. S-005 draft is `2fbb8d0` on `origin/phase2--mahim-manual-form`; reconcile after its PR. |
-| OQ-B1-2 | Parent badge → status mapping | P3-103, P3-104 | Lead | Also affects the S-004 badge already merged |
-| ACT-017 | Destination after a successful S-006 save; badge mapping; whether offline edits are kept | P3-103 | Lead | D3 §row 12 gives E-018 lock copy and "S-003 or tel:13219" as recovery only |
-| R-1 | Round 2 submission status; are TASK-044–046 still owed? | scope | Lead | **UNKNOWN** |
-| R-2 | Lead identity. AGENTS.md says "Lead: Obidit (from 13 Oct)"; the trackers and this brief say Mahim | approvals | Team | Plan follows the brief (Mahim). Fix AGENTS.md or the trackers |
-| R-3 | Production DB host (OQ-021), Vercel project and managed DB access | P3-301 | Mahim | **UNKNOWN**; needed before deploy |
-| R-4 | Embedding: local Transformers.js vs API (TASK-004 outcome) | P3-024 | Masnun | P3-011 produces the evidence |
-| R-5 | Map rendering: bundled district outlines (source and licence **UNKNOWN**) vs centroid dots + table; Leaflet optional | P3-050 | Masnun | Default if no outline data with a known licence: table + centroid SVG, no Leaflet |
-| R-6 | Owner of the import service (TASK-048 is Masnun's; `src/server/admin/` is Mahim's) | P3-105 | Team | Proposal: new module `src/server/import/` owned by Masnun; add it to the AGENTS.md table |
-| R-7 | Mentor session 2 fix list is empty (Phase 2 tracker) | TASK-056 | Mahim | Fill the table first; P3-109 is generated from it |
-| R-8 | TASK-011 is "hand-labelled". Agents may draft synthetic texts; labels come from a person | P3-012 | Masnun + Obidit review | Assumption: agent drafts, human labels |
-| R-9 | Exact CLI invocations for puku, agy and Codex Luna 6 are not in this repo | §7 | Orchestrator owner | **Resolved for installed CLIs 17 Oct:** `puku-cli -p --model opus-4-8 --effort high` reports `modelUsage.opus-4-8`; `claude -p --model haiku --effort high` reports `modelUsage.claude-haiku-5-5`; `agy models` lists `gemini-3.8-flash-high` (execution not yet verified); `codex exec -m gpt-6-luna -s read-only --ephemeral` reported model `gpt-6-luna` and completed the Wave 0.0 review. Puku editor's `puku chat` is a different launcher. |
-| R-10 | Pending confirmations from the handoff §4 (OD-022-10, OD-022-17, OD-013-10/11/14/16, OD-021-7, OD-059-1/2/3, OD-023-1/2, OD-013-15 log names, guard.mjs label) | not blocking | Mahim | Record yes/no in the tracker log |
+| D-A | How to fix the two merge-caused test failures | P3-002, P3-003 | Mahim approval as reported by the user, 17 Oct | (1) Add `matchReviewSimilarityNote` and `matchReviewDialogBody` to `NEGATED_DISCLAIMER_KEYS` and update the pinned assertion: these are the honest negations D4 asks for ("not a probability", "referral recorded (simulation)"); (2) narrow the photo regex so `getUserMedia({ audio: true })` passes but any `video` constraint fails (TC-026 allows audio input). |
+| OD-014-7 | API-001/002 notice, shared session/draft minting, signing and fresh-draft bound | P3-017, P3-020 | USER-DELEGATED AGENT decision, 18 Oct | Require `x-fera-provider-notice: v1` before any intake provider dispatch. API-001/002 share session/draft metadata and token helpers. Use a server-owned limit of at most 3 unexpired draft creations per principal in any rolling 24 h, shared across both routes. The separate `DRAFT_SIGNING_KEY` is already merged and fails closed; do not fall back to `AUTH_SECRET`. |
+| OD-020-3 | Server-owned follow-up rounds and replay protection | P3-005, P3-020 | USER-DELEGATED AGENT decision, 18 Oct | Add metadata-only `follow_up_round smallint NOT NULL DEFAULT 0 CHECK (follow_up_round BETWEEN 0 AND 4)` to `intake_drafts`; atomically increment exactly when a question is issued. Keep `revision` as a separate expected-revision/replay guard and `ai_calls_used` as the count of paid provider dispatches. The user's delegation supersedes the P3-005 all-owner sign-off wording for this extension; before integration require technical database, security, and safeguarding reviews. Do not claim all-owner sign-off. |
+| OD-022-5 | Parent session on direct S-005 submit | P3-013 | Mahim decision, recorded in `c1269e7` (17 Oct) | API-003 mints the anonymous parent session only when no parent cookie is sent. A present unusable cookie remains E-002/E-019. Later branch fixes `f863070`/`570cd28` handle dead-cookie clearing without replacing a valid parent cookie. S-005 draft `2fbb8d0` is on `origin/phase2--mahim-manual-form`; reconcile that work after its PR. |
+| OQ-B1-2 | Parent badge and referral wording | P3-103, P3-104 | USER-DELEGATED AGENT decision, 18 Oct | Follow D3's three parent labels: `submitted`/`open` → Open; `matched_pending_review`/`confirmed` → Being checked; `closed` → Closed. `referred` is the found-report terminal state in BR-013; show referral-recorded wording only when the actual referral record exists. |
+| ACT-017 | S-006 correction flow, offline edits and terminal lock | P3-103 | USER-DELEGATED AGENT decision, 18 Oct | S-006 starts edit at S-003; the parent reviews and explicitly confirms before API-005's versioned PATCH. Offline edits remain device-local. A successful save returns to S-006's “Correction submitted” state. Confirmed/terminal cases return E-018 and the D3 recovery copy. |
+| R-1 | Round 2 submission status; are TASK-044–046 still owed? | scope | UNKNOWN | Organiser cutoff, channel and required formats are also UNKNOWN; do not infer submission or completion. |
+| R-2 | Lead identity | approvals | Resolved from the supplied current AGENTS.md | AGENTS.md names Mahim as lead. This records the source-of-truth label only and is not a technical approval by Mahim. |
+| R-3 | Production DB host (OQ-021), Vercel project and managed DB access | P3-301 | UNKNOWN | Needed before deploy. |
+| R-4 | Embedding model/revision and runtime download policy | P3-024 | USER-DELEGATED AGENT decision, 18 Oct | Pin local `Xenova/multilingual-e5-small` at revision `761b726dd34fb83930e26aab4e9ac3899aa1fa78`, using the q8 quantized asset. Verify and record SHA-256 hashes for the locally materialized files; runtime must use those files and must not download. The vector-space identity must bind model, revision, dtype, pooling, prefixes, and text recipe. Vercel viability and quality remain unmeasured until evidenced. |
+| R-5 | Map rendering and district outline licence | P3-050 | USER-DELEGATED AGENT decision, 18 Oct | Use a centroid SVG plus the accessible table; do not introduce new district-outline data or an unverified licence. Use district centroids only, never child coordinates. |
+| R-6 | Owner of the import service | P3-105 | USER-DELEGATED AGENT decision, 18 Oct | Assign the new `src/server/import/` module to Masnun for TASK-048. Admin-only synthetic import; no URL fetching. This task decision does not claim a personal owner approval. |
+| R-7 | Mentor session 2 fix list | TASK-056 | UNKNOWN | The fix list and mentor evidence have not been supplied. |
+| R-8 | TASK-011 labels | P3-012 | Human evidence required | Agents may prepare synthetic input texts. A person must supply the 50 labels; the required review evidence remains open. |
+| R-9 | Phase 3 executor policy | §7 | USER-DELEGATED AGENT decision, 18 Oct | Puku Opus 4.8 is the primary implementer; Codex Luna 6 Max handles bounded small-worker tasks and independent read-only review/testing. Poll all workers and fetch after every batch. |
+| R-10 | Other confirmations listed in handoff §4 | not blocking | UNKNOWN unless supported by a recorded artifact | Do not turn missing yes/no confirmations into approvals. Organizer and mentor facts remain UNKNOWN. |
 
-Assumptions: matching, dashboard and import are Masnun's paths per AGENTS.md; a task that must touch another owner's file goes in as a small PR tagged for that owner (AGENTS.md). Phase 5 tasks are outside this plan.
+The four-follow-up and six-paid-dispatch limits remain distinct. Matching and duplicate thresholds remain provisional and uncalibrated until a development evaluation records measured evidence; held-out results must not be used for tuning. Phase 5 remains outside this plan.
 
 ---
 
@@ -745,26 +745,27 @@ Tools: **puku** = Puku CLI (Opus 4.8) · **agy** = agy (Gemini 3.8 Flash High) �
 
 ## 7. Execution model
 
-| Role | Who | Does | Never |
+The user delegated Phase 3 technical decision-making and work across all owner lanes to the orchestrating agent on 18 Oct. This permits the agent to resolve the open technical choices in §3 and coordinate implementation across those lanes. It does not create a personal approval from any named owner or remove the required technical reviews, safeguarding checks, human evidence, or release gates. This policy supersedes the older launch instructions copied in §8; do not use that prompt without reconciling it to this section.
+
+| Role | Executor | Does | Boundaries |
 |---|---|---|---|
-| Orchestrator | Codex Sol 6.1 | Creates lanes, launches workers as background bash terminals, routes reviews, merges into `phase-3-obidit`, runs wave gates, updates TASK rows in the Phase 2/3 trackers, resolves tracker-only conflicts | Implements features; merges a BLOCK; pushes `main`; deploys |
-| Implementer (default) | Puku CLI, strictly Opus 4.8 | Cards marked puku | Edits files not on its card |
-| Implementer (light) | agy, Gemini 3.8 Flash High | Cards marked agy: copy, strings, fixtures, small UI states, tests | Schema, auth, transactions |
-| Implementer (small) | Claude Code, Haiku 5.5 High | Cards marked haiku | Multi-module work |
-| Reviewer and tester | Codex Luna 6 | `$fera-review` on every task (always `fera_safeguarding_reviewer` + the card's domain reviewer), re-runs the card's Accept command, wave gates with `$fera-gate` | Implements or edits code |
-| HUMAN | named person | TASK-003, TASK-011 labels, TASK-036, TASK-040 clips, TASK-041, VIDEO-PREP, decisions in §3, deploy go-ahead | — |
+| Orchestrator | Codex agent acting under the user's explicit delegation | Coordinates every owner lane; records technical decisions as **USER-DELEGATED AGENT**; polls workers; fetches after each batch; integrates reviewed commits; records command output and evidence | Never attribute a delegated decision to Mahim, Masnun, or Obidit; never mark a gate or human task complete without evidence; no push, deploy, or real-provider call without the required separate authorization/evidence |
+| Primary implementer | Puku CLI, Opus 4.8 (`puku-cli -p --model opus-4-8 --effort high`) | Main feature and integration tasks, including database and security work, in an isolated lane | One writer per lane; only the task's listed files and required evidence; no real child data or provider calls |
+| Small worker | Codex Luna 6 Max (`codex exec -m gpt-6-luna -c 'model_reasoning_effort="max"'`) | Bounded implementation tasks that have a clear, small file scope; manifest and test-stability tasks may use this lane | Work in a dedicated writable lane; never review its own implementation |
+| Independent reviewer/tester | A separate Codex Luna 6 Max session, read-only | Runs `$fera-review` for every task, including `fera_safeguarding_reviewer` and the card's domain reviewer; re-runs the card's Accept command and the wave gate | Does not edit code or approve its own work; BLOCK returns to the same implementer, then escalates to the orchestrator |
+| HUMAN evidence | A person with the relevant external access or direct observation | Provider keys/terms/prices, human labels, consented audio, phone tests, timing participants, mentor and organiser evidence, deployment go-ahead | An agent cannot fabricate, infer, or mark these facts complete |
 
-Flow per task:
-1. Orchestrator: `scripts/agents/new-lane.sh phase-3-obidit p3-<id>-<owner>-<slug>` → worktree `../fera-lanes/p3-<id>-…`, branch `phase-3-obidit--p3-<id>-…` from the local `phase-3-obidit`. Then `npm ci` in the lane.
-2. Worker gets: AGENTS.md, this file's §5 and its own card, nothing else. It changes only the files on its card plus its §9 row and its owner log line.
-3. Worker runs the card's Accept command and the standard checks, commits on its lane branch (Conventional Commits with the TASK ID), sets its §9 row to `review`.
-4. Luna runs `$fera-review` in the lane (read-only) and the Accept command. BLOCK → back to the same worker with the findings (max 2 rounds, then the orchestrator escalates to the lead).
-5. PASS → orchestrator merges into `phase-3-obidit` with `--no-ff`, then runs `npm run lint && npm run typecheck && npm test` on the integration tree. Red → revert the merge and send it back.
-6. After the last task of a wave: wave gate (below). Lanes for the next wave are created only after the gate, from the updated `phase-3-obidit`.
+Flow per task batch:
+1. Create isolated lanes from the integration branch with `scripts/agents/new-lane.sh`; use one writer per lane and run `npm ci` there. Workers receive AGENTS.md, §5, their card and the decision record. They follow that card's file list and do not read `.env` files.
+2. Launch main implementation work on Puku Opus 4.8. Assign only bounded tasks to Luna 6 Max workers. Use `[MOCK]` providers and synthetic fixtures; do not use real child data, paid calls, or permission-bypass flags.
+3. Poll all workers in the batch to completion. Each worker runs its card's Accept command and required checks, commits on its isolated lane using a Conventional Commit with the TASK ID, and records evidence. A reviewer uses a separate read-only session.
+4. Run `$fera-review` and the card's Accept command. Integrate only after PASS. For the `follow_up_round` schema extension, database, security, and safeguarding reviews must all pass before integration; do not represent these as all-owner sign-off.
+5. After every completed batch, run `git fetch origin`, inspect remote movement and lane results, and rebase/merge only reviewed commits into the integration branch. Then run `npm run lint && npm run typecheck && npm test` on the integration tree.
+6. At the end of a wave, run the wave gate below, save the exact output and counts, then update §9 only for work with evidence. Keep statuses and gate results unclaimed while a command, review, or human artifact is missing.
 
-Wave gate: on `phase-3-obidit` run lint, typecheck, test, build, test:db (and `test:e2e` once P3-014 is in); argon2 failures are re-run alone before being called failures; Luna runs `$fera-review` on the whole wave diff; the orchestrator writes `docs/gates/W<n>-<YYYY-MM-DD-HHMM>.md` with exit codes and counts.
+Wave gate: on the integration branch run lint, typecheck, test, build, test:db, and test:e2e when available. Re-run an isolated argon2 failure before classifying it. Luna reviews the whole wave diff. Record outputs in `docs/gates/W<n>-<YYYY-MM-DD-HHMM>.md`. Run `$fera-gate` at G2′, G3 and G4; a run is not a PASS unless its exit evidence and checklist are recorded.
 
-Concurrency limits: 10–20 workers in parallel, but at most 3 lanes running `npm run build`, full `npm test` or `test:e2e` at once (CPU load causes the argon2 timing flake). `test:db` is safe in parallel (one database per pid) and needs the `fera-db` container (`npm run db:up`). No GATED card starts before its decision is logged. Pushing needs an SSH agent or HTTPS with `gh auth git-credential`; the orchestrator pushes `phase-3-obidit` only after the lead says so.
+Concurrency: use small batches that fit the available worker and CLI capacity, with at most 3 lanes running `npm run build`, full `npm test`, or `test:e2e` at once. `test:db` needs the local `fera-db` container. A delegated technical decision can unblock a GATED card, but a missing human fact or required review still blocks the affected work. Pushing, deploying, and paid provider use remain subject to their explicit go-ahead and evidence requirements.
 
 ---
 

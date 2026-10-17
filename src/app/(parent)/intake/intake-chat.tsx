@@ -380,9 +380,8 @@ export function IntakeChat({ locale, mode }: { locale: Locale; mode: IntakeClien
           )}
         </p>
         {stage === "slow" && (
-          <Link href={MANUAL_FORM_PATH} onClick={(event) => handTo("manual", event)} className="inline-flex min-h-11 items-center self-start text-body-md">
+          <Link href={MANUAL_FORM_PATH} onClick={(event) => handTo("manual", event)} className="inline-flex min-h-11 items-center self-start text-body-md underline underline-offset-2">
             {t.useFormLink}
-            <HonestLabel>{t.plannedLabel}</HonestLabel>
           </Link>
         )}
 
@@ -498,12 +497,10 @@ export function IntakeChat({ locale, mode }: { locale: Locale; mode: IntakeClien
             </div>
           )}
           {state.latest && <Link href={REVIEW_PATH} onClick={(event) => handTo("review", event)} className={PRIMARY_BUTTON}>{t.reviewAction}</Link>}
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="inline-flex min-h-11 items-center gap-2 text-body-md text-mute">
-              {t.openFormAction}
-            </span>
-            <HonestLabel>{t.plannedLabel}</HonestLabel>
-          </div>
+          <Link href={MANUAL_FORM_PATH} onClick={(event) => handTo("manual", event)} className={`${TERTIARY_BUTTON} self-start`}>
+            <FileTextIcon />
+            {t.openFormAction}
+          </Link>
         </Outcome>
       )}
 
@@ -538,7 +535,9 @@ export function IntakeChat({ locale, mode }: { locale: Locale; mode: IntakeClien
         </section>
       ) : <div className="flex flex-wrap items-center justify-between gap-2 border-t border-hairline pt-3">
         {state.phase !== "manual" ? (
-          <PlannedLink href={MANUAL_FORM_PATH} onClick={(event) => handTo("manual", event)} label={t.openFormAction} planned={t.plannedLabel} />
+          <Link href={MANUAL_FORM_PATH} onClick={(event) => handTo("manual", event)} className={GHOST_BUTTON}>
+            <FileTextIcon />{t.openFormAction}
+          </Link>
         ) : (
           <span />
         )}
@@ -642,10 +641,6 @@ function Outcome({
     </section>
   );
 }
-
-// Only the unbuilt S-005 manual form keeps its Planned label.
-function PlannedLink({ href, onClick, label, planned }: { href: typeof MANUAL_FORM_PATH; onClick: (event: MouseEvent<HTMLAnchorElement>) => void; label: string; planned: string }) {
-  return <Link href={href} onClick={onClick} className={GHOST_BUTTON}>
-    <FileTextIcon />{label}<HonestLabel>{planned}</HonestLabel>
-  </Link>;
-}
+// S-005 manual form is now built (P3-013); the form link in S-002 is a real
+// ghost link to /intake/form, with no child payload in the URL. The device-local
+// draft (or handoff) carries the parent's words into the form.

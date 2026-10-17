@@ -1,150 +1,70 @@
-// TASK-064 / TC-064 / FV-11: the manifest is 200 records split by connected
-// identity group, hashes the inputs and itself, and a tampered commit is
-// detected without re-running the CLI.
+// TASK-064 / TC-064 / FV-11: preserve the committed identity-grouped split and source hashes.
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 // @ts-expect-error -- plain ESM module without type declarations
-import { buildManifest, checkManifest } from "../../eval/manifest.mjs";
+import { assertManifest, buildManifest, loadSplit, serializeManifest } from "../../eval/manifest.mjs";
 
-const dir = join(process.cwd(), "data", "synthetic");
-const read = (n: string) => readFileSync(join(dir, n), "utf8");
-const readBuf = (n: string) => readFileSync(join(dir, n));
-const sha = (s: Buffer | string) => createHash("sha256").update(s).digest("hex");
-
-type Row = {
-  record_id: string;
-  role: "pair_query" | "pair_found" | "dup_found" | "dup_missing" | "no_match_query" | "decoy";
-  identity_id: string;
-  duplicate_group_id: string | null;
-  true_partner_ids: string[];
-  no_match: boolean;
-  decoy_type: string | null;
-  decoy_target_ids: string[];
-  split_group_id?: string;
-};
-type Counts = {
-  total: number; missing_canonical: number; found_canonical: number; decoys: number;
-  true_pairs: number; no_match_queries: number; duplicate_links: number;
-  shared_phone_decoys: number; no_match_identities: number;
-  pair_identities_with_duplicate_found: number; split_groups: number;
-  records_sharing_a_phone_across_identities: number;
-};
-type Manifest = {
-  manifest_revision: string;
-  inputs: { ground_truth_sha256: string; records_sha256: string };
-  counts: { total: number; groups: number; by_split: { dev: SplitSummary; heldout: SplitSummary } };
-  splits: { dev: { group_ids: string[]; record_ids: string[] }; heldout: { group_ids: string[]; record_ids: string[] } };
-};
-type SplitSummary = { groups: number; records: number; true_pairs: number; no_match_queries: number; duplicate_links: number; shared_phone_decoys: number; decoys: number };
-
-const groundTruthBytes = readBuf("ground_truth.json");
-const recordsBytes = readBuf("records.jsonl");
-const groundTruth = JSON.parse(groundTruthBytes.toString("utf8")) as { counts: Counts; records: Row[] };
-const rows: Row[] = groundTruth.records;
-
-const build = () => buildManifest(groundTruth, { recordsJsonl: recordsBytes.toString("utf8"), groundTruthBytes, recordsBytes });
+const root = process.cwd();
+const read = (path: string) => readFileSync(join(root, path), "utf8");
+const readBuf = (path: string) => readFileSync(join(root, path));
+const sha = (value: Buffer | string) => createHash("sha256").update(value).digest("hex");
+const groundTruthBytes = readBuf("data/synthetic/ground_truth.json");
+const recordsBytes = readBuf("data/synthetic/records.jsonl");
+const groundTruth = JSON.parse(groundTruthBytes.toString("utf8"));
+const manifest = JSON.parse(read("eval/manifest.json"));
+const committedHash = read("eval/manifest.sha256").trim().split(/\s+/)[0];
+const build = () => buildManifest(groundTruth, { groundTruthBytes, recordsBytes });
 
 describe("manifest (TASK-064 / TC-064 / FV-11)", () => {
-  it("has the declared composition: 200 records, 75 groups, 60/20/25/7/40 per category", () => {
-    const m = build() as Manifest;
-    expect(m.counts.total).toBe(200);
-    expect(m.counts.groups).toBe(75);
-    const dev = m.counts.by_split.dev;
-    const held = m.counts.by_split.heldout;
-    expect(dev.true_pairs + held.true_pairs).toBe(60);
-    expect(dev.no_match_queries + held.no_match_queries).toBe(groundTruth.counts.no_match_queries);
-    expect(dev.duplicate_links + held.duplicate_links).toBe(groundTruth.counts.duplicate_links);
-    expect(dev.shared_phone_decoys + held.shared_phone_decoys).toBe(groundTruth.counts.shared_phone_decoys);
-    expect(dev.decoys + held.decoys).toBe(groundTruth.counts.decoys);
+  it("keeps the existing seed-2020 identity-grouped dev/test membership", () => {
+    const built = build();
+    expect(built.seed).toBe(2020);
+    expect(built.counts).toMatchObject({ total: 200, groups: 75 });
+    expect(built.counts.by_split.dev).toMatchObject({ groups: 30, records: 86 });
+    expect(built.counts.by_split.test).toMatchObject({ groups: 45, records: 114 });
+    const devDigest = sha(built.records.filter((row: { split: string }) => row.split === "dev").map((row: { record_id: string }) => row.record_id).join("\n"));
+    const testDigest = sha(built.records.filter((row: { split: string }) => row.split === "test").map((row: { record_id: string }) => row.record_id).join("\n"));
+    expect(devDigest).toBe("052c5917994e37919620c1658cc92bec4ef3088d11c704d542a0ffbb93373b3f");
+    expect(testDigest).toBe("4659b089b1efc2606ef0f06e2b1faca7edbdd38bf237c6171fb9f0cdd58d0576");
   });
 
-  it("puts every record in exactly one split (no overlap, no omission)", () => {
-    const m = build() as Manifest;
-    const all = [...m.splits.dev.record_ids, ...m.splits.heldout.record_ids];
-    expect(new Set(all).size).toBe(200);
-    expect(all).toHaveLength(200);
-    const known = new Set(rows.map((r) => r.record_id));
-    for (const id of all) expect(known.has(id), `unknown id ${id}`).toBe(true);
+  it("declares the expected synthetic composition and per-split denominators", () => {
+    expect(manifest.counts).toMatchObject({
+      total: 200, groups: 75, missing_canonical: 80, found_canonical: 80, decoys: 40,
+      true_pairs: 60, no_match_queries: 20, duplicate_links: 25, shared_phone_decoys: 7,
+    });
+    expect(manifest.counts.by_split.dev.true_pairs + manifest.counts.by_split.test.true_pairs).toBe(60);
+    expect(manifest.counts.by_split.dev.no_match_queries + manifest.counts.by_split.test.no_match_queries).toBe(20);
+    expect(manifest.counts.by_split.dev.duplicate_links + manifest.counts.by_split.test.duplicate_links).toBe(25);
   });
 
-  it("no connected identity/duplicate/partner/decoy-target group spans both splits", () => {
-    const m = build() as Manifest;
-    // Build the same connected components the manifest does, but independently
-    // here in the test, so a regression in the manifest builder is caught
-    // rather than hidden by a self-comparison.
-    const parent = new Map(rows.map((r) => [r.record_id, r.record_id]));
-    const find = (x: string): string => { while (parent.get(x) !== x) { const p = parent.get(x)!; parent.set(x, parent.get(p)!); x = parent.get(x)!; } return x; };
-    const union = (a: string, b: string) => { const ra = find(a); const rb = find(b); if (ra !== rb) parent.set(ra, rb); };
-    const byIdentity = new Map<string, string>();
-    const byDuplicate = new Map<string, string>();
-    for (const r of rows) {
-      if (byIdentity.has(r.identity_id)) union(r.record_id, byIdentity.get(r.identity_id)!);
-      else byIdentity.set(r.identity_id, r.record_id);
-      if (r.duplicate_group_id) {
-        if (byDuplicate.has(r.duplicate_group_id)) union(r.record_id, byDuplicate.get(r.duplicate_group_id)!);
-        else byDuplicate.set(r.duplicate_group_id, r.record_id);
-      }
-      for (const p of r.true_partner_ids) union(r.record_id, p);
-      for (const t of r.decoy_target_ids) union(r.record_id, t);
-    }
-    const devSet = new Set(m.splits.dev.record_ids);
-    const seen = new Map<string, "dev" | "heldout">();
-    for (const id of [...m.splits.dev.record_ids, ...m.splits.heldout.record_ids]) {
-      const root = find(id);
-      const side = devSet.has(id) ? "dev" : "heldout";
-      const prev = seen.get(root);
-      // Group must not span both splits. The first record of a group sets prev; the
-      // second must agree. Same-side on a later record is the success case.
-      expect(prev === undefined || prev === side, `group ${root} appears in both dev and heldout (record ${id}; previous side ${prev})`).toBe(true);
-      seen.set(root, side);
-    }
-    expect(seen.size).toBe(75);
+  it("includes every ground-truth record exactly once with a null speaker id", () => {
+    expect(manifest.records).toHaveLength(200);
+    expect(new Set(manifest.records.map((row: { record_id: string }) => row.record_id)).size).toBe(200);
+    expect(manifest.records.every((row: { speaker_id: string | null }) => row.speaker_id === null)).toBe(true);
+    expect(manifest.records.map((row: { record_id: string }) => row.record_id).sort()).toEqual(groundTruth.records.map((row: { record_id: string }) => row.record_id).sort());
   });
 
-  it("hash stable across two builds and inputs are pinned to the committed files", () => {
-    const a = build();
-    const b = build();
-    expect(JSON.stringify(a)).toBe(JSON.stringify(b));
-    const committed = JSON.parse(read("manifest.json")) as Manifest;
-    expect(committed.inputs.ground_truth_sha256).toBe(sha(groundTruthBytes));
-    expect(committed.inputs.records_sha256).toBe(sha(recordsBytes));
+  it("pins the source and manifest hashes, and regenerates byte-identically", () => {
+    const text = read("eval/manifest.json");
+    expect(createHash("sha256").update(text).digest("hex")).toBe(committedHash);
+    expect(manifest.inputs.ground_truth_sha256).toBe(sha(groundTruthBytes));
+    expect(manifest.inputs.records_sha256).toBe(sha(recordsBytes));
+    expect(serializeManifest(build())).toBe(text);
+    expect(() => assertManifest(manifest, groundTruth, { sha256: committedHash, groundTruthBytes, recordsBytes })).not.toThrow();
   });
 
-  it("--check passes for the committed manifest and fails for a tampered one (pure function)", () => {
-    const committedBody = read("manifest.json");
-    const committedHash = read("manifest.sha256").split(/\s+/)[0];
-    const inputs = { groundTruth, groundTruthBytes, recordsBytes };
-    // The current committed files were written by this builder, so checkManifest returns null.
-    expect(checkManifest(inputs, committedBody, committedHash)).toBeNull();
-
-    // Missing committed inputs are reported, never throw. The CLI catches
-    // "file not on disk" first, but the pure function still answers
-    // "committed artefact is missing" when the caller hands it undefined.
-    expect(checkManifest(inputs, undefined as unknown as string, undefined as unknown as string)).toMatch(/missing/);
-
-    // Tamper the body: keep the hash unchanged. checkManifest compares both, so the body check fails.
-    const tamperedBody = committedBody.replace(/"dev"/, '"dxx"');
-    expect(checkManifest(inputs, tamperedBody, committedHash)).toMatch(/body drift/);
-
-    // Tamper only the hash: a different committed hash triggers the hash check.
-    const wrongHash = "0".repeat(64);
-    expect(checkManifest(inputs, committedBody, wrongHash)).toMatch(/hash drift/);
-  });
-
-  it("records the D2 Part B §17 categories in the manifest and the split is roughly 40/60 dev/test by group", () => {
-    const m = build() as Manifest;
-    for (const side of [m.counts.by_split.dev, m.counts.by_split.heldout]) {
-      expect(side).toHaveProperty("true_pairs");
-      expect(side).toHaveProperty("no_match_queries");
-      expect(side).toHaveProperty("duplicate_links");
-      expect(side).toHaveProperty("shared_phone_decoys");
-      expect(side).toHaveProperty("decoys");
-    }
-    const total = m.counts.groups;
-    const devShare = m.counts.by_split.dev.groups / total;
-    expect(devShare).toBeGreaterThanOrEqual(0.35);
-    expect(devShare).toBeLessThanOrEqual(0.45);
+  it("rejects a split group crossing the boundary and returns only validated dev rows", () => {
+    const corrupted = structuredClone(manifest);
+    const first = corrupted.records.find((row: { split_group_id: string }) => corrupted.records.filter((other: { split_group_id: string }) => other.split_group_id === row.split_group_id).length > 1);
+    const second = corrupted.records.find((row: { split_group_id: string; record_id: string }) => row.split_group_id === first.split_group_id && row.record_id !== first.record_id);
+    second.split = second.split === "dev" ? "test" : "dev";
+    expect(() => assertManifest(corrupted, groundTruth, { sha256: sha(serializeManifest(corrupted)) })).toThrow(/seeded split differs|split_group_id .* spans/i);
+    const dev = loadSplit(manifest, "dev");
+    expect(dev).toHaveLength(86);
+    expect(dev.every((row: { split: string }) => row.split === "dev")).toBe(true);
+    expect(() => loadSplit(manifest, "other")).toThrow(/unknown split/);
   });
 });

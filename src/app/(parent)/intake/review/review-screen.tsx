@@ -8,7 +8,7 @@ import { errorEnvelope, type DraftFieldPath, type ErrorEnvelope } from "@/contra
 import { CircleAlertIcon, InfoIcon, LoaderCircleIcon } from "@/app/components/icons";
 import { FocusHeading } from "@/app/components/focus-heading";
 import { clearSubmittedDraft, clearSubmittedReference, createDeviceDraft, readDraft, readSubmittedReference, saveDraft, type DeviceDraft } from "@/lib/intake/draft-store";
-import { clearIntakeMemory, INTAKE_PATH, takeHandoff, type IntakeHandoff } from "@/lib/intake/handoff";
+import { clearIntakeMemory, INTAKE_PATH, MANUAL_FORM_PATH, takeHandoff, type IntakeHandoff } from "@/lib/intake/handoff";
 import { buildSubmission, createSubmitter, editField, newSubmission, validateReview } from "@/lib/intake/review";
 import { localizeDigits } from "@/lib/numerals";
 import { locales, type Locale } from "@/locales";
@@ -317,10 +317,7 @@ export function ReviewScreen({ locale }: { locale: Locale }) {
         <ConfirmBar locale={locale} checked={checked} valid={valid} busy={busy} blocked={conflict || sessionExpired || expired || Boolean(pendingHandoff)} mock={record.mock} describedBy={!valid ? "review-required" : undefined} onCheck={setChecked} />
       </form>
       <Link className={TERTIARY_BUTTON} href={INTAKE_PATH} aria-disabled={busy || undefined} onClick={(e) => { if (busy) e.preventDefault(); }}>{t.reviewBack}</Link>
-      <span className="inline-flex min-h-11 items-center gap-2 text-body-lg text-mute">
-        {t.reviewPlannedManual}
-        <HonestLabel>{t.plannedLabel}</HonestLabel>
-      </span>
+      <Link className={TERTIARY_BUTTON} href={MANUAL_FORM_PATH} aria-disabled={busy || undefined} onClick={(e) => { if (busy) e.preventDefault(); }}>{t.reviewManualLink}</Link>
       <button type="button" disabled={busy} className={TERTIARY_BUTTON} onClick={discard}><TrashIcon />{t.reviewDiscardDevice}</button>
     </>}
   </div>;

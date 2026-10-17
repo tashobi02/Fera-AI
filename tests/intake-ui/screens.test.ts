@@ -95,7 +95,7 @@ describe("SCREEN-002 after acknowledgement", () => {
     expectParentSafe(html);
   });
 
-  it("keeps the example in the textarea description and labels the unbuilt form link", () => {
+  it("keeps the example in the textarea description and links the manual form", () => {
     acknowledgeNotice();
     const html = chat("bn");
     const textarea = html.match(/<textarea[^>]*>/)?.[0] ?? "";
@@ -103,7 +103,8 @@ describe("SCREEN-002 after acknowledgement", () => {
     expect(html).toContain(`id="${hint}"`);
     expect(html).toMatch(new RegExp(`id="${hint}"[^>]*>${locales.bn.intakeExample}`));
     const fallback = html.match(/<a[^>]*href="\/intake\/form"[^>]*>[\s\S]*?<\/a>/)?.[0];
-    expect(fallback).toContain(locales.bn.plannedLabel);
+    expect(fallback).toContain(locales.bn.openFormAction);
+    expect(fallback).not.toContain(locales.bn.plannedLabel);
   });
 
   it("labels the fake replies [MOCK] (honest labels)", () => {
