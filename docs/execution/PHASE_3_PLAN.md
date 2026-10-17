@@ -55,7 +55,7 @@ Tasks marked **GATED** do not start until their decision is recorded in the Phas
 | D-A | How to fix the two merge-caused test failures | P3-002, P3-003 | Lead + Obidit (guard) | **Approved by Mahim, as reported by the user on 17 Oct:** (1) add `matchReviewSimilarityNote` and `matchReviewDialogBody` to `NEGATED_DISCLAIMER_KEYS` and update the pinned assertion: they are the honest negations D4 asks for ("not a probability", "referral recorded (simulation)"); (2) narrow the photo regex so `getUserMedia({ audio: true })` passes but any `video` constraint fails (TC-026 allows audio input) |
 | OD-014-7 | API-001: notice acknowledgement mechanism, draft creation, token signing, route/session/codec validation, cache | P3-017 | Obidit + Mahim | Blueprint: `docs/execution/handoff/obidit/task-014-blueprint.md` |
 | OD-020-3 | Authoritative follow-up round storage: `intake_drafts` has no round column; a client token cannot be the counter (D2A:1300) | P3-005, P3-020 | Obidit + Masnun + Mahim (schema change = all-owner review) | Option to evaluate: add `follow_up_rounds smallint NOT NULL DEFAULT 0 CHECK (0..4)` with atomic increment. Not decided |
-| OD-022-5 | Who mints the parent session on the direct S-005 submit path | P3-013 | Mahim | Evidence: `docs/execution/evidence/intake-submit-api.md` |
+| OD-022-5 | Who mints the parent session on the direct S-005 submit path | P3-013 | Mahim | **Decided by Mahim in `c1269e7` (17 Oct, on `origin/phase2--mahim-parent-session`, not yet merged into `phase2`):** API-003 mints the anonymous parent session only when no parent cookie is sent. A present unusable parent cookie remains E-002/E-019; later branch fixes `f863070`/`570cd28` handle dead-cookie clearing without replacing a valid parent cookie. S-005 draft is `2fbb8d0` on `origin/phase2--mahim-manual-form`; reconcile after its PR. |
 | OQ-B1-2 | Parent badge → status mapping | P3-103, P3-104 | Lead | Also affects the S-004 badge already merged |
 | ACT-017 | Destination after a successful S-006 save; badge mapping; whether offline edits are kept | P3-103 | Lead | D3 §row 12 gives E-018 lock copy and "S-003 or tel:13219" as recovery only |
 | R-1 | Round 2 submission status; are TASK-044–046 still owed? | scope | Lead | **UNKNOWN** |
@@ -249,10 +249,10 @@ Tools: **puku** = Puku CLI (Opus 4.8) · **agy** = agy (Gemini 3.8 Flash High) �
 - **Tool:** agy. **Review:** bengali-reviewer.
 - **HUMAN after:** Masnun labels into `eval/data/labelled.jsonl`; Obidit reviews and signs in the README.
 
-#### P3-013 · TASK-025 S-005 manual form · FR-026 · TC-017 · GATED OD-022-5
+#### P3-013 · TASK-025 S-005 manual form · FR-026 · TC-017 · OD-022-5 decided
 - **Lane:** Mahim · `src/app/(parent)/intake/form/` (S-005 is Sadman's per AGENTS.md).
 - **Files:** create `src/app/(parent)/intake/form/page.tsx`, `src/app/(parent)/intake/form/manual-form.tsx`, `tests/intake-ui/manual-form.test.ts`; strings in `src/locales/areas/parent-form.ts`.
-- **Deps:** P3-001; OD-022-5.
+- **Deps:** P3-001; OD-022-5 decision in §3; reconcile Mahim's unmerged S-005 branch before duplicate implementation.
 - **Inputs:** D3 SCREEN-005 (`docs/spec/D3_App_Flow_V2.md:121`) and line 483 (missing-field list after four rounds); D1 FR-026; D2A API-003 (`D2_TRD_PartA_V2.md:297`); COMP-032; reuse field components from `src/app/(parent)/intake/review/review-fields.tsx` (import; do not edit).
 - **Steps:** form with the same fields and validation as S-003; pre-fill from the device-local draft if present; same review checkbox and submit via API-003 with the device-local UUID; on API error keep every typed value; ≥44 px targets; no red.
 - **Accept:** TC-017 at component level (form renders ≤2 s after a simulated LLM error, text kept); unit tests pass.
@@ -809,7 +809,7 @@ Status values: `todo` · `doing` · `review` · `done` · `blocked` · `cut`.
 | P3-010 | TASK-010 | Masnun | puku | `blocked` | isolated draft `d5371b6`; not merged | MLE review BLOCK after two Puku rounds: five found ages violate DB constraint, unknown age absent, decoys do not exercise BR-017 hard filters, ground truth incomplete, five shared-phone distinct-child pairs mislabelled duplicates. |
 | P3-011 | TASK-004 | Masnun | puku | `done` | `9500910` merged into `phase-3-obidit` | [Embedding spike](evidence/embedding-spike.md): 20 synthetic bn/en texts, 384-d; MLE review PASS after correction. Hosted viability remains UNKNOWN; this card does not complete all TASK-004 deployment evidence. |
 | P3-012 | TASK-011 | Masnun | agy + HUMAN | `blocked` | no edits in `/tmp/fera-p3-012` | agy CLI denied its headless command permission. Automatic approval review rejected the requested permission-bypass flag. Exact executor retained; 50 synthetic texts and human labels remain undone. |
-| P3-013 | TASK-025 | Mahim | puku | `todo` | | GATED OD-022-5; no recorded decision found in locally available Mahim branches. |
+| P3-013 | TASK-025 | Mahim | puku | `todo` | | OD-022-5 decided in Mahim commit `c1269e7`; S-005 draft `2fbb8d0` is on an unmerged Mahim branch. Reconcile that work and its review before this card starts or is counted done. |
 | P3-014 | TASK-038 | Mahim | puku | `done` | `9de0d5c` merged into `phase-3-obidit` | `npm run test:e2e` 4/4 PASS on a fresh local synthetic DB, including Turbopack build; `npm test` excludes e2e. TS/safeguarding review PASS. Added dev dependencies `@playwright/test` ^1.64.1 (browser runner) and `@axe-core/playwright` ^4.14.0 (a11y scan). Harness only; TASK-038 journeys remain. |
 | P3-015 | TASK-022 | Obidit | puku | `done` | `c74381b` merged into `phase-3-obidit` | Named bn/en district select, 44px helpline link and submitted-report link; focused review tests 43/43, React/Bengali/a11y reviews PASS; [360 px screenshot](evidence/screenshots/p3-015-review-360.png). |
 | P3-016 | TASK-029 | Mahim | puku | `done` | `2de934c` plus malformed-ID fix merged into `phase-3-obidit` | API tests 6/6, isolated DB tests 12/12, full `test:db` 11 files PASS; security, safeguarding, database and TS reviews PASS. Role DTOs and persisted E-004 denied-access audit, including malformed IDs, verified. This card alone does not complete TASK-029. |
