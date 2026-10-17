@@ -9,7 +9,7 @@ import { z } from "zod";
 import { ERROR_CATALOGUE, errorEnvelopeSchema, type ServerErrorId } from "@/contracts";
 import { API_ACCESS, API_IDS, type ApiId } from "@/contracts/server";
 import { CookieJar, PUBLIC_APIS } from "@/app/api/_shared";
-import { MINTING_APIS, cookieNames } from "@/server/auth";
+import { MINTING_APIS, MINTING_IF_NO_PARENT_COOKIE, cookieNames } from "@/server/auth";
 import { signParentToken, signSessionToken } from "@/server/auth/tokens";
 import { get, jsonPost, noParams, testFactory } from "../api/fakes";
 import { DAY_MS, KEYS, cookieHeaderFrom, fakeAuth } from "./fakes";
@@ -211,7 +211,45 @@ describe("parent sessions (D2A §9.1, BR-007 ownership)", () => {
     expect(t.store.created).toBe(0);
   });
 
-  const nonMinting = API_IDS.filter((api) => !MINTING_APIS.includes(api) && !(PUBLIC_APIS as readonly ApiId[]).includes(api));
+  // OD-022-5: API-003 mints only for a browser with no parent cookie at all.
+  it.each(MINTING_IF_NO_PARENT_COOKIE.map((api) => [api]))("%s mints when no parent cookie is present, then reuses it", async (api) => {
+    const t = setup();
+    const first = await call(t.route(api));
+    expect(first.status).toBe(200);
+    const body = (await first.json()) as { role: string; id: string };
+    expect(body.role).toBe("parent");
+    expect(t.store.created).toBe(1);
+    const again = await call(t.route(api), cookieHeaderFrom(first));
+    expect(await again.json()).toEqual(body);
+    expect(again.headers.getSetCookie()).toEqual([]);
+    expect(t.store.created).toBe(1);
+  });
+
+  it.each(MINTING_IF_NO_PARENT_COOKIE.map((api) => [api]))("%s never replaces a present but unusable parent cookie", async (api) => {
+    const t = setup();
+    for (const cookie of [
+      `${t.names.parent}=p1.${randomUUID()}.AAAA`,
+      t.parent(randomUUID()),
+      t.parent(t.store.addSession({ expiresInMs: -DAY_MS }).id),
+      t.parent(t.store.addSession({ revoked: true }).id),
+    ]) {
+      const res = await call(t.route(api), cookie);
+      await expectError(res, "E-002");
+      expect(res.headers.getSetCookie()).toEqual([]);
+    }
+    expect(t.store.created).toBe(0);
+  });
+
+  it("a signed-in staff member on API-003 gets no parent cookie", async () => {
+    const t = setup();
+    const res = await call(t.route("API-003"), t.session(t.users.staff.id));
+    expect(res.headers.getSetCookie()).toEqual([]);
+    expect(t.store.created).toBe(0);
+  });
+
+  const nonMinting = API_IDS.filter(
+    (api) => !MINTING_APIS.includes(api) && !MINTING_IF_NO_PARENT_COOKIE.includes(api) && !(PUBLIC_APIS as readonly ApiId[]).includes(api),
+  );
   it.each(nonMinting.map((api) => [api]))("%s never mints a parent session (no session → E-002)", async (api) => {
     const t = setup();
     const res = await call(t.route(api));
@@ -226,8 +264,8 @@ describe("parent sessions (D2A §9.1, BR-007 ownership)", () => {
     const first = await call(t.route("API-001"));
     expect(first.headers.getSetCookie()[0]).toMatch(/^__Host-fera_ps=p1\..*; Secure$/);
     const row = t.store.addSession();
-    await expectError(await call(t.route("API-003"), `fera_ps=${signParentToken(KEYS.parent, row.id)}`), "E-002");
-    expect(await (await call(t.route("API-003"), t.parent(row.id))).json()).toEqual({ role: "parent", id: row.id });
+    await expectError(await call(t.route("API-004"), `fera_ps=${signParentToken(KEYS.parent, row.id)}`), "E-002");
+    expect(await (await call(t.route("API-004"), t.parent(row.id))).json()).toEqual({ role: "parent", id: row.id });
   });
 });
 

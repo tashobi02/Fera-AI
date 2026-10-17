@@ -161,10 +161,36 @@ describe.skipIf(!dbTestsEnabled)("API-003 on PostgreSQL 16 (TASK-022)", () => {
     expect(JSON.stringify(audit.rows)).not.toContain(token);
   });
 
-  it("requires a pre-existing parent session, without creating one at submit", async () => {
+  // OD-022-5 (Mahim, 2026-10-17): a browser with no parent cookie gets one new
+  // anonymous session at submit (S-005 manual form; S-002 before API-001/002 exist).
+  it("mints one parent session for a browser with no parent cookie, owns the case by it, and replays with it", async () => {
+    const before = await counts();
+    const sessionsBefore = await one<{ n: number }>(appClient, "SELECT count(*)::int AS n FROM parent_sessions");
+    const body = manualRequest();
+    const response = await submit(body);
+    expect(response.status).toBe(201);
+    const created = createMissingResponseSchema.parse(await response.json());
+    const setCookie = response.headers.getSetCookie();
+    expect(setCookie).toHaveLength(1);
+    expect(setCookie[0]).toMatch(new RegExp(`^${cookieNames(false).parent}=p1\\.`));
+    expect((await one<{ n: number }>(appClient, "SELECT count(*)::int AS n FROM parent_sessions")).n).toBe(sessionsBefore.n + 1);
+    const owner = await one<{ reporter_session_id: string }>(appClient, "SELECT reporter_session_id FROM cases WHERE id = $1", [created.id]);
+    const { id: newest } = await one<{ id: string }>(appClient, "SELECT id FROM parent_sessions ORDER BY created_at DESC, id DESC LIMIT 1");
+    expect(owner.reporter_session_id).toBe(newest);
+    expect((await counts()).cases).toBe(before.cases + 1);
+    // The same browser (now carrying the cookie) replays the same report, no new session.
+    const cookie = setCookie[0]!.split(";")[0]!;
+    const replay = await submit(body, cookie);
+    expect(replay.status).toBe(200);
+    expect(createMissingResponseSchema.parse(await replay.json()).ref_code).toBe(created.ref_code);
+    expect((await one<{ n: number }>(appClient, "SELECT count(*)::int AS n FROM parent_sessions")).n).toBe(sessionsBefore.n + 1);
+  });
+
+  it("does not replace a present but expired parent session: E-002, no new session, nothing stored", async () => {
+    const { id } = await one<{ id: string }>(appClient, "INSERT INTO parent_sessions (created_at, expires_at) VALUES (now() - interval '31 days', now() - interval '1 minute') RETURNING id");
     const before = await counts();
     const sessionsBefore = await one(appClient, "SELECT count(*)::int AS n FROM parent_sessions");
-    const response = await submit(manualRequest());
+    const response = await submit(manualRequest(), `${cookieNames(false).parent}=${signParentToken(KEYS.parent, id)}`);
     expect(response.status).toBe(401);
     expect(await errorId(response)).toBe("E-002");
     expect(response.headers.get("set-cookie")).toBeNull();

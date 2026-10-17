@@ -149,12 +149,14 @@ describe("API-003 missing-report submission (TASK-022)", () => {
     expect(JSON.parse(String(db.sent(/^INSERT INTO audit_log/)[0].values[6]))).toEqual({ error_id: "E-003", api: "API-003" });
   });
 
-  it.each(["absent", "expired"])("an %s parent session gets the auth layer's E-002 without minting a cookie or writing a case", async (state) => {
+  // OD-022-5: no parent cookie at all mints a session at submit (tested on PostgreSQL in
+  // tests/db/submit.test.ts); a present but expired one is still refused here.
+  it("an expired parent session gets the auth layer's E-002 without minting a cookie or writing a case", async () => {
     const { auth, store } = fakeAuth();
     vi.mocked(defaultAuth().resolvePrincipal).mockImplementation(auth.resolvePrincipal);
     const db = installDb();
     const session = store.addSession({ expiresInMs: -1 });
-    const headers: Record<string, string> = state === "expired" ? { cookie: `${cookieNames(false).parent}=${signParentToken(KEYS.parent, session.id)}` } : {};
+    const headers: Record<string, string> = { cookie: `${cookieNames(false).parent}=${signParentToken(KEYS.parent, session.id)}` };
     const response = await submit(requestBody(), headers);
     expect(response.status).toBe(401);
     expect(await errorId(response)).toBe("E-002");

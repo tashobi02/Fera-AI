@@ -203,10 +203,11 @@ describe.skipIf(!dbTestsEnabled)("auth on PostgreSQL 16 (TASK-006)", () => {
       expect(await sessionCount()).toBe(before + 1);
     });
 
+    // OD-022-5: API-003 mints for a browser with no parent cookie (tests/db/submit.test.ts).
     it("other routes never mint: no session → E-002 and no new row", async () => {
       const before = await sessionCount();
       const f = factory();
-      for (const api of ["API-003", "API-004", "API-018", "API-007"] as const) {
+      for (const api of ["API-004", "API-018", "API-007"] as const) {
         const res = await route(f, api)(get("/api/x"), noParams);
         expect(res.status).toBe(401);
         expect(res.headers.getSetCookie()).toEqual([]);
