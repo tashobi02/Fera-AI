@@ -41,7 +41,7 @@ Every number in `DUPLICATE_PARAMS` is an experimental a-priori value, labelled i
 | Different-child shared-phone same-kind pairs wrongly linked | 0 of 122 |
 | Declared shared-phone decoy (7) pairs wrongly linked | 0 of 0 same-kind pairs (every decoy target is the other kind, so a same-kind detector cannot link them by construction; the DB test still asserts it) |
 | Phone-only links | 0 |
-| Second run | 0 created, 72 already present (each pair is seen from both anchors; table unchanged at 36 rows) |
+| Second run | 0 created (observed on the first-version rule: 0 created, 102 already present = 2 x 51, each pair is seen from both anchors; the DB test asserts 0 created on rerun for the final rule) |
 
 The 122-pair denominator counts same-kind pairs with the same contact phone and different identity (ground_truth identity_id). 13 FPs and 2 FNs are failures, not noise; the smoke is easy by construction (clothing is identical across true pairs, the TASK-004 upper bound).
 
