@@ -15,18 +15,11 @@ const { detectCacheHit } = __test;
 const MANIFEST = {
   manifest_revision: "manifest-1",
   inputs: { ground_truth_sha256: "00".repeat(32) },
-  counts: {
-    total: 5,
-    groups: 3,
-    by_split: {
-      dev: { groups: 3, records: 5, true_pairs: 2, no_match_queries: 1, duplicate_links: 0, shared_phone_decoys: 0, decoys: 0 },
-      heldout: { groups: 0, records: 0, true_pairs: 0, no_match_queries: 0, duplicate_links: 0, shared_phone_decoys: 0, decoys: 0 },
-    },
-  },
-  splits: {
-    dev: { group_ids: ["MG-1", "MG-2", "MG-3"], record_ids: ["q1", "f1a", "f1b", "q2", "nm1"] },
-    heldout: { group_ids: [], record_ids: [] },
-  },
+  records: [
+    ...["q1", "f1a", "f1b"].map((record_id) => ({ record_id, split_group_id: "MG-1", split: "dev" })),
+    ...["q2", "f2"].map((record_id) => ({ record_id, split_group_id: "MG-2", split: "dev" })),
+    { record_id: "nm1", split_group_id: "MG-3", split: "dev" },
+  ],
 };
 
 const GROUND_TRUTH = {
@@ -49,11 +42,11 @@ describe("eval/match.mjs — buildQueries", () => {
     expect(q.partnerSet.get("q1")?.has("f1a")).toBe(true);
   });
 
-  it("treats 'test' as an alias for heldout", () => {
-    // In the synthetic test manifest the heldout split is empty but
+  it("treats 'heldout' as a CLI alias for canonical test", () => {
+    // This fixture has no test rows, but the canonical split remains
     // declared; buildQueries must surface that as present=true with
     // empty arrays, so the caller can decide what to do.
-    const q = buildQueries({ records: GROUND_TRUTH.records, manifest: MANIFEST, split: "test" });
+    const q = buildQueries({ records: GROUND_TRUTH.records, manifest: MANIFEST, split: "heldout" });
     expect(q.present).toBe(true);
     expect(q.splitInfo).toBeTruthy();
     expect(q.truthPairQueries).toEqual([]);
@@ -139,9 +132,9 @@ describe("eval/match.mjs — run() integration", () => {
     delete process.env.FERA_MANIFEST_SHA256;
     try {
       const fs = await import("node:fs/promises");
-      const manifest = JSON.parse(await fs.readFile("data/synthetic/manifest.json", "utf8"));
+      const manifest = JSON.parse(await fs.readFile("eval/manifest.json", "utf8"));
       const truth = JSON.parse(await fs.readFile("data/synthetic/ground_truth.json", "utf8"));
-      const devIds = new Set(manifest.splits.dev.record_ids);
+      const devIds = new Set(manifest.records.filter((r: any) => r.split === "dev").map((r: any) => r.record_id));
       // Find one pair_query in dev and one of its true partners.
       const query = truth.records.find((r: any) => r.role === "pair_query" && devIds.has(r.record_id));
       if (!query) return; // nothing to score on this build

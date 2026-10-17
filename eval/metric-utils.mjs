@@ -8,19 +8,20 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
-import { createRequire } from "node:module";
+import { paths as manifestPaths, loadSplit as loadCanonicalSplit } from "./manifest-lib.mjs";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 export const REPO_ROOT = resolve(__dirname, "..");
 export const DATA_DIR = resolve(REPO_ROOT, "data", "synthetic");
-export const MANIFEST_PATH = join(DATA_DIR, "manifest.json");
-export const MANIFEST_HASH_PATH = join(DATA_DIR, "manifest.sha256");
-export const RECORDS_PATH = join(DATA_DIR, "records.jsonl");
-export const GROUND_TRUTH_PATH = join(DATA_DIR, "ground_truth.json");
+export const MANIFEST_PATH = manifestPaths.manifest;
+export const MANIFEST_HASH_PATH = manifestPaths.hash;
+export const RECORDS_PATH = manifestPaths.records;
+export const GROUND_TRUTH_PATH = manifestPaths.groundTruth;
+export const FREEZE_PATH = manifestPaths.freeze;
 export const EVAL_DATA_DIR = resolve(REPO_ROOT, "eval", "data");
-export const REPORTS_DIR = resolve(REPO_ROOT, "reports");
+export const REPORTS_DIR = resolve(REPO_ROOT, "eval", "reports");
 export const LABELED_DRAFT_PATH = join(EVAL_DATA_DIR, "labelled.draft.jsonl");
 
 /* ---------- not measured helpers ---------- */
@@ -59,34 +60,24 @@ export function gitHeadFull() {
 
 /* ---------- model / manifest freeze checks (AMD-3-3, D2B §17) ---------- */
 
-// ENV CONTRACT (set by freeze owner before held-out runs):
-//   FERA_FREEZE_COMMIT     — git SHA that the manifest was frozen at
-//   FERA_FREEZE_MODEL      — model name + revision the manifest was frozen for
-//   FERA_MANIFEST_SHA256   — manifest hash recorded at freeze time
-// Held-out runs (split === "heldout" or "test") refuse to start unless all
-// three are present AND match the live state.
+// The canonical manifest loader validates the committed hash, source data,
+// group assignment, and FREEZE.md flag. Environment variables cannot unlock
+// the test split or override an invalid manifest.
 export function checkFreezeGate(split) {
-  if (split !== "heldout" && split !== "test") return { ok: true, reason: null };
-  const exp = {
-    commit: process.env.FERA_FREEZE_COMMIT ?? null,
-    model: process.env.FERA_FREEZE_MODEL ?? null,
-    manifest: process.env.FERA_MANIFEST_SHA256 ?? null,
-  };
-  const missing = Object.entries(exp).filter(([, v]) => v === null).map(([k]) => k);
-  if (missing.length) {
-    return { ok: false, reason: `held-out requires ${missing.join(", ")}` };
+  const canonicalSplit = canonicalSplitName(split);
+  const manifest = loadManifest();
+  if (!manifest) throw new Error(`manifest: canonical manifest is missing: ${MANIFEST_PATH}`);
+
+  try {
+    loadCanonicalSplit(manifest, canonicalSplit);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    if (canonicalSplit === "test" && reason.includes("freeze flag is not set in eval/FREEZE.md")) {
+      return { ok: false, reason };
+    }
+    throw error;
   }
-  const live = {
-    commit: gitHeadFull(),
-    manifest: existsSync(MANIFEST_HASH_PATH) ? readFileSync(MANIFEST_HASH_PATH, "utf8").split(/\s+/)[0] : null,
-  };
-  if (exp.commit && live.commit && exp.commit !== live.commit) {
-    return { ok: false, reason: `freeze commit ${exp.commit} != HEAD ${live.commit}` };
-  }
-  if (exp.manifest && live.manifest && exp.manifest !== live.manifest) {
-    return { ok: false, reason: `freeze manifest ${exp.manifest} != live ${live.manifest}` };
-  }
-  return { ok: true, reason: null, expected: exp, live };
+  return { ok: true, reason: null, split: canonicalSplit };
 }
 
 /* ---------- JSON / JSONL helpers (no transcript/child text leakage) ---------- */
@@ -175,22 +166,6 @@ export function sampleFailures(rows, predicate, max = 5) {
   return out;
 }
 
-/* ---------- manifest lib presence check ---------- */
-
-export function hasManifestLib() {
-  return existsSync(join(REPO_ROOT, "eval", "manifest-lib.mjs"));
-}
-
-export function getManifestLib() {
-  if (!hasManifestLib()) return null;
-  try {
-    const require = createRequire(import.meta.url);
-    return require(pathToFileURL(join(REPO_ROOT, "eval", "manifest-lib.mjs")).href);
-  } catch {
-    return null;
-  }
-}
-
 /* ---------- CLI helpers (shared) ---------- */
 
 export function parseCommonArgs(argv, usage) {
@@ -217,21 +192,42 @@ export function parseCommonArgs(argv, usage) {
 
 export function loadManifest() {
   const m = safeReadJson(MANIFEST_PATH);
-  if (!m.present || m.malformed || !m.value) return null;
+  if (!m.present) return null;
+  if (m.malformed || !m.value || typeof m.value !== "object") {
+    throw new Error(`manifest: invalid JSON in ${MANIFEST_PATH}`);
+  }
   return m.value;
 }
 
+function canonicalSplitName(split) {
+  if (split === "dev") return "dev";
+  if (split === "heldout" || split === "test") return "test";
+  throw new Error(`manifest: unknown split ${split}`);
+}
+
 export function loadSplitRecords(split) {
-  // Reads manifest and returns record ids assigned to the requested split.
+  // Validates the canonical manifest and returns IDs from its committed
+  // dev/test assignment. `heldout` remains a CLI alias for canonical `test`.
   const manifest = loadManifest();
-  if (!manifest) return null;
-  if (split === "test") split = "heldout";
-  if (!manifest.splits || !manifest.splits[split]) return null;
+  if (!manifest) throw new Error(`manifest: canonical manifest is missing: ${MANIFEST_PATH}`);
+  const selectedSplit = canonicalSplitName(split);
+  const rows = loadCanonicalSplit(manifest, selectedSplit);
   return {
-    split,
-    recordIds: new Set(manifest.splits[split].record_ids),
-    groupIds: new Set(manifest.splits[split].group_ids),
-    counts: manifest.counts?.by_split?.[split] ?? null,
+    split: selectedSplit,
+    recordIds: new Set(rows.map((row) => row.record_id)),
+    groupIds: new Set(rows.map((row) => row.split_group_id)),
+    counts: manifest.counts?.by_split?.[selectedSplit] ?? null,
+  };
+}
+
+export function splitInfoFromManifest(manifest, split) {
+  const selectedSplit = canonicalSplitName(split);
+  if (!Array.isArray(manifest?.records)) return null;
+  const rows = manifest.records.filter((row) => row.split === selectedSplit);
+  return {
+    split: selectedSplit,
+    record_ids: rows.map((row) => row.record_id),
+    group_ids: [...new Set(rows.map((row) => row.split_group_id))],
   };
 }
 

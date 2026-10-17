@@ -8,16 +8,16 @@
 //   - missing inputs print "not measured (<reason>)";
 //   - failures are taken from real outputs, never invented to fill a
 //     template;
-//   - held-out (test) splits require the freeze gate (FERA_FREEZE_COMMIT,
-//     FERA_FREEZE_MODEL, FERA_MANIFEST_SHA256) (D2B §17, AMD-3-3);
+//   - test split requires FREEZE_FLAG: SET in eval/FREEZE.md and a valid
+//     canonical manifest hash (D2B §17, TASK-064);
 //   - cache/fixture hits are excluded and counted (TC-056).
 import {
-  REPO_ROOT, REPORTS_DIR, hasManifestLib,
+  REPO_ROOT, REPORTS_DIR, MANIFEST_PATH, FREEZE_PATH,
   checkFreezeGate, fileSha256, notMeasuredMessage, gitHeadShort, gitHeadFull,
   loadManifest, ensureDir,
 } from "./metric-utils.mjs";
-import { existsSync, writeFileSync } from "node:fs";
-import { join, basename } from "node:path";
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { run as runExtract } from "./extract.mjs";
@@ -25,7 +25,7 @@ import { run as runMatch } from "./match.mjs";
 import { run as runDedupe } from "./dedupe.mjs";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
-const USAGE = "Usage: node eval/all.mjs [--split dev|heldout] [--extract-prediction <file>] [--match-prediction <file>] [--dedupe-prediction <file>] [--report <path>] [--json <path>]";
+const USAGE = "Usage: node eval/all.mjs [--split dev|test] [--extract-prediction <file>] [--match-prediction <file>] [--dedupe-prediction <file>] [--report <path>] [--json <path>]";
 
 function parseArgs(argv) {
   const out = {
@@ -70,19 +70,19 @@ function helpText() {
     "delegated to their existing scripts and included by reference.",
     "",
     "Options:",
-    "  --split dev|heldout             which split to evaluate (default dev)",
+    "  --split dev|test                which split to evaluate (default dev)",
     "  --extract-prediction <file>     JSONL predictions for extract",
     "  --match-prediction <file>       JSONL predictions for match",
     "  --dedupe-prediction <file>      JSONL predictions for dedupe",
     "  --report <path>                 markdown report path (default",
-    "                                  reports/eval-YYYY-MM-DD.md)",
+    "                                  eval/reports/eval-YYYY-MM-DD.md)",
     "  --json <path>                   json result path (default",
-    "                                  reports/eval-YYYY-MM-DD.json)",
-    "  --heldout                       shortcut for --split heldout",
+    "                                  eval/reports/eval-YYYY-MM-DD.json)",
+    "  --heldout                       shortcut for --split test",
     "  --help                          this help",
     "",
-    "Held-out runs (AMD-3-3) require FERA_FREEZE_COMMIT, FERA_FREEZE_MODEL",
-    "and FERA_MANIFEST_SHA256 to match the live tree.",
+    "Test runs require FREEZE_FLAG: SET in eval/FREEZE.md and the canonical",
+    "manifest hash to validate. Environment variables cannot unlock test.",
   ].join("\n");
 }
 
@@ -119,22 +119,20 @@ function runChild(cmd, args, options = {}) {
 }
 
 function manifestInfo() {
-  if (!existsSync(join(REPO_ROOT, "data", "synthetic", "manifest.json"))) {
-    return { present: false };
-  }
   const m = loadManifest();
   if (!m) return { present: false };
-  const hash = existsSync(join(REPO_ROOT, "data", "synthetic", "manifest.sha256"))
-    ? require("node:fs").readFileSync(join(REPO_ROOT, "data", "synthetic", "manifest.sha256"), "utf8").split(/\s+/)[0]
-    : null;
+  const freezeText = readFileSync(FREEZE_PATH, "utf8");
+  const freezeFlag = freezeText.match(/^FREEZE_FLAG: (SET|NOT SET)\s*$/m)?.[1];
+  if (!freezeFlag) throw new Error("manifest: FREEZE.md has no valid FREEZE_FLAG");
   return {
     present: true,
-    hash,
+    hash: fileSha256(MANIFEST_PATH),
     groundTruthSha: m.inputs?.ground_truth_sha256,
     recordsSha: m.inputs?.records_sha256,
     total: m.counts?.total,
     bySplit: m.counts?.by_split,
     manifestRevision: m.manifest_revision,
+    freezeFlag,
   };
 }
 
@@ -175,22 +173,34 @@ function summariseModule(name, result, denominators = []) {
   return parts.join("\n") + "\n";
 }
 
+function existingStatus(name, runResult) {
+  const notMeasured = runResult.stdout.match(new RegExp(`^eval:${name}: not measured \\(([^\\n]*)\\)`, "m"));
+  const hasSummary = runResult.stdout.split(/\r?\n/).some((line) => line.trim() === `eval:${name} summary`);
+  return {
+    code: runResult.code,
+    measured: runResult.code === 0 && !notMeasured && hasSummary,
+    reason: notMeasured?.[1] ?? (runResult.code !== 0 ? "non-zero exit" : hasSummary ? null : "summary output missing"),
+    stdout: runResult.stdout,
+  };
+}
+
 export async function run({ split, extractPrediction, matchPrediction, dedupePrediction, reportPath, jsonPath, stdout }) {
   const out = (s) => stdout(s);
   const log = [];
+  const selectedSplit = split === "heldout" ? "test" : split;
 
-  // 1. Held-out gate.
-  const gate = checkFreezeGate(split);
+  // 1. Validate the canonical manifest and enforce the test freeze state.
+  const gate = checkFreezeGate(selectedSplit);
   if (!gate.ok) {
     out(notMeasuredMessage("eval:all", `freeze gate refused: ${gate.reason}`) + "\n");
-    return { measured: false, reason: "freeze-gate", split };
+    return { measured: false, reason: "freeze-gate", split: selectedSplit };
   }
 
   // 2. Manifest present.
   const manifest = manifestInfo();
   if (!manifest.present) {
-    out(notMeasuredMessage("eval:all", "manifest.json missing; eval:all requires the frozen manifest (TC-064, TASK-064)") + "\n");
-    return { measured: false, reason: "no-manifest", split };
+    out(notMeasuredMessage("eval:all", "eval/manifest.json missing; eval:all requires the canonical manifest (TASK-064)") + "\n");
+    return { measured: false, reason: "no-manifest", split: selectedSplit };
   }
 
   // 3. Capture stdout for the modules.
@@ -199,30 +209,32 @@ export async function run({ split, extractPrediction, matchPrediction, dedupePre
   const extractResult = await runExtract({
     inputPath: null,
     predictionPath: extractPrediction,
-    split,
+    split: selectedSplit,
     stdout: cap,
   });
   const matchResult = await runMatch({
-    split,
+    split: selectedSplit,
     predictionPath: matchPrediction,
     stdout: cap,
   });
   const dedupeResult = await runDedupe({
-    split,
+    split: selectedSplit,
     predictionPath: dedupePrediction,
     stdout: cap,
   });
 
   // 4. WER / time / audit are existing scripts; capture their output.
-  const werArgs = split === "heldout" ? ["--split", "heldout"] : [];
-  const werRun = await runExisting("wer", werArgs);
+  const werRun = await runExisting("wer", []);
   const timeRun = await runExisting("time", []);
   const auditRun = await runExisting("audit", []);
+  const werStatus = existingStatus("wer", werRun);
+  const timeStatus = existingStatus("time", timeRun);
+  const auditStatus = existingStatus("audit", auditRun);
 
   // 5. Compose JSON.
   const result = {
     measured: extractResult.measured || matchResult.measured || dedupeResult.measured,
-    split,
+    split: selectedSplit,
     timestamp: new Date().toISOString(),
     commit: gitHeadFull(),
     commitShort: gitHeadShort(),
@@ -235,40 +247,36 @@ export async function run({ split, extractPrediction, matchPrediction, dedupePre
       revision: manifest.manifestRevision,
     },
     freeze: {
-      commit: process.env.FERA_FREEZE_COMMIT ?? null,
-      model: process.env.FERA_FREEZE_MODEL ?? null,
-      manifest: process.env.FERA_MANIFEST_SHA256 ?? null,
+      flag: manifest.freezeFlag,
+      model: "UNKNOWN",
     },
-    manifestLibPresent: hasManifestLib(),
     modules: {
       extract: extractResult,
       match: matchResult,
       dedupe: dedupeResult,
     },
     existing: {
-      wer: { code: werRun.code, measured: werRun.code === 0, stdout: werRun.stdout },
-      time: { code: timeRun.code, measured: timeRun.code === 0, stdout: timeRun.stdout },
-      audit: { code: auditRun.code, measured: auditRun.code === 0, stdout: auditRun.stdout },
+      wer: werStatus,
+      time: timeStatus,
+      audit: auditStatus,
     },
   };
 
   // 6. Compose Markdown.
   const md = [];
-  md.push(`# Fera eval:all — ${result.timestamp} (${split})`);
+  md.push(`# Fera eval:all — ${result.timestamp} (${selectedSplit})`);
   md.push("");
   md.push(`- commit: \`${result.commitShort ?? "n/a"}\` (full: \`${result.commit ?? "n/a"}\`)`);
   md.push(`- manifest revision: \`${manifest.manifestRevision ?? "n/a"}\``);
   md.push(`- manifest hash (sha256): \`${manifest.hash ?? "n/a"}\``);
   md.push(`- manifest ground_truth hash: \`${(manifest.groundTruthSha ?? "n/a").slice(0, 16)}...\``);
   md.push(`- manifest records hash: \`${(manifest.recordsSha ?? "n/a").slice(0, 16)}...\``);
-  md.push(`- freeze commit: \`${result.freeze.commit ?? "n/a"}\``);
-  md.push(`- freeze model: \`${result.freeze.model ?? "n/a"}\``);
-  md.push(`- freeze manifest: \`${result.freeze.manifest ?? "n/a"}\``);
-  md.push(`- manifest-lib present: \`${result.manifestLibPresent}\` (other lane)`);
+  md.push(`- test split freeze flag: \`${result.freeze.flag}\``);
+  md.push(`- frozen model revision: \`${result.freeze.model}\``);
   md.push(`- dataset total: \`${manifest.total ?? "n/a"}\``);
-  md.push(`- by-split (dev / heldout):`);
+  md.push(`- by-split (dev / test):`);
   md.push(`  - dev records: \`${manifest.bySplit?.dev?.records ?? "n/a"}\` (groups: \`${manifest.bySplit?.dev?.groups ?? "n/a"}\`)`);
-  md.push(`  - heldout records: \`${manifest.bySplit?.heldout?.records ?? "n/a"}\` (groups: \`${manifest.bySplit?.heldout?.groups ?? "n/a"}\`)`);
+  md.push(`  - test records: \`${manifest.bySplit?.test?.records ?? "n/a"}\` (groups: \`${manifest.bySplit?.test?.groups ?? "n/a"}\`)`);
   md.push("");
 
   // Measured / not measured summary
@@ -280,9 +288,9 @@ export async function run({ split, extractPrediction, matchPrediction, dedupePre
       ["extract", String(extractResult.measured), extractResult.reason ?? "n/a", `denom: ${extractResult.denominator ?? extractResult.matched ?? "n/a"}`],
       ["match", String(matchResult.measured), matchResult.reason ?? "n/a", `truth pairs: ${matchResult.totalTruthPairs ?? "n/a"}, no-match: ${matchResult.totalNoMatchQueries ?? "n/a"}`],
       ["dedupe", String(dedupeResult.measured), dedupeResult.reason ?? "n/a", `truth size: ${dedupeResult.truthSize ?? "n/a"}`],
-      ["wer (existing)", String(werRun.code === 0), werRun.code === 0 ? "ok" : "non-zero exit", "clips / matched"],
-      ["time (existing)", String(timeRun.code === 0), timeRun.code === 0 ? "ok" : "non-zero exit", "participants / completed"],
-      ["audit (existing)", String(auditRun.code === 0), auditRun.code === 0 ? "ok" : "non-zero exit", "decisions / covered"],
+      ["wer (existing)", String(werStatus.measured), werStatus.reason ?? "ok", "clips / matched"],
+      ["time (existing)", String(timeStatus.measured), timeStatus.reason ?? "ok", "participants / completed"],
+      ["audit (existing)", String(auditStatus.measured), auditStatus.reason ?? "ok", "decisions / covered"],
     ],
   ));
 
@@ -311,9 +319,9 @@ export async function run({ split, extractPrediction, matchPrediction, dedupePre
     `Result summary: measured=${dedupeResult.measured}, reason=${dedupeResult.reason ?? "n/a"}, precision=${dedupeResult.precision ?? "n/a"}%, recall=${dedupeResult.recall ?? "n/a"}%, F1=${dedupeResult.f1 ?? "n/a"}%, TP=${dedupeResult.tp ?? "n/a"}, FP=${dedupeResult.fp ?? "n/a"}, FN=${dedupeResult.fn ?? "n/a"}`,
   ].join("\n\n")));
 
-  md.push(mdSection("eval:wer (existing, delegated)", "```\n" + werRun.stdout + "\n```"));
-  md.push(mdSection("eval:time (existing, delegated)", "```\n" + timeRun.stdout + "\n```"));
-  md.push(mdSection("eval:audit (existing, delegated)", "```\n" + auditRun.stdout + "\n```"));
+  md.push(mdSection("eval:wer (existing, delegated)", "```\n" + werStatus.stdout + "\n```"));
+  md.push(mdSection("eval:time (existing, delegated)", "```\n" + timeStatus.stdout + "\n```"));
+  md.push(mdSection("eval:audit (existing, delegated)", "```\n" + auditStatus.stdout + "\n```"));
 
   // Failure examples (NEVER invent two)
   md.push("## Failure examples");
@@ -339,8 +347,9 @@ export async function run({ split, extractPrediction, matchPrediction, dedupePre
   if (!extractPrediction) missing.push("- eval:extract: no --extract-prediction file; extraction measurement skipped");
   if (!matchPrediction) missing.push("- eval:match: no --match-prediction file; matching measurement skipped");
   if (!dedupePrediction) missing.push("- eval:dedupe: no --dedupe-prediction file; duplicate measurement skipped");
-  if (!result.freeze.commit && (split === "heldout" || split === "test")) missing.push("- freeze commit env var missing (held-out requested)");
-  if (!hasManifestLib()) missing.push("- eval/manifest-lib.mjs is not present yet; eval:match/eval:dedupe fell back to direct manifest reads");
+  if (extractResult.reason === "human-empty") missing.push("- eval:extract: no human-reviewed labels; no extraction measurement produced");
+  else if (extractResult.reason === "no-labels" || extractResult.reason === "empty-labels") missing.push("- eval:extract: no usable human labels; no extraction measurement produced");
+  if (manifest.freezeFlag !== "SET") missing.push("- test split remains locked until FREEZE_FLAG is SET after the freeze inputs are reviewed");
   if (missing.length === 0) missing.push("- none");
   md.push(missing.join("\n"));
 
@@ -350,7 +359,7 @@ export async function run({ split, extractPrediction, matchPrediction, dedupePre
   md.push("- Every measured number has a denominator in its own section.");
   md.push("- Missing inputs print `not measured (<reason>)`; never fabricated zero.");
   md.push("- Cache / fixture hits are excluded and counted (TC-056).");
-  md.push("- Held-out runs require the freeze gate (AMD-3-3, D2B §17).");
+  md.push("- Test runs require the canonical freeze flag and manifest hash (TASK-064, D2B §17).");
   md.push("- Synthetic record text, labels and metric numbers do not imply successful rescue or operational adoption.");
 
   // 7. Write report + JSON.

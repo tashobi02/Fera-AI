@@ -11,18 +11,10 @@ const { detectCacheHit } = __test;
 const MANIFEST = {
   manifest_revision: "manifest-1",
   inputs: { ground_truth_sha256: "00".repeat(32) },
-  counts: {
-    total: 4,
-    groups: 2,
-    by_split: {
-      dev: { groups: 2, records: 4, true_pairs: 0, no_match_queries: 0, duplicate_links: 2, shared_phone_decoys: 0, decoys: 0 },
-      heldout: { groups: 0, records: 0, true_pairs: 0, no_match_queries: 0, duplicate_links: 0, shared_phone_decoys: 0, decoys: 0 },
-    },
-  },
-  splits: {
-    dev: { group_ids: ["MG-1", "MG-2"], record_ids: ["a1", "a2", "b1", "b2"] },
-    heldout: { group_ids: [], record_ids: [] },
-  },
+  records: [
+    ...["a1", "a2"].map((record_id) => ({ record_id, split_group_id: "MG-1", split: "dev" })),
+    ...["b1", "b2"].map((record_id) => ({ record_id, split_group_id: "MG-2", split: "dev" })),
+  ],
 };
 
 const GROUND_TRUTH = {
@@ -104,8 +96,8 @@ describe("eval/dedupe.mjs — run() integration", () => {
     try {
       const fs = await import("node:fs/promises");
       const truth = JSON.parse(await fs.readFile("data/synthetic/ground_truth.json", "utf8"));
-      const manifest = JSON.parse(await fs.readFile("data/synthetic/manifest.json", "utf8"));
-      const devIds = new Set(manifest.splits.dev.record_ids);
+      const manifest = JSON.parse(await fs.readFile("eval/manifest.json", "utf8"));
+      const devIds = new Set(manifest.records.filter((r: any) => r.split === "dev").map((r: any) => r.record_id));
       // Find one duplicate_group_id with at least 2 members in dev, and feed
       // a prediction that flags that pair. We do not assert a global
       // success — we never have a full detector run here.

@@ -10,7 +10,7 @@
 import {
   REPO_ROOT, checkFreezeGate, fileSha256, safeReadJsonl, safeReadJson,
   notMeasuredMessage, gitHeadShort, loadManifest, loadSplitRecords,
-  pct, fmtPercent,
+  splitInfoFromManifest, pct, fmtPercent,
 } from "./metric-utils.mjs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
@@ -43,7 +43,8 @@ function helpText() {
   return [
     "node eval/dedupe.mjs — Duplicate evaluation (D2B §17, GOAL-004, TC-020).",
     "",
-    "Reads the committed manifest, the ground-truth duplicate links (25",
+    "Reads the canonical manifest (eval/manifest.json) and the ground-truth",
+    "duplicate links (25",
     "declared same-identity links + the shared-phone distinct-child negatives)",
     "and an explicit --prediction file of {id, links: [{a, b, rule}]}.",
     "",
@@ -53,8 +54,8 @@ function helpText() {
     "  --heldout             shortcut for --split heldout",
     "  --help                this help",
     "",
-    "Held-out runs (AMD-3-3) require FERA_FREEZE_COMMIT, FERA_FREEZE_MODEL",
-    "and FERA_MANIFEST_SHA256 to match the live tree.",
+    "Test runs require FREEZE_FLAG: SET in eval/FREEZE.md and a valid",
+    "canonical manifest hash. Environment variables cannot unlock test.",
   ].join("\n");
 }
 
@@ -83,8 +84,7 @@ function loadGroundTruth() {
  *   - Shared-phone distinct children are explicitly negative (TC-038).
  */
 export function buildDuplicateSet({ records, manifest, split }) {
-  const targetSplit = split === "test" ? "heldout" : split;
-  const splitInfo = manifest?.splits?.[targetSplit];
+  const splitInfo = splitInfoFromManifest(manifest, split);
   if (!splitInfo) return { present: false };
   const ids = new Set(splitInfo.record_ids);
   // Lookup by record_id

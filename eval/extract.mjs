@@ -85,8 +85,8 @@ function helpText() {
     "  --dev                 shortcut for --split dev",
     "  --help                this help",
     "",
-    "Held-out runs (TC-020 / AMD-3-3) require FERA_FREEZE_COMMIT,",
-    "FERA_FREEZE_MODEL and FERA_MANIFEST_SHA256 to match the live tree.",
+    "Test runs require FREEZE_FLAG: SET in eval/FREEZE.md and a valid",
+    "canonical manifest hash. Environment variables cannot unlock test.",
     "Exits 0 on success and on missing inputs (prints 'not measured').",
   ].join("\n");
 }

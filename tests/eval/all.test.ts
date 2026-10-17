@@ -3,13 +3,15 @@
 // eval:all runs eval:extract / eval:match / eval:dedupe and writes a Markdown
 // report + JSON result. We never call a model. We test that the report is
 // written, the JSON is written, manifest hashes are reported, the freeze
-// gate refuses held-out, and the missing-evidence section is honest.
+// gate refuses test, and the missing-evidence section is honest.
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { mkdtemp, rm, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 // @ts-ignore -- plain ESM script without type declarations
 import { run as runAll, __test } from "../../eval/all.mjs";
+// @ts-ignore -- plain ESM utility module without type declarations
+import { gitHeadFull, MANIFEST_HASH_PATH } from "../../eval/metric-utils.mjs";
 
 const { parseArgs, notMeasuredMessage } = __test;
 
@@ -62,11 +64,14 @@ describe("eval/all.mjs — run() integration", () => {
     }
   });
 
-  it("refuses a held-out run when the freeze gate is not satisfied", async () => {
+  it("keeps test locked even when legacy freeze environment variables look valid", async () => {
+    process.env.FERA_FREEZE_COMMIT = gitHeadFull() ?? "matching-head";
+    process.env.FERA_FREEZE_MODEL = "model@revision";
+    process.env.FERA_MANIFEST_SHA256 = (await readFile(MANIFEST_HASH_PATH, "utf8")).trim().split(/\s+/)[0];
     const out: string[] = [];
     const capture = (s: string) => out.push(s);
     const result = await runAll({
-      split: "heldout",
+      split: "test",
       extractPrediction: null,
       matchPrediction: null,
       dedupePrediction: null,
@@ -108,12 +113,25 @@ describe("eval/all.mjs — run() integration", () => {
       expect(json.modules.extract.measured).toBe(false);
       expect(json.modules.match.measured).toBe(false);
       expect(json.modules.dedupe.measured).toBe(false);
+      expect(json.modules.match.reason).toBe("no-prediction");
+      expect(json.modules.dedupe.reason).toBe("no-prediction");
+      expect(json.freeze).toEqual({ flag: "NOT SET", model: "UNKNOWN" });
+      expect(json.manifest.bySplit.dev.records).toBe(86);
+      expect(json.manifest.bySplit.test.records).toBe(114);
+      expect(md).toMatch(/dev records: `86` \(groups: `30`\)/);
+      expect(md).toMatch(/test records: `114` \(groups: `45`\)/);
+      expect(md).toMatch(/no human-reviewed labels/);
+      expect(json.modules.extract.reason).toBe("human-empty");
+      expect(json.existing.wer.measured).toBe(false);
+      expect(json.existing.wer.reason).toMatch(/missing|summary output missing/i);
+      expect(json.existing.time.measured).toBe(false);
+      expect(json.existing.time.reason).toMatch(/empty|missing|testers|summary output missing/i);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
   });
 
-  it("includes the manifest-lib presence flag in the JSON result", async () => {
+  it("reports canonical manifest split counts instead of a fallback presence flag", async () => {
     const dir = await mkdtemp(join(tmpdir(), "fera-all-"));
     try {
       const out: string[] = [];
@@ -127,7 +145,10 @@ describe("eval/all.mjs — run() integration", () => {
         jsonPath: join(dir, "eval.json"),
         stdout: capture,
       });
-      expect(typeof result.manifestLibPresent).toBe("boolean");
+      expect(result.manifest.bySplit.dev.records).toBe(86);
+      expect(result.manifest.bySplit.test.records).toBe(114);
+      expect(result.freeze.flag).toBe("NOT SET");
+      expect(result.manifestLibPresent).toBeUndefined();
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

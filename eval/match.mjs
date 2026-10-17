@@ -11,7 +11,7 @@
 import {
   REPO_ROOT, checkFreezeGate, fileSha256, safeReadJsonl, safeReadJson,
   notMeasuredMessage, gitHeadShort, loadManifest, loadSplitRecords,
-  pct, fmtPercent,
+  splitInfoFromManifest, pct, fmtPercent,
 } from "./metric-utils.mjs";
 import { existsSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -45,8 +45,8 @@ function helpText() {
   return [
     "node eval/match.mjs — Matching evaluation (D2B §17, GOAL-003, TC-020).",
     "",
-    "Reads the committed synthetic manifest (data/synthetic/manifest.json),",
-    "computes identity-grouped split membership, and evaluates an explicit",
+    "Reads the canonical identity-grouped manifest (eval/manifest.json)",
+    "and evaluates an explicit",
     "--prediction file of {id, ranked: [foundId, ...]} against true partners",
     "and no-match labels.",
     "",
@@ -56,8 +56,8 @@ function helpText() {
     "  --heldout             shortcut for --split heldout",
     "  --help                this help",
     "",
-    "Held-out runs (AMD-3-3) require FERA_FREEZE_COMMIT, FERA_FREEZE_MODEL",
-    "and FERA_MANIFEST_SHA256 to match the live tree.",
+    "Test runs require FREEZE_FLAG: SET in eval/FREEZE.md and a valid",
+    "canonical manifest hash. Environment variables cannot unlock test.",
   ].join("\n");
 }
 
@@ -84,9 +84,7 @@ function loadGroundTruth() {
  * Duplicate / decoy rows are NOT queries.
  */
 export function buildQueries({ records, manifest, split }) {
-  // split may be "test" (alias for held-out).
-  const targetSplit = split === "test" ? "heldout" : split;
-  const splitInfo = manifest?.splits?.[targetSplit];
+  const splitInfo = splitInfoFromManifest(manifest, split);
   if (!splitInfo) return { present: false, splitInfo: null };
   const ids = new Set(splitInfo.record_ids);
   const truthPairQueries = [];
