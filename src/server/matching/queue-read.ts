@@ -13,15 +13,38 @@
 // - Confirmed, rejected and voided candidates are never listed (BR-013, BR-020).
 // - No contact_viewed audit: the queue row serves a masked phone (`officerCaseRow`,
 //   `contact_phone: null`); the raw phone is only served by API-009 (D2A §5.4).
-import { LIMITS, type ReviewQueueResponse } from "@/contracts";
-import { effectiveRole, projectQueueFor, type OfficerContext, type Principal, type QueueItemInput } from "@/contracts/server";
+// - The cursor is HMAC-signed (subkey(AUTH_SECRET, "cursor.review_queue")) so a
+//   forged or tampered cursor fails E-001 (a 400) and never produces a hidden
+//   E-004 / access.denied audit row (D2A §9.3, contract cursorSchema).
+// - Each candidate is `qualified` only when the candidate's stored versions
+//   still match the cases' current versions, both endpoints are in a queue
+//   status, and neither is redacted. A candidate that fails the check is
+//   dropped; a missing case whose every candidate fails is omitted from the
+//   projection (CN-09 — the same predicate as API-009).
+import { createHmac, timingSafeEqual } from "node:crypto";
+import { ApiError } from "@/app/api/_shared/envelope";
+import {
+  LIMITS,
+  isUuid,
+  type ReviewQueueResponse,
+} from "@/contracts";
+import {
+  effectiveRole,
+  projectQueueFor,
+  type OfficerContext,
+  type Principal,
+  type QueueItemInput,
+} from "@/contracts/server";
+import { loadSecret, subkey } from "@/server/auth/secrets";
 import { getCaseRow, officerContext, withTransaction } from "@/server/case/internal";
+import { QUEUE_STATUSES } from "@/server/case/rows";
 import { RowShapeError, asRow, col } from "@/server/db/decode";
 import type { Queryable } from "@/server/db/queryable";
 
 const MC = "match_candidates";
 const Q_MAX = LIMITS.candidatesPerQueueItem;
 const DEFAULT_LIMIT = 20;
+const CURSOR_PURPOSE = "cursor.review_queue";
 
 export type ReadReviewQueueOpts = {
   district?: number;
@@ -33,7 +56,12 @@ export type ReadReviewQueueResult =
   | { kind: "ok"; view: ReviewQueueResponse }
   | { kind: "hidden" };
 
-export type ReadReviewQueueDeps = { withTransaction: typeof withTransaction };
+export type ReadReviewQueueDeps = {
+  withTransaction: typeof withTransaction;
+  // Tests inject a fixed key so the cursor stays stable across the run; production
+  // derives the subkey from AUTH_SECRET (D2B §15.1).
+  cursorKey?: Buffer;
+};
 const defaultDeps: ReadReviewQueueDeps = { withTransaction };
 
 function decodeComponents(value: unknown): Record<string, number | null> {
@@ -46,23 +74,40 @@ function decodeComponents(value: unknown): Record<string, number | null> {
   return out;
 }
 
-// Opaque cursor payload: JSON { district, afterMissingId } encoded base64url. The
-// queue is a read, so a forged cursor that decodes to an unseen slice just produces
-// empty results. District is round-tripped so a district filter survives the page.
-function encodeCursor(payload: { district: number | null; afterMissingId: string }): string {
-  return Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+// --- signed cursor ----------------------------------------------------------
+// `base64url(json) "." base64url(hmacSha256)`, the same shape as cursorSchema
+// in src/contracts/primitives.ts. The payload is `{ v: 1, afterMissingId }` —
+// no district (the route filter lives in the request, not the cursor). A
+// missing/short/short payload or a bad signature returns null, which the
+// route layer maps to E-001 (not a denial).
+
+function cursorKeyFor(deps: ReadReviewQueueDeps): Buffer {
+  return deps.cursorKey ?? subkey(loadSecret("AUTH_SECRET"), CURSOR_PURPOSE);
 }
 
-function decodeCursor(value: string): { district: number | null; afterMissingId: string } | null {
+function macSig(key: Buffer, payload: string): string {
+  return createHmac("sha256", key).update(payload).digest("base64url");
+}
+
+function encodeQueueCursor(afterMissingId: string, deps: ReadReviewQueueDeps): string {
+  const payload = Buffer.from(JSON.stringify({ v: 1, afterMissingId }), "utf8").toString("base64url");
+  return `${payload}.${macSig(cursorKeyFor(deps), payload)}`;
+}
+
+function decodeQueueCursor(cursor: string, deps: ReadReviewQueueDeps): string | null {
+  const [payload, sig, extra] = cursor.split(".");
+  if (!payload || !sig || extra !== undefined) return null;
+  const want = Buffer.from(macSig(cursorKeyFor(deps), payload));
+  const got = Buffer.from(sig);
+  if (want.length !== got.length || !timingSafeEqual(want, got)) return null;
   try {
-    const parsed: unknown = JSON.parse(Buffer.from(value, "base64url").toString("utf8"));
-    if (typeof parsed !== "object" || parsed === null) return null;
-    const obj = parsed as Record<string, unknown>;
-    const after = obj.afterMissingId;
-    const district = obj.district;
-    if (typeof after !== "string" || after.length === 0) return null;
-    if (district !== null && typeof district !== "number") return null;
-    return { district: district as number | null, afterMissingId: after };
+    const value: unknown = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    if (typeof value !== "object" || value === null) return null;
+    const { v, afterMissingId } = value as { v?: unknown; afterMissingId?: unknown };
+    if (v !== 1) return null;
+    if (typeof afterMissingId !== "string") return null;
+    if (!isUuid(afterMissingId)) return null;
+    return afterMissingId;
   } catch {
     return null;
   }
@@ -125,15 +170,18 @@ async function readQueueRows(
   );
 
   // Group candidates by missing case, bounded to Q_MAX each.
-  const candByCase = new Map<string, Array<{
+  type CandRow = {
     id: string;
     foundId: string;
+    missingVersion: number;
+    foundVersion: number;
     rank: number;
     score: number;
     reasonBn: string;
     reasonEn: string;
     components: Record<string, number | null>;
-  }>>();
+  };
+  const candByCase = new Map<string, CandRow[]>();
   const foundIds = new Set<string>();
   for (const raw of cand.rows) {
     const r = asRow(MC, raw);
@@ -146,6 +194,8 @@ async function readQueueRows(
     list.push({
       id: col.uuid(MC, r, "id"),
       foundId,
+      missingVersion: col.int(MC, r, "missing_version"),
+      foundVersion: col.int(MC, r, "found_version"),
       rank,
       score: col.numeric(MC, asRow(MC, r), "score"),
       reasonBn: col.text(MC, r, "reason_bn"),
@@ -181,28 +231,40 @@ async function readQueueRows(
     const missingId = caseIds[i];
     const missingRow = missingRowsResolved[i];
     if (!missingRow) continue;
-    const candidates = candByCase.get(missingId) ?? [];
     const mctx = ctxByMissing.get(missingId) ?? { districtNameBn: null, duplicateOf: [] };
-    items.push({
-      row: missingRow,
-      ctx: mctx,
-      candidates: candidates.flatMap((c) => {
-        const frow = foundRowsById.get(c.foundId);
-        const fctx = ctxByFound.get(c.foundId);
-        if (!frow || !fctx) return [];
-        return [{
-          candidateId: c.id,
-          rank: c.rank,
-          score: c.score,
-          reasonBn: c.reasonBn,
-          reasonEn: c.reasonEn,
-          components: c.components,
-          qualified: true,
-          counterpart: frow,
-          counterpartCtx: fctx,
-        }];
-      }),
-    });
+    const candidates = candByCase.get(missingId) ?? [];
+    const qualifiedCandidates: Array<QueueItemInput["candidates"][number]> = [];
+    for (const c of candidates) {
+      const frow = foundRowsById.get(c.foundId);
+      const fctx = ctxByFound.get(c.foundId);
+      if (!frow || !fctx) continue;
+      // Qualified predicate, mirrored from src/server/matching/candidate-read.ts:
+      // the candidate was made for these versions and both endpoints are still
+      // in a queue status and not redacted. A failure drops this candidate; a
+      // missing case whose every candidate fails is dropped at the items filter
+      // below.
+      const qualified =
+        missingRow.version === c.missingVersion &&
+        frow.version === c.foundVersion &&
+        QUEUE_STATUSES.includes(missingRow.status) &&
+        QUEUE_STATUSES.includes(frow.status) &&
+        missingRow.anonymised_at === null &&
+        frow.anonymised_at === null;
+      if (!qualified) continue;
+      qualifiedCandidates.push({
+        candidateId: c.id,
+        rank: c.rank,
+        score: c.score,
+        reasonBn: c.reasonBn,
+        reasonEn: c.reasonEn,
+        components: c.components,
+        qualified: true,
+        counterpart: frow,
+        counterpartCtx: fctx,
+      });
+    }
+    if (qualifiedCandidates.length === 0) continue; // a missing case with no live candidates is hidden
+    items.push({ row: missingRow, ctx: mctx, candidates: qualifiedCandidates });
   }
   return items;
 }
@@ -214,25 +276,40 @@ export async function readReviewQueue(
 ): Promise<ReadReviewQueueResult> {
   // Only active verified officers reach the data path. Everyone else is hidden.
   if (effectiveRole(principal) !== "officer") return { kind: "hidden" };
+
+  // Defence in depth: the route's query schema already enforces 1..64, but a
+  // service caller could pass any number. An out-of-range district is a
+  // validation failure (E-001), not a denial.
+  if (opts.district !== undefined && (!Number.isInteger(opts.district) || opts.district < 1 || opts.district > 64)) {
+    throw new ApiError("E-001", { reason: "schema" });
+  }
+
   const limit = Math.min(Math.max(opts.limit ?? DEFAULT_LIMIT, 1), 50);
   const district = opts.district;
-  const cursor = opts.cursor ? decodeCursor(opts.cursor) : null;
-  if (opts.cursor && cursor === null) return { kind: "hidden" };
+  const afterMissingId = opts.cursor ? decodeQueueCursor(opts.cursor, deps) : null;
+  if (opts.cursor !== undefined && afterMissingId === null) {
+    throw new ApiError("E-001", { reason: "schema" });
+  }
 
   return deps.withTransaction(async (client) => {
     // One snapshot for every read; an edit between the SELECTs could expose a
     // candidate whose endpoints have moved on (BR-019/020).
     await client.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ");
-    const afterMissingId = cursor?.afterMissingId ?? null;
     const rows = await readQueueRows(client, district, limit, afterMissingId);
     const page = rows.slice(0, limit);
     let nextCursor: string | null = null;
     if (rows.length > limit && page.length > 0) {
       const last = page[page.length - 1];
-      nextCursor = encodeCursor({ district: district ?? null, afterMissingId: last.row.id });
+      nextCursor = encodeQueueCursor(last.row.id, deps);
     }
     const view = projectQueueFor(principal, page, nextCursor);
     if (!view) return { kind: "hidden" } as const;
     return { kind: "ok", view } as const;
   });
 }
+
+// Exported for the API route test (and any future cursor-issuer): the
+// callers that issue cursors must use the same key, so the cursor stays
+// HMAC-verifyable by the service. Tests inject a fixed key; production
+// derives it from AUTH_SECRET.
+export { encodeQueueCursor, decodeQueueCursor, cursorKeyFor, CURSOR_PURPOSE };
