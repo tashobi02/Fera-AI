@@ -21,7 +21,7 @@ import type { Client } from "pg";
 import { test, expect, type APIRequestContext, type Page } from "@playwright/test";
 import { e2eDatabaseUrl } from "./support/db";
 // @ts-expect-error -- the shared database guard is an untyped .mjs module (as in playwright.config.ts).
-import { DEFAULT_DATABASE_URL } from "../../scripts/db/guard.mjs";
+import { DEFAULT_DATABASE_URL, assertLocalDatabaseUrl } from "../../scripts/db/guard.mjs";
 
 // D2A §9.4 / API-020: a non-PHI account password (16+ chars, ASCII only). The same
 // value is used for every desk account; the e2e database is local and throwaway.
@@ -55,6 +55,8 @@ async function ownerClient(): Promise<Client> {
   // `db:reset`, so the host:port matches the e2e database.
   const adminRaw = process.env.FERA_DB_ADMIN_URL ?? DEFAULT_DATABASE_URL;
   const admin = new URL(adminRaw);
+  // The owner connection must be loopback-only; do not rely on the web server's db:reset having checked.
+  assertLocalDatabaseUrl(adminRaw, "test:e2e owner");
   admin.pathname = `/${url.pathname.slice(1)}`;
   // Keep the credentials of the loopback-validated admin URL (the local superuser); only the database changes.
   const client = new Client({ connectionString: admin.href, connectionTimeoutMillis: 10_000 });
@@ -149,7 +151,7 @@ async function seedFixtures(): Promise<Actors> {
           missingCaseId, refMissing, ownerParentSessionId, submissionId, payloadHash,
           `${SEED_PARENT_NAME} raw text`, SEED_CHILD_NAME,
           "[MOCK] clothing", "[MOCK] circumstances",
-          "[MOCK] place", "01712345678",
+          "[MOCK] place", "01700000101",
         ],
       );
       // Open the case (state machine: submitted → open).
@@ -173,7 +175,7 @@ async function seedFixtures(): Promise<Actors> {
           foundCaseId, refFound, verifiedOfficerId, foundSubmissionId, foundHash,
           `${SEED_PARENT_NAME} found raw text`, SEED_CHILD_NAME,
           "[MOCK] found clothing", "[MOCK] found circumstances",
-          "[MOCK] found place", "01798765432",
+          "[MOCK] found place", "01700000102",
         ],
       );
 
@@ -288,7 +290,7 @@ test.describe("cross-role denials (TC-022, TC-023)", () => {
   test.fixme(
     "parent session reading another parent's case through API-004 → E-004 + access.denied audit (TC-022 HTTP)",
     async () => {
-      // The body is a placeholder; the test is fixed and the matching DB
+      // The body is a placeholder; this test is test.fixme and the matching DB
       // tests cover the assertion.  Implemented as the direct service test
       // below so the audit row is still verified end-to-end.
     },
@@ -413,8 +415,9 @@ test.describe("cross-role denials (TC-022, TC-023)", () => {
       // with E-004 (404) instead of E-003.  Either way it is a refusal.
       expect([403, 404]).toContain(res.status());
       const body = await res.json() as { error?: { id?: string } };
-      if (body.error?.id) {
-        expect(["E-003", "E-004"]).toContain(body.error.id);
+      expect(body.error?.id, "refusal must be an error envelope").toBeDefined();
+      {
+        expect(["E-003", "E-004"]).toContain(body.error!.id);
       }
     } finally {
       await staffCtx.dispose();
@@ -428,8 +431,9 @@ test.describe("cross-role denials (TC-022, TC-023)", () => {
       const res = await pendingCtx.post(`/api/candidates/${ACTORS.candidateId}/decision`, { data: decisionBody });
       expect([403, 404]).toContain(res.status());
       const body = await res.json() as { error?: { id?: string } };
-      if (body.error?.id) {
-        expect(["E-003", "E-004"]).toContain(body.error.id);
+      expect(body.error?.id, "refusal must be an error envelope").toBeDefined();
+      {
+        expect(["E-003", "E-004"]).toContain(body.error!.id);
       }
     } finally {
       await pendingCtx.dispose();
