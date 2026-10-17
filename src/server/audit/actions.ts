@@ -12,6 +12,7 @@ export const CASE_AUDIT_ACTIONS = {
   accessDenied: AUDIT_ACTIONS.accessDenied, // signed-in E-003/E-004 denial (API layer and page guards)
   // TASK-015 codes.
   caseCreated: "case.created", // API-003/007 accepted report (initial status)
+  caseImported: "case.imported", // API-015 protected synthetic import; admin-only
   caseSubmissionReplayed: "case.submission_replayed", // identical retry of a submission UUID (FR-031)
   caseStateChanged: "case.state_changed", // any lifecycle step outside decisions and closure
   caseEdited: "case.edited", // API-005 owner edit: new version, fields_changed paths only
@@ -47,6 +48,7 @@ export const ACTION_ACTORS: Record<CaseAuditAction, readonly ActorType[]> = {
   "case.closed": ["officer"],
   "case.close.refused": ["officer"],
   "case.contact_viewed": ["officer"],
+  "case.imported": ["admin"],
   "duplicate.reviewed": ["officer"],
   "duplicate.flagged": ["system"],
   "match.voided": ["officer", "parent", "system"],

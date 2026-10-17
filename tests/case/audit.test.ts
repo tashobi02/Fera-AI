@@ -79,6 +79,16 @@ describe("audit actions", () => {
     expect(rule(() => checkAuditEntry(SYSTEM_ACTOR, { action: CASE_AUDIT_ACTIONS.duplicateFlagged, details: flagged }))).toBe("ok");
     expect(rule(() => checkAuditEntry(officer, { action: CASE_AUDIT_ACTIONS.duplicateFlagged, details: flagged }))).toBe("actor");
   });
+
+  it("allows protected synthetic imports only under case.imported for admins", () => {
+    const admin = actorFor(testUser("6b1f3c2a-4d5e-4f60-8a71-000000000022", "admin"));
+    const imported = { api: "API-015", imported: 2, skipped: 1 } as const;
+
+    expect(rule(() => checkAuditEntry(admin, { action: CASE_AUDIT_ACTIONS.caseImported, details: imported }))).toBe("ok");
+    expect(rule(() => checkAuditEntry(officer, { action: CASE_AUDIT_ACTIONS.caseImported, details: imported }))).toBe("actor");
+    expect(rule(() => checkAuditEntry(SYSTEM_ACTOR, { action: CASE_AUDIT_ACTIONS.caseImported, details: imported }))).toBe("actor");
+    expect(rule(() => checkAuditEntry(admin, { action: CASE_AUDIT_ACTIONS.caseCreated }))).toBe("actor");
+  });
 });
 
 describe("audit details allowlist", () => {
