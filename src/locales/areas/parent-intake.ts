@@ -18,6 +18,10 @@ export const parentIntakeBn = {
   // Success link copy: the device-local copy used to just go back to the
   // intake conversation; now it points at the submitted report page.
   reviewOpenReport: "জমা দেওয়া রিপোর্ট দেখুন",
+  // P3-021 link replacement: the unbuilt S-005 form used to render as a
+  // planned-only label on S-003. The form now exists, so this is a real link
+  // to /intake/form with no child payload in the URL.
+  reviewManualLink: "নিজে পূরণ করার ফর্মে যান",
 } as const;
 
 export const parentIntakeEn = {
@@ -29,4 +33,5 @@ export const parentIntakeEn = {
   reviewDistrictNeedSelection: "Choose a district to submit.",
   reviewDistrictHelpLink: "Call 13219 for help",
   reviewOpenReport: "Open the submitted report",
+  reviewManualLink: "Open the manual form",
 } as const;
