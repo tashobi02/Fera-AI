@@ -3,7 +3,7 @@
 // requireRole so the page can be rendered without an auth store.
 //
 // Coverage:
-// - banner text in bn and en ("পরিকল্পিত সম্প্রসারণ" / "Planned expansion")
+// - banner text in bn and en ("পরিকল্পিত সম্প্রসারণ" / "Planned extension")
 // - honest intro in both languages
 // - the S-007 found-log form is rendered (Save button label, the districts)
 // - status is icon + text, with a dashed border (the "not real yet" pattern)
@@ -63,10 +63,10 @@ describe("SCREEN-015 disaster mode page", () => {
       expect(banner).toMatch(/<svg[^>]*aria-hidden="true"/);
       expect(banner).toMatch(/border-dashed/);
     }
-    expect(en).toContain("Planned expansion");
+    expect(en).toContain("Planned extension");
     expect(en).toContain("Flood and cyclone shelters");
     expect(bn).toContain("পরিকল্পিত সম্প্রসারণ");
-    expect(bn).toContain("বন্যা ও ঘূর্ণিঝড়ের আশ্রয়কেন্দ্র");
+    expect(bn).toContain("বন্যা ও ঘূর্ণিঝড় আশ্রয়কেন্দ্র");
   });
 
   it("shows the honest intro and the synthetic-data note in both languages", async () => {
