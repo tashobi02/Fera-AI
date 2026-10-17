@@ -86,6 +86,7 @@ describe("display rounding and district language", () => {
     const v = { ...view, score: 72.456789, components: { age: 0.123456, sex: 1 } };
     const html = render("en", v);
     expect(html).toContain("72 <");
+    expect(render("en", { ...view, score: 99.6 })).toContain("99 <");
     expect(html).not.toContain("72.45");
     expect(html).toContain("0.12");
     expect(html).not.toContain("0.1234");

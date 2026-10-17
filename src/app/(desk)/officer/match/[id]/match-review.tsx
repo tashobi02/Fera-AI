@@ -327,7 +327,7 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
 
         <div ref={alertRef} tabIndex={-1} role="alert" aria-atomic="true" className="outline-offset-2">
           {state.failure && (
-            <p className="flex items-start gap-2 rounded-md bg-warning-soft px-3 py-2.5 text-body-sm text-warning-text">
+            <p id={`${uid}-failure`} className="flex items-start gap-2 rounded-md bg-warning-soft px-3 py-2.5 text-body-sm text-warning-text">
               {state.failure.kind === "offline" || state.failure.kind === "rate-limited" ? <ClockIcon className="mt-[0.2em] size-4" /> : <CircleAlertIcon className="mt-[0.2em] size-4" />}
               <span>{failureText(state.failure)}</span>
             </p>
@@ -358,7 +358,7 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
                 onClick={openDialog}
                 aria-disabled={!decidable || submitting || undefined}
                 disabled={!decidable}
-                aria-describedby={!view.qualified ? `${uid}-notq` : undefined}
+                aria-describedby={joinIds(!view.qualified && `${uid}-notq`, mustReload && `${uid}-failure`)}
                 className="inline-flex min-h-11 items-center gap-2 rounded-md bg-primary px-5 text-body-md font-semibold text-on-primary hover:bg-primary-pressed disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting && <LoaderCircleIcon className="size-4 animate-spin motion-reduce:animate-none" />}
@@ -378,7 +378,7 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
                   if (state.reasonError) dispatch({ type: "reason", error: null });
                 }}
                 aria-invalid={state.reasonError ? true : undefined}
-                aria-describedby={joinIds(state.reasonError && `${uid}-reason-error`, !view.qualified && `${uid}-notq`)}
+                aria-describedby={joinIds(state.reasonError && `${uid}-reason-error`, !view.qualified && `${uid}-notq`, mustReload && `${uid}-failure`)}
                 className="min-h-11 w-full rounded-md border border-control bg-elevated px-3 py-2 text-body-md text-ink hover:border-control-strong focus:border-control-strong aria-invalid:border-danger"
               />
               {state.reasonError && (
@@ -392,6 +392,7 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
                 onClick={reject}
                 disabled={!decidable}
                 aria-disabled={submitting || undefined}
+                aria-describedby={joinIds(mustReload && `${uid}-failure`)}
                 className="min-h-11 self-start rounded-md border border-control bg-elevated px-5 text-body-md font-medium text-ink hover:border-control-strong disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {t.matchReviewReject}

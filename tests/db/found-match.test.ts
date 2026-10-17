@@ -114,16 +114,18 @@ describe.skipIf(!dbTestsEnabled)("found log and match read on PostgreSQL 16 (TAS
     expect(rows.rows.map((x) => x.case_id).sort()).toEqual([missingId, foundId].sort());
   });
 
-  it("fails the read when the contact_viewed audit insert fails, and nothing is written", async () => {
-    const { candidateId } = await pair();
-    await admin.query(`CREATE FUNCTION pg_temp_fail_contact() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
-      IF NEW.action = 'case.contact_viewed' THEN RAISE EXCEPTION 'forced audit failure'; END IF; RETURN NEW; END $$`);
-    await admin.query("CREATE TRIGGER fail_contact BEFORE INSERT ON audit_log FOR EACH ROW EXECUTE FUNCTION pg_temp_fail_contact()");
+  it("fails the read when the second contact_viewed audit insert fails, and rolls back the first", async () => {
+    const { candidateId, foundId } = await pair();
+    // readCandidate audits the missing report first, then the found one. Failing only the found
+    // insert means the missing insert has already happened and must be rolled back.
+    await admin.query(`CREATE FUNCTION fail_second_contact_viewed() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+      IF NEW.action = 'case.contact_viewed' AND NEW.case_id = '${foundId}' THEN RAISE EXCEPTION 'forced audit failure'; END IF; RETURN NEW; END $$`);
+    await admin.query("CREATE TRIGGER fail_contact BEFORE INSERT ON audit_log FOR EACH ROW EXECUTE FUNCTION fail_second_contact_viewed()");
     try {
       await expect(readCandidate(officer, candidateId, { pool: app, requestId: REQ_FAIL, attempts: 1 })).rejects.toBeDefined();
     } finally {
       await admin.query("DROP TRIGGER fail_contact ON audit_log");
-      await admin.query("DROP FUNCTION pg_temp_fail_contact()");
+      await admin.query("DROP FUNCTION fail_second_contact_viewed()");
     }
     expect((await one<{ n: number }>(appClient, "SELECT count(*)::int AS n FROM audit_log WHERE request_id = $1", [REQ_FAIL])).n).toBe(0);
   });
@@ -131,12 +133,15 @@ describe.skipIf(!dbTestsEnabled)("found log and match read on PostgreSQL 16 (TAS
   it("never serves a stale qualified candidate when the missing report changes between its reads (one snapshot, then retry)", async () => {
     const { parent, req, missingId, candidateId } = await pair();
     let edited = false;
+    let begins = 0;
     const deps: CandidateReadDeps = {
       withTransaction: (fn, opts) =>
         import("@/server/case/internal").then(({ withTransaction }) =>
           withTransaction(async (client) => {
+            const target = client as { query: unknown };
+            const patched = client.query;
             const original = client.query.bind(client) as (...args: unknown[]) => Promise<unknown>;
-            (client as { query: unknown }).query = async (...args: unknown[]) => {
+            target.query = async (...args: unknown[]) => {
               const out = await original(...args);
               if (!edited && /FROM cases WHERE id/.test(String(args[0]))) {
                 edited = true;
@@ -148,12 +153,20 @@ describe.skipIf(!dbTestsEnabled)("found log and match read on PostgreSQL 16 (TAS
               }
               return out;
             };
-            return fn(client);
+            begins++; // one callback run per transaction attempt
+            try {
+              return await fn(client);
+            } finally {
+              target.query = patched;
+            }
           }, opts),
         ),
     };
     const r = await readCandidate(officer, candidateId, { pool: app }, deps);
     expect(edited).toBe(true);
+    // The first attempt's audit insert checks the cases FK (KEY SHARE) against a row the edit
+    // updated after the snapshot, which raises 40001; withTransaction retries once.
+    expect(begins).toBe(2);
     expect(r.kind).toBe("ok");
     if (r.kind !== "ok") return;
     // Read committed would serve the candidate row read before the edit (pending) next to the

@@ -194,9 +194,11 @@ describe("requestDecision", () => {
 });
 
 describe("display rounding and district language (audit WARN)", () => {
-  it("rounds the score to a whole number and components to two decimals", () => {
-    expect(displayScore(72.5)).toBe(73);
-    expect(displayScore(72.4999999)).toBe(72);
+  it("rounds the score and components down for display (only exactly 100 / 1 shows as full)", () => {
+    expect(displayScore(72.5)).toBe(72);
+    expect(displayScore(99.6)).toBe(99); // never reads as certainty
+    expect(displayScore(100)).toBe(100);
+    expect(displayComponent(0.999)).toBe(0.99);
     expect(displayComponent(0.123456)).toBe(0.12);
     expect(displayComponent(1)).toBe(1);
     expect(displayComponent(0.8)).toBe(0.8);

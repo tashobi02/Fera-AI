@@ -67,7 +67,7 @@ Mark each stage cell `todo` / `done` / `blocked`. After `tasks`, every task line
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | TASK-010 | Synthetic set generator: ~200 records, ground truth, duplicates, decoys, no-match | A · Codex | TASK-009 | 6 | Ground-truth file hashed and committed | `review` | branch `phase2--masnun-synthetic`, PR #34 open (merged state unknown; depends on #33 for TASK-009) | [synthetic-set.md](evidence/synthetic-set.md): `npm run synth` writes `data/synthetic/` (200 records, ground truth, SHA-256 files); ground_truth.json `4d58c21c86cdfc48…`. 29 tests pass (counts, schema parse, symmetry, per-type decoys, anti-leakage). Reading of A-039 is OD-010-1. Split is TASK-064. fera-review round 1 BLOCKs (safeguarding: real-looking phone prefix; mle: leakage) fixed; round 2: safeguarding PASS, bengali APPROVE, typescript and mle no BLOCK. |
-| TASK-064 | Identity-grouped manifest, frozen split, hashes — **before any matcher code** | A · Codex + `mle-reviewer` | TASK-010 | 3 | Manifest counts/split/hash asserted; hash committed | `todo` | | TASK-010 is in review on PR #34 (open); unblocked once #34 merges. No frozen source set or manifest exists yet. |
+| TASK-064 | Identity-grouped manifest, frozen split, hashes — **before any matcher code** | A · Codex + `mle-reviewer` | TASK-010 | 3 | Manifest counts/split/hash asserted; hash committed | `blocked` | | TASK-010 is still in review (PR #34 open), so its dependency is unmet; unblocks when #34 merges. No frozen source set or manifest exists yet. |
 
 ## Tasks — Mahim (lead)
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
@@ -101,7 +101,7 @@ Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 - 2026-10-13 11:51 · Codex · Masnun · TASK-010 `todo` → `blocked`; TASK-009 is not done.
 - 2026-10-13 11:51 · Codex · Masnun · TASK-064 `todo` → `blocked`; TASK-010 cannot start.
 - 2026-10-17 20:00 · Claude Code · Masnun · TASK-010 `blocked` → `review`; generator, 200 synthetic records and hashed ground truth written; reading of A-039 recorded as OD-010-1.
-- 2026-10-17 · Claude Code · Masnun · TASK-064 `blocked` → `todo`; TASK-010 is in review on PR #34, manifest not started.
+- 2026-10-17 20:31 · Claude Code · Masnun · TASK-064 stays `blocked`; TASK-010 is in review on PR #34 (open), unblocks when #34 merges.
 ### Mahim (lead)
 - 2026-10-13 11:51 · Codex · Mahim · TASK-061 `todo` → `blocked`; TASK-001 CI on main is unverified.
 - 2026-10-13 11:51 · Codex · Mahim · TASK-008 `todo` → `blocked`; TASK-001 app scaffold is absent.

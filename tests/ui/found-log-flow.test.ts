@@ -283,7 +283,7 @@ describe("invisible characters and Unicode form (audit WARN)", () => {
 
   it("strips ZWSP, BOM and soft hyphen from free text, normalises to NFC and keeps ZWNJ/ZWJ", () => {
     const r = build({
-      place: "কমলা\u200Bপুর\uFEFF",
+      place: "কমলা\uFEFFপুর\u00AD",
       thana: "ক\u00ADমলাপুর",
       relation: "প্রতিবেশী\u200B",
       clothing: "লাল\u200B জামা",
@@ -302,7 +302,26 @@ describe("invisible characters and Unicode form (audit WARN)", () => {
   });
 });
 
+describe("ZWSP is a word break, not nothing", () => {
+  it("turns U+200B into one space, collapses repeats and trims", () => {
+    const r = buildFoundRequest(filled({ place: "\u200B কমলাপুর\u200Bস্টেশন\u200B\u200B ", clothing: "লাল\u200Bজামা" }), { clientSubmissionId: ID, nowMs: NOW });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.request.draft.event.place_text).toBe("কমলাপুর স্টেশন");
+    expect(r.request.draft.child.clothing).toBe("লাল জামা");
+  });
+  it("an invisible-only phone is required, not invalid", () => {
+    const r = buildFoundRequest(filled({ phone: "\u200B\u200E \uFEFF" }), { clientSubmissionId: ID, nowMs: NOW });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.fields.phone).toBe("required");
+  });
+});
+
 describe("localPhone paste cleaning", () => {
+  it("removes the whole invisible class and every dash variant", () => {
+    for (const dash of ["\u2010", "\u2012", "\u2014", "\u2015", "\u2212"]) expect(localPhone(`01700${dash}000001`)).toBe("01700000001");
+    expect(localPhone("0170\u200E0000\u200F001\u2060")).toBe("01700000001");
+  });
   it("removes zero-width spaces and non-breaking or en dashes from a pasted number", () => {
     expect(localPhone("+880\u200B1700\u2011000001")).toBe("01700000001");
     expect(localPhone("8801700\u2013000001")).toBe("01700000001");

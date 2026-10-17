@@ -53,8 +53,9 @@ function districtLabel(code: number | null, nameBn: string | null | undefined, l
 }
 
 // Display rounding only: the stored score keeps its precision. Score is 0-100, components 0-1.
-export const displayScore = (n: number): number => Math.round(n);
-export const displayComponent = (n: number): number => Math.round(n * 100) / 100;
+// Rounded DOWN so only a stored 100 / 1 can read as full; 99.6 must not look like certainty.
+export const displayScore = (n: number): number => Math.floor(n);
+export const displayComponent = (n: number): number => Math.floor(n * 100 + 1e-9) / 100;
 
 export function compareCases(missing: OfficerCaseView, found: OfficerCaseView, locale: "bn" | "en" = "bn"): ComparisonRow[] {
   const rows: ComparisonRow[] = [];

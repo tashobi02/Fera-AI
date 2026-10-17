@@ -39,6 +39,13 @@ describe("decision controls after a failed decision", () => {
     expect(button(h.tree, t.matchReviewReject).props.disabled).toBe(true);
     expect(elements(h.tree).find((n) => n.type === "textarea" && String(n.props.id).endsWith("-reason"))?.props.disabled).toBe(true);
     expect(button(h.tree, t.matchReviewReload)).toBeTruthy();
+    // the disabled controls point at the message that explains why
+    const msg = elements(h.tree).find((n) => n.type === "p" && typeof n.props.id === "string" && String(n.props.id).endsWith("-failure"))!;
+    expect(msg).toBeTruthy();
+    const reason = elements(h.tree).find((n) => n.type === "textarea" && String(n.props.id).endsWith("-reason"))!;
+    for (const node of [button(h.tree, t.matchReviewConfirm), button(h.tree, t.matchReviewReject), reason]) {
+      expect(String(node.props["aria-describedby"] ?? "")).toContain(String(msg.props.id));
+    }
   });
 
   it("stay live after a rate limit (the decision was not attempted)", async () => {

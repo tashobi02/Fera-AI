@@ -17,7 +17,7 @@ import {
   type CreateFoundResponse,
 } from "@/contracts";
 import { localizeDigits, toLatinDigits } from "@/lib/numerals";
-import { visibleLength } from "@/lib/visible-text";
+import { INVISIBLE, visibleLength } from "@/lib/visible-text";
 import { retryAfterSeconds } from "@/lib/sign-in-errors";
 import { locales, type Locale, type MessageKey } from "@/locales";
 
@@ -80,10 +80,11 @@ const intOrNull = (v: string): number | null | "bad" => {
   if (t === "") return null;
   return /^\d{1,3}$/.test(t) ? Number(t) : "bad";
 };
-// Free text is stored as NFC with zero-width space, BOM and soft hyphen removed (they are
-// invisible and break equality and search). ZWNJ/ZWJ are kept: Bangla words need them.
-const INVISIBLE_STRIP = /[\u200B\uFEFF\u00AD]/g;
-const cleanText = (v: string) => v.normalize("NFC").replace(INVISIBLE_STRIP, "").trim();
+// Free text is stored as NFC. A zero-width space is a word break (pasted text often uses it
+// between words), so it becomes one space; BOM and soft hyphen are removed. ZWNJ/ZWJ are
+// kept: Bangla words need them.
+const cleanText = (v: string) =>
+  v.normalize("NFC").replace(/\u200B/g, " ").replace(/[\uFEFF\u00AD]/g, "").replace(/ {2,}/g, " ").trim();
 const textOrNull = (v: string) => {
   const t = cleanText(v);
   return t === "" ? null : t;
@@ -91,9 +92,12 @@ const textOrNull = (v: string) => {
 
 // +8801XXXXXXXXX / 8801XXXXXXXXX (country code) → 01XXXXXXXXX. Anything else is left for the
 // contract's own phone rule to accept or refuse.
+// Whitespace and every invisible format character, brackets, dots, hyphen-minus, the Unicode
+// dashes U+2010-U+2015 and the minus sign U+2212.
+const cleanPhone = (raw: string) => toLatinDigits(raw).replace(INVISIBLE, "").replace(/[().\-\u2010-\u2015\u2212]/g, "");
 export function localPhone(raw: string): string {
   // Pasted numbers carry spaces, brackets, hyphens, non-breaking/en dashes and zero-width characters.
-  const digits = toLatinDigits(raw).replace(/[\s().\-\u2011\u2013\u200B\uFEFF\u00AD]/g, "");
+  const digits = cleanPhone(raw);
   const m = /^(?:\+?88)?(01[0-9]{9})$/.exec(digits);
   return m ? m[1]! : raw;
 }
@@ -111,7 +115,7 @@ export function buildFoundRequest(values: FoundLogValues, ids: { clientSubmissio
 
   if (visibleLength(cleanText(values.place)) === 0) fields.place = "required";
   if (values.district.trim() === "") fields.district = "required";
-  if (values.phone.trim() === "") fields.phone = "required";
+  if (cleanPhone(values.phone) === "") fields.phone = "required";
 
   let atMs = NaN;
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(values.foundAt)) fields.foundAt = "required";
