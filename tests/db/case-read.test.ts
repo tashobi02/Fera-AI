@@ -310,6 +310,21 @@ describe.skipIf(!dbTestsEnabled)("API-004 cases read (P3-016, TC-022/052)", () =
     expect(Object.keys(after.rows[0].details).sort()).toEqual(["api", "error_id"]);
   });
 
+  it("malformed case id → same E-004 and NULL-FK denial audit", async () => {
+    const principal = parentPrincipal({ id: parentSessionId, expires_at: "2099-01-01T00:00:00+06:00", revoked_at: null });
+    expect(principal).not.toBeNull();
+    const res = await getAs(principal!, "not-a-uuid");
+    expect(res.status).toBe(404);
+    expect(errorEnvelopeSchema.parse(await res.json()).error.id).toBe("E-004");
+    const { rows } = await getPool().query<{ case_id: string | null; details: { api?: string; error_id?: string } }>(
+      `SELECT case_id, details FROM audit_log WHERE action = 'access.denied' AND actor_session_id = $1 ORDER BY id DESC LIMIT 1`,
+      [parentSessionId],
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].case_id).toBeNull();
+    expect(rows[0].details).toEqual({ api: "API-004", error_id: "E-004" });
+  });
+
   // TC-052: a real GET for another party's case audits the case's safe FK.
   it("existing-but-other-party case id → access.denied audit row with the real FK", async () => {
     const principal = parentPrincipal({ id: otherParentSessionId, expires_at: "2099-01-01T00:00:00+06:00", revoked_at: null });

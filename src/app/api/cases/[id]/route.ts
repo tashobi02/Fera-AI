@@ -12,7 +12,7 @@
 // - When an officer is served a raw contact phone, the service writes the
 //   case.contact_viewed audit row in the same transaction (D2A §5.4). The route only
 //   adds the missing FK when the case exists (D2A §9.3 "safe identifier details only").
-import { isUuid, uuidSchema, type AdminCaseView, type OfficerCaseView, type OwnerCaseView, type StaffOwnCaseView } from "@/contracts";
+import { type AdminCaseView, type OfficerCaseView, type OwnerCaseView, type StaffOwnCaseView } from "@/contracts";
 import { readCase } from "@/server/case";
 import { ApiError, defineRoute, type RateLimitRule } from "../../_shared";
 import { adminCaseViewSchema, officerCaseViewSchema, ownerCaseViewSchema, staffOwnCaseViewSchema } from "@/contracts/schemas";
@@ -20,7 +20,10 @@ import { z } from "zod";
 
 export const runtime = "nodejs"; // pg
 
-const params = z.strictObject({ id: uuidSchema });
+// Keep malformed path IDs inside the authenticated E-004 path. readCase returns
+// hidden without querying PostgreSQL for non-UUIDs; the route then audits the
+// denial with a null case FK, indistinguishable from an unknown valid UUID.
+const params = z.strictObject({ id: z.string() });
 
 // Not from the spec pack: a documented default. Per-role, per-principal reads; no extra
 // keys, so the default is a single per-principal window.
@@ -39,7 +42,6 @@ export const GET = defineRoute({
   response,
   rateLimit: [CASE_READ],
   handler: async ({ principal, params: p, requestId }): Promise<OwnerCaseView | StaffOwnCaseView | OfficerCaseView | AdminCaseView> => {
-    if (principal.kind === "parent" && !isUuid(p.id)) throw new ApiError("E-004");
     const r = await readCase(principal, p.id, { requestId });
     if (r.kind === "hidden") throw new ApiError("E-004", { caseId: r.caseId ?? undefined });
     return r.view.data;

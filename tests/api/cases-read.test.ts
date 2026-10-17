@@ -1,7 +1,7 @@
 // API-004 GET /api/cases/:id (P3-016; BR-007/010/024; TC-022/052). Unit tests for the
 // route layer and the per-role projections.
 //
-// - Zod params reject a non-UUID `id` (the composer surfaces it as E-001).
+// - Malformed path IDs reach the hidden-record E-004 path and denial audit.
 // - The handler maps an "absent or other-party" service result to E-004 and lets the
 //   compose layer write the access.denied audit:
 //     * unknown case ID  → caseId: null in the audit row (BR-010, TC-052);
@@ -15,7 +15,7 @@
 // tests/db/case-read.test.ts.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { isUuid, uuidSchema, type OwnerCaseView } from "@/contracts";
+import { isUuid, type OwnerCaseView } from "@/contracts";
 import {
   adminCaseViewSchema,
   officerCaseViewSchema,
@@ -49,7 +49,7 @@ function makeFactory(handler: (params: { id: string }) => Promise<unknown>): {
   });
   const route = defineRoute({
     api: "API-004",
-    params: z.strictObject({ id: uuidSchema }),
+    params: z.strictObject({ id: z.string() }),
     response: {
       parent: ownerCaseViewSchema,
       staff: staffOwnCaseViewSchema,
@@ -76,15 +76,15 @@ describe("API-004 cases read route (P3-016, TC-022/052)", () => {
     vi.restoreAllMocks();
   });
 
-  it("rejects a non-UUID `id` param at the Zod step (E-001)", async () => {
+  it("hides a malformed ID as E-004 and audits the denial", async () => {
+    rec = makeFactory(async () => { throw new ApiError("E-004"); });
     const res = await rec.GET(new Request("http://x/api/cases/not-a-uuid"), {
       params: Promise.resolve({ id: "not-a-uuid" }),
     });
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(404);
     const body = (await res.json()) as { error?: { id?: string } };
-    expect(body.error?.id).toBe("E-001");
-    // A parse failure is not a denial (TASK-015: only signed-in denials audit).
-    expect(rec.denials).toEqual([]);
+    expect(body.error?.id).toBe("E-004");
+    expect(rec.denials).toEqual([{ caseId: null, errorId: "E-004", api: "API-004" }]);
   });
 
   it("passes a valid UUID through to the handler", async () => {
