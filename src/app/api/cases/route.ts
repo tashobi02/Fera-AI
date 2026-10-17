@@ -1,20 +1,22 @@
 // API-003 POST /api/cases: the parent's reviewed missing report (TASK-022, FR-031,
 // BR-004/023). A browser with no parent cookie gets a new anonymous parent session on
 // this call (OD-022-5: the S-005 manual form never calls API-001/002); a present but
-// unusable one is the layer's E-002/E-019. Nothing is stored until `confirmed: true`
-// parses.
+// unusable one is the layer's E-002 and is cleared. The session row (metadata only) is
+// written by the resolver before the body is read; no case, payload or audit row is
+// stored until `confirmed: true` parses. Network limit: submitNetwork (30/min).
 // Sequence per src/server/case/README.md: createMissingCase → openCase → owner DTO.
 // Embedding, duplicate checks and matching (Masnun) are not built: the case keeps the
 // service's durable `matching_state` and nothing runs in the background (OD-022-2).
 import { createMissingRequestSchema, createMissingResponseSchema, type CreateMissingResponse } from "@/contracts";
 import { projectCaseFor } from "@/contracts/server";
 import { createMissingCase, openCase } from "@/server/case";
-import { ApiError, Reply, defineRoute } from "../_shared";
+import { ApiError, RATE_LIMITS, Reply, defineRoute } from "../_shared";
 
 export const runtime = "nodejs"; // pg
 
 export const POST = defineRoute({
   api: "API-003",
+  rateLimit: [RATE_LIMITS.submitNetwork],
   body: createMissingRequestSchema,
   response: createMissingResponseSchema,
   handler: async ({ principal, body, requestId, logger }): Promise<Reply<CreateMissingResponse>> => {

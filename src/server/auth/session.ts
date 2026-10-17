@@ -15,8 +15,10 @@
 // OD-022-5 (decided by Mahim, 2026-10-17): API-003 also mints, but only when the
 // browser sends no parent cookie at all: a parent who submits without an intake call
 // (the S-005 manual form, or S-002 before API-001/002 exist). A present but unusable
-// parent cookie on API-003 stays E-002/E-019, so a dead session is never silently
-// replaced. Phone OTP for parents stays deferred (D6; OQ-020, after the finale).
+// parent cookie on API-003 stays E-002, so a dead session is never silently replaced;
+// that response also clears the dead cookie, so the parent's next submit starts a new
+// session instead of being locked out until the cookie expires (security review W2).
+// Phone OTP for parents stays deferred (D6; OQ-020, after the finale).
 import { toDhakaIso, type SessionView } from "@/contracts";
 import { parentPrincipal, userPrincipal, type ApiId, type Principal } from "@/contracts/server";
 import type { CookieJar } from "@/app/api/_shared/cookies";
@@ -94,9 +96,12 @@ export function createAuth(deps: AuthDeps) {
     const principal = await principalFrom(source, cookies.secure);
     if (principal) return principal;
     const names = cookieNames(cookies.secure);
-    const mints =
-      MINTING_APIS.includes(api) ||
-      (MINTING_IF_NO_PARENT_COOKIE.includes(api) && singleCookie(source, names.parent).state === "absent");
+    const parentCookie = singleCookie(source, names.parent).state;
+    if (MINTING_IF_NO_PARENT_COOKIE.includes(api) && parentCookie !== "absent") {
+      cookies.clear(names.parent); // E-002 now; the next submit mints (OD-022-5)
+      return null;
+    }
+    const mints = MINTING_APIS.includes(api) || MINTING_IF_NO_PARENT_COOKIE.includes(api);
     if (!mints) return null;
     // A credential cookie that failed means "sign in again", never "become a parent".
     if (singleCookie(source, names.session).state !== "absent") return null;

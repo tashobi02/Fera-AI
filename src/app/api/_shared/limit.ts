@@ -29,6 +29,11 @@ export const RATE_LIMITS = {
   // change per officer. Both grant or remove authority, so both fail closed.
   adminRedaction: { id: "admin.redaction", limit: 5, windowMs: 60_000, scope: "principal", onStoreError: "deny" },
   adminVerify: { id: "admin.verify", limit: 30, windowMs: 60_000, scope: "principal", onStoreError: "deny" },
+  // OD-022-5/OD-022-6: API-003 can mint a session and write a case without any prior
+  // call, so it gets its own network limit. Not from the spec pack: a documented default.
+  // Fails open, like the pre-auth guard, so a store fault never blocks the manual-form
+  // fallback (BR-023).
+  submitNetwork: { id: "submit.network", limit: 30, windowMs: 60_000, scope: "network", onStoreError: "allow" },
 } as const satisfies Record<string, RateLimitRule>;
 
 export interface RateLimitStore {

@@ -151,7 +151,7 @@ describe("API-003 missing-report submission (TASK-022)", () => {
 
   // OD-022-5: no parent cookie at all mints a session at submit (tested on PostgreSQL in
   // tests/db/submit.test.ts); a present but expired one is still refused here.
-  it("an expired parent session gets the auth layer's E-002 without minting a cookie or writing a case", async () => {
+  it("an expired parent session gets the auth layer's E-002, clears the dead cookie and writes nothing", async () => {
     const { auth, store } = fakeAuth();
     vi.mocked(defaultAuth().resolvePrincipal).mockImplementation(auth.resolvePrincipal);
     const db = installDb();
@@ -160,7 +160,7 @@ describe("API-003 missing-report submission (TASK-022)", () => {
     const response = await submit(requestBody(), headers);
     expect(response.status).toBe(401);
     expect(await errorId(response)).toBe("E-002");
-    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(response.headers.get("set-cookie")).toMatch(/^fera_ps=; .*Max-Age=0/);
     expect(store.created).toBe(0);
     expect(db.calls).toHaveLength(0);
   });

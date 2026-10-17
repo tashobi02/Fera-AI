@@ -175,8 +175,8 @@ describe.skipIf(!dbTestsEnabled)("API-003 on PostgreSQL 16 (TASK-022)", () => {
     expect(setCookie[0]).toMatch(new RegExp(`^${cookieNames(false).parent}=p1\\.`));
     expect((await one<{ n: number }>(appClient, "SELECT count(*)::int AS n FROM parent_sessions")).n).toBe(sessionsBefore.n + 1);
     const owner = await one<{ reporter_session_id: string }>(appClient, "SELECT reporter_session_id FROM cases WHERE id = $1", [created.id]);
-    const { id: newest } = await one<{ id: string }>(appClient, "SELECT id FROM parent_sessions ORDER BY created_at DESC, id DESC LIMIT 1");
-    expect(owner.reporter_session_id).toBe(newest);
+    const minted = /=p1\.([0-9a-f-]{36})\./.exec(setCookie[0]!)?.[1]; // the session ID inside the signed cookie
+    expect(owner.reporter_session_id).toBe(minted);
     expect((await counts()).cases).toBe(before.cases + 1);
     // The same browser (now carrying the cookie) replays the same report, no new session.
     const cookie = setCookie[0]!.split(";")[0]!;
@@ -197,14 +197,14 @@ describe.skipIf(!dbTestsEnabled)("API-003 on PostgreSQL 16 (TASK-022)", () => {
     expect((await one<{ n: number }>(appClient, "SELECT count(*)::int AS n FROM parent_sessions")).n).toBe(sessionsBefore.n + 1);
   });
 
-  it("does not replace a present but expired parent session: E-002, no new session, nothing stored", async () => {
+  it("does not replace a present but expired parent session: E-002, the dead cookie cleared, no new session, nothing stored", async () => {
     const { id } = await one<{ id: string }>(appClient, "INSERT INTO parent_sessions (created_at, expires_at) VALUES (now() - interval '31 days', now() - interval '1 minute') RETURNING id");
     const before = await counts();
     const sessionsBefore = await one(appClient, "SELECT count(*)::int AS n FROM parent_sessions");
     const response = await submit(manualRequest(), `${cookieNames(false).parent}=${signParentToken(KEYS.parent, id)}`);
     expect(response.status).toBe(401);
     expect(await errorId(response)).toBe("E-002");
-    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(response.headers.get("set-cookie")).toMatch(new RegExp(`^${cookieNames(false).parent}=; .*Max-Age=0`));
     expect(await counts()).toEqual(before);
     expect(await one(appClient, "SELECT count(*)::int AS n FROM parent_sessions")).toEqual(sessionsBefore);
   });

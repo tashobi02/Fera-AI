@@ -1,5 +1,6 @@
 // Signing keys for the credential session (AUTH_SECRET), the parent cookie
-// (PARENT_COOKIE_KEY) and intake draft tokens (DRAFT_SIGNING_KEY), D2B §15.1: "32+ random bytes, base64". Read at call time, never
+// (PARENT_COOKIE_KEY) and intake draft tokens (DRAFT_SIGNING_KEY).
+// D2B §15.1: "32+ random bytes, base64". Read at call time, never
 // logged. In production (Vercel or NODE_ENV=production, which includes the DEMO_MODE=1
 // laptop) a missing or short key is an error. In development and tests a missing key
 // becomes a random per-process key with one warning, so sessions end on restart.

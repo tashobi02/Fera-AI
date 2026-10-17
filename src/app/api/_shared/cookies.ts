@@ -1,5 +1,6 @@
 // Per-request Set-Cookie collector. The principal resolver (TASK-006) uses it to mint
-// the parent `fera_ps` session on the first intake call (D2A §9.1); the route layer
+// the parent `fera_ps` session on the first intake call (D2A §9.1) or a cookieless
+// submit (OD-022-5); the route layer
 // applies it to whatever response is sent, success or error. Defaults follow D2A §9.4:
 // HttpOnly, SameSite=Lax, Path=/, no Domain, Secure in production (not under DEMO_MODE=1).
 const NAME = /^(__Host-)?[A-Za-z0-9_-]{1,64}$/;
