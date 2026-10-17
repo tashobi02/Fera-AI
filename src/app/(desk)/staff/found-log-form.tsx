@@ -342,7 +342,7 @@ export function FoundLogForm({ locale, districts }: { locale: Locale; districts:
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             {label("phone", "foundLogPhone")}
-            <input id={`${uid}-phone`} name="phone" type="tel" inputMode="tel" maxLength={32} autoComplete="tel" aria-required="true"
+            <input id={`${uid}-phone`} name="phone" type="tel" inputMode="tel" maxLength={32} autoComplete="off" aria-required="true"
               aria-invalid={invalid("phone")} aria-describedby={describe("phone", true)} onInput={onInput("phone")} className={control} />
             <p id={`${uid}-phone-hint`} className={`text-mute ${CAPTION}`}>{t.foundLogPhoneHint}</p>
             {fieldError("phone")}
