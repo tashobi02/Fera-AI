@@ -10,9 +10,9 @@
 // Definitions (read from db/schema_v2.sql and src/server/case/*.ts; do NOT
 // guess action names):
 //
-//   - match_candidates row is "decided" when status <> 'pending'
-//     (decided_at IS NOT NULL is co-extensive, see the CHECK at line 269 of
-//     db/schema_v2.sql). It is considered audited when an audit_log row with
+//   - match_candidates row is a human "decision" when status is 'confirmed' or
+//     'rejected'. 'voided' rows are system invalidations (audited as match.voided)
+//     and 'superseded' has no writer or audit action, so neither is a decision. It is considered audited when an audit_log row with
 //     action = 'match.confirm' (for status='confirmed') or
 //     'match.reject' (for status='rejected') exists and refers to the same
 //     candidate_id (candidate_id equality only, so another candidate's row on the
@@ -56,7 +56,7 @@ const COVERAGE_SQL = `
            WHEN mc.status = 'rejected' THEN 'match.reject'
            ELSE NULL END AS required_action
     FROM match_candidates mc
-    WHERE mc.status <> 'pending'
+    WHERE mc.status IN ('confirmed', 'rejected')
 
     UNION ALL
 
@@ -141,9 +141,11 @@ async function readCoverage(databaseUrl) {
   const client = new Client({ connectionString: databaseUrl, connectionTimeoutMillis: 10_000 });
   await client.connect();
   try {
+    await client.query("BEGIN READ ONLY");
     const { rows } = await client.query(COVERAGE_SQL);
     return rows;
   } finally {
+    await client.query("ROLLBACK").catch(() => undefined);
     await client.end().catch(() => undefined);
   }
 }
@@ -175,7 +177,8 @@ function report({ rows, total, covered, missing }) {
     const pct = ((covered / total) * 100).toFixed(2);
     lines.push(`  numerator:   ${covered}`);
     lines.push(`  denominator: ${total}`);
-    lines.push(`  coverage:    ${pct}% (${missing} missing)`);
+    lines.push(`  audit-row presence: ${pct}% (${missing} without a matching audit row)`);
+    lines.push("  note: counts records, not decisions: one confirm yields a candidate, a referral and a referred-case record; actor role and review_decisions are not checked");
   }
   return lines.join("\n");
 }

@@ -69,7 +69,9 @@ function parseJsonl(raw) {
     try {
       parsed = JSON.parse(trimmed);
     } catch (err) {
-      throw new Error(`line ${idx + 1}: invalid JSON (${err instanceof Error ? err.message : String(err)})`);
+      // The parser message can quote the input; never print transcript text.
+      void err;
+      throw new Error(`line ${idx + 1}: invalid JSON`);
     }
     if (!parsed || typeof parsed !== "object" || typeof parsed.id !== "string" || typeof parsed.text !== "string") {
       throw new Error(`line ${idx + 1}: expected {id:string, text:string}`);
@@ -136,7 +138,7 @@ function fmtPercent(value) {
   return value.toFixed(2) + "%";
 }
 
-function reportSummary({ refCount, matched, skipped, totalRefWords, totalEdits, aggregateWer, perClip }) {
+function reportSummary({ refCount, matched, skipped, skippedRefWords, orphans, totalRefWords, totalEdits, aggregateWer, perClip }) {
   const lines = [];
   lines.push("eval:wer summary");
   lines.push(`  reference clips: ${refCount}`);
@@ -148,8 +150,13 @@ function reportSummary({ refCount, matched, skipped, totalRefWords, totalEdits, 
     lines.push("  aggregate WER: n/a (0 reference words)");
   } else {
     const aggregatePercent = aggregateWer * 100;
-    lines.push(`  aggregate WER: ${fmtPercent(aggregatePercent)} (${totalEdits}/${totalRefWords})`);
+    lines.push(`  aggregate WER (matched clips only): ${fmtPercent(aggregatePercent)} (${totalEdits}/${totalRefWords})`);
+    if (skipped > 0) {
+      const denom = totalRefWords + skippedRefWords;
+      lines.push(`  WER with the ${skipped} clips lacking a hypothesis counted as full deletions: ${fmtPercent(((totalEdits + skippedRefWords) / denom) * 100)} (${totalEdits + skippedRefWords}/${denom})`);
+    }
   }
+  if (orphans > 0) lines.push(`  hypothesis ids with no reference (ignored): ${orphans}`);
   for (const row of perClip) {
     const refPart = row.refWords;
     const rate = pct(row.edits, row.refWords);
@@ -184,18 +191,29 @@ export async function run({ refPath, hypPath, stdout = process.stdout.write.bind
     return { measured: false, reason: "empty-ref" };
   }
 
+  const seenRef = new Set();
+  for (const r of refs) {
+    if (seenRef.has(r.id)) throw new Error(`duplicate reference id ${r.id}`);
+    seenRef.add(r.id);
+  }
   const hyps = new Map();
-  for (const h of parseJsonl(hypFile.raw)) hyps.set(h.id, h.text);
+  for (const h of parseJsonl(hypFile.raw)) {
+    if (hyps.has(h.id)) throw new Error(`duplicate hypothesis id ${h.id}`);
+    hyps.set(h.id, h.text);
+  }
+  const orphans = [...hyps.keys()].filter((id) => !seenRef.has(id)).length;
 
   let matched = 0;
   let totalRefWords = 0;
   let totalEdits = 0;
   let skipped = 0;
+  let skippedRefWords = 0;
   const perClip = [];
 
   for (const r of refs) {
     if (!hyps.has(r.id)) {
       skipped++;
+      skippedRefWords += normalise(r.text).length;
       continue;
     }
     const score = scorePair(r.text, hyps.get(r.id));
@@ -216,11 +234,14 @@ export async function run({ refPath, hypPath, stdout = process.stdout.write.bind
       refCount: refs.length,
       matched,
       skipped,
+      skippedRefWords,
+      orphans,
       totalRefWords,
       totalEdits,
       aggregateWer,
       perClip,
     }) + "\n",
+
   );
   return {
     measured: true,

@@ -101,7 +101,23 @@ describe("eval/time.mjs — run() integration", () => {
         stdout: capture as (s: string) => void,
       });
       expect(result.measured).toBe(false);
-      expect(out.join("")).toMatch(/eval:time: not measured \(need >=5 testers, have 3\)/);
+      expect(out.join("")).toMatch(/eval:time: not measured \(need >=5 testers with both methods, have 3\)/);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("does not count assistant-only participants toward the 5-tester gate", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "fera-time-"));
+    try {
+      const path = join(dir, "timing.csv");
+      const lines = ["participant,method,seconds"];
+      for (let i = 1; i <= 5; i++) lines.push(`p${i},assistant,${10 + i}`);
+      await writeFile(path, lines.join("\n") + "\n", "utf8");
+      const out: string[] = [];
+      const result = await runTime({ csvPath: path, stdout: ((s: string) => out.push(s)) as (s: string) => void });
+      expect(result.measured).toBe(false);
+      expect(out.join("")).toMatch(/with both methods, have 0\)/);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -129,7 +145,7 @@ describe("eval/time.mjs — run() integration", () => {
       });
       expect(result.measured).toBe(true);
       const printed = out.join("");
-      expect(printed).toMatch(/distinct participants: 5/);
+      expect(printed).toMatch(/participants with both methods: 5/);
       expect(printed).toMatch(/method=assistant: n=5 median=14\.00s Q1=12\.00s Q3=16\.00s IQR=4\.00s/);
       expect(printed).toMatch(/method=manual: n=5 median=30\.00s Q1=25\.00s Q3=35\.00s IQR=10\.00s/);
       expect(printed).toMatch(/median difference \(assistant - manual\): -16\.00s/);

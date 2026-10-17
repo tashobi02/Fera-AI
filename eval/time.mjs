@@ -3,7 +3,7 @@
 //
 // Reads eval/data/timing.csv (header: participant,method,seconds; method is
 // 'assistant' or 'manual'). Prints n per method, median and IQR per method,
-// and the median difference. Fewer than 5 distinct participants or an empty
+// and the median difference. Fewer than 5 participants with both methods, or an empty
 // file: prints "not measured (need >=5 testers, have N)" and exits 0. The
 // card name (D6 TASK-041) and the D2B §17 row require 5+ distinct testers.
 import { readFile } from "node:fs/promises";
@@ -100,9 +100,9 @@ export function iqr(values) {
   return { q1, q3, iqr: q3 - q1 };
 }
 
-function fmt(value, digits = 2) {
+function fmt(value, unit = "") {
   if (value === null || value === undefined) return "n/a";
-  return value.toFixed(digits);
+  return `${value.toFixed(2)}${unit}`;
 }
 
 function summariseMethod(name, values) {
@@ -121,11 +121,11 @@ function summariseMethod(name, values) {
 function report({ participants, summaries, medians }) {
   const lines = [];
   lines.push("eval:time summary");
-  lines.push(`  distinct participants: ${participants}`);
+  lines.push(`  participants with both methods: ${participants}`);
   for (const m of summaries) {
     lines.push(
-      `  method=${m.name}: n=${m.n} median=${fmt(m.median)}s ` +
-        `Q1=${fmt(m.q1)}s Q3=${fmt(m.q3)}s IQR=${fmt(m.iqr)}s`,
+      `  method=${m.name}: n=${m.n} median=${fmt(m.median, "s")} ` +
+        `Q1=${fmt(m.q1, "s")} Q3=${fmt(m.q3, "s")} IQR=${fmt(m.iqr, "s")}`,
     );
   }
   if (medians.assistant !== null && medians.manual !== null) {
@@ -149,20 +149,17 @@ export async function run({ csvPath, stdout = process.stdout.write.bind(process.
     }
     throw err;
   }
-  let parsed;
-  try {
-    parsed = parseCsv(raw);
-  } catch (err) {
-    throw err;
-  }
+  const parsed = parseCsv(raw);
   const rows = parsed.rows;
   if (rows.length === 0) {
     stdout(notMeasured("empty timing file", 0) + "\n");
     return { measured: false, reason: "empty" };
   }
-  const participants = new Set(rows.map((r) => r.participant));
+  const methodsOf = new Map();
+  for (const r of rows) methodsOf.set(r.participant, (methodsOf.get(r.participant) ?? new Set()).add(r.method));
+  const participants = new Set([...methodsOf].filter(([, m]) => m.size === METHODS.size).map(([p]) => p));
   if (participants.size < MIN_PARTICIPANTS) {
-    stdout(notMeasured(`need >=${MIN_PARTICIPANTS} testers, have ${participants.size}`) + "\n");
+    stdout(notMeasured(`need >=${MIN_PARTICIPANTS} testers with both methods, have ${participants.size}`) + "\n");
     return { measured: false, reason: "few-participants" };
   }
   const byMethod = { assistant: [], manual: [] };

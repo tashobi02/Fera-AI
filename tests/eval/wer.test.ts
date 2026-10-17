@@ -184,7 +184,35 @@ describe("eval/wer.mjs — run() integration", () => {
       expect(result.measured).toBe(true);
       expect(result.totalRefWords).toBe(7);
       expect(result.totalEdits).toBe(0);
-      expect(out.join("")).toMatch(/aggregate WER: 0\.00%/);
+      expect(out.join("")).toMatch(/aggregate WER \(matched clips only\): 0\.00%/);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+  it("prints a second WER counting clips without a hypothesis as full deletions", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "fera-wer-"));
+    try {
+      await writeFile(join(dir, "ref.jsonl"), '{"id":"a","text":"one two"}\n{"id":"b","text":"three four five six"}\n', "utf8");
+      await writeFile(join(dir, "hyp.jsonl"), '{"id":"a","text":"one two"}\n', "utf8");
+      const out: string[] = [];
+      const result = await runWer({ refPath: join(dir, "ref.jsonl"), hypPath: join(dir, "hyp.jsonl"), stdout: ((s: string) => out.push(s)) as (s: string) => void });
+      expect(result.skipped).toBe(1);
+      expect(out.join("")).toMatch(/counted as full deletions: 66\.67% \(4\/6\)/);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects duplicate ids and never prints transcript text from a malformed line", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "fera-wer-"));
+    try {
+      await writeFile(join(dir, "ref.jsonl"), '{"id":"a","text":"one"}\n{"id":"a","text":"two"}\n', "utf8");
+      await writeFile(join(dir, "hyp.jsonl"), '{"id":"a","text":"one"}\n', "utf8");
+      const refPath = join(dir, "ref.jsonl");
+      const hypPath = join(dir, "hyp.jsonl");
+      await expect(runWer({ refPath, hypPath, stdout: (() => undefined) as (s: string) => void })).rejects.toThrow(/duplicate reference id a/);
+      await writeFile(refPath, '{"id":"a","text":"রহিম"}\n{broken রহিম\n', "utf8");
+      await expect(runWer({ refPath, hypPath, stdout: (() => undefined) as (s: string) => void })).rejects.toThrow(/^line 2: invalid JSON$/);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
