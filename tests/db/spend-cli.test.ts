@@ -7,6 +7,7 @@
 // The CLI does NOT exercise the service-level cap refusal (that's TASK-063
 // in `tests/db/spend.test.ts`); it is a read-only report.
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { connect, dbTestsEnabled, one } from "./support/db";
 // @ts-expect-error -- plain ESM script without type declarations
@@ -14,7 +15,8 @@ import { DHAKA_TODAY_DATE_EXPR, TODAY_SPEND_SQL } from "../../scripts/spend/lib.
 
 describe.skipIf(!dbTestsEnabled)("spend CLI end-to-end against PostgreSQL 16 (TASK-059)", () => {
   let admin: Awaited<ReturnType<typeof connect>>;
-  const cliPath = new URL("../../scripts/spend.mjs", import.meta.url).pathname;
+  // fileURLToPath, not URL.pathname: pathname keeps %20 for spaces in the checkout path.
+  const cliPath = fileURLToPath(new URL("../../scripts/spend.mjs", import.meta.url));
 
   beforeAll(async () => {
     admin = await connect("admin");

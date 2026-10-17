@@ -164,7 +164,7 @@ describe("parent-screen sources", () => {
       e.isDirectory() ? files(join(dir, e.name)) : [join(dir, e.name)],
     );
   const sources = [
-    ...files("src/app/(parent)"),
+    ...files("src/app/(parent)/report"), // S-004 only: S-001–S-003 use the microphone by design (voice intake)
     "src/lib/poster.ts",
     "src/lib/poster-render.ts",
     "src/lib/outputs-client.ts",
@@ -178,6 +178,21 @@ describe("parent-screen sources", () => {
       expect(src).not.toMatch(
         /type=["']file["']|accept=["']image|capture=|drawImage|createImageBitmap|putImageData|new Image\(|<img\b|<Image\b|next\/image|FileReader|getUserMedia/,
       );
+    },
+  );
+
+  // BR-006 across every parent screen (S-001–S-004): no image input anywhere; the voice
+  // intake may use the microphone, but only ever for audio.
+  const parentSources = files("src/app/(parent)");
+  it.each(parentSources)(
+    "%s has no image input; any media request is audio only",
+    (path) => {
+      const src = readFileSync(path, "utf8");
+      expect(src).not.toMatch(
+        /type=["']file["']|accept=["']image|capture=|drawImage|createImageBitmap|putImageData|new Image\(|<img\b|<Image\b|next\/image|FileReader|getDisplayMedia|video\s*:\s*true/,
+      );
+      for (const call of src.match(/getUserMedia\([^)]*\)/g) ?? [])
+        expect(call).not.toMatch(/video/);
     },
   );
 
