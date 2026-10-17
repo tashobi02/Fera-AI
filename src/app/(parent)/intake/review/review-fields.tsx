@@ -2,13 +2,30 @@
 
 import { useEffect, useRef, useState } from "react";
 import { DRAFT_FIELD_PATHS, type DraftFieldPath } from "@/contracts";
+import districtsData from "../../../../../data/districts.json";
 import { FIELD_LABEL, textLang } from "@/lib/intake/draft-summary";
 import { fieldValue, NUMBER_FIELDS, TIME_FIELDS, PART_OF_DAY_RANGES, partOfDayEdits, type PartOfDay } from "@/lib/intake/review";
 import type { DeviceDraft } from "@/lib/intake/draft-store";
 import { localizeDigits, toLatinDigits } from "@/lib/numerals";
 import { locales, type Locale, type MessageKey } from "@/locales";
 import { CircleAlertIcon, InfoIcon } from "@/app/components/icons";
-import { CircleCheckIcon, HonestLabel, PRIMARY_BUTTON } from "../../parent-ui";
+import { CircleCheckIcon, PRIMARY_BUTTON } from "../../parent-ui";
+
+// 64 Fera-internal district codes: directly read from the seed JSON so the
+// review select stays aligned with the data dictionary (A-032). The contract
+// caps district_code at 1..64 (primitives.ts); an unconfirmed district stays
+// empty until the parent selects a known district.
+const DISTRICT_ALIASES: Readonly<Record<string, readonly string[]>> = {
+  Barishal: ["Barisal"], Bogura: ["Bogra"], Chattogram: ["Chittagong"],
+  Cumilla: ["Comilla"], Jashore: ["Jessore"],
+};
+const DISTRICTS: ReadonlyArray<{ code: number; name_en: string; name_bn: string; aliases: readonly string[] }> =
+  districtsData.districts.map((d) => ({
+    code: d.code,
+    name_en: d.name_en,
+    name_bn: d.name_bn,
+    aliases: DISTRICT_ALIASES[d.name_en] ?? [],
+  }));
 
 const LABELS: Partial<Record<DraftFieldPath, MessageKey>> = {
   "child.age_min": "reviewAgeMin", "child.age_max": "reviewAgeMax",
@@ -36,6 +53,47 @@ function FieldSpan({ record, span, locale }: { record: DeviceDraft; span: { star
   </>;
 }
 
+// Native select for the 64 Fera-internal districts: the contract caps
+// district_code at 1..64 (primitives.ts). The select reports a string code,
+// so the existing onEdit contract keeps working without typed unions. The
+// empty `""` is a placeholder for an unconfirmed district. BR-015 requires a
+// confirmed district before submission. Minimum 44px tap target (D4 §13).
+const DISTRICT_SELECT =
+  "min-h-11 w-full min-w-0 rounded-md border border-control bg-elevated px-3 py-2 text-body-lg text-ink hover:border-control-strong focus:border-control-strong disabled:bg-card disabled:text-body";
+export function DistrictSelect({ id, value, search, disabled, describedBy, required, invalid, locale, onChange, onSearch, onBlur }: {
+  id: string; value: string; disabled: boolean; describedBy?: string;
+  required: boolean; invalid: boolean; locale: Locale; search: string;
+  onChange: (next: string) => void; onSearch: (next: string) => void; onBlur: () => void;
+}) {
+  const t = locales[locale];
+  const query = toLatinDigits(search).trim().normalize("NFC").toLocaleLowerCase();
+  const matches = DISTRICTS.filter((d) => !query ||
+    [d.name_bn, d.name_en, ...d.aliases, String(d.code)].some((part) => part.normalize("NFC").toLocaleLowerCase().includes(query)));
+  // Keep the current selection mounted while filtering; a select must never
+  // silently lose its value. The empty option lets a parent retract a guess.
+  const shown = DISTRICTS.filter((d) => matches.includes(d) || String(d.code) === value);
+  return <div className="flex flex-col gap-2">
+    <label htmlFor={`${id}-search`} className="text-body-lg text-body">{t.reviewDistrictSearch}</label>
+    <input id={`${id}-search`} type="search" disabled={disabled} className={DISTRICT_SELECT}
+      value={search} onChange={(e) => onSearch(e.target.value)} aria-controls={id} autoComplete="off" />
+    <select id={id} disabled={disabled} className={DISTRICT_SELECT}
+      aria-required={required || undefined} aria-invalid={invalid || undefined} aria-describedby={describedBy}
+      value={value} onBlur={onBlur}
+      onChange={(e) => onChange(e.target.value)}>
+      <option value="">{t.reviewDistrictOptionUnknown}</option>
+      {shown.map((d) => {
+        const names = locale === "bn" ? [d.name_bn, d.name_en] : [d.name_en, d.name_bn];
+        const name = [...names, ...d.aliases].join(" / ");
+        const label = t.reviewDistrictOptionLabel.replace("{name}", name).replace("{code}", localizeDigits(String(d.code), locale));
+        return <option key={d.code} value={String(d.code)}>{label}</option>;
+      })}
+    </select>
+    {query && <p role="status" aria-live="polite" className="text-body-lg text-body">
+      {matches.length === 0 ? t.reviewDistrictNoResults : t.reviewDistrictResults.replace("{count}", localizeDigits(String(matches.length), locale))}
+    </p>}
+  </div>;
+}
+
 export function ReviewFields({ record, locale, errors, onEdit, onApprox, onBatch, onBlur, locked }: {
   record: DeviceDraft; locale: Locale; errors: readonly DraftFieldPath[];
   onEdit: (path: DraftFieldPath, value: string) => void; onApprox: (value: boolean) => void;
@@ -43,6 +101,7 @@ export function ReviewFields({ record, locale, errors, onEdit, onApprox, onBatch
   onBlur: (path: DraftFieldPath) => void; locked: boolean;
 }) {
   const t = locales[locale];
+  const [districtSearch, setDistrictSearch] = useState("");
   const [ageMode, setAgeMode] = useState(() => fieldValue(record, "child.age_years") ? "exact" : fieldValue(record, "child.age_min") || fieldValue(record, "child.age_max") ? "estimate" : "exact");
   const [date, setDate] = useState(() => fieldValue(record, "event.at").slice(0, 10));
   const [dateChanged, setDateChanged] = useState(false);
@@ -198,17 +257,19 @@ export function ReviewFields({ record, locale, errors, onEdit, onApprox, onBatch
     const required = ALWAYS_REQUIRED.has(path);
     const hint = path === "event.district_code" ? t.reviewDistrictHint : null;
     const descriptions = [invalid ? `${id}-error` : null, hint ? `${id}-hint` : null].filter(Boolean).join(" ") || undefined;
-    const singleLine = path === "child.name" || path === "reporter.phone" || path === "event.place_text" || path === "event.district_code";
+    const singleLine = path === "child.name" || path === "reporter.phone" || path === "event.place_text";
+    const isDistrict = path === "event.district_code";
     return <section key={path} className="min-w-0 rounded-lg border border-hairline bg-surface p-4 shadow-1">
-      <label id={`${id}-label`} htmlFor={id} className="flex flex-wrap items-baseline gap-x-2 text-body-lg font-semibold text-ink"><span>{reviewLabel(path, locale)}</span>{path === "event.district_code" && <HonestLabel lang="en">{t.mockLabel}</HonestLabel>}{required && <span className="text-body-md font-normal text-body">{t.reviewRequired}</span>}</label>
-      {value === "" && path !== "child.sex" && <p className="mt-1 text-body-lg text-body">{t.reviewUnknownAdd}</p>}
+      <label id={`${id}-label`} htmlFor={id} className="flex flex-wrap items-baseline gap-x-2 text-body-lg font-semibold text-ink"><span>{reviewLabel(path, locale)}</span>{required && <span className="text-body-md font-normal text-body">{t.reviewRequired}</span>}</label>
+      {value === "" && path !== "child.sex" && <p className="mt-1 text-body-lg text-body">{isDistrict ? t.reviewDistrictNeedSelection : t.reviewUnknownAdd}</p>}
       {path === "child.sex" ? <fieldset disabled={locked} aria-labelledby={`${id}-label`} aria-required={required || undefined} aria-invalid={invalid || undefined} aria-describedby={descriptions} className="flex flex-col gap-2 border-0 p-0">
         {([["", t.unknownValue], ["male", t.sexMale], ["female", t.sexFemale], ["other", t.sexOther]] as const).map(([v, label]) => (
           <label key={v} className="flex min-h-11 items-center gap-3 text-body-lg text-body">
             <input id={v === "" ? id : `${id}-${v}`} type="radio" name={id} value={v} checked={value === v} onBlur={() => onBlur(path)} onChange={() => onEdit(path, v)} className="size-5 accent-primary" />{label}
           </label>
         ))}
-      </fieldset> : singleLine ? <input id={id} disabled={locked} className={INPUT} autoComplete={path === "reporter.phone" ? "tel" : "off"}
+      </fieldset> : isDistrict ? <DistrictSelect id={id} value={value} search={districtSearch} disabled={locked} describedBy={descriptions} required={required} invalid={invalid} locale={locale} onChange={(next) => onEdit(path, next)} onSearch={setDistrictSearch} onBlur={() => onBlur(path)} />
+        : singleLine ? <input id={id} disabled={locked} className={INPUT} autoComplete={path === "reporter.phone" ? "tel" : "off"}
         inputMode={NUMBER_FIELDS.has(path) ? "numeric" : path === "reporter.phone" ? "tel" : "text"}
         lang={textLang(value)} value={NUMBER_FIELDS.has(path) || TIME_FIELDS.has(path) || path === "reporter.phone" ? localizeDigits(value, locale) : value}
         aria-required={required || undefined} aria-invalid={invalid || undefined} aria-describedby={descriptions}
@@ -217,7 +278,7 @@ export function ReviewFields({ record, locale, errors, onEdit, onApprox, onBatch
         lang={textLang(value)} value={NUMBER_FIELDS.has(path) || TIME_FIELDS.has(path) ? localizeDigits(value, locale) : value}
         aria-required={required || undefined} aria-invalid={invalid || undefined} aria-describedby={descriptions}
         onBlur={() => onBlur(path)} onChange={(e) => onEdit(path, e.target.value)} />}
-      {hint && <p id={`${id}-hint`} className="mt-2 break-words text-body-lg text-body">{hint}</p>}
+      {hint && <p id={`${id}-hint`} className="mt-2 break-words text-body-lg text-body">{hint} <a href="tel:13219" className="inline-flex min-h-11 max-w-full items-center underline underline-offset-2">{t.reviewDistrictHelpLink}</a></p>}
       {invalid && <p id={`${id}-error`} className="mt-2 flex items-start gap-2 text-body-lg text-body"><CircleAlertIcon className="mt-1 size-5 text-info" />{fieldError(path, locale)}</p>}
       {edited ? <p className="mt-3 flex items-center gap-2 text-body-lg text-success-text"><CircleCheckIcon />{t.reviewEdited}</p> : value !== "" && <div data-field-source={path} className="mt-3 border-t border-hairline pt-3">
         <p className="mb-1 text-body-lg font-medium text-body">{t.reviewSource}</p>

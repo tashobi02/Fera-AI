@@ -7,6 +7,8 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    // P3-014: e2e specs are owned by Playwright (`npm run test:e2e`), not by vitest.
     include: ["tests/**/*.test.ts", "src/**/*.test.ts"],
+    exclude: ["tests/e2e/**", "node_modules/**", "dist/**"],
   },
 });

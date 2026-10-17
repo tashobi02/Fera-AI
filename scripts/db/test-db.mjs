@@ -1,10 +1,23 @@
 // npm run test:db — PostgreSQL 16 integration tests (TASK-062). Each test file gets its
 // own fresh database `fera_test_<pid>_<n>` (schema_v2.sql + roles.sql via db:reset), so
 // runs never touch another lane's `fera` database or each other; it is dropped afterwards.
+//
+// P3-001: discover every tests/db/*.test.ts itself instead of carrying a literal list.
+// The two unit-only files `reset-guard.test.ts` and `roles-env.test.ts` run in the unit
+// suite (no FERA_DB_TESTS) and are skipped here, keeping the same ten files as before.
 import { execFileSync, spawnSync } from "node:child_process";
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { DEFAULT_DATABASE_URL, assertDatabaseName, assertLocalDatabaseUrl, scrubbedEnv, withDatabase } from "./guard.mjs";
 
-const FILES = ["tests/db/platform.test.ts", "tests/db/redaction.test.ts", "tests/db/auth.test.ts", "tests/db/case.test.ts", "tests/db/outputs.test.ts", "tests/db/submit.test.ts", "tests/db/admin.test.ts", "tests/db/spend.test.ts", "tests/db/spend-cli.test.ts", "tests/db/districts-seed.test.ts"];
+const DB_TESTS_DIR = fileURLToPath(new URL("../../tests/db", import.meta.url));
+const SKIP_INTEGRATION = new Set(["reset-guard.test.ts", "roles-env.test.ts"]);
+
+const FILES = readdirSync(DB_TESTS_DIR)
+  .filter((name) => name.endsWith(".test.ts") && !SKIP_INTEGRATION.has(name))
+  .map((name) => join("tests/db", name))
+  .sort();
 
 function dropDatabase(name) {
   const server = withDatabase(assertLocalDatabaseUrl(process.env.FERA_DB_ADMIN_URL ?? DEFAULT_DATABASE_URL), "postgres");

@@ -1,5 +1,21 @@
 // Bilingual UI strings. Bangla is the parent default (FR-033); exact copy comes
 // from D3/D4 where it exists. Bangla strings use Bangla numerals.
+//
+// Per PHASE_3_PLAN.md §5, after P3-001 new strings live in per-area files
+// (src/locales/areas/*.ts) so waves can edit them without touching this root.
+// Area files export empty objects today; the spread keeps the keyspace stable
+// while allowing waves to add entries in their own area file.
+import { parentIntakeBn, parentIntakeEn } from "./areas/parent-intake";
+import { parentFormBn, parentFormEn } from "./areas/parent-form";
+import { parentStatusBn, parentStatusEn } from "./areas/parent-status";
+import { staffDisasterBn, staffDisasterEn } from "./areas/staff-disaster";
+import { officerQueueBn, officerQueueEn } from "./areas/officer-queue";
+import { officerCaseBn, officerCaseEn } from "./areas/officer-case";
+import { officerMapBn, officerMapEn } from "./areas/officer-map";
+import { officerMatchBn, officerMatchEn } from "./areas/officer-match";
+import { officerDuplicatesBn, officerDuplicatesEn } from "./areas/officer-duplicates";
+import { adminImportBn, adminImportEn } from "./areas/admin-import";
+
 const bn = {
   appName: "ফেরা",
   demoBanner: "সিনথেটিক তথ্য · কর্মকর্তা যাচাই সিমুলেশন", // D4 §15.1 demo banner
@@ -290,8 +306,8 @@ const bn = {
   reviewPhoneInvalid: "০১ দিয়ে শুরু ১১ সংখ্যার নম্বর দিন", // D4 §11
   reviewTimeInvalid: "সঠিক সময় ও সীমা দিন। ভবিষ্যতের সময় দেওয়া যাবে না।",
   reviewTimeHint: "তারিখ: বছর-মাস-দিন। সময়: ঘণ্টা:মিনিট (২৪ ঘণ্টা)। সঠিক সময় হলে দুই সীমাতেও একই সময় দিন।", // needs human Bangla review
-  reviewDistrictCode: "জেলার নম্বর (সিনথেটিক নমুনা)",
-  reviewDistrictHint: "জেলার নামের তালিকা এখনও যুক্ত হয়নি। নমুনার জেলার নম্বর জানা থাকলে দিন (১–৬৪)। আন্দাজ করবেন না।",
+  reviewDistrictCode: "জেলা",
+  reviewDistrictHint: "শেষবার যেখানে দেখা গিয়েছিল সেই জেলা নিশ্চিত করে বাছাই করুন। না জানলে আন্দাজ করবেন না; জেলা ছাড়া এই ফর্ম জমা দেওয়া যাবে না।",
   reviewAgeMin: "বয়সের নিচের সীমা (বছর)",
   reviewAgeMax: "বয়সের উপরের সীমা (বছর)",
   reviewTimeLower: "শেষবার দেখার সময়ের নিচের সীমা",
@@ -303,7 +319,6 @@ const bn = {
   reviewSessionExpired: "আপনার খসড়ার সময় শেষ। নতুন করে শুরু করুন।", // D3:333 / catalogue E-019, needs human Bangla review
   reviewRetryFrozen: "ফল জানা যায়নি। একই তথ্য ও জমার নম্বর রেখে আবার চেষ্টা করুন।",
   reviewPlannedManual: "নিজে পূরণ করার ফর্ম", // planned label wraps it; needs human Bangla review
-  reviewOpenReport: "জিডি খসড়া ও পোস্টার পান", // D4 "জমা দেওয়ার পর জিডি খসড়া ও পোস্টার পাবেন"; links to S-004
   reviewExpired: "আপনার খসড়ার সময় শেষ। নতুন করে শুরু করুন।", // D3:333 / catalogue E-019, needs human Bangla review
   reviewUnknownAdd: "অজানা — যোগ করুন", // needs human Bangla review
   reviewDiscardWarn: "এই খসড়া জমা দেওয়ার চেষ্টা হয়েছে। সার্ভারে ইতিমধ্যে পৌঁছে থাকতে পারে — মুছলে আর ডিভাইসে খুঁজে পাবেন না।", // needs human Bangla review
@@ -429,6 +444,16 @@ const bn = {
   posterFailed: "এখন পোস্টার তৈরি করা গেল না। আবার চেষ্টা করুন বা লেখাটি কপি করে ব্যবহার করুন।",
   posterTooLong: "লেখাটি একটি পোস্টারে ধরছে না। লেখাটি কপি করে ব্যবহার করুন।",
   posterBlocked: "লেখার মধ্যে এখনও একটি ফোন নম্বর আছে, তাই পোস্টার তৈরি হয়নি। সাহায্য লাগলে ১৩২১৯-এ কল করুন।",
+  ...parentIntakeBn,
+  ...parentFormBn,
+  ...parentStatusBn,
+  ...staffDisasterBn,
+  ...officerQueueBn,
+  ...officerCaseBn,
+  ...officerMapBn,
+  ...officerMatchBn,
+  ...officerDuplicatesBn,
+  ...adminImportBn,
 } as const;
 
 export type MessageKey = keyof typeof bn;
@@ -716,8 +741,8 @@ const en = {
   reviewPhoneInvalid: "Enter an 11-digit number starting 01",
   reviewTimeInvalid: "Enter a valid time and bounds. The time cannot be in the future.",
   reviewTimeHint: "Date: year-month-day. Time: HH:mm (24-hour). For an exact time, use the same time in both bounds.", // needs human Bangla review
-  reviewDistrictCode: "District number (synthetic sample)",
-  reviewDistrictHint: "The district name list is not connected yet. Enter the sample’s district number if known (1–64). Do not guess.",
+  reviewDistrictCode: "District",
+  reviewDistrictHint: "Confirm the district where last seen. Do not guess; this form cannot be submitted without a district.",
   reviewAgeMin: "Lower age bound (years)",
   reviewAgeMax: "Upper age bound (years)",
   reviewTimeLower: "Earliest last-seen time",
@@ -729,7 +754,6 @@ const en = {
   reviewSessionExpired: "Your draft has expired. Please start again.", // D3:333 / catalogue E-019
   reviewRetryFrozen: "The result is unknown. Retry with the same details and submission ID.",
   reviewPlannedManual: "Manual form", // planned label wraps it; needs human Bangla review
-  reviewOpenReport: "Get the GD draft and poster", // links to S-004
   reviewExpired: "Your draft has expired. Please start again.", // D3:333 / catalogue E-019
   reviewUnknownAdd: "Unknown — add",
   reviewDiscardWarn: "This draft was already attempted. The server may have received it — deleting it removes the device copy.",
@@ -848,6 +872,16 @@ const en = {
   posterFailed: "The poster couldn't be made right now. Try again, or copy the text instead.",
   posterTooLong: "The text doesn't fit on one poster. Copy the text instead.",
   posterBlocked: "A phone number is still in the text, so no poster was made. Call 13219 if you need help.",
+  ...parentIntakeEn,
+  ...parentFormEn,
+  ...parentStatusEn,
+  ...staffDisasterEn,
+  ...officerQueueEn,
+  ...officerCaseEn,
+  ...officerMapEn,
+  ...officerMatchEn,
+  ...officerDuplicatesEn,
+  ...adminImportEn,
 } as const satisfies Record<MessageKey, string>;
 
 export const locales = { bn, en } as const;
