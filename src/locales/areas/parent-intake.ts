@@ -35,7 +35,7 @@ export const parentIntakeBn = {
   reviewEditStale: "এই রিপোর্টের অবস্থা বদলে গেছে। পাতাটি নতুন করে লোড করুন।",
   reviewEditConflict: "এই রিপোর্টের তথ্য বদলেছে। যাচাই করে আবার জমা দিন।",
   reviewEditForbidden: "এই রিপোর্ট আপনার জন্য নয়।",
-  reviewEditGone: "এই রিপোর্ট আর পাওয়া যাচ্ছে না। সাহায়তা লাগলে ১৩২১৯-এ কল করুন।",
+  reviewEditGone: "এই রিপোর্ট আর পাওয়া যাচ্ছে না। সহায়তা লাগলে ১৩২১৯-এ কল করুন।",
   reviewEditOffline: "ইন্টারনেট সংযোগ নেই। সংযোগ ফিরলে আবার চাপুন — আপনার সংশোধন রাখা আছে।",
   reviewEditMockBlocked: "এই সংশোধন পাঠানো যাবে না — সংরক্ষিত নকল তথ্য।",
   reviewEditSubmitting: "সংশোধন জমা হচ্ছে…",
