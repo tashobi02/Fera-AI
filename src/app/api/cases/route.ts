@@ -15,8 +15,7 @@
 // `access.denied` (BR-010, TC-052). The route does not touch child payload, contact,
 // candidate IDs, scores or district text: those never leave the service layer.
 import { caseListQuerySchema, caseListResponseSchema, createMissingRequestSchema, createMissingResponseSchema, type CaseListResponse, type CreateMissingResponse } from "@/contracts";
-import { createMissingCase, listOfficerCases, openCase, readCase } from "@/server/case";
-import { fireMatcherPostcommit } from "@/server/case/postcommit";
+import { createMissingCase, listOfficerCases, openCase, readCase, fireMatcherPostcommit } from "@/server/case";
 import { getPool } from "@/server/db/pool";
 import { ApiError, RATE_LIMITS, Reply, defineRoute, type RateLimitRule } from "../_shared";
 

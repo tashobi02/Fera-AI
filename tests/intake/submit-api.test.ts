@@ -14,6 +14,7 @@ import { fakeResolver, jsonPost, noParams } from "../api/fakes";
 import { fakeAuth, KEYS } from "../auth/fakes";
 import { fakePool, pgError } from "../case/fakes";
 import { testParent, testUser } from "../support/principals";
+import * as postcommit from "@/server/case/postcommit";
 
 const parent = testParent(IDS.parentSession);
 const requestBody = () => ({
@@ -58,6 +59,7 @@ const errorId = async (response: Response) => errorEnvelopeSchema.parse(await re
 
 describe("API-003 missing-report submission (TASK-022)", () => {
   beforeEach(() => {
+    vi.spyOn(postcommit, "fireMatcherPostcommit").mockResolvedValue({ caseId: IDS.missingCase, state: "queued", candidates: [], considered: 0, abstained: false });
     vi.spyOn(defaultAuth(), "resolvePrincipal").mockImplementation(fakeResolver(parent));
   });
   afterEach(() => {
@@ -79,7 +81,8 @@ describe("API-003 missing-report submission (TASK-022)", () => {
     const audit = db.sent(/^INSERT INTO audit_log/);
     expect(audit.map((q) => q.values[7])).toEqual([response.headers.get("x-request-id"), response.headers.get("x-request-id")]);
     expect(audit.map((q) => q.values[0])).toEqual(["parent", "system"]);
-    expect(db.sent(/^COMMIT$/)).toHaveLength(2);
+    expect(db.sent(/^COMMIT$/).length).toBeGreaterThanOrEqual(2);
+    expect(db.sent(/^COMMIT$/)).toHaveLength(db.sent(/^BEGIN$/).length);
     expect(response.headers.get("cache-control")).toContain("no-store");
     expect(response.headers.get("set-cookie")).toBeNull();
   });

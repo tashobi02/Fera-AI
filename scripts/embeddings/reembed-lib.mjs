@@ -53,7 +53,7 @@ const STALE_SQL = `(embedding IS NULL OR embedding_model IS DISTINCT FROM $1
                     OR embedding_revision IS DISTINCT FROM $2 OR embedding_space IS DISTINCT FROM $3)`;
 const NULL_VECTOR = null;
 
-async function pass(client, { batchSize, embedding, beforeWrite }) {
+async function pass(client, { batchSize, embedding, beforeWrite, embedFn }) {
   const params = [embedding.model, embedding.revision, embedding.space];
   const counts = { embedded: 0, skipped_empty: 0, cleared_empty: 0, stale_retry: 0, batches: 0 };
   let last = "00000000-0000-0000-0000-000000000000";
@@ -81,7 +81,7 @@ async function pass(client, { batchSize, embedding, beforeWrite }) {
       }
       // Missing reports are the query side, found records the passage
       // side (D2 Part A).
-      const vector = await embedOne(text, ROLE_BY_KIND[row.kind]);
+      const vector = await embedOne(text, ROLE_BY_KIND[row.kind], embedFn);
       work.push({
         id: row.id,
         version: row.version,
@@ -162,10 +162,10 @@ export async function reembedCases(
     invalidated = await invalidateStaleMatchState(client);
   }
 
-  const first = await pass(client, { batchSize, embedding, beforeWrite });
+  const first = await pass(client, { batchSize, embedding, beforeWrite, embedFn });
   const counts = { ...first, ...invalidated, stale_remaining: 0, space_upgrade: isSpaceUpgrade };
   if (first.stale_retry > 0 && retryStale) {
-    const second = await pass(client, { batchSize, embedding, beforeWrite: null });
+    const second = await pass(client, { batchSize, embedding, beforeWrite: null, embedFn });
     counts.embedded += second.embedded;
     counts.cleared_empty += second.cleared_empty;
     counts.skipped_empty = Math.max(counts.skipped_empty, second.skipped_empty);

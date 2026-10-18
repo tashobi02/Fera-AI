@@ -521,17 +521,23 @@ describe("loadLocalEmbedder security hardening (P3-024)", () => {
   });
 
   it("anchors the default cache dir at the repository root, not the cwd", async () => {
-    // The test uses a real on-disk cache at DEFAULT_CACHE_DIR if
-    // present; otherwise the loader's verify step throws and we check
-    // the env values were set to DEFAULT_CACHE_DIR up to the throw.
-    try {
-      await loadLocalEmbedder();
-    } catch {
-      // ignore; we only care that env.cacheDir was set to DEFAULT_CACHE_DIR.
-    }
+    // Make this unit independent of installed files: with
+    // `allowRemote: true` the loader skips the on-disk SHA-256 check
+    // (the runtime path never sets it; only `npm run model:fetch`
+    // does, and that path is tested in tests/embeddings/scripts-cli).
+    // The fake pipeline above substitutes the heavy Transformers.js
+    // pipeline, so the loader is the real one but the bytes stay
+    // offline. We assert the env values the loader writes so the
+    // cache anchoring is observable without a real cache.
+    await loadLocalEmbedder({ allowRemote: true });
     expect(envRecord.cacheDir).toBe(DEFAULT_CACHE_DIR);
     expect(envRecord.cacheDir).toMatch(/\.cache\/models$/);
     expect(envRecord.cacheDir!.startsWith("/") || /^[A-Za-z]:[\\/]/.test(envRecord.cacheDir!)).toBe(true);
+    // And a separately asserted bare call to defaultCacheDir() anchors
+    // at the same path (defends against a regression that drops
+    // FERA_MODEL_CACHE back to cwd).
+    expect(defaultCacheDir()).toBe(DEFAULT_CACHE_DIR);
+    expect(defaultCacheDir()).toMatch(/\.cache\/models$/);
   });
 
   it("uses a custom cacheDir when supplied and does not collide with the default", async () => {
