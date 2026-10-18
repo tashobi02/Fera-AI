@@ -1,6 +1,8 @@
 # Fera — Execution Plan (12–24 Oct 2026)
 
-Team: **Obidit** (lead; intake, AI, outputs) · **Masnun** (data, matching, officer workflow, dashboard, evaluation) · **Mahim** (platform, integration, release; "Sadman" in AGENTS.md and the spec pack, D6 owner code S). Lead changed to Obidit on 13 Oct: the lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`. Each phase tracker lists every person's tasks in their own table.
+Team: **Mahim** (lead; platform, integration, release; "Sadman" in AGENTS.md and the spec pack, D6 owner code S) · **Obidit** (intake, AI, outputs) · **Masnun** (data, matching, officer workflow, dashboard, evaluation). The lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`. Each phase tracker lists every person's tasks in their own table.
+
+> **18 Oct 2026 audit pointer.** This execution plan stays the schedule. Per the 18 Oct audit at [`PHASE_3_AUDIT_2026-10-18.md`](PHASE_3_AUDIT_2026-10-18.md): integration HEAD `f25de23` builds / typechecks / lints / passes 3,642 unit + 322 DB + 38 desktop e2e on a fresh local DB; W0.0 gate PASS; **G2′, G3, G4, G5 are FAIL / UNVERIFIED**. The dev eval report is at [`../../eval/reports/phase3-dev-2026-10-18.md`](../../eval/reports/phase3-dev-2026-10-18.md) with denominators and explicit "not measured" items; it is **not** a frozen release figure. The Phase 5 handoff is at [`handoff/PHASE_5_HANDOFF.md`](handoff/PHASE_5_HANDOFF.md) and contains the agent-ready and HUMAN-ready queue.
 Scope: **everything** — all 64 tasks in D6 (Must, Should, Could), ≈222 estimated hours. Times are Asia/Dhaka.
 
 ## The dates that matter
@@ -67,7 +69,7 @@ Critical path: contracts → case service (TASK-015) → matcher (TASK-017) → 
 
 | Who | Lane A | Lane B | Lane C |
 |---|---|---|---|
-| **Mahim** | Codex · TASK-007 API layer → TASK-062 invariants → TASK-015 case service, state guard, audit (**by 12:00**) | Claude · TASK-006 auth → TASK-031 S-008/S-016 → TASK-029 S-012 close + audit (after 028) | Claude + impeccable · TASK-024 S-004 + poster PNG → TASK-025 S-005 → TASK-032 S-013 admin |
+| **Mahim** (lead) | Codex · TASK-007 API layer → TASK-062 invariants → TASK-015 case service, state guard, audit (**by 12:00**) | Claude · TASK-006 auth → TASK-031 S-008/S-016 → TASK-029 S-012 close + audit (after 028) | Claude + impeccable · TASK-024 S-004 + poster PNG → TASK-025 S-005 → TASK-032 S-013 admin |
 | **Obidit** | Codex · TASK-012 normaliser → TASK-013 LLM adapter + evidence check → TASK-063 counters → TASK-059 spend | Claude · TASK-014 speech + API-001 → TASK-020 orchestrator → TASK-033 demo cache | Claude + impeccable · TASK-021 S-001/S-002 → TASK-022 S-003 + submit → TASK-023 templates + wording guard |
 | **Masnun** | Codex · TASK-016 embeddings → TASK-017 matcher → TASK-018 duplicates → TASK-019 seed | Claude + impeccable · TASK-026 S-007 → TASK-027 S-009 → TASK-028 S-010 confirm/reject → TASK-030 S-011 map | Human-heavy · TASK-011 50 labelled reports (Obidit reviews) · scaffold TASK-039 eval harness |
 
@@ -80,7 +82,7 @@ Reviewer focus today: `database-reviewer` + `fera-safeguarding-reviewer` on ever
 ## Phase 3 — Full scope and quality (Wed 14 Oct 07:00 → 16:00) · Gates G3, G4
 | Who | Features (Should/Could) | Quality and release |
 |---|---|---|
-| **Mahim** | TASK-056 mentor fixes (own areas) | TASK-034 a11y (axe, keyboard, 320 px, 200 %) · TASK-037 unit tests ≥60 · TASK-038 Playwright journey + safeguarding TCs · TASK-041 timing study with ≥5 testers (10:00–12:00) · **TASK-042 prod deploy + smoke by 15:00** |
+| **Mahim** (lead) | TASK-056 mentor fixes (own areas) | TASK-034 a11y (axe, keyboard, 320 px, 200 %) · TASK-037 unit tests ≥60 · TASK-038 Playwright journey + safeguarding TCs · TASK-041 timing study with ≥5 testers (10:00–12:00) · **TASK-042 prod deploy + smoke by 15:00** |
 | **Obidit** | TASK-047 13219 summary · TASK-049 edit after submit + S-006 · TASK-050 status API · TASK-056 (own areas) | TASK-035 Bangla copy for every state · TASK-040 WER run · prepare video shots |
 | **Masnun** | TASK-048 fixture import · TASK-051 S-014 duplicate review · TASK-052 S-015 disaster mode · TASK-056 (own areas) | TASK-036 two Android phones · TASK-039 eval harness dev → held-out · TASK-060 perf check · **TASK-043 final frozen evaluation on the prod build by 15:45** |
 
@@ -131,7 +133,7 @@ TASK-054 five rehearsals (≥1 internet-off) · TASK-055 finale deck, timed ≤1
 | Managed Postgres host (OQ-021) | Mahim | TASK-002 → everything |
 | Default LLM provider, keys, prices, data terms (OQ-004, OQ-013, OQ-022) | Obidit | TASK-013 |
 | Local embeddings on Vercel or API (OQ-023) | Masnun | TASK-016 |
-| Voice and poster confirmed for Round 2 (OQ-001) | Obidit (lead) | closed: yes, full scope |
+| Voice and poster confirmed for Round 2 (OQ-001) | Obidit | closed: yes, full scope |
 | Synthetic-only data acceptable to judges (OQ-026) | Mentors, session 2 | deck wording |
 | Ethics of testing with real parents (OQ-019) | Mentors/faculty | TASK-057 |
 
@@ -148,7 +150,7 @@ TASK-054 five rehearsals (≥1 internet-off) · TASK-055 finale deck, timed ≤1
 ## Audit amendments (2026-10-12)
 
 ### AMD-PLAN-1 — Schedule evidence and capacity
-**Gap:** the cutoff and capacity were presented as established facts. **Change:** 14 Oct remains the working submission date, with 21:00 internal send target and 22:00 planning baseline. The user reports organiser flexibility/extension on 12 Oct; replacement date/time and documentary confirmation are **UNKNOWN**. Keep the baseline until Obidit (lead) records the organiser instruction; then rebase dependent targets together. Handover §10 confirms the date, not 22:00, channel or formats. Finale remains 24 Oct; DEP-009 kit readiness is 23 Oct.
+**Gap:** the cutoff and capacity were presented as established facts. **Change:** 14 Oct remains the working submission date, with 21:00 internal send target and 22:00 planning baseline. The user reports organiser flexibility/extension on 12 Oct; replacement date/time and documentary confirmation are **UNKNOWN**. Keep the baseline until Mahim (lead) records the organiser instruction; then rebase dependent targets together. Handover §10 confirms the date, not 22:00, channel or formats. Finale remains 24 Oct; DEP-009 kit readiness is 23 Oct.
 **Old text corrected:** “official cutoff **22:00**”; “Round 2 must be submitted on the 14th; the 15th cannot be a build day for Round 2.” The latter is a baseline planning rule, not a verified organiser restriction.
 **Source:** TEAM_HANDOVER_V2 §§6–10; D6 §§4–5,10; user clarification 2026-10-12.
 
@@ -196,7 +198,7 @@ Cross-cutting wording guard FR-034/BR-002/003/011 is built in P2 TASK-023 and ch
 | DEP-007 public texts | Masnun | P3 TASK-048 invented fixtures ONLY under FR-024/BR-026; D1's “public pages” wording conflicts with V2; 12 Oct |
 | DEP-008 host/DB | Mahim | P0 TASK-001/002, P3 TASK-042; URL + target PG16 evidence; 10 Oct |
 | DEP-009 finale kit | Mahim | P5 TASK-053, finale rehearsal/device inventory; **23 Oct** |
-| DEP-010 mentor answers | Obidit (lead) | P2 decision log for OQ-003/OQ-010, P3 TASK-056; **13 Oct**, answers UNKNOWN |
+| DEP-010 mentor answers | Mahim (lead) | P2 decision log for OQ-003/OQ-010, P3 TASK-056; **13 Oct**, answers UNKNOWN |
 | DEP-011 base map/fallback | Masnun | P2 TASK-030, P3 offline test; bundled outlines/table; 12 Oct |
 
 Source dates already earlier than these working phases require an evidence-backed rebaseline; this audit does not claim they were met. Phase entry chain: P0 inventory → G0 → P1/G1 → P2/G2 → P3/G3/G4 → P4/G5 → P5/G6 → kit by 23 Oct → finale 24 Oct. Preparatory parallel work is allowed; gate failure is never treated as entry approval.

@@ -1,0 +1,15 @@
+# Intake question library (COMP-009, TASK-020 part 1)
+
+`questions.ts` is a pure selector over field paths and a round number. It provides five fixed bilingual templates and selects one question. It has no route, provider call, network access, logging or persistence. None of this stores text server-side. It does not implement the rest of the intake orchestrator.
+
+## Integration requirements
+
+- **Review before submit:** keep drafts, transcripts and extracted fields on the device until reporter confirmation. Pre-submit server state is metadata only. Providers may process synthetic intake only after the notice (D2A:145, 1252–1255; BR-004/023). The selector accepts no child payload and does not modify missing fields.
+- **Server-owned rounds:** the TASK-020 / API-002 route must keep the round counter in authoritative server state, never trust a counter from the client token or request body (D2A §9.4, line 1300). The route must validate the counter before calling this library. Round storage and concurrency enforcement are **UNKNOWN**, pending OD-020-3. The schema has `ai_calls_used` and `revision`, but no round column (`db/schema_v2.sql:75–87`). Neither value has an approved mapping to follow-up rounds. Any schema change needs all-owner review: Mahim (Sadman), Obidit and Masnun, including Mahim and Masnun's decision on round storage.
+- **Name-dependent templates need the reviewed name:** `child.age_years` and `event.district_code` use `{নাম}` in Bangla and `{name}` in English (D3:83, 85). `event.at` uses `{name}` in English only (D3:86). This library returns raw templates and never interpolates them. Missing-name fallback copy and behavior are **UNKNOWN** (OD-020-1); resolve them before displaying name-dependent questions. Never guess a name or display unresolved placeholders.
+- **Question order:** D3 table order is the provisional policy (OD-020-5). D1 BR-015 defines required submission fields, not question priority. A field absent from the template table has no entry; manual completion remains necessary for unresolved mandatory fields.
+- **Limits and navigation:** empty `missing` returns `null`, including at round 4. Otherwise rounds 0–3 select one question; rounds ≥4 return `{ kind: "manual", reason: "rounds_exhausted" }`. No usable template returns `{ kind: "manual", reason: "no_template" }`. The library does not navigate. S-003 versus S-005 after four rounds remains OD-020-4 / OD-021-7; mandatory unknowns must still block submission (D3:483).
+- **Contract shape:** questions use the frozen `{ field, bn, en }` contract (`src/contracts/schemas.ts:265–270`). Manual results and `null` are local selector results, not valid question DTOs. `toTaggedQuestion` is an optional local adapter, not the API wire shape (OD-020-2).
+- **UI choices:** D3:84 also lists sex buttons `ছেলে / মেয়ে / অন্য / জানি না`. Those annotations are excluded from question text; the UI owner must retain the other/unknown choices. D4:206–210 contains form validation copy, not follow-up questions.
+
+See `docs/execution/evidence/intake-questions.md` for checked citations, results and open decisions. Route/UI enforcement is outside this four-file task.

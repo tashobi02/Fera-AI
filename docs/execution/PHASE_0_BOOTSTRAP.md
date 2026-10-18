@@ -2,8 +2,8 @@
 
 **Window:** Mon 12 Oct 2026, now → 18:00 (Asia/Dhaka) · **Gate:** G0 · **Plan:** [EXECUTION_PLAN.md](EXECUTION_PLAN.md#phase-0--bootstrap-mon-12-oct-now--1800--gate-g0) · **Next:** [Phase 1](PHASE_1_SPECS_CONTRACTS.md)
 **Phase status:** `doing` — G0 is overdue (due 18:00); see "Known state".
-**Last updated:** 2026-10-13 · tasks distributed among Obidit, Masnun and Mahim; lead = Obidit
-**Team:** **Obidit** — lead; intake, AI, outputs · **Masnun** — data, matching, officer workflow, dashboard, evaluation · **Mahim** — platform, integration, release (named "Sadman" in AGENTS.md and the spec pack; D6 owner code S). Tasks follow [EXECUTION_PLAN.md](EXECUTION_PLAN.md). The lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`.
+**Last updated:** 2026-10-13 · tasks distributed among Obidit, Masnun and Mahim; lead = Mahim
+**Team:** **Obidit** — intake, AI, outputs · **Masnun** — data, matching, officer workflow, dashboard, evaluation · **Mahim** — lead; platform, integration, release (named "Sadman" in AGENTS.md and the spec pack; D6 owner code S). Tasks follow [EXECUTION_PLAN.md](EXECUTION_PLAN.md). The lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`.
 
 ---
 
@@ -18,7 +18,7 @@ This is a living tracker. Every agent working on a task in this phase updates it
 5. If you are stuck, set the row to `blocked`, say what blocks it in Evidence, and add a log line.
 6. Edit only the rows in **your own person table** and **your log section**, so parallel lanes don't conflict. Never tick a gate box yourself. Gate boxes are ticked from the `fera-gate` report in [docs/gates/](../gates/).
 
-**Status values:** `todo` · `doing` · `review` · `done` · `blocked` · `cut`. Use `cut` only with approval from the lead (Obidit) and in the [D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommendation) cut order. Never cut review-before-submit, officer confirm, referral, audit or redaction.
+**Status values:** `todo` · `doing` · `review` · `done` · `blocked` · `cut`. Use `cut` only with approval from the lead (Mahim) and in the [D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommendation) cut order. Never cut review-before-submit, officer confirm, referral, audit or redaction.
 
 | Action | Claude Code | Codex | Antigravity / any other agent |
 |---|---|---|---|
@@ -40,16 +40,16 @@ This is a living tracker. Every agent working on a task in this phase updates it
 
 | Person | Tasks this phase | D6 hours |
 |---|---|---|
-| **Obidit** (lead) | TASK-003 provider keys and prices → TASK-005 phone STT spike · lead duties below | 3 |
+| **Obidit** | TASK-003 provider keys and prices → TASK-005 phone STT spike | 3 |
 | **Masnun** | TASK-004 embedding spike → TASK-009 64 districts | 6 |
-| **Mahim** | KIT → TASK-001 repo, CI, preview → TASK-002 DB host and schema | 5 (+1 KIT, outside D6) |
+| **Mahim** (lead) | KIT → TASK-001 repo, CI, preview → TASK-002 DB host and schema | 5 (+1 KIT, outside D6) |
 
-### Lead duties — Obidit
+### Lead duties — Mahim
 - Chase the decisions below until each has an owner's written answer, and record the organiser cutoff/extension evidence (AMD-PLAN-1).
 - Run `fera-gate G0` at the gate time and link the report; nobody else ticks gate boxes.
 - Lead duties carry no D6 hours; report them at stand-ups if they cost build time.
 
-## Tasks — Obidit (lead)
+## Tasks — Obidit
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | TASK-003 | Provider keys, `.env.example`, real prices in `docs/costs.md` (OQ-004, OQ-022) | Codex | — | 1 | Both LLMs and STT answer a test call | `todo` | | |
@@ -58,15 +58,15 @@ This is a living tracker. Every agent working on a task in this phase updates it
 ## Tasks — Masnun
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| TASK-004 | Spike: local embedding model on Vercel (OQ-023, RISK-015) | Codex | TASK-001 | 3 | Report: cold start, size; decision local vs API | `todo` | | |
-| TASK-009 | District data: 64 rows bn/en/centroids + neighbours | Codex | TASK-002 | 3 | `npm run seed` loads 64 districts | `todo` | | |
+| TASK-004 | Spike: local embedding model on Vercel (OQ-023, RISK-015) | Codex | TASK-001 | 3 | Report: cold start, size; decision local vs API | `review` | branch `phase2--masnun-embed-spike` (PR pending) | Local laptop numbers only (`docs/execution/evidence/embedding-spike.md`): q8 112.8 MiB / fp32 448.5 MiB weights, warm cold-start under 1 s, ~5-8 ms/record, synthetic Hit@5 35/60 (source_text) vs 60/60 (description fields; **easy by construction / upper bound**: `clothing` string identical in 80/80 true pairs, `marks` 39/80, so this is largely verbatim template recovery, and the arms also differ in content); source_text plateau is concentrated in cross-variant (mostly English vs Bangla) pairs, same-variant 15/16 at Hit@5. **Vercel limits UNKNOWN (not run on Vercel); local-vs-API decision OPEN.** Not a held-out result. |
+| TASK-009 | District data: 64 rows bn/en/centroids + neighbours | Codex | TASK-002 | 3 | `npm run seed` loads 64 districts | `review` | branch `phase2--masnun-districts` (PR pending) | Unit/lint/typecheck/build green; **`npm run seed` and `test:db` not run (no Docker on this machine)**; data is AI-compiled and UNVERIFIED (DEP-004/A-019 check owner UNKNOWN). See [evidence](evidence/data-districts.md). |
 
-## Tasks — Mahim
+## Tasks — Mahim (lead)
 | ID | Task | Lane · tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | KIT | Commit agent kit: `CLAUDE.md`, `AGENTS.md`, `CODEX.md`, `.claude/`, `.codex/`, `.agents/`, `.specify/` (constitution), `docs/agents/`, `docs/execution/` | any | — | 1 | `bootstrap.sh` runs; `/agents` lists `fera-safeguarding-reviewer`; `$speckit-*` visible in Codex | `review` | 648a60e | Committed on `main` (234 kit files tracked, checked 13 Oct). Assembled and validated 12 Oct: 18 agents, 16 Codex roles, 28 skills per tool, spec-kit 1.1.4.dev0 @0443760. Pending: owners ratify constitution + `fera-*`; `bootstrap.sh` on each laptop |
-| TASK-001 | Repo: Next.js App Router, TS strict, Tailwind, ESLint, CI (lint, typecheck, test), preview deploy | Claude Code | — | 3 | CI green on `main`; preview deploy URL | `todo` | | |
-| TASK-002 | Pick DB host (OQ-021); apply `schema_v2.sql` locally (Docker) and on host | Claude Code + `database-reviewer` | TASK-001 | 2 | HNSW index created on host and locally | `todo` | | |
+| TASK-001 | Repo: Next.js App Router, TS strict, Tailwind, ESLint, CI (lint, typecheck, test), preview deploy | Claude Code | — | 3 | CI green on `main`; preview deploy URL | `review` | branch `phase1--mahim-task001` | Next 16.4.0 + React 19.3 + Tailwind 4 + ESLint 9 + Vitest 5; `tsconfig` on `bundler`, still covers `docs/code/fera_types_v2.ts`; stub script names kept. Local 14 Oct from clean `npm ci`: `lint`/`typecheck`/`test` (34 passed: spec-pack hashes vs `docs/MANIFEST.json`, `docs/spec`=`docs/markdown`, locales)/`build` all exit 0. Manual Vercel CLI deploys under Mahim's account (project `fera-ai`, no env vars set): preview https://fera-abcticicm-deatraxs-projects.vercel.app (Ready, reviewed head). An earlier first deploy went to production (https://fera-1jqfsupq2-deatraxs-projects.vercel.app); production must be redeployed from `main` after merge. Placeholder page is `noindex`. Pending: CI green on `main` (merge is a human decision); `npm audit --omit=dev` 0, dev-only `braces` advisory via `eslint-config-next`. |
+| TASK-002 | Pick DB host (OQ-021); apply `schema_v2.sql` locally (Docker) and on host | Claude Code + `database-reviewer` | TASK-001 | 2 | HNSW index created on host and locally | `review` | branch `phase1--mahim-db` | **Local done** (14 Oct): `npm run db:up` + `npm run db:reset` on Docker PG 16.15 + pgvector 0.8.1 (`db/docker/Dockerfile`), HNSW `cases_embedding_hnsw_idx`, 17 tables, schema SHA-256 3fe345b1…bf67 = companion; reset is local-only (host + query-param + PG* env guard, 19 tests). **Host NOT done**: Obidit's Supabase project; applied state and version UNKNOWN; needs owner go-ahead. Evidence: `docs/execution/evidence/platform-schema.md`. TASK-001 (PR #1) still unmerged. |
 
 Cross-person waits: Masnun's TASK-004 needs Mahim's TASK-001, and TASK-009 needs TASK-002. Masnun can draft the spike script and district file meanwhile, but marks them `done` only once those dependencies are `done`.
 
@@ -80,11 +80,11 @@ Rules for this phase: no app feature code yet; spike scripts only. Never paste p
 ## Decisions to close (they block lanes)
 | Question | Owner | Blocks | Decision | Recorded in | Status |
 |---|---|---|---|---|---|
-| Managed Postgres host (OQ-021) | Mahim | TASK-002 → everything | | | `todo` |
+| Managed Postgres host (OQ-021) | Mahim | TASK-002 → everything | Decided by Mahim (14 Oct): Supabase (managed) + Supabase CLI local PG16 (Obidit's unmerged `origin/phase0-local-tooling--lane-b` @1960bdc). Pending D2 Part A OQ-021 condition: host must pass `CREATE EXTENSION vector` (pgvector ≥ 0.8.1, A-034) and HNSW index creation in TASK-002; if it fails, the decision reopens | Mahim log, 14 Oct | `review` |
 | Default LLM provider, keys, prices, data terms (OQ-004, OQ-013, OQ-022) | Obidit | TASK-013 | | `docs/costs.md` | `todo` |
 | Local embeddings on Vercel or API (OQ-023) | Masnun | TASK-016 | | TASK-004 report | `todo` |
-| Voice and poster in Round 2 (OQ-001) | Obidit (lead) | — | Team plan: yes, full scope; organiser agreement UNKNOWN (AMD-0-2) | EXECUTION_PLAN | `review` |
-| Organiser cutoff, channel, formats and extension (AMD-PLAN-1) | Obidit (lead) | G5 timing | UNKNOWN | | `todo` |
+| Voice and poster in Round 2 (OQ-001) | Obidit | — | Team plan: yes, full scope; organiser agreement UNKNOWN (AMD-0-2) | EXECUTION_PLAN | `review` |
+| Organiser cutoff, channel, formats and extension (AMD-PLAN-1) | Mahim (lead) | G5 timing | UNKNOWN | | `todo` |
 
 ## G0 exit checklist
 Tick only from the gate report (`fera-gate`), with evidence linked.
@@ -101,18 +101,22 @@ Tick only from the gate report (`fera-gate`), with evidence linked.
 ## Log
 Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
-### Obidit (lead)
+### Obidit
 - 2026-10-12 19:15 · Claude Code · — · created phase files; agent kit found missing (KIT)
 - 2026-10-12 20:10 · Claude Code · — · KIT → review: replaced ECC self-config with pinned Fera kit; drafted constitution, fera-safeguarding-reviewer, fera-review, fera-gate, settings.json (backup ../fera-ecc-kit-backup-2026-10-12.tar.gz)
-- 2026-10-13 · Claude Code · — · tasks split into per-person tables (Obidit lead, Masnun, Mahim); KIT evidence updated: committed on `main`
+- 2026-10-13 · Claude Code · — · tasks split into per-person tables (Mahim lead, Obidit, Masnun); KIT evidence updated: committed on `main`
 ### Masnun
-### Mahim
+- 2026-10-15 23:07 · Claude Code · masnun-districts · TASK-009 `todo` → `review`; 64 districts + 280 directed edges and `npm run seed` implemented, fera-review PASS; DB run pending Docker, data unverified
+### Mahim (lead)
+- 2026-10-14 15:57 · Claude Code · mahim-task001 · OQ-021 decided by Mahim: Supabase; status `review` until TASK-002 proves pgvector + HNSW on the host
+- 2026-10-14 15:57 · Claude Code · mahim-task001 · TASK-001 `todo` → `review`; local checks green, manual Vercel deploy Ready; awaiting PR CI and human merge
+- 2026-10-14 19:20 · Claude Code · mahim-db · TASK-002 `todo` → `review`; local PG16 + pgvector + HNSW evidenced; hosted Supabase apply pending owner go-ahead
 
 ## Audit amendments (2026-10-12)
 
 ### AMD-0-1 — Entry and observed state
 **Gap:** no testable entry criterion; “Missing: … the whole agent kit” contradicts KIT's later evidence.
-**Change:** entry G0 requires the local inventory, cleanly identified task owners (Obidit = lead and D6 owner O, Masnun = M, Mahim = S/Sadman), unresolved DEP-001–004/008 decisions and protected-companion hash checks recorded. Kit files are committed on `main` as of 13 Oct; ratification, bootstrap on each laptop and runtime discovery remain UNKNOWN. Do not run bootstrap during this audit or infer its success.
+**Change:** entry G0 requires the local inventory, cleanly identified task owners (Mahim = lead and D6 owner S/Sadman, Obidit = O, Masnun = M), unresolved DEP-001–004/008 decisions and protected-companion hash checks recorded. Kit files are committed on `main` as of 13 Oct; ratification, bootstrap on each laptop and runtime discovery remain UNKNOWN. Do not run bootstrap during this audit or infer its success.
 **Old text corrected:** “and the whole agent kit (`.claude/`, `.agents/`, `.codex/`, `.specify/` incl. the constitution) although `THIRD_PARTY_NOTICES.md` lists it as vendored.”
 **Source:** local git/file inventory 12 Oct; TEAM_HANDOVER_V2 §§5–7; G0/KIT.
 

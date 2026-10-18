@@ -1,0 +1,2519 @@
+{
+  "transcribeFields": {
+    "kind": "missing",
+    "duration_s": "42"
+  },
+  "transcribeResponse": {
+    "draft_token": "syn.draft.v1.c3ludGhldGljLWRyYWZ0LXRva2Vu",
+    "draft_id": "6b1f3c2a-4d5e-4f60-8a71-0000000000d1",
+    "ai_calls_used": 1,
+    "transcript": "আমার মেয়ে মিতু, বয়স ৭ বছর। গতকাল বিকেলে বাস টার্মিনালের কাছে হারিয়ে গেছে। লাল জামা পরা ছিল। আমার নম্বর ০১৭০০০০০০০১।",
+    "language": "bn",
+    "duration_s": 42,
+    "cached": false
+  },
+  "extractRequest": {
+    "kind": "missing",
+    "text": "আমার মেয়ে মিতু, বয়স ৭ বছর। গতকাল বিকেলে বাস টার্মিনালের কাছে হারিয়ে গেছে। লাল জামা পরা ছিল। আমার নম্বর ০১৭০০০০০০০১।",
+    "draft_token": "syn.draft.v1.c3ludGhldGljLWRyYWZ0LXRva2Vu"
+  },
+  "extractFollowUpRequest": {
+    "kind": "missing",
+    "answer": "জেলা ২৬",
+    "draft": {
+      "kind": "missing",
+      "source_text": "আমার মেয়ে মিতু, বয়স ৭ বছর। গতকাল বিকেলে বাস টার্মিনালের কাছে হারিয়ে গেছে। লাল জামা পরা ছিল। আমার নম্বর ০১৭০০০০০০০১।",
+      "child": {
+        "name": "মিতু",
+        "name_latin": "Mitu",
+        "age_years": 7,
+        "age_min": 7,
+        "age_max": 7,
+        "sex": "female",
+        "height_cm": null,
+        "clothing": "লাল জামা",
+        "marks": null
+      },
+      "event": {
+        "at": "2026-10-12T16:00:00+06:00",
+        "at_approx": true,
+        "at_lower": "2026-10-12T15:00:00+06:00",
+        "at_upper": "2026-10-12T18:00:00+06:00",
+        "place_text": "বাস টার্মিনালের কাছে",
+        "district_text": null,
+        "district_code": null,
+        "thana": null,
+        "circumstances": null
+      },
+      "reporter": {
+        "relation": null,
+        "phone": "01700000001"
+      },
+      "evidence": {
+        "child.name": {
+          "quote": "মিতু",
+          "start_utf16": 11,
+          "end_utf16": 15,
+          "derivation": "direct"
+        },
+        "child.age_years": {
+          "quote": "৭",
+          "start_utf16": 22,
+          "end_utf16": 23,
+          "derivation": "digits"
+        },
+        "child.sex": {
+          "quote": "মেয়ে",
+          "start_utf16": 5,
+          "end_utf16": 10,
+          "derivation": "direct"
+        },
+        "child.clothing": {
+          "quote": "লাল জামা",
+          "start_utf16": 77,
+          "end_utf16": 85,
+          "derivation": "direct"
+        },
+        "event.at": {
+          "quote": "গতকাল বিকেলে",
+          "start_utf16": 29,
+          "end_utf16": 41,
+          "derivation": "time_interval"
+        },
+        "event.place_text": {
+          "quote": "বাস টার্মিনালের কাছে",
+          "start_utf16": 42,
+          "end_utf16": 62,
+          "derivation": "direct"
+        },
+        "reporter.phone": {
+          "quote": "০১৭০০০০০০০১",
+          "start_utf16": 106,
+          "end_utf16": 117,
+          "derivation": "digits"
+        }
+      }
+    },
+    "draft_token": "syn.draft.v1.c3ludGhldGljLWRyYWZ0LXRva2Vu",
+    "draft_revision": 2
+  },
+  "extractResponse": {
+    "draft_token": "syn.draft.v1.c3ludGhldGljLWRyYWZ0LXRva2Vu",
+    "draft_id": "6b1f3c2a-4d5e-4f60-8a71-0000000000d1",
+    "draft_revision": 2,
+    "expires_at": "2026-10-13T20:00:00+06:00",
+    "draft": {
+      "kind": "missing",
+      "source_text": "আমার মেয়ে মিতু, বয়স ৭ বছর। গতকাল বিকেলে বাস টার্মিনালের কাছে হারিয়ে গেছে। লাল জামা পরা ছিল। আমার নম্বর ০১৭০০০০০০০১।",
+      "child": {
+        "name": "মিতু",
+        "name_latin": "Mitu",
+        "age_years": 7,
+        "age_min": 7,
+        "age_max": 7,
+        "sex": "female",
+        "height_cm": null,
+        "clothing": "লাল জামা",
+        "marks": null
+      },
+      "event": {
+        "at": "2026-10-12T16:00:00+06:00",
+        "at_approx": true,
+        "at_lower": "2026-10-12T15:00:00+06:00",
+        "at_upper": "2026-10-12T18:00:00+06:00",
+        "place_text": "বাস টার্মিনালের কাছে",
+        "district_text": null,
+        "district_code": null,
+        "thana": null,
+        "circumstances": null
+      },
+      "reporter": {
+        "relation": null,
+        "phone": "01700000001"
+      },
+      "evidence": {
+        "child.name": {
+          "quote": "মিতু",
+          "start_utf16": 11,
+          "end_utf16": 15,
+          "derivation": "direct"
+        },
+        "child.age_years": {
+          "quote": "৭",
+          "start_utf16": 22,
+          "end_utf16": 23,
+          "derivation": "digits"
+        },
+        "child.sex": {
+          "quote": "মেয়ে",
+          "start_utf16": 5,
+          "end_utf16": 10,
+          "derivation": "direct"
+        },
+        "child.clothing": {
+          "quote": "লাল জামা",
+          "start_utf16": 77,
+          "end_utf16": 85,
+          "derivation": "direct"
+        },
+        "event.at": {
+          "quote": "গতকাল বিকেলে",
+          "start_utf16": 29,
+          "end_utf16": 41,
+          "derivation": "time_interval"
+        },
+        "event.place_text": {
+          "quote": "বাস টার্মিনালের কাছে",
+          "start_utf16": 42,
+          "end_utf16": 62,
+          "derivation": "direct"
+        },
+        "reporter.phone": {
+          "quote": "০১৭০০০০০০০১",
+          "start_utf16": 106,
+          "end_utf16": 117,
+          "derivation": "digits"
+        }
+      }
+    },
+    "missing_fields": [
+      "event.district_code"
+    ],
+    "next_question": {
+      "field": "event.district_code",
+      "bn": "শিশুটিকে শেষ কোন জেলায় দেখা গেছে?",
+      "en": "In which district was the child last seen?"
+    },
+    "ai_calls_used": 2,
+    "cached": false
+  },
+  "createMissingRequest": {
+    "draft": {
+      "kind": "missing",
+      "source_text": "আমার মেয়ে মিতু, বয়স ৭ বছর। গতকাল বিকেলে বাস টার্মিনালের কাছে হারিয়ে গেছে। লাল জামা পরা ছিল। আমার নম্বর ০১৭০০০০০০০১।",
+      "child": {
+        "name": "মিতু",
+        "name_latin": "Mitu",
+        "age_years": 7,
+        "age_min": 7,
+        "age_max": 7,
+        "sex": "female",
+        "height_cm": null,
+        "clothing": "লাল জামা",
+        "marks": null
+      },
+      "event": {
+        "at": "2026-10-12T16:00:00+06:00",
+        "at_approx": true,
+        "at_lower": "2026-10-12T15:00:00+06:00",
+        "at_upper": "2026-10-12T18:00:00+06:00",
+        "place_text": "বাস টার্মিনালের কাছে",
+        "district_text": null,
+        "district_code": 26,
+        "thana": null,
+        "circumstances": null
+      },
+      "reporter": {
+        "relation": null,
+        "phone": "01700000001"
+      },
+      "evidence": {
+        "child.name": {
+          "quote": "মিতু",
+          "start_utf16": 11,
+          "end_utf16": 15,
+          "derivation": "direct"
+        },
+        "child.age_years": {
+          "quote": "৭",
+          "start_utf16": 22,
+          "end_utf16": 23,
+          "derivation": "digits"
+        },
+        "child.sex": {
+          "quote": "মেয়ে",
+          "start_utf16": 5,
+          "end_utf16": 10,
+          "derivation": "direct"
+        },
+        "child.clothing": {
+          "quote": "লাল জামা",
+          "start_utf16": 77,
+          "end_utf16": 85,
+          "derivation": "direct"
+        },
+        "event.at": {
+          "quote": "গতকাল বিকেলে",
+          "start_utf16": 29,
+          "end_utf16": 41,
+          "derivation": "time_interval"
+        },
+        "event.place_text": {
+          "quote": "বাস টার্মিনালের কাছে",
+          "start_utf16": 42,
+          "end_utf16": 62,
+          "derivation": "direct"
+        },
+        "reporter.phone": {
+          "quote": "০১৭০০০০০০০১",
+          "start_utf16": 106,
+          "end_utf16": 117,
+          "derivation": "digits"
+        }
+      }
+    },
+    "confirmed": true,
+    "client_submission_id": "6b1f3c2a-4d5e-4f60-8a71-000000000061",
+    "draft_token": "syn.draft.v1.c3ludGhldGljLWRyYWZ0LXRva2Vu"
+  },
+  "createMissingResponse": {
+    "id": "6b1f3c2a-4d5e-4f60-8a71-0000000000a1",
+    "ref_code": "M-7K2Q9A",
+    "kind": "missing",
+    "status": "open",
+    "status_group": "open",
+    "is_synthetic": true,
+    "version": 1,
+    "editable": true,
+    "matching_state": "complete",
+    "draft": {
+      "kind": "missing",
+      "source_text": "আমার মেয়ে মিতু, বয়স ৭ বছর। গতকাল বিকেলে বাস টার্মিনালের কাছে হারিয়ে গেছে। লাল জামা পরা ছিল। আমার নম্বর ০১৭০০০০০০০১।",
+      "child": {
+        "name": "মিতু",
+        "name_latin": "Mitu",
+        "age_years": 7,
+        "age_min": 7,
+        "age_max": 7,
+        "sex": "female",
+        "height_cm": null,
+        "clothing": "লাল জামা",
+        "marks": null
+      },
+      "event": {
+        "at": "2026-10-12T16:00:00+06:00",
+        "at_approx": true,
+        "at_lower": "2026-10-12T15:00:00+06:00",
+        "at_upper": "2026-10-12T18:00:00+06:00",
+        "place_text": "বাস টার্মিনালের কাছে",
+        "district_text": null,
+        "district_code": 26,
+        "thana": null,
+        "circumstances": null
+      },
+      "reporter": {
+        "relation": null,
+        "phone": "01700000001"
+      },
+      "evidence": {
+        "child.name": {
+          "quote": "মিতু",
+          "start_utf16": 11,
+          "end_utf16": 15,
+          "derivation": "direct"
+        },
+        "child.age_years": {
+          "quote": "৭",
+          "start_utf16": 22,
+          "end_utf16": 23,
+          "derivation": "digits"
+        },
+        "child.sex": {
+          "quote": "মেয়ে",
+          "start_utf16": 5,
+          "end_utf16": 10,
+          "derivation": "direct"
+        },
+        "child.clothing": {
+          "quote": "লাল জামা",
+          "start_utf16": 77,
+          "end_utf16": 85,
+          "derivation": "direct"
+        },
+        "event.at": {
+          "quote": "গতকাল বিকেলে",
+          "start_utf16": 29,
+          "end_utf16": 41,
+          "derivation": "time_interval"
+        },
+        "event.place_text": {
+          "quote": "বাস টার্মিনালের কাছে",
+          "start_utf16": 42,
+          "end_utf16": 62,
+          "derivation": "direct"
+        },
+        "reporter.phone": {
+          "quote": "০১৭০০০০০০০১",
+          "start_utf16": 106,
+          "end_utf16": 117,
+          "derivation": "digits"
+        }
+      }
+    },
+    "created_at": "2026-10-12T20:00:00+06:00",
+    "updated_at": "2026-10-12T20:05:00+06:00",
+    "replayed": false,
+    "outputs_available": [
+      "gd",
+      "poster",
+      "helpline"
+    ]
+  },
+  "ownerCaseView": {
+    "id": "6b1f3c2a-4d5e-4f60-8a71-0000000000a1",
+    "ref_code": "M-7K2Q9A",
+    "kind": "missing",
+    "status": "open",
+    "status_group": "open",
+    "is_synthetic": true,
+    "version": 1,
+    "editable": true,
+    "matching_state": "complete",
+    "draft": {
+      "kind": "missing",
+      "source_text": "আমার মেয়ে মিতু, বয়স ৭ বছর। গতকাল বিকেলে বাস টার্মিনালের কাছে হারিয়ে গেছে। লাল জামা পরা ছিল। আমার নম্বর ০১৭০০০০০০০১।",
+      "child": {
+        "name": "মিতু",
+        "name_latin": "Mitu",
+        "age_years": 7,
+        "age_min": 7,
+        "age_max": 7,
+        "sex": "female",
+        "height_cm": null,
+        "clothing": "লাল জামা",
+        "marks": null
+      },
+      "event": {
+        "at": "2026-10-12T16:00:00+06:00",
+        "at_approx": true,
+        "at_lower": "2026-10-12T15:00:00+06:00",
+        "at_upper": "2026-10-12T18:00:00+06:00",
+        "place_text": "বাস টার্মিনালের কাছে",
+        "district_text": null,
+        "district_code": 26,
+        "thana": null,
+        "circumstances": null
+      },
+      "reporter": {
+        "relation": null,
+        "phone": "01700000001"
+      },
+      "evidence": {
+        "child.name": {
+          "quote": "মিতু",
+          "start_utf16": 11,
+          "end_utf16": 15,
+          "derivation": "direct"
+        },
+        "child.age_years": {
+          "quote": "৭",
+          "start_utf16": 22,
+          "end_utf16": 23,
+          "derivation": "digits"
+        },
+        "child.sex": {
+          "quote": "মেয়ে",
+          "start_utf16": 5,
+          "end_utf16": 10,
+          "derivation": "direct"
+        },
+        "child.clothing": {
+          "quote": "লাল জামা",
+          "start_utf16": 77,
+          "end_utf16": 85,
+          "derivation": "direct"
+        },
+        "event.at": {
+          "quote": "গতকাল বিকেলে",
+          "start_utf16": 29,
+          "end_utf16": 41,
+          "derivation": "time_interval"
+        },
+        "event.place_text": {
+          "quote": "বাস টার্মিনালের কাছে",
+          "start_utf16": 42,
+          "end_utf16": 62,
+          "derivation": "direct"
+        },
+        "reporter.phone": {
+          "quote": "০১৭০০০০০০০১",
+          "start_utf16": 106,
+          "end_utf16": 117,
+          "derivation": "digits"
+        }
+      }
+    },
+    "created_at": "2026-10-12T20:00:00+06:00",
+    "updated_at": "2026-10-12T20:05:00+06:00"
+  },
+  "staffOwnCaseView": {
+    "id": "6b1f3c2a-4d5e-4f60-8a71-0000000000f1",
+    "ref_code": "F-3D8W1Z",
+    "kind": "found",
+    "status": "open",
+    "is_synthetic": true,
+    "version": 1,
+    "matching_state": "queued",
+    "draft": {
+      "kind": "found",
+      "source_text": "রেলস্টেশনের প্ল্যাটফর্মে একটি মেয়েকে একা বসে থাকতে দেখা গেছে। বয়স আনুমানিক ৬ থেকে ৮ বছর, নীল ফ্রক পরা।",
+      "child": {
+        "name": null,
+        "name_latin": null,
+        "age_years": null,
+        "age_min": 6,
+        "age_max": 8,
+        "sex": "female",
+        "height_cm": null,
+        "clothing": "নীল ফ্রক",
+        "marks": null
+      },
+      "event": {
+        "at": "2026-10-12T19:30:00+06:00",
+        "at_approx": false,
+        "at_lower": "2026-10-12T19:30:00+06:00",
+        "at_upper": "2026-10-12T19:30:00+06:00",
+        "place_text": "রেলস্টেশনের প্ল্যাটফর্মে",
+        "district_text": null,
+        "district_code": 26,
+        "thana": null,
+        "circumstances": "একা বসে থাকতে দেখা গেছে"
+      },
+      "reporter": {
+        "relation": null,
+        "phone": "01800000002"
+      },
+      "evidence": {
+        "child.age_min": {
+          "quote": "৬",
+          "start_utf16": 77,
+          "end_utf16": 78,
+          "derivation": "digits"
+        },
+        "child.age_max": {
+          "quote": "৮",
+          "start_utf16": 84,
+          "end_utf16": 85,
+          "derivation": "digits"
+        },
+        "child.sex": {
+          "quote": "মেয়ে",
+          "start_utf16": 30,
+          "end_utf16": 35,
+          "derivation": "direct"
+        },
+        "child.clothing": {
+          "quote": "নীল ফ্রক",
+          "start_utf16": 91,
+          "end_utf16": 99,
+          "derivation": "direct"
+        },
+        "event.place_text": {
+          "quote": "রেলস্টেশনের প্ল্যাটফর্মে",
+          "start_utf16": 0,
+          "end_utf16": 24,
+          "derivation": "direct"
+        },
+        "event.circumstances": {
+          "quote": "একা বসে থাকতে দেখা গেছে",
+          "start_utf16": 38,
+          "end_utf16": 61,
+          "derivation": "direct"
+        }
+      }
+    },
+    "created_at": "2026-10-12T20:00:00+06:00"
+  },
+  "officerMissingView": {
+    "id": "6b1f3c2a-4d5e-4f60-8a71-0000000000a1",
+    "ref_code": "M-7K2Q9A",
+    "kind": "missing",
+    "status": "matched_pending_review",
+    "status_group": "matched",
+    "is_synthetic": true,
+    "source": "parent",
+    "source_url": null,
+    "child": {
+      "name": "মিতু",
+      "name_latin": "Mitu",
+      "age_years": 7,
+      "age_min": 7,
+      "age_max": 7,
+      "sex": "female",
+      "height_cm": null,
+      "clothing": "লাল জামা",
+      "marks": null
+    },
+    "event": {
+      "at": "2026-10-12T16:00:00+06:00",
+      "at_approx": true,
+      "at_lower": "2026-10-12T15:00:00+06:00",
+      "at_upper": "2026-10-12T18:00:00+06:00",
+      "place_text": "বাস টার্মিনালের কাছে",
+      "district_code": 26,
+      "district_name_bn": "[MOCK] জেলা ২৬",
+      "thana": null,
+      "circumstances": null
+    },
+    "reporter_relation": null,
+    "contact_phone": "01700000001",
+    "contact_phone_masked": "017••••••01",
+    "version": 1,
+    "duplicate_of": [],
+    "matching_state": "complete",
+    "created_at": "2026-10-12T20:00:00+06:00",
+    "updated_at": "2026-10-12T20:05:00+06:00"
+  },
+  "officerFoundView": {
+    "id": "6b1f3c2a-4d5e-4f60-8a71-0000000000f1",
+    "ref_code": "F-3D8W1Z",
+    "kind": "found",
+    "status": "matched_pending_review",
+    "status_group": "matched",
+    "is_synthetic": true,
+    "source": "staff",
+    "source_url": null,
+    "child": {
+      "name": null,
+      "name_latin": null,
+      "age_years": null,
+      "age_min": 6,
+      "age_max": 8,
+      "sex": "female",
+      "height_cm": null,
+      "clothing": "নীল ফ্রক",
+      "marks": null
+    },
+    "event": {
+      "at": "2026-10-12T19:30:00+06:00",
+      "at_approx": false,
+      "at_lower": "2026-10-12T19:30:00+06:00",
+      "at_upper": "2026-10-12T19:30:00+06:00",
+      "place_text": "রেলস্টেশনের প্ল্যাটফর্মে",
+      "district_code": 26,
+      "district_name_bn": "[MOCK] জেলা ২৬",
+      "thana": null,
+      "circumstances": "একা বসে থাকতে দেখা গেছে"
+    },
+    "reporter_relation": null,
+    "contact_phone": "01800000002",
+    "contact_phone_masked": "018••••••02",
+    "version": 1,
+    "duplicate_of": [],
+    "matching_state": "complete",
+    "created_at": "2026-10-12T20:00:00+06:00",
+    "updated_at": "2026-10-12T20:05:00+06:00"
+  },
+  "adminCaseView": {
+    "id": "6b1f3c2a-4d5e-4f60-8a71-0000000000a1",
+    "ref_code": "M-7K2Q9A",
+    "kind": "missing",
+    "status": "matched_pending_review",
+    "district_code": 26,
+    "is_synthetic": true,
+    "anonymised_at": null
+  },
+  "updateCaseRequest": {
+    "draft": {
+      "kind": "missing",
+      "source_text": "আমার মেয়ে মিতু, বয়স ৭ বছর। গতকাল বিকেলে বাস টার্মিনালের কাছে হারিয়ে গেছে। লাল জামা পরা ছিল। আমার নম্বর ০১৭০০০০০০০১।",
+      "child": {
+        "name": "মিতু",
+        "name_latin": "Mitu",
+        "age_years": 7,
+        "age_min": 7,
+        "age_max": 7,
+        "sex": "female",
+        "height_cm": null,
+        "clothing": "লাল জামা",
+        "marks": "বাঁ হাতে ছোট দাগ"
+      },
+      "event": {
+        "at": "2026-10-12T16:00:00+06:00",
+        "at_approx": true,
+        "at_lower": "2026-10-12T15:00:00+06:00",
+        "at_upper": "2026-10-12T18:00:00+06:00",
+        "place_text": "বাস টার্মিনালের কাছে",
+        "district_text": null,
+        "district_code": 26,
+        "thana": null,
+        "circumstances": null
+      },
+      "reporter": {
+        "relation": null,
+        "phone": "01700000001"
+      },
+      "evidence": {
+        "child.name": {
+          "quote": "মিতু",
+          "start_utf16": 11,
+          "end_utf16": 15,
+          "derivation": "direct"
+        },
+        "child.age_years": {
+          "quote": "৭",
+          "start_utf16": 22,
+          "end_utf16": 23,
+          "derivation": "digits"
+        },
+        "child.sex": {
+          "quote": "মেয়ে",
+          "start_utf16": 5,
+          "end_utf16": 10,
+          "derivation": "direct"
+        },
+        "child.clothing": {
+          "quote": "লাল জামা",
+          "start_utf16": 77,
+          "end_utf16": 85,
+          "derivation": "direct"
+        },
+        "event.at": {
+          "quote": "গতকাল বিকেলে",
+          "start_utf16": 29,
+          "end_utf16": 41,
+          "derivation": "time_interval"
+        },
+        "event.place_text": {
+          "quote": "বাস টার্মিনালের কাছে",
+          "start_utf16": 42,
+          "end_utf16": 62,
+          "derivation": "direct"
+        },
+        "reporter.phone": {
+          "quote": "০১৭০০০০০০০১",
+          "start_utf16": 106,
+          "end_utf16": 117,
+          "derivation": "digits"
+        }
+      }
+    },
+    "confirmed": true,
+    "expected_version": 1
+  },
+  "outputRequest": {
+    "type": "gd"
+  },
+  "outputResponse": {
+    "type": "gd",
+    "text_bn": "খসড়া · সিনথেটিক উদাহরণ। শিশুর নাম মিতু, বয়স ৭ বছর, শেষ দেখা গেছে বাস টার্মিনালের কাছে।",
+    "label_bn": "খসড়া",
+    "word_count": 16,
+    "generated_at": "2026-10-12T20:10:00+06:00"
+  },
+  "createFoundRequest": {
+    "draft": {
+      "kind": "found",
+      "source_text": "রেলস্টেশনের প্ল্যাটফর্মে একটি মেয়েকে একা বসে থাকতে দেখা গেছে। বয়স আনুমানিক ৬ থেকে ৮ বছর, নীল ফ্রক পরা।",
+      "child": {
+        "name": null,
+        "name_latin": null,
+        "age_years": null,
+        "age_min": 6,
+        "age_max": 8,
+        "sex": "female",
+        "height_cm": null,
+        "clothing": "নীল ফ্রক",
+        "marks": null
+      },
+      "event": {
+        "at": "2026-10-12T19:30:00+06:00",
+        "at_approx": false,
+        "at_lower": "2026-10-12T19:30:00+06:00",
+        "at_upper": "2026-10-12T19:30:00+06:00",
+        "place_text": "রেলস্টেশনের প্ল্যাটফর্মে",
+        "district_text": null,
+        "district_code": 26,
+        "thana": null,
+        "circumstances": "একা বসে থাকতে দেখা গেছে"
+      },
+      "reporter": {
+        "relation": null,
+        "phone": "01800000002"
+      },
+      "evidence": {
+        "child.age_min": {
+          "quote": "৬",
+          "start_utf16": 77,
+          "end_utf16": 78,
+          "derivation": "digits"
+        },
+        "child.age_max": {
+          "quote": "৮",
+          "start_utf16": 84,
+          "end_utf16": 85,
+          "derivation": "digits"
+        },
+        "child.sex": {
+          "quote": "মেয়ে",
+          "start_utf16": 30,
+          "end_utf16": 35,
+          "derivation": "direct"
+        },
+        "child.clothing": {
+          "quote": "নীল ফ্রক",
+          "start_utf16": 91,
+          "end_utf16": 99,
+          "derivation": "direct"
+        },
+        "event.place_text": {
+          "quote": "রেলস্টেশনের প্ল্যাটফর্মে",
+          "start_utf16": 0,
+          "end_utf16": 24,
+          "derivation": "direct"
+        },
+        "event.circumstances": {
+          "quote": "একা বসে থাকতে দেখা গেছে",
+          "start_utf16": 38,
+          "end_utf16": 61,
+          "derivation": "direct"
+        }
+      }
+    },
+    "confirmed": true,
+    "client_submission_id": "6b1f3c2a-4d5e-4f60-8a71-000000000062"
+  },
+  "createFoundResponse": {
+    "id": "6b1f3c2a-4d5e-4f60-8a71-0000000000f1",
+    "ref_code": "F-3D8W1Z",
+    "kind": "found",
+    "status": "open",
+    "is_synthetic": true,
+    "version": 1,
+    "matching_state": "queued",
+    "draft": {
+      "kind": "found",
+      "source_text": "রেলস্টেশনের প্ল্যাটফর্মে একটি মেয়েকে একা বসে থাকতে দেখা গেছে। বয়স আনুমানিক ৬ থেকে ৮ বছর, নীল ফ্রক পরা।",
+      "child": {
+        "name": null,
+        "name_latin": null,
+        "age_years": null,
+        "age_min": 6,
+        "age_max": 8,
+        "sex": "female",
+        "height_cm": null,
+        "clothing": "নীল ফ্রক",
+        "marks": null
+      },
+      "event": {
+        "at": "2026-10-12T19:30:00+06:00",
+        "at_approx": false,
+        "at_lower": "2026-10-12T19:30:00+06:00",
+        "at_upper": "2026-10-12T19:30:00+06:00",
+        "place_text": "রেলস্টেশনের প্ল্যাটফর্মে",
+        "district_text": null,
+        "district_code": 26,
+        "thana": null,
+        "circumstances": "একা বসে থাকতে দেখা গেছে"
+      },
+      "reporter": {
+        "relation": null,
+        "phone": "01800000002"
+      },
+      "evidence": {
+        "child.age_min": {
+          "quote": "৬",
+          "start_utf16": 77,
+          "end_utf16": 78,
+          "derivation": "digits"
+        },
+        "child.age_max": {
+          "quote": "৮",
+          "start_utf16": 84,
+          "end_utf16": 85,
+          "derivation": "digits"
+        },
+        "child.sex": {
+          "quote": "মেয়ে",
+          "start_utf16": 30,
+          "end_utf16": 35,
+          "derivation": "direct"
+        },
+        "child.clothing": {
+          "quote": "নীল ফ্রক",
+          "start_utf16": 91,
+          "end_utf16": 99,
+          "derivation": "direct"
+        },
+        "event.place_text": {
+          "quote": "রেলস্টেশনের প্ল্যাটফর্মে",
+          "start_utf16": 0,
+          "end_utf16": 24,
+          "derivation": "direct"
+        },
+        "event.circumstances": {
+          "quote": "একা বসে থাকতে দেখা গেছে",
+          "start_utf16": 38,
+          "end_utf16": 61,
+          "derivation": "direct"
+        }
+      }
+    },
+    "created_at": "2026-10-12T20:00:00+06:00",
+    "replayed": false
+  },
+  "reviewQueueQuery": {
+    "district": "26",
+    "limit": "20"
+  },
+  "reviewQueueResponse": {
+    "items": [
+      {
+        "case": {
+          "id": "6b1f3c2a-4d5e-4f60-8a71-0000000000a1",
+          "ref_code": "M-7K2Q9A",
+          "kind": "missing",
+          "status": "matched_pending_review",
+          "status_group": "matched",
+          "is_synthetic": true,
+          "source": "parent",
+          "source_url": null,
+          "child": {
+            "name": "মিতু",
+            "name_latin": "Mitu",
+            "age_years": 7,
+            "age_min": 7,
+            "age_max": 7,
+            "sex": "female",
+            "height_cm": null,
+            "clothing": "লাল জামা",
+            "marks": null
+          },
+          "event": {
+            "at": "2026-10-12T16:00:00+06:00",
+            "at_approx": true,
+            "at_lower": "2026-10-12T15:00:00+06:00",
+            "at_upper": "2026-10-12T18:00:00+06:00",
+            "place_text": "বাস টার্মিনালের কাছে",
+            "district_code": 26,
+            "district_name_bn": "[MOCK] জেলা ২৬",
+            "thana": null,
+            "circumstances": null
+          },
+          "reporter_relation": null,
+          "contact_phone": null,
+          "contact_phone_masked": "017••••••01",
+          "version": 1,
+          "duplicate_of": [],
+          "matching_state": "complete",
+          "created_at": "2026-10-12T20:00:00+06:00",
+          "updated_at": "2026-10-12T20:05:00+06:00"
+        },
+        "candidates": [
+          {
+            "candidate_id": "6b1f3c2a-4d5e-4f60-8a71-0000000000c1",
+            "rank": 1,
+            "score": 87,
+            "reason_bn": "একই জেলা, কাছাকাছি সময়, বয়স মেলে",
+            "reason_en": "Same district, nearby time, age fits",
+            "components": {
+              "cosine": 0.82,
+              "name": null,
+              "clothing": 1,
+              "district": 1,
+              "age": 1
+            },
+            "counterpart": {
+              "id": "6b1f3c2a-4d5e-4f60-8a71-0000000000f1",
+              "ref_code": "F-3D8W1Z",
+              "kind": "found",
+              "status": "matched_pending_review",
+              "status_group": "matched",
+              "is_synthetic": true,
+              "source": "staff",
+              "source_url": null,
+              "child": {
+                "name": null,
+                "name_latin": null,
+                "age_years": null,
+                "age_min": 6,
+                "age_max": 8,
+                "sex": "female",
+                "height_cm": null,
+                "clothing": "নীল ফ্রক",
+                "marks": null
+              },
+              "event": {
+                "at": "2026-10-12T19:30:00+06:00",
+                "at_approx": false,
+                "at_lower": "2026-10-12T19:30:00+06:00",
+                "at_upper": "2026-10-12T19:30:00+06:00",
+                "place_text": "রেলস্টেশনের প্ল্যাটফর্মে",
+                "district_code": 26,
+                "district_name_bn": "[MOCK] জেলা ২৬",
+                "thana": null,
+                "circumstances": "একা বসে থাকতে দেখা গেছে"
+              },
+              "reporter_relation": null,
+              "contact_phone": null,
+              "contact_phone_masked": "018••••••02",
+              "version": 1,
+              "duplicate_of": [],
+              "matching_state": "complete",
+              "created_at": "2026-10-12T20:00:00+06:00",
+              "updated_at": "2026-10-12T20:05:00+06:00"
+            },
+            "qualified": true,
+            "identity_probability": false
+          }
+        ]
+      }
+    ],
+    "next_cursor": null
+  },
+  "candidateDecisionView": {
+    "candidate_id": "6b1f3c2a-4d5e-4f60-8a71-0000000000c1",
+    "missing": {
+      "id": "6b1f3c2a-4d5e-4f60-8a71-0000000000a1",
+      "ref_code": "M-7K2Q9A",
+      "kind": "missing",
+      "status": "matched_pending_review",
+      "status_group": "matched",
+      "is_synthetic": true,
+      "source": "parent",
+      "source_url": null,
+      "child": {
+        "name": "মিতু",
+        "name_latin": "Mitu",
+        "age_years": 7,
+        "age_min": 7,
+        "age_max": 7,
+        "sex": "female",
+        "height_cm": null,
+        "clothing": "লাল জামা",
+        "marks": null
+      },
+      "event": {
+        "at": "2026-10-12T16:00:00+06:00",
+        "at_approx": true,
+        "at_lower": "2026-10-12T15:00:00+06:00",
+        "at_upper": "2026-10-12T18:00:00+06:00",
+        "place_text": "বাস টার্মিনালের কাছে",
+        "district_code": 26,
+        "district_name_bn": "[MOCK] জেলা ২৬",
+        "thana": null,
+        "circumstances": null
+      },
+      "reporter_relation": null,
+      "contact_phone": "01700000001",
+      "contact_phone_masked": "017••••••01",
+      "version": 1,
+      "duplicate_of": [],
+      "matching_state": "complete",
+      "created_at": "2026-10-12T20:00:00+06:00",
+      "updated_at": "2026-10-12T20:05:00+06:00"
+    },
+    "found": {
+      "id": "6b1f3c2a-4d5e-4f60-8a71-0000000000f1",
+      "ref_code": "F-3D8W1Z",
+      "kind": "found",
+      "status": "matched_pending_review",
+      "status_group": "matched",
+      "is_synthetic": true,
+      "source": "staff",
+      "source_url": null,
+      "child": {
+        "name": null,
+        "name_latin": null,
+        "age_years": null,
+        "age_min": 6,
+        "age_max": 8,
+        "sex": "female",
+        "height_cm": null,
+        "clothing": "নীল ফ্রক",
+        "marks": null
+      },
+      "event": {
+        "at": "2026-10-12T19:30:00+06:00",
+        "at_approx": false,
+        "at_lower": "2026-10-12T19:30:00+06:00",
+        "at_upper": "2026-10-12T19:30:00+06:00",
+        "place_text": "রেলস্টেশনের প্ল্যাটফর্মে",
+        "district_code": 26,
+        "district_name_bn": "[MOCK] জেলা ২৬",
+        "thana": null,
+        "circumstances": "একা বসে থাকতে দেখা গেছে"
+      },
+      "reporter_relation": null,
+      "contact_phone": "01800000002",
+      "contact_phone_masked": "018••••••02",
+      "version": 1,
+      "duplicate_of": [],
+      "matching_state": "complete",
+      "created_at": "2026-10-12T20:00:00+06:00",
+      "updated_at": "2026-10-12T20:05:00+06:00"
+    },
+    "score": 87,
+    "components": {
+      "cosine": 0.82,
+      "name": null,
+      "clothing": 1,
+      "district": 1,
+      "age": 1
+    },
+    "explanation_version": "v1",
+    "qualified": true,
+    "identity_probability": false
+  },
+  "confirmDecisionRequest": {
+    "decision": "confirm",
+    "expected_missing_version": 1,
+    "expected_found_version": 1,
+    "reviewer_checklist": {
+      "descriptions_reviewed": true,
+      "contradictions_reviewed": true,
+      "identity_not_proven_by_score": true,
+      "referral_is_simulated": true
+    }
+  },
+  "rejectDecisionRequest": {
+    "decision": "reject",
+    "reason": "বয়সের পার্থক্য অনেক বেশি",
+    "expected_missing_version": 1,
+    "expected_found_version": 1
+  },
+  "confirmDecisionResponse": {
+    "candidate_status": "confirmed",
+    "missing": {
+      "ref_code": "M-7K2Q9A",
+      "status": "confirmed",
+      "version": 2
+    },
+    "found": {
+      "ref_code": "F-3D8W1Z",
+      "status": "referred",
+      "version": 2
+    },
+    "referral_id": "6b1f3c2a-4d5e-4f60-8a71-000000000041",
+    "referral_state": "recorded",
+    "referral_is_simulated": true
+  },
+  "rejectDecisionResponse": {
+    "candidate_status": "rejected",
+    "missing": {
+      "ref_code": "M-7K2Q9A",
+      "status": "open",
+      "version": 2
+    },
+    "found": {
+      "ref_code": "F-3D8W1Z",
+      "status": "open",
+      "version": 2
+    },
+    "referral_id": null,
+    "referral_state": null,
+    "referral_is_simulated": true
+  },
+  "closeCaseRequest": {
+    "outcome": "coordination_recorded",
+    "note": "সিনথেটিক সমন্বয় নথিভুক্ত",
+    "expected_version": 2
+  },
+  "closeCaseResponse": {
+    "ref_code": "M-7K2Q9A",
+    "status": "closed",
+    "closed_at": "2026-10-12T21:00:00+06:00"
+  },
+  "dashboardStatsResponse": {
+    "generated_at": "2026-10-12T21:05:00+06:00",
+    "counting_basis": "report_rows_separated_by_kind",
+    "totals": {
+      "missing_reports": {
+        "open": 1,
+        "matched": 0,
+        "closed": 1
+      },
+      "found_reports": {
+        "open": 0,
+        "matched": 0,
+        "referral_recorded": 1
+      },
+      "confirmed_pairs": 1
+    },
+    "districts": [
+      {
+        "code": 1,
+        "name_bn": "[MOCK] জেলা ১",
+        "name_en": "[MOCK] District 1",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 2,
+        "name_bn": "[MOCK] জেলা ২",
+        "name_en": "[MOCK] District 2",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 3,
+        "name_bn": "[MOCK] জেলা ৩",
+        "name_en": "[MOCK] District 3",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 4,
+        "name_bn": "[MOCK] জেলা ৪",
+        "name_en": "[MOCK] District 4",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 5,
+        "name_bn": "[MOCK] জেলা ৫",
+        "name_en": "[MOCK] District 5",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 6,
+        "name_bn": "[MOCK] জেলা ৬",
+        "name_en": "[MOCK] District 6",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 7,
+        "name_bn": "[MOCK] জেলা ৭",
+        "name_en": "[MOCK] District 7",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 8,
+        "name_bn": "[MOCK] জেলা ৮",
+        "name_en": "[MOCK] District 8",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 9,
+        "name_bn": "[MOCK] জেলা ৯",
+        "name_en": "[MOCK] District 9",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 10,
+        "name_bn": "[MOCK] জেলা ১০",
+        "name_en": "[MOCK] District 10",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 11,
+        "name_bn": "[MOCK] জেলা ১১",
+        "name_en": "[MOCK] District 11",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 12,
+        "name_bn": "[MOCK] জেলা ১২",
+        "name_en": "[MOCK] District 12",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 13,
+        "name_bn": "[MOCK] জেলা ১৩",
+        "name_en": "[MOCK] District 13",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 14,
+        "name_bn": "[MOCK] জেলা ১৪",
+        "name_en": "[MOCK] District 14",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 15,
+        "name_bn": "[MOCK] জেলা ১৫",
+        "name_en": "[MOCK] District 15",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 16,
+        "name_bn": "[MOCK] জেলা ১৬",
+        "name_en": "[MOCK] District 16",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 17,
+        "name_bn": "[MOCK] জেলা ১৭",
+        "name_en": "[MOCK] District 17",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 18,
+        "name_bn": "[MOCK] জেলা ১৮",
+        "name_en": "[MOCK] District 18",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 19,
+        "name_bn": "[MOCK] জেলা ১৯",
+        "name_en": "[MOCK] District 19",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 20,
+        "name_bn": "[MOCK] জেলা ২০",
+        "name_en": "[MOCK] District 20",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 21,
+        "name_bn": "[MOCK] জেলা ২১",
+        "name_en": "[MOCK] District 21",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 22,
+        "name_bn": "[MOCK] জেলা ২২",
+        "name_en": "[MOCK] District 22",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 23,
+        "name_bn": "[MOCK] জেলা ২৩",
+        "name_en": "[MOCK] District 23",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 24,
+        "name_bn": "[MOCK] জেলা ২৪",
+        "name_en": "[MOCK] District 24",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 25,
+        "name_bn": "[MOCK] জেলা ২৫",
+        "name_en": "[MOCK] District 25",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 26,
+        "name_bn": "[MOCK] জেলা ২৬",
+        "name_en": "[MOCK] District 26",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 1,
+          "matched": 0,
+          "closed": 1
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 1
+        },
+        "confirmed_pairs": 1
+      },
+      {
+        "code": 27,
+        "name_bn": "[MOCK] জেলা ২৭",
+        "name_en": "[MOCK] District 27",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 28,
+        "name_bn": "[MOCK] জেলা ২৮",
+        "name_en": "[MOCK] District 28",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 29,
+        "name_bn": "[MOCK] জেলা ২৯",
+        "name_en": "[MOCK] District 29",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 30,
+        "name_bn": "[MOCK] জেলা ৩০",
+        "name_en": "[MOCK] District 30",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 31,
+        "name_bn": "[MOCK] জেলা ৩১",
+        "name_en": "[MOCK] District 31",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 32,
+        "name_bn": "[MOCK] জেলা ৩২",
+        "name_en": "[MOCK] District 32",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 33,
+        "name_bn": "[MOCK] জেলা ৩৩",
+        "name_en": "[MOCK] District 33",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 34,
+        "name_bn": "[MOCK] জেলা ৩৪",
+        "name_en": "[MOCK] District 34",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 35,
+        "name_bn": "[MOCK] জেলা ৩৫",
+        "name_en": "[MOCK] District 35",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 36,
+        "name_bn": "[MOCK] জেলা ৩৬",
+        "name_en": "[MOCK] District 36",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 37,
+        "name_bn": "[MOCK] জেলা ৩৭",
+        "name_en": "[MOCK] District 37",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 38,
+        "name_bn": "[MOCK] জেলা ৩৮",
+        "name_en": "[MOCK] District 38",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 39,
+        "name_bn": "[MOCK] জেলা ৩৯",
+        "name_en": "[MOCK] District 39",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 40,
+        "name_bn": "[MOCK] জেলা ৪০",
+        "name_en": "[MOCK] District 40",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 41,
+        "name_bn": "[MOCK] জেলা ৪১",
+        "name_en": "[MOCK] District 41",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 42,
+        "name_bn": "[MOCK] জেলা ৪২",
+        "name_en": "[MOCK] District 42",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 43,
+        "name_bn": "[MOCK] জেলা ৪৩",
+        "name_en": "[MOCK] District 43",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 44,
+        "name_bn": "[MOCK] জেলা ৪৪",
+        "name_en": "[MOCK] District 44",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 45,
+        "name_bn": "[MOCK] জেলা ৪৫",
+        "name_en": "[MOCK] District 45",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 46,
+        "name_bn": "[MOCK] জেলা ৪৬",
+        "name_en": "[MOCK] District 46",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 47,
+        "name_bn": "[MOCK] জেলা ৪৭",
+        "name_en": "[MOCK] District 47",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 48,
+        "name_bn": "[MOCK] জেলা ৪৮",
+        "name_en": "[MOCK] District 48",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 49,
+        "name_bn": "[MOCK] জেলা ৪৯",
+        "name_en": "[MOCK] District 49",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 50,
+        "name_bn": "[MOCK] জেলা ৫০",
+        "name_en": "[MOCK] District 50",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 51,
+        "name_bn": "[MOCK] জেলা ৫১",
+        "name_en": "[MOCK] District 51",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 52,
+        "name_bn": "[MOCK] জেলা ৫২",
+        "name_en": "[MOCK] District 52",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 53,
+        "name_bn": "[MOCK] জেলা ৫৩",
+        "name_en": "[MOCK] District 53",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 54,
+        "name_bn": "[MOCK] জেলা ৫৪",
+        "name_en": "[MOCK] District 54",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 55,
+        "name_bn": "[MOCK] জেলা ৫৫",
+        "name_en": "[MOCK] District 55",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 56,
+        "name_bn": "[MOCK] জেলা ৫৬",
+        "name_en": "[MOCK] District 56",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 57,
+        "name_bn": "[MOCK] জেলা ৫৭",
+        "name_en": "[MOCK] District 57",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 58,
+        "name_bn": "[MOCK] জেলা ৫৮",
+        "name_en": "[MOCK] District 58",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 59,
+        "name_bn": "[MOCK] জেলা ৫৯",
+        "name_en": "[MOCK] District 59",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 60,
+        "name_bn": "[MOCK] জেলা ৬০",
+        "name_en": "[MOCK] District 60",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 61,
+        "name_bn": "[MOCK] জেলা ৬১",
+        "name_en": "[MOCK] District 61",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 62,
+        "name_bn": "[MOCK] জেলা ৬২",
+        "name_en": "[MOCK] District 62",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 63,
+        "name_bn": "[MOCK] জেলা ৬৩",
+        "name_en": "[MOCK] District 63",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      },
+      {
+        "code": 64,
+        "name_bn": "[MOCK] জেলা ৬৪",
+        "name_en": "[MOCK] District 64",
+        "lat": 23.7,
+        "lng": 90.4,
+        "missing_reports": {
+          "open": 0,
+          "matched": 0,
+          "closed": 0
+        },
+        "found_reports": {
+          "open": 0,
+          "matched": 0,
+          "referral_recorded": 0
+        },
+        "confirmed_pairs": 0
+      }
+    ]
+  },
+  "officerAuditResponse": {
+    "view": "officer",
+    "entries": [
+      {
+        "at": "2026-10-12T20:30:00+06:00",
+        "actor_role": "officer",
+        "actor_id": "6b1f3c2a-4d5e-4f60-8a71-000000000021",
+        "actor_display": "[MOCK] কর্মকর্তা",
+        "action": "match.confirm",
+        "details": {
+          "ref_code": "M-7K2Q9A",
+          "referral_simulated": true,
+          "reason_recorded": false,
+          "candidate_id": "6b1f3c2a-4d5e-4f60-8a71-0000000000c1",
+          "missing_ref": "M-7K2Q9A",
+          "found_ref": "F-3D8W1Z",
+          "missing_version": 1,
+          "found_version": 1,
+          "decision": "confirm",
+          "score": 87
+        }
+      },
+      {
+        "at": "2026-10-12T21:00:00+06:00",
+        "actor_role": "officer",
+        "actor_id": "6b1f3c2a-4d5e-4f60-8a71-000000000021",
+        "actor_display": "[MOCK] কর্মকর্তা",
+        "action": "case.close",
+        "details": {
+          "ref_code": "M-7K2Q9A",
+          "from_status": "confirmed",
+          "to_status": "closed",
+          "outcome": "coordination_recorded",
+          "reason_recorded": true
+        }
+      }
+    ],
+    "withheld": 0
+  },
+  "adminAuditResponse": {
+    "view": "admin",
+    "entries": [
+      {
+        "at": "2026-10-12T20:30:00+06:00",
+        "actor_role": "officer",
+        "action": "match.confirm",
+        "details": {
+          "ref_code": "M-7K2Q9A",
+          "referral_simulated": true,
+          "reason_recorded": false
+        }
+      },
+      {
+        "at": "2026-10-12T21:00:00+06:00",
+        "actor_role": "officer",
+        "action": "case.close",
+        "details": {
+          "ref_code": "M-7K2Q9A",
+          "from_status": "confirmed",
+          "to_status": "closed",
+          "outcome": "coordination_recorded",
+          "reason_recorded": true
+        }
+      }
+    ],
+    "withheld": 0
+  },
+  "rematchResponse": {
+    "case_id": "6b1f3c2a-4d5e-4f60-8a71-0000000000a1",
+    "matching_state": "complete"
+  },
+  "importRequest": {
+    "kind": "found",
+    "fixture_intake_at": "2026-10-12T12:00:00+06:00",
+    "items": [
+      {
+        "text": "সিনথেটিক নমুনা: স্টেশনের কাছে একটি ছেলেকে একা পাওয়া গেছে, বয়স আনুমানিক দশ।",
+        "source_url": "https://fixture.example.invalid/post/1",
+        "synthetic": true
+      }
+    ]
+  },
+  "importResponse": {
+    "imported": 1,
+    "skipped": 0,
+    "duplicates_flagged": 0
+  },
+  "anonymiseRequest": {
+    "case_ids": [
+      "6b1f3c2a-4d5e-4f60-8a71-0000000000a1"
+    ],
+    "confirmation": "বেনামী"
+  },
+  "anonymiseResponse": {
+    "redacted": 1,
+    "skipped_not_eligible": 0,
+    "mode": "pseudonymisation",
+    "external_copies_removed": false
+  },
+  "verifyUserRequest": {
+    "verified": true
+  },
+  "verifyUserResponse": {
+    "id": "6b1f3c2a-4d5e-4f60-8a71-000000000021",
+    "role": "officer",
+    "verified": true
+  },
+  "myCaseResponse": {
+    "reports": [
+      {
+        "id": "6b1f3c2a-4d5e-4f60-8a71-0000000000a1",
+        "ref_code": "M-7K2Q9A",
+        "kind": "missing",
+        "status": "open",
+        "status_group": "open",
+        "updated_at": "2026-10-12T20:05:00+06:00",
+        "editable": true
+      }
+    ]
+  },
+  "healthResponse": {
+    "version": "0.1.0",
+    "db": "ready",
+    "embeddings": "ready",
+    "synthetic_only": true,
+    "demo_mode": false
+  },
+  "signInRequest": {
+    "username": "officer.demo",
+    "password": "not-a-real-password"
+  },
+  "sessionView": {
+    "user_id": "6b1f3c2a-4d5e-4f60-8a71-000000000021",
+    "display_name": "[MOCK] কর্মকর্তা",
+    "role": "officer",
+    "verified": true,
+    "expires_at": "2026-10-13T04:00:00+06:00"
+  },
+  "pageQuery": {
+    "limit": "20"
+  },
+  "adminUsersResponse": {
+    "users": [
+      {
+        "id": "6b1f3c2a-4d5e-4f60-8a71-000000000011",
+        "username": "staff.demo",
+        "display_name": "[MOCK] স্টাফ",
+        "role": "staff",
+        "verified": false,
+        "is_active": true
+      },
+      {
+        "id": "6b1f3c2a-4d5e-4f60-8a71-000000000021",
+        "username": "officer.demo",
+        "display_name": "[MOCK] কর্মকর্তা",
+        "role": "officer",
+        "verified": true,
+        "is_active": true
+      }
+    ],
+    "next_cursor": null
+  },
+  "caseListQuery": {
+    "district": "26",
+    "kind": "missing",
+    "status_group": "matched"
+  },
+  "caseListResponse": {
+    "cases": [
+      {
+        "id": "6b1f3c2a-4d5e-4f60-8a71-0000000000a1",
+        "ref_code": "M-7K2Q9A",
+        "kind": "missing",
+        "status": "matched_pending_review",
+        "status_group": "matched",
+        "is_synthetic": true,
+        "source": "parent",
+        "source_url": null,
+        "child": {
+          "name": "মিতু",
+          "name_latin": "Mitu",
+          "age_years": 7,
+          "age_min": 7,
+          "age_max": 7,
+          "sex": "female",
+          "height_cm": null,
+          "clothing": "লাল জামা",
+          "marks": null
+        },
+        "event": {
+          "at": "2026-10-12T16:00:00+06:00",
+          "at_approx": true,
+          "at_lower": "2026-10-12T15:00:00+06:00",
+          "at_upper": "2026-10-12T18:00:00+06:00",
+          "place_text": "বাস টার্মিনালের কাছে",
+          "district_code": 26,
+          "district_name_bn": "[MOCK] জেলা ২৬",
+          "thana": null,
+          "circumstances": null
+        },
+        "reporter_relation": null,
+        "contact_phone": null,
+        "contact_phone_masked": "017••••••01",
+        "version": 1,
+        "duplicate_of": [],
+        "matching_state": "complete",
+        "created_at": "2026-10-12T20:00:00+06:00",
+        "updated_at": "2026-10-12T20:05:00+06:00"
+      }
+    ],
+    "next_cursor": null
+  },
+  "duplicateDecisionRequest": {
+    "status": "dismissed",
+    "reason": "একই ফোন নম্বর, কিন্তু আলাদা শিশুর বিবরণ",
+    "profile_evidence_reviewed": true
+  },
+  "duplicateDecisionResponse": {
+    "link_id": "6b1f3c2a-4d5e-4f60-8a71-000000000051",
+    "status": "dismissed",
+    "audit_id": 101
+  },
+  "errorEnvelope": {
+    "error": {
+      "id": "E-001",
+      "key": "VALIDATION_FAILED",
+      "message_bn": "কিছু তথ্য ঠিক নেই। চিহ্নিত ঘরগুলো দেখুন।",
+      "message_en": "Some details need fixing. Check the marked fields.",
+      "retryable": false
+    }
+  }
+}

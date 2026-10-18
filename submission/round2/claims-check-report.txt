@@ -1,0 +1,70 @@
+claims-check-report -- Round 2 submission pack
+root: /home/obidit/secondBrain/coding/Fera-AI/.worktrees/phase3-finish/submission/round2
+
+OK    asset present  -- fera-round2-deck.pptx
+OK    asset present  -- fera-round2-deck.pdf
+OK    asset present  -- fera-round2-storyboard-preview.mp4
+OK    asset present  -- video-script.md
+OK    asset present  -- metrics.md
+OK    asset present  -- links.txt
+OK    asset present  -- README.md
+OK    storyboard frame  -- shot-01.png
+OK    storyboard frame  -- shot-02.png
+OK    storyboard frame  -- shot-03.png
+OK    storyboard frame  -- shot-04.png
+OK    storyboard frame  -- shot-05.png
+OK    storyboard frame  -- shot-06.png
+OK    storyboard frame  -- shot-07.png
+OK    storyboard frame  -- shot-08.png
+OK    storyboard frame  -- shot-09.png
+OK    slide image  -- slide-1.png
+OK    slide image  -- slide-2.png
+OK    slide image  -- slide-3.png
+OK    slide image  -- slide-4.png
+OK    slide image  -- slide-5.png
+OK    slide image  -- slide-6.png
+OK    slide image  -- slide-7.png
+OK    contact sheet  -- storyboard-contact-sheet.png
+OK    mp4 resolution  -- 1280x720
+OK    mp4 framerate  -- 30/1
+OK    mp4 codec  -- h264
+OK    mp4 duration  -- 105.000s
+OK    deck slide count  -- 7
+OK    slide 2: before-submit metadata only
+OK    slide 2: pre-confirm boundary
+OK    slide 2 / notes: COMP-050 notice cited
+OK    slide 2: provider / on-screen notice acknowledged
+OK    slide 2: synthetic provider processing
+OK    slide 3: post-confirm store phrase
+OK    slide 3: idempotent UUID claim
+OK    slide 3: pre-submit boundary
+OK    slide 3: pre-submit metadata fields
+OK    title is plain affirmative
+OK    overbroad no-processing phrase absent
+OK    deck metric 'not measured' label (matching precision @k)
+OK    metrics.md 'not measured' label (matching precision @k)
+OK    video-script.md 'not measured' label
+OK    WER reason mentions 60-clip set
+OK    total spend cap framed as limit not actuals
+OK    duplicate precision manifest not frozen
+OK    round 2 not-submitted status recorded
+OK    recipient recorded UNKNOWN
+OK    channel recorded UNKNOWN
+OK    production access and human labels recorded NO
+OK    text present (STORYBOARD banner)
+OK    text present (NOT APP FOOTAGE banner)
+OK    text present (MOCK label)
+OK    text present (synthetic label)
+OK    text present (referral-recorded simulation label)
+OK    text present (similarity-not-identity label)
+OK    text present (UNKNOWN placeholder)
+OK    text present (screen id citation)
+OK    text present (FR citation)
+OK    text present (BR citation)
+OK    text present (no-alert disclaimer)
+OK    text present (no-live-url disclaimer)
+OK    text present (draft label)
+OK    text present (draft preparation banner)
+
+summary: 0 FAIL(s), 64 OK(s)
+verdict: PASS

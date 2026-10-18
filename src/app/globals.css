@@ -1,0 +1,390 @@
+@import "tailwindcss";
+
+/*
+  Cockpit & Paper tokens from DESIGN.md, with its "Fera overrides" (TASK-008).
+
+  Surfaces: wrap a screen in data-surface="parent" (S-001–S-006) or
+  data-surface="desk" (staff, officer, admin). Parent screens are Paper only.
+  A desk surface anywhere on the page switches the document, header included,
+  to Cockpit; data-theme="light" on <html> or a subtree keeps Paper available
+  on desks, and data-theme="dark" forces Cockpit on a subtree.
+
+  No red by default (D4 §2.4): --danger* and the signal gradient exist only inside
+  a desk surface. Anywhere else, including the header and any parent screen that
+  forgets its marker, they resolve to nothing.
+
+  Contrast (D4 §13 wins over DESIGN.md hex values; see the evidence doc):
+  Paper --link and --info-text #0075de -> #005bab, Paper --text-faint
+  #a39e98 -> #6f6a66, Cockpit --text-faint #6a6b6c -> #8a8b8c.
+
+  Control borders (D4 §6 --color-border and §13 "control-identifying boundaries
+  >= 3:1" win over DESIGN.md's hairline for inputs; TASK-031): --border-control is
+  Paper #6F7D77 and Cockpit #82938B, with a stronger hover/focus step. Hairlines
+  stay for cards and dividers, which are decorative separators.
+*/
+
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+
+  --action-bg: #0075de;
+  --action-bg-pressed: #005bab;
+  --action-fg: #ffffff;
+  --link: #005bab;
+  --focus-ring: #0075de;
+
+  --bg-canvas: #f6f5f4;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-card: #f6f5f4;
+  --bg-deep: #f6f5f4;
+  --bg-hover: rgba(0, 0, 0, 0.04);
+  --bg-selected: rgba(0, 0, 0, 0.05);
+  --bg-segment-active: #ffffff;
+  --scrim: rgba(15, 15, 15, 0.4);
+
+  --border: #e6e6e6;
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-strong: #dddddd;
+  --border-control: #6f7d77; /* D4 §6 --color-border */
+  --border-control-strong: #4b5752;
+
+  --text-strong: #000000;
+  --text-body: #31302e;
+  --text-muted: #615d59;
+  --text-faint: #6f6a66;
+  --text-disabled: #a39e98;
+
+  --info: #0075de;
+  --info-soft: rgba(0, 117, 222, 0.1);
+  --info-text: #005bab;
+  --success: #1aae39;
+  --success-soft: rgba(26, 174, 57, 0.12);
+  --success-text: oklch(50% 0.15 145);
+  --warning: #dd5b00;
+  --warning-soft: rgba(221, 91, 0, 0.1);
+  --warning-text: oklch(52% 0.15 50);
+  --tone-danger: oklch(58% 0.2 25);
+  --tone-danger-soft: rgba(214, 48, 49, 0.1);
+  --tone-danger-text: oklch(52% 0.2 25);
+
+  --keycap-start: #ffffff;
+  --keycap-end: #f6f5f4;
+
+  --elevation-1: rgba(0, 0, 0, 0.01) 0 0.175px 1.041px, rgba(0, 0, 0, 0.02) 0 0.8px 2.925px,
+    rgba(0, 0, 0, 0.027) 0 2.025px 7.847px, rgba(0, 0, 0, 0.04) 0 4px 18px;
+  --elevation-2: rgba(0, 0, 0, 0.01) 0 1px 3px, rgba(0, 0, 0, 0.02) 0 3px 7px,
+    rgba(0, 0, 0, 0.02) 0 7px 15px, rgba(0, 0, 0, 0.04) 0 14px 28px, rgba(0, 0, 0, 0.05) 0 23px 52px;
+}
+
+:root:has([data-surface="desk"]):not([data-theme="light"]),
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --action-bg: #ffffff;
+  --action-bg-pressed: #e8e8e8;
+  --action-fg: #000000;
+  --link: #ffffff;
+  --focus-ring: #57c1ff;
+
+  --bg-canvas: #07080a;
+  --bg-surface: #0d0d0d;
+  --bg-elevated: #101111;
+  --bg-card: #121212;
+  --bg-deep: #18191a;
+  --bg-hover: #121212;
+  --bg-selected: #121212;
+  --bg-segment-active: #18191a;
+  --scrim: rgba(0, 0, 0, 0.64);
+
+  --border: #242728;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --border-control: #82938b; /* D4 §6 --color-border */
+  --border-control-strong: #b3c0ba;
+
+  --text-strong: #f4f4f6;
+  --text-body: #cdcdcd;
+  --text-muted: #9c9c9d;
+  --text-faint: #8a8b8c;
+  --text-disabled: #434345;
+
+  --info: #57c1ff;
+  --info-soft: rgba(87, 193, 255, 0.15);
+  --info-text: #57c1ff;
+  --success: #59d499;
+  --success-soft: rgba(89, 212, 153, 0.15);
+  --success-text: #59d499;
+  --warning: #ffc533;
+  --warning-soft: rgba(255, 197, 51, 0.15);
+  --warning-text: #ffc533;
+  --tone-danger: #ff6161;
+  --tone-danger-soft: rgba(255, 97, 97, 0.15);
+  --tone-danger-text: #ff6161;
+
+  --keycap-start: #121212;
+  --keycap-end: #0d0d0d;
+
+  /* Cockpit builds depth from the surface ladder, never shadow. */
+  --elevation-1: 0 0 #0000;
+  --elevation-2: 0 0 #0000;
+}
+
+/* Desk only. Re-resolved on themed subtrees so a Paper panel inside a Cockpit
+   desk gets Paper danger values. */
+[data-surface="desk"],
+[data-surface="desk"] [data-theme] {
+  --danger: var(--tone-danger);
+  --danger-soft: var(--tone-danger-soft);
+  --danger-text: var(--tone-danger-text);
+  --signal-start: #ff5757;
+  --signal-end: #a1131a;
+}
+
+:root {
+  --sticker-purple: #d6b6f6;
+  --sticker-purple-deep: #391c57;
+  --sticker-sky: #62aef0;
+  --sticker-pink: #ff64c8;
+  --sticker-orange: #dd5b00;
+  --sticker-orange-deep: #793400;
+  --sticker-teal: #2a9d99;
+  --sticker-green: #1aae39;
+  --sticker-brown: #523410;
+
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 360ms;
+
+  /* Bangla runs in Noto Sans Bengali first; English in Inter first. */
+  --font-stack-bn: var(--font-noto-bengali), var(--font-inter), system-ui, sans-serif;
+  --font-stack-en: var(--font-inter), var(--font-noto-bengali), -apple-system, system-ui, "Segoe UI",
+    Helvetica, Arial, sans-serif;
+  --font-stack-mono: var(--font-jetbrains-mono), var(--font-noto-bengali), ui-monospace, SFMono-Regular,
+    Menlo, monospace;
+}
+
+/* Line heights per script. Bangla conjuncts and matras need more room, so
+   headings open up to 1.45 and small text never drops below 1.6. */
+[lang|="en"] {
+  --lh-caption-sm: 1.5;
+  --lh-caption-md: 1.4;
+  --lh-body-sm: 1.6;
+  --lh-body-md: 1.6;
+  --lh-body-lg: 1.6;
+  --lh-heading-sm: 1.4;
+  --lh-title: 1.4;
+  --lh-heading-3: 1.27;
+  --lh-heading-2: 1.23;
+  --lh-heading-1: 1.1;
+}
+
+[lang|="bn"] {
+  --lh-caption-sm: 1.6;
+  --lh-caption-md: 1.6;
+  --lh-body-sm: 1.7;
+  --lh-body-md: 1.7;
+  --lh-body-lg: 1.7;
+  --lh-heading-sm: 1.5;
+  --lh-title: 1.5;
+  --lh-heading-3: 1.45;
+  --lh-heading-2: 1.45;
+  --lh-heading-1: 1.45;
+}
+
+/* Only DESIGN.md tokens exist as utilities: Tailwind's default palette (red-500 and
+   friends), radii, shadows and type sizes are cleared. */
+@theme inline {
+  --color-*: initial;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --color-primary: var(--action-bg);
+  --color-primary-pressed: var(--action-bg-pressed);
+  --color-on-primary: var(--action-fg);
+  --color-link: var(--link);
+  --color-focus-ring: var(--focus-ring);
+
+  --color-canvas: var(--bg-canvas);
+  --color-surface: var(--bg-surface);
+  --color-elevated: var(--bg-elevated);
+  --color-card: var(--bg-card);
+  --color-deep: var(--bg-deep);
+  --color-hover: var(--bg-hover);
+  --color-selected: var(--bg-selected);
+  --color-segment-active: var(--bg-segment-active);
+  --color-scrim: var(--scrim);
+
+  --color-hairline: var(--border);
+  --color-hairline-soft: var(--border-subtle);
+  --color-hairline-strong: var(--border-strong);
+  --color-control: var(--border-control);
+  --color-control-strong: var(--border-control-strong);
+
+  --color-ink: var(--text-strong);
+  --color-body: var(--text-body);
+  --color-mute: var(--text-muted);
+  --color-faint: var(--text-faint);
+  --color-disabled: var(--text-disabled);
+
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-text: var(--info-text);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-text: var(--success-text);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-text: var(--warning-text);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-text: var(--danger-text);
+
+  --color-sticker-purple: var(--sticker-purple);
+  --color-sticker-purple-deep: var(--sticker-purple-deep);
+  --color-sticker-sky: var(--sticker-sky);
+  --color-sticker-pink: var(--sticker-pink);
+  --color-sticker-orange: var(--sticker-orange);
+  --color-sticker-orange-deep: var(--sticker-orange-deep);
+  --color-sticker-teal: var(--sticker-teal);
+  --color-sticker-green: var(--sticker-green);
+  --color-sticker-brown: var(--sticker-brown);
+
+  --font-*: initial;
+  --font-sans: var(--font-stack-en);
+  --font-bn: var(--font-stack-bn);
+  --font-mono: var(--font-stack-mono);
+
+  /* rem so text follows 200 % browser text zoom (D4 §13). */
+  --text-*: initial;
+  --text-caption-sm: 0.75rem;
+  --text-caption-sm--line-height: var(--lh-caption-sm, 1.5);
+  --text-caption-md: 0.8125rem;
+  --text-caption-md--line-height: var(--lh-caption-md, 1.4);
+  --text-body-sm: 0.875rem;
+  --text-body-sm--line-height: var(--lh-body-sm, 1.6);
+  --text-body-md: 1rem;
+  --text-body-md--line-height: var(--lh-body-md, 1.6);
+  --text-body-lg: 1.125rem;
+  --text-body-lg--line-height: var(--lh-body-lg, 1.6);
+  --text-heading-sm: 1.125rem;
+  --text-heading-sm--line-height: var(--lh-heading-sm, 1.4);
+  --text-title: 1.25rem;
+  --text-title--line-height: var(--lh-title, 1.4);
+  --text-heading-3: 1.375rem;
+  --text-heading-3--line-height: var(--lh-heading-3, 1.27);
+  --text-heading-2: 1.625rem;
+  --text-heading-2--line-height: var(--lh-heading-2, 1.23);
+  --text-heading-1: 2.5rem;
+  --text-heading-1--line-height: var(--lh-heading-1, 1.1);
+
+  --radius-*: initial;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  --shadow-*: initial;
+  --shadow-1: var(--elevation-1);
+  --shadow-2: var(--elevation-2);
+
+  --ease-*: initial;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+@layer base {
+  html {
+    background-color: var(--bg-canvas);
+    color: var(--text-body);
+    caret-color: var(--action-bg);
+    accent-color: var(--action-bg);
+    scrollbar-color: var(--border-strong) transparent;
+    /* Future sticky bars set these so focused elements are never hidden (2.4.11). */
+    scroll-padding-block: var(--sticky-top, 0px) var(--sticky-bottom, 0px);
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* Per-element lang (D4 §13) picks the stack; children without lang inherit it. */
+  [lang|="bn"] {
+    font-family: var(--font-stack-bn);
+    font-feature-settings: normal;
+  }
+
+  /* ss03 is an Inter feature, so it applies to English runs only. */
+  [lang|="en"] {
+    font-family: var(--font-stack-en);
+    font-feature-settings: "calt", "kern", "liga", "ss03";
+  }
+
+  /* Parent body: 18 px, 1.7 for Bangla conjuncts; Inter keeps 1.6. */
+  body {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    font-size: 1.125rem;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body:lang(en) {
+    line-height: 1.6;
+  }
+
+  [data-surface="desk"] {
+    font-size: 1rem;
+    line-height: 1.55;
+  }
+
+  [data-surface="desk"]:lang(en) {
+    line-height: 1.6;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: var(--font-stack-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    background-color: var(--info-soft);
+    color: var(--text-strong);
+  }
+
+  /* D4 §13: 3 px focus outline with a 2 px gap. */
+  :focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  a {
+    color: var(--link);
+    text-underline-offset: 0.2em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0s !important;
+    transition-duration: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}

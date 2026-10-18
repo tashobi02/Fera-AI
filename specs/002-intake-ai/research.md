@@ -1,0 +1,16 @@
+# Feature 002 research and source decisions
+
+**Date**: 2026-10-13 (Asia/Dhaka) | **Scope**: V2 source consolidation for the plan; no paid provider, page scraping, device test or implementation.
+
+| Decision | Source and rationale | Alternatives / outstanding evidence |
+|---|---|---|
+| Keep reviewed child payload on the device until explicit confirmation; show provider notice before dispatch. | BR-004/023 and TC-004/060 separate provider processing from case persistence. Only expiry/counter/hash/cost metadata may be server-stored pre-submit. | Server draft with child content is excluded by BR-004. Device storage mechanism awaits scaffold; do not imply a server save. |
+| Normalise before extraction, retaining raw-text offset mapping. | COMP-008, BR-008 and EvidenceSpan require every derived field to point to reviewed source. Supported digits/time/phone/district/romanisation only; unsupported tokens remain unknown. | District alias source TASK-009 is incomplete; no new aliases or formats are invented. TC-002 fixes the relative-time example. |
+| Put speech and extraction providers behind their specified interfaces. | COMP-006/007 and docs/code/fera_types_v2.ts define speech/extraction outputs; invalid output is retried/fallback-checked with evidence validation. Record model, prompt version and latency without child text. | Accounts, model selection and prices remain UNKNOWN under TASK-003/OQ-004/OQ-022. No provider call in this phase. |
+| Ask one D3 template question at a time and hand unresolved fields to manual completion after four rounds. | FR-005/026, BR-015 and D3's V2 screen dependency acceptance resolve the earlier shorthand. Keep known answers. | SCREEN-005 is Mahim's TASK-025, a feature 003 handoff. No new question templates are invented. |
+| Count and reserve paid calls on the server before dispatch. | BR-023, DECISION-017 and TC-036/043 require six dispatched calls per draft including retry/fallback, rate limits, atomic budget reservation and manual recovery. | Real upper bounds need TASK-003 price evidence. Default stop USD 25; documented team decision may raise it to ≤USD 30. |
+| Use only three labelled synthetic scripted demo cases. | FR-027/032, COMP-017 and TC-021/056 require visible cached/synthetic labels and exclude cache hits from quality evaluation. | Fixture source TASK-019 is incomplete; protected DEMO_MODE behavior must be verified at runtime. No scraped page or real record. (FR-024; BR-026; DEP-007) |
+| Submit reviewed payload through feature 001's case service and role-scoped DTO. | FR-006/007/031, BR-004/007/024 and API-003 require explicit confirmation and scoped UUID/hash idempotency. | D6 TASK-022 assigns API-003 to Obidit while AGENTS.md assigns case routes by case-service owner Mahim. Writer/review handoff UNKNOWN pending owner decision; no direct SQL in intake. |
+| Follow D3/D4 behavior and DESIGN.md visual tokens. | AGENTS.md token exception and D4 behavior priority preserve Bangla defaults, parent review and accessibility while using Paper visual styling. | UI does not exist. Impeccable harden of SCREEN-002/003 is future implementation work, not evidence here. |
+
+No unresolved **product** clarification is filled by assumption. TASK-003/OQ-004/OQ-022, TASK-009 aliases and the API-003 ownership handoff remain explicit operational decisions. (D6 §5; AGENTS.md)

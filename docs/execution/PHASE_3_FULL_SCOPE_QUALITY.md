@@ -1,9 +1,9 @@
 # Phase 3 — Full scope and quality · Gates G3, G4
 
-**Window:** Wed 14 Oct 2026, 07:00 → 16:00 (Asia/Dhaka) · **Gates:** G3 (13:00), G4 (16:00) · **Plan:** [EXECUTION_PLAN.md](EXECUTION_PLAN.md#phase-3--full-scope-and-quality-wed-14-oct-0700--1600--gates-g3-g4) · **Prev:** [Phase 2](PHASE_2_MUST_CORE.md) · **Next:** [Phase 4](PHASE_4_SUBMISSION.md)
-**Phase status:** `todo`
-**Last updated:** 2026-10-13 · tasks distributed among Obidit, Masnun and Mahim; lead = Obidit
-**Team:** **Obidit** — lead; intake, AI, outputs · **Masnun** — data, matching, officer workflow, dashboard, evaluation · **Mahim** — platform, integration, release (named "Sadman" in AGENTS.md and the spec pack; D6 owner code S). Tasks follow [EXECUTION_PLAN.md](EXECUTION_PLAN.md). The lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`.
+**Window:** **Rebaseline approved by Mahim, as reported by the user on 17 Oct:** Sat 17 → Thu 22 Oct 2026 (Asia/Dhaka) · **Gates:** G2′ Mon 19 Oct 22:00, G3 Wed 21 Oct 20:00, G4 Thu 22 Oct 22:00 (the original 14 Oct times are stale) · **Detailed plan:** [PHASE_3_PLAN.md](PHASE_3_PLAN.md) · **Plan:** [EXECUTION_PLAN.md](EXECUTION_PLAN.md#phase-3--full-scope-and-quality-wed-14-oct-0700--1600--gates-g3-g4) · **Prev:** [Phase 2](PHASE_2_MUST_CORE.md) · **Next:** [Phase 4](PHASE_4_SUBMISSION.md)
+**Phase status:** `doing`
+**Last updated:** 2026-10-17 · tasks distributed among Obidit, Masnun and Mahim; lead = Mahim
+**Team:** **Obidit** — intake, AI, outputs · **Masnun** — data, matching, officer workflow, dashboard, evaluation · **Mahim** — lead; platform, integration, release (named "Sadman" in AGENTS.md and the spec pack; D6 owner code S). Tasks follow [EXECUTION_PLAN.md](EXECUTION_PLAN.md). The lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`.
 
 ---
 
@@ -18,7 +18,7 @@ This is a living tracker. Every agent working on a task in this phase updates it
 5. If you are stuck, set the row to `blocked`, say what blocks it in Evidence, and add a log line.
 6. Edit only the rows in **your own person table** and **your log section**, so parallel lanes don't conflict. Never tick a gate box yourself. Gate boxes are ticked from the `fera-gate` report in [docs/gates/](../gates/).
 
-**Status values:** `todo` · `doing` · `review` · `done` · `blocked` · `cut`. Use `cut` only with approval from the lead (Obidit) and in the [D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommendation) cut order. Never cut review-before-submit, officer confirm, referral, audit or redaction.
+**Status values:** `todo` · `doing` · `review` · `done` · `blocked` · `cut`. Use `cut` only with approval from the lead (Mahim) and in the [D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommendation) cut order. Never cut review-before-submit, officer confirm, referral, audit or redaction.
 
 | Action | Claude Code | Codex | Antigravity / any other agent |
 |---|---|---|---|
@@ -28,16 +28,18 @@ This is a living tracker. Every agent working on a task in this phase updates it
 
 ---
 
-## Timeline (hard times)
-| Time | Event | Status |
+## Timeline: approved rebaseline to the 24 Oct finale (user-reported Mahim approval)
+The 14 Oct times are stale. Targets, not a computed schedule; capacity is **UNKNOWN**. Details and cut triggers: [PHASE_3_PLAN.md §2](PHASE_3_PLAN.md#2-rebaseline-to-the-24-oct-finale-approved-by-mahim-as-reported-by-the-user-on-17-oct).
+
+| When | Event | Status |
 |---|---|---|
-| 09:00 | Stand-up + merge window | `todo` |
-| 10:00–12:00 | TASK-041 timing study, ≥5 testers | `todo` |
-| **12:30** | **Feature freeze.** After this, only fixes for failing TCs | `todo` |
-| 13:00 | Stand-up · **G3** check | `todo` |
-| **15:00** | TASK-042 production deploy + smoke | `todo` |
-| **15:45** | TASK-043 final frozen evaluation on the prod build | `todo` |
-| 16:00 | **G4** check | `todo` |
+| Sat 17 Oct | Merge confirmed, decisions logged, Wave 0.0 | `done` (D-A and rebaseline approved as reported; other §3 decisions pending) |
+| Sat 17 – Mon 19 Oct | Wave 0 (Phase 2 unblockers) · **G2′ Mon 19 Oct 22:00** | `todo` |
+| Mon 19 – Tue 20 Oct | Wave 1 features · **Feature freeze Tue 20 Oct 22:00** | `todo` |
+| Wed 21 Oct | Wave 2 quality; TASK-036, TASK-040 clips, TASK-041 (human) · **G3 20:00** | `todo` |
+| Thu 22 Oct | TASK-042 deploy (explicit go-ahead), TASK-060, TASK-043 · **G4 22:00** | `todo` |
+| Fri 23 Oct | Phase 5 rehearsals and backup recording | `todo` |
+| Sat 24 Oct | Finale | `todo` |
 
 Cut order if short ([D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommendation)): FR-036 disaster screen → FR-010 13219 summary → FR-024 import → FR-029 edit after submit → live voice (keep labelled cached note) → poster PNG (keep poster text).
 
@@ -45,46 +47,46 @@ Cut order if short ([D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommenda
 
 | Person | Features (Should/Could) | Quality and release | Hard times | D6 hours |
 |---|---|---|---|---|
-| **Obidit** (lead) | TASK-047 13219 summary · TASK-049 edit after submit + S-006 → TASK-050 status API | TASK-035 Bangla copy for every state · TASK-040 WER run · video shots | Freeze **12:30**, G3 **13:00**, G4 **16:00** (lead calls) | 12 |
+| **Obidit** | TASK-047 13219 summary · TASK-049 edit after submit + S-006 → TASK-050 status API | TASK-035 Bangla copy for every state · TASK-040 WER run · video shots | Freeze **12:30**, G3 **13:00**, G4 **16:00** (lead calls) | 12 |
 | **Masnun** | TASK-048 fixture import · TASK-051 S-014 duplicate review · TASK-052 S-015 disaster mode | TASK-036 two Android phones · TASK-039 eval dev → held-out · TASK-060 perf · TASK-043 final frozen evaluation | TASK-043 **by 15:45** | 19 |
-| **Mahim** | — | TASK-034 a11y · TASK-037 ≥60 unit tests · TASK-038 Playwright · TASK-041 timing study · TASK-042 prod deploy + smoke | TASK-041 **10:00–12:00**, TASK-042 **by 15:00** | 17 |
+| **Mahim** (lead) | — | TASK-034 a11y · TASK-037 ≥60 unit tests · TASK-038 Playwright · TASK-041 timing study · TASK-042 prod deploy + smoke | TASK-041 **10:00–12:00**, TASK-042 **by 15:00** | 17 |
 | All three | TASK-056 mentor fixes, each in their own areas | — | merged and verified before G3 | 5 shared |
 
-### Lead duties — Obidit
+### Lead duties — Mahim
 - Announce the **12:30** feature freeze; after it, approve only fixes for failing TCs.
 - Run `fera-gate G3` at 13:00 and `fera-gate G4` at 16:00, and link both reports.
 - Apply the cut order below if a Should/Could item can't pass by 12:30, and record each cut as an omission against its FR/TC.
 - Own the evidence-backed reschedule in AMD-3-2 once remaining effort and the organiser extension are known.
 
-## Tasks — Obidit (lead)
+## Tasks — Obidit
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| TASK-047 | 13219 summary ≤ 80 words (FR-010) | Codex | TASK-023 | 1 | TC-007 passes | `todo` | | |
-| TASK-049 | Edit after submit + API-005 + S-006 (FR-029, BR-025) | Claude Code + `impeccable` | TASK-022 | 4 | TC-018 passes | `todo` | | |
-| TASK-050 | Parent status API-018 (FR-030) | Codex | TASK-049 | 1 | TC-019 passes | `todo` | | |
-| TASK-035 | Bangla copy review; every empty/error/loading state | Claude Code + `bengali-reviewer` | TASK-030 | 3 | Every E-xxx shows bn + en text | `todo` | | |
-| TASK-040 | WER run on the 60 clips | Codex | TASK-014 | 3 | WER in report | `todo` | | |
-| VIDEO-PREP | Capture video shots for TASK-045 (D7 §3.1) | human | TASK-042 | — | Raw shots stored | `todo` | | |
+| TASK-047 | 13219 summary ≤ 80 words (FR-010) | Codex | TASK-023 | 1 | TC-007 passes | `review` | `phase2--obidit-helpline` (stacked on #15) | TC-007 passes at service level: ≤80 words incl. worst case; tests in tests/outputs/ |
+| TASK-049 | Edit after submit + API-005 + S-006 (FR-029, BR-025) | Claude Code + `impeccable` | TASK-022 | 4 | TC-018 passes | `review` | `283abe8` (`phase3-finish--review-fixes`) | Code-complete in integration at `f25de23`; `impeccable-finish-reviewer` re-run records B3a-c BLOCK on `review-screen.tsx:324`, `manual-form.tsx:296`, `edit-mode-screen.tsx:333` (`window.confirm` on Bangla screen) and B8 (focus-grab) — TASK-049 itself is not blocked, but these review findings need a follow-up Puku cycle before integration is claimed done. |
+| TASK-050 | Parent status API-018 (FR-030) | Codex | TASK-049 | 1 | TC-019 passes | `review` | `7027618` (`phase3-finish--ui-corrections`) | Code-complete in integration at `f25de23`; `fera-safeguarding-reviewer` re-run BLOCK records ownerCaseViewSchema still exposes `matching_state` enum (`src/contracts/schemas.ts:106`, `src/contracts/fera_types_v2.ts:431`) — TASK-050 is not blocked on its own scope, but the parent-DTO scope is. |
+| TASK-035 | Bangla copy review; every empty/error/loading state | Claude Code + `bengali-reviewer` | TASK-030 | 3 | Every E-xxx shows bn + en text | `doing` | partial at `f25de23`; `bengali-reviewer` re-run APPROVE with one LOW (missing trailing newline on `locales/areas/parent-status.ts:104` and `staff-disaster.ts:26`); human Bangla review H-6 still UNKNOWN |
+| TASK-040 | WER run on the 60 clips | Codex | TASK-014 | 3 | WER in report | `todo` | | H-4 (60 clips) UNKNOWN; eval:wer prints "not measured" |
+| VIDEO-PREP | Capture video shots for TASK-045 (D7 §3.1) | Puku / coordinator | Local synthetic build | — | Actual local MP4 | `review` | 27bb3c6 | submission/demo/final.mp4; 105.000 s, captions/provenance verified; Drive and production acceptance pending |
 
 ## Tasks — Masnun
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| TASK-048 | Synthetic fixture import + API-015 (FR-024) | Codex + `security-reviewer` | TASK-020 | 3 | TC-014 passes (injection yields schema fields only; no URL fetch) | `todo` | | |
-| TASK-051 | S-014 duplicate review (FR-023) | Claude Code + `impeccable` | TASK-018 | 3 | Mark same/different works | `todo` | | |
-| TASK-052 | S-015 disaster mode, labelled as planned (FR-036) | Claude Code | TASK-026 | 2 | TC-035 passes | `todo` | | |
-| TASK-036 | Test on 2 Android phones: Bangla, mic, 360 px | human | TASK-030 | 2 | Checklist signed in `docs/device-test.md` | `todo` | | |
-| TASK-039 | Eval harness: dev run → held-out run after manifest/model freeze | Codex + `mle-reviewer` | TASK-011, 017, 018, 064 | 5 | TC-020 passes; report committed | `todo` | | |
-| TASK-060 | Performance check vs D2 Part B §12.1 | Codex | TASK-042 | 2 | TC-034 results in report (met or reported as missed) | `todo` | | |
-| TASK-043 | Final frozen evaluation on the prod build — **by 15:45** | Codex + `mle-reviewer` | TASK-042, 039, 040, 041, 060 | 2 | Cache-disabled report: all metrics, denominators, failures, commit/model/manifest hashes | `todo` | | |
+| TASK-048 | Synthetic fixture import + API-015 (FR-024) | Codex + `security-reviewer` | TASK-020 | 3 | TC-014 passes (injection yields schema fields only; no URL fetch) | `review` | `phase3-finish--admin-import` (worktree at `f25de23`, unmerged) | Code-complete; `security-reviewer` re-run PASS confirms the API-015 admin-only synthetic sample texts only and `limit.ts` hasPaidLimits gate. Awaiting coordinator integration. |
+| TASK-051 | S-014 duplicate review (FR-023) | Claude Code + `impeccable` | TASK-018 | 3 | Mark same/different works | `review` | `phase3-finish--duplicates-review` (worktree at `f25de23`, unmerged) | Code-complete; `react-reviewer` re-run W4 lane inherits prior PASS for `duplicate-review.tsx`. Awaiting coordinator integration. |
+| TASK-052 | S-015 disaster mode, labelled as planned (FR-036) | Claude Code | TASK-026 | 2 | TC-035 passes | `review` | code at `f25de23`; `impeccable-finish-reviewer` re-run does not flag this card | Code-complete; no full e2e TC-035 cited in the audit transcripts. |
+| TASK-036 | Test on 2 Android phones: Bangla, mic, 360 px | human | TASK-030 | 2 | Checklist signed in `docs/device-test.md` | `todo` | | H-3 UNKNOWN; browser emulation is not a physical-device pass |
+| TASK-039 | Eval harness: dev run → held-out run after manifest/model freeze | Codex + `mle-reviewer` | TASK-011, 017, 018, 064 | 5 | TC-020 passes; report committed | `review` | `phase3-finish--evaluation` (commit `e125928`, merged into `f25de23`) | Code-complete at `f25de23`; dev report `eval/reports/phase3-dev-2026-10-18.{md,json}` present; `mle-reviewer` re-run file is EMPTY (0 bytes) — do not claim a fresh MLE verdict. Held-out is locked until FREEZE_FLAG SET (H-4, H-5). |
+| TASK-060 | Performance check vs D2 Part B §12.1 | Codex | TASK-042 | 2 | TC-034 results in report (met or reported as missed) | `todo` | | no verified production deployment to measure |
+| TASK-043 | Final frozen evaluation on the prod build — **by 15:45** | Codex + `mle-reviewer` | TASK-042, 039, 040, 041, 060 | 2 | Cache-disabled report: all metrics, denominators, failures, commit/model/manifest hashes | `todo` | | FREEZE_FLAG NOT SET; held-out not run; 50 extraction labels L001–L050 have no canonical manifest mapping |
 
-## Tasks — Mahim
+## Tasks — Mahim (lead)
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| TASK-034 | A11y: axe + keyboard + 320 px reflow, 200 % text, 400 % zoom | Claude Code + `a11y-architect` | TASK-030 | 3 | TC-033: 0 serious/critical, light and dark | `todo` | | |
-| TASK-037 | Unit tests: normaliser, matcher, state guard, wording guard | Codex + `tdd-guide` | TASK-017 | 4 | ≥ 60 tests, CI green | `todo` | | |
-| TASK-038 | Playwright essential journey + safeguarding TCs (tag `@gate-G2` / `@gate-G4`) | Claude Code + `e2e-runner` | TASK-030, 032, 059 | 5 | TC-001–066 app/service checks where applicable; companion-only results kept separate | `todo` | | |
-| TASK-041 | Timing study, ≥5 testers, assistant vs manual form | human | TASK-025 | 3 | `eval/data/timing.csv`; median in report | `todo` | | |
-| TASK-042 | Production deploy + managed DB seed + smoke — **by 15:00** | Claude Code | TASK-038 | 2 | `npm run smoke` passes on prod; tag `r2-freeze` | `todo` | | |
+| TASK-034 | A11y: axe + keyboard + 320 px reflow, 200 % text, 400 % zoom | Claude Code + `a11y-architect` | TASK-030 | 3 | TC-033: 0 serious/critical, light and dark | `doing` | partial at `f25de23`; full sweep across S-001–S-005, S-007–S-013, S-016 in light + dark not yet run; `a11y-architect` re-run INCOMPLETE_RUN (0.67s, 5 turns, no verdict) — must re-run before TC-033 can be claimed. |
+| TASK-037 | Unit tests: normaliser, matcher, state guard, wording guard | Codex + `tdd-guide` | TASK-017 | 4 | ≥ 60 tests, CI green | `review` | integration at `f25de23`; `npm test` 3,642 pass / 308 skipped across 169 files / 28 skipped; D6 target ≥ 60 met by count; skip-allowed cases should be re-checked before claiming | Code-complete in integration. `typescript-reviewer` re-run BLOCK is on the matcher N+1 hot path, not on the test count; the matcher N+1 must be fixed for D6's "verify matcher runs cleanly" acceptance, which is not yet demonstrated. |
+| TASK-038 | Playwright essential journey + safeguarding TCs (tag `@gate-G2` / `@gate-G4`) | Claude Code + `e2e-runner` | TASK-030, 032, 059 | 5 | TC-001–066 app/service checks where applicable; companion-only results kept separate | `review` | integration at `f25de23`; `npm run test:e2e` 18 pass / 8 file-skip; `p3-finish-journeys` worktree carries additional e2e specs awaiting coordinator integration | Code-complete for current set; the journeys worktree will change the final e2e count once integrated. Baseline = 18 / 8 skip; final = awaitfinal. |
+| TASK-041 | Timing study, ≥5 testers, assistant vs manual form | human | TASK-025 | 3 | `eval/data/timing.csv`; median in report | `todo` | | H-5 UNKNOWN; eval:time prints "not measured" |
+| TASK-042 | Production deploy + managed DB seed + smoke — **by 15:00** | Claude Code | TASK-038 | 2 | `npm run smoke` passes on prod; tag `r2-freeze` | `todo` | | no managed DB applied; no production smoke; no `r2-freeze` tag; needs H-8 go-ahead |
 
 ## Shared
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
@@ -124,9 +126,20 @@ Tick only from the gate report (`fera-gate`), with evidence linked.
 ## Log
 Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
-### Obidit (lead)
+### Obidit
+- 2026-10-17 22:14 · Codex + Puku CLI Opus 4.8 · P3-018 isolated draft `7a9fadb` · Two capped Puku repair runs left the close/audit draft blocked; a focused Puku continuation completed, then an integrator schema-parse test fix made `npm run typecheck` pass. Lint exits 0 with three warnings. `npm test -- tests/api/case-close.test.ts` fails without a DB because the DB-backed file is in the unit suite; local `npm run test:db` fails 7 audit-read tests on timestamp fixture shape. API-013's reader also fetches audit rows before the role guard. Draft remains local and excluded from `phase2`; no P3-018 completion or gate PASS claimed.
+- 2026-10-17 22:01 · Codex · [PR #38](https://github.com/tashobi02/Fera-AI/pull/38) merged into `phase2` at `a43289e` · P3-001–004/011/014–016 are integrated; GitHub check and DB jobs plus Vercel preview passed. Manual E2E was skipped in CI and passed 4/4 locally. This merge does not complete TASK-014/022/023/024/029/038 or any Phase 3 gate. [TASK-019 seed PR #35](https://github.com/tashobi02/Fera-AI/pull/35) is still open, so P3-043 remains `todo`; TASK-003 is still a human `todo`.
+- 2026-10-17 21:58 · Codex · [draft PR #38](https://github.com/tashobi02/Fera-AI/pull/38) into `phase2` · Clean P3-001–004/011/014–016 and TASK-009 dependency submitted for review after `FERA-REVIEW: PASS`. CI check and DB jobs are pending; manual E2E job is skipped on this PR. No Wave 0.1, G2′, G3, or G4 PASS claimed.
+- 2026-10-17 21:50 · Codex + repo `fera-review` · phase2--obidit-phase3-wave0 · Prepared a clean `origin/phase2` PR branch containing P3-001–004/011/014–016 plus TASK-009 district seed. P3-015 review blockers (clearable unknown; D3/D4 bilingual alias search) fixed, with result announcements and refreshed 360 px image. [PR verification](evidence/p3-wave0-pr-verification.md): lint/typecheck/build PASS, 2,875 unit PASS, 11 DB files/203 tests PASS, E2E 4/4 PASS; safeguarding, TS, security, React, DB, Bengali, a11y, MLE and E2E review PASS or approve-with-warnings. Masnun TASK-026/028 and blocked drafts are excluded; Wave 0.1/G2′ remains pending. TASK-003 stays human `todo`; OD-014-7/OD-020-3 remain open. Branch is ready for PR review into `phase2`, not for a gate PASS.
+- 2026-10-17 17:10 · Codex · phase-3-obidit · Fetched `origin/phase2` at PR #26 merge `545065d` and merged it as `7de5762`. Resolved S-003/test overlap and locale duplicate; lint/typecheck PASS, `npm test` 2,963 passed/203 skipped, `test:db` 11 files PASS, `test:e2e` 4/4 PASS with Turbopack build. OD-022-5 written decision found in Mahim commit `c1269e7` on an unmerged branch; OD-014-7/OD-020-3 still open. Correction to 16:43 log: the OD-022-5 decision was in a commit message, not the documents searched then. Current PR diff against `phase2` also includes Masnun TASK-009/026/028 files absent from target; review their inclusion explicitly. No Wave 0.1 gate PASS claimed.
+- 2026-10-17 16:48 · Codex · P3-010/P3-018 isolated lanes · Preserved failed drafts as `d5371b6` and `33c9017` for lead review; neither is merged into `phase-3-obidit` or counted as complete.
+- 2026-10-17 16:46 · Codex + repo `fera-review` · phase-3-obidit · Partial Wave 0.1 review PASS after API-004 malformed-ID E-004/null-FK denial fix; safeguarding, security, TS, React and e2e reviewers PASS. `npm test` 2,967 passed/203 skipped; `test:db` 11 files passed (case-read 12/12); lint/typecheck passed. Wave 0.1 gate remains pending because blocked/gated cards are unmerged.
+- 2026-10-17 16:43 · Codex + exact CLI lanes · phase-3-obidit · Wave 0.1 partial: P3-011/014/015/016 merged; `npm test` 2,967 passed/202 skipped, `test:db` 11 files passed, lint/typecheck passed, `test:e2e` 4/4 passed with a Turbopack build. P3-010 MLE review BLOCK; P3-012 agy permission BLOCK (automatic approval review rejected bypass); P3-018 typecheck BLOCK. P3-005/013/017/020 remain gated on OD-020-3/OD-022-5/OD-014-7. Locally available Mahim branches contain no written decisions for these. GitHub `phase2` fetch remains blocked: SSH key unavailable and `gh` token invalid. No Wave 0.1 gate PASS claimed.
+- 2026-10-17 11:46 · Codex + assigned CLI lanes · phase-3-obidit · Wave 0.0 P3-001–004 merged; `npm test` 2,959 passed/191 skipped, `npm run test:db` 10 files passed, lint/typecheck/build exit 0, whole-wave Codex Luna `fera-review` PASS. Evidence: [W0.0 gate](../gates/W0.0-2026-10-17-1146.md). TASK-014/023/024 remain incomplete beyond these cards.
+- 2026-10-17 11:34 · Codex · phase-3-obidit · D-A and rebaseline approved by Mahim, as reported by the user; P3-002/P3-003 may proceed. Other §3 decisions remain open.
+- 2026-10-15 19:52 · Claude Code (Haiku) · obidit-helpline · TASK-047 `todo` → `review`; helpline template (≤80 words, worst case 77) and API-006 accepts `helpline`; TC-007 passes at service level; stacked on #15
 ### Masnun
-### Mahim
+### Mahim (lead)
 
 ## Audit amendments (2026-10-12)
 
@@ -137,7 +150,7 @@ Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 
 ### AMD-3-2 — Timing and ownership constraints
 **Gap:** TASK-056 allows 18:00 although G3 is 13:00; deploy at 15:00 leaves only 45 minutes for sequential TASK-060 (2 h) and TASK-043 (2 h).
-**Change:** existing times remain internal targets, not a feasible computed schedule. Mentor fixes needed by G3 must be merged and verified before G3; otherwise record failure/rebaseline. D6's deploy→performance→final-evaluation dependencies cannot be bypassed to meet 15:45. Obidit (lead) coordinates an evidence-backed reschedule once remaining effort/availability and organiser extension are known (**UNKNOWN** now). P2/P3 owners retain late scope; P5 receives links only.
+**Change:** existing times remain internal targets, not a feasible computed schedule. Mentor fixes needed by G3 must be merged and verified before G3; otherwise record failure/rebaseline. D6's deploy→performance→final-evaluation dependencies cannot be bypassed to meet 15:45. Mahim (lead) coordinates an evidence-backed reschedule once remaining effort/availability and organiser extension are known (**UNKNOWN** now). P2/P3 owners retain late scope; P5 receives links only.
 **Source:** D6 TASK-042/043/056/060; handover §6; AMD-PLAN-1/4.
 
 ### AMD-3-3 — Held-out integrity and fallback
