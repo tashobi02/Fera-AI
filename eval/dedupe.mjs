@@ -8,7 +8,7 @@
 // hidden that the detector hides). Detection only; no claimed merge accuracy.
 // Cache / fixture hits and held-out split require the freeze gate.
 import {
-  REPO_ROOT, checkFreezeGate, fileSha256, safeReadJsonl, safeReadJson,
+  REPO_ROOT, MANIFEST_PATH, checkFreezeGate, fileSha256, safeReadJsonl, safeReadJson,
   notMeasuredMessage, gitHeadShort, loadManifest, loadSplitRecords,
   splitInfoFromManifest, pct, fmtPercent,
 } from "./metric-utils.mjs";
@@ -82,6 +82,14 @@ function loadGroundTruth() {
  *     construction is to take all ordered pairs (a,b) of records in the
  *     split that share neither identity_id nor phone; sampled.
  *   - Shared-phone distinct children are explicitly negative (TC-038).
+ *
+ * Shared-phone negatives are filtered to SAME-KIND endpoints both in
+ * split. A pair like (missing, found) is cross-kind — the matcher is
+ * not designed to flag a missing-case vs a found-case as a duplicate
+ * (the kinds are different roles in the pipeline) — so cross-kind
+ * shared-phone pairs are excluded from the targeted-rejection
+ * denominator. We keep the cross-kind count separately for honesty
+ * and report both numbers.
  */
 export function buildDuplicateSet({ records, manifest, split }) {
   const splitInfo = splitInfoFromManifest(manifest, split);
@@ -91,7 +99,6 @@ export function buildDuplicateSet({ records, manifest, split }) {
   const byId = new Map();
   for (const r of records) if (ids.has(r.record_id)) byId.set(r.record_id, r);
   const truePairs = [];
-  const sharedPhoneDistinct = [];
   const byGroup = new Map();
   for (const r of records) {
     if (!ids.has(r.record_id)) continue;
@@ -109,9 +116,13 @@ export function buildDuplicateSet({ records, manifest, split }) {
   }
   // Shared-phone distinct-child negatives (TC-038 / BR-021). Records carry
   // `phone_shared_with_other_identities` (a list of record_ids that share
-  // the reporter's phone but are not the same child). Build unique unordered
-  // pairs restricted to records inside the current split. Targeted
-  // rejection rates are reported, not the simple pairwise metric.
+  // the reporter's phone but are not the same child). The targeted
+  // rejection denominator is restricted to SAME-KIND pairs where both
+  // endpoints are inside the current split — the detector cannot be
+  // expected to flag a cross-kind pair (missing vs found) as a duplicate.
+  // Cross-kind counts are reported separately for honesty.
+  const sharedPhoneDistinct = []; // same-kind, both in split -> counted
+  const sharedPhoneCrossKind = []; // cross-kind, both in split -> excluded from denom
   const seenShared = new Set();
   for (const r of records) {
     if (!ids.has(r.record_id)) continue;
@@ -120,12 +131,15 @@ export function buildDuplicateSet({ records, manifest, split }) {
       if (!ids.has(other)) continue;
       if (r.record_id === other) continue;
       const key = r.record_id < other ? `${r.record_id}|${other}` : `${other}|${r.record_id}`;
+      if (seenShared.has(key)) continue;
       seenShared.add(key);
+      const [a, b] = key.split("|");
+      const ra = byId.get(a);
+      const rb = byId.get(b);
+      if (!ra || !rb) continue;
+      if (ra.kind === rb.kind) sharedPhoneDistinct.push([a, b]);
+      else sharedPhoneCrossKind.push([a, b]);
     }
-  }
-  for (const key of seenShared) {
-    const [a, b] = key.split("|");
-    sharedPhoneDistinct.push([a, b]);
   }
   // All distinct-identity pairs in the split count as TN-candidates.
   // We keep them but report the actual count as denominator.
@@ -135,6 +149,7 @@ export function buildDuplicateSet({ records, manifest, split }) {
     splitInfo,
     truePairs,
     sharedPhoneDistinct,
+    sharedPhoneCrossKind,
     candidatesCount: allInSplit.length,
   };
 }
@@ -164,7 +179,7 @@ function toKey(a, b) {
   return a < b ? `${a}|${b}` : `${b}|${a}`;
 }
 
-export function scoreDedupe({ truePairs, predicted, sharedPhoneNegativePairs }) {
+export function scoreDedupe({ truePairs, predicted, sharedPhoneNegativePairs, sharedPhoneCrossKindCount = 0 }) {
   const truthSet = new Set();
   for (const [a, b] of truePairs) truthSet.add(toKey(a, b));
   let tp = 0, fp = 0;
@@ -179,9 +194,14 @@ export function scoreDedupe({ truePairs, predicted, sharedPhoneNegativePairs }) 
     ? null
     : (2 * precision * recall) / (precision + recall);
   // Targeted shared-phone distinct-child rejection. Counts:
-  //   sharedPhoneNegativeTotal  = pairs in the ground truth list (in-split)
-  //   sharedPhoneNegativeFp      = detector predicted those pairs as positive
+  //   sharedPhoneNegativeTotal   = SAME-KIND pairs in the ground truth
+  //                                list, both in split (denominator)
+  //   sharedPhoneNegativeFp       = detector predicted those pairs as positive
   //   sharedPhoneNegativeRejected = detector correctly refused those pairs
+  //   sharedPhoneCrossKindCount   = cross-kind shared-phone pairs (BOTH in
+  //                                 split) — excluded from the targeted
+  //                                 denominator because cross-kind pairs
+  //                                 cannot be duplicate consolidations
   let sharedPhoneNegativeTotal = 0;
   let sharedPhoneNegativeFp = 0;
   let sharedPhoneNegativeRejected = 0;
@@ -198,6 +218,7 @@ export function scoreDedupe({ truePairs, predicted, sharedPhoneNegativePairs }) 
     sharedPhoneNegativeTotal,
     sharedPhoneNegativeFp,
     sharedPhoneNegativeRejected,
+    sharedPhoneCrossKindCount,
   };
 }
 
@@ -259,10 +280,14 @@ export async function run({ split, predictionPath, stdout }) {
   const predicted = buildPredictedPositives(clean);
 
   // 6. Score (with shared-phone distinct-child negative tracking).
+  // The targeted-rejection denominator is the SAME-KIND, in-split pair
+  // list (the detector cannot flag a cross-kind pair as a duplicate).
+  // Cross-kind pairs are reported separately for honesty.
   const scored = scoreDedupe({
     truePairs: dup.truePairs,
     predicted,
     sharedPhoneNegativePairs: dup.sharedPhoneDistinct,
+    sharedPhoneCrossKindCount: dup.sharedPhoneCrossKind.length,
   });
 
   // 7. Report.
@@ -270,7 +295,8 @@ export async function run({ split, predictionPath, stdout }) {
   lines.push("eval:dedupe summary");
   lines.push(`  split:                  ${split}`);
   lines.push(`  commit:                 ${gitHeadShort() ?? "n/a"}`);
-  lines.push(`  manifest hash:          ${manifest.inputs?.ground_truth_sha256?.slice(0, 12) ?? "n/a"}...`);
+  lines.push(`  manifest hash (sha256 of eval/manifest.json): ${fileSha256(MANIFEST_PATH).slice(0, 12)}...`);
+  lines.push(`  ground-truth hash (from manifest.inputs):     ${manifest.inputs?.ground_truth_sha256?.slice(0, 12) ?? "n/a"}...`);
   lines.push(`  prediction file:        ${predictionPath}`);
   lines.push(`  cache/fixture excluded: ${cacheHits}`);
   lines.push(`  declared duplicate pairs (denominator): ${scored.truthSize}`);
@@ -290,14 +316,22 @@ export async function run({ split, predictionPath, stdout }) {
   }
   // Shared-phone distinct-child rejection (TC-038). Targeted rejection
   // is reported separately from overall pairwise precision/recall: BR-021
-  // (shared phone alone never establishes the same child).
+  // (shared phone alone never establishes the same child). The
+  // denominator is the SAME-KIND, in-split pair list; cross-kind pairs
+  // (missing vs found) are reported separately for honesty, not folded
+  // into the rejection rate.
   if (scored.sharedPhoneNegativeTotal > 0) {
     const total = scored.sharedPhoneNegativeTotal;
     const fp = scored.sharedPhoneNegativeFp;
     const rej = scored.sharedPhoneNegativeRejected;
     lines.push(
-      `  shared-phone distinct-child rejection: ${rej}/${total} refused ` +
+      `  shared-phone distinct-child rejection (same-kind, in-split): ${rej}/${total} refused ` +
       `(targeted FP ${fp}/${total})`,
+    );
+  }
+  if (scored.sharedPhoneCrossKindCount > 0) {
+    lines.push(
+      `  shared-phone cross-kind pairs (excluded from rejection denom, in-split): ${scored.sharedPhoneCrossKindCount}`,
     );
   }
   out(lines.join("\n") + "\n");

@@ -495,14 +495,22 @@ function cacheKey(options: {
  * Lazily load the local Transformers.js pipeline and return an Embedder.
  * The first call verifies the on-disk cache against the pinned SHA-256
  * digests (see `verifyModelCache`) and then loads the pipeline; the
- * runtime never reaches huggingface.co unless the caller passes
- * `allowRemote: true`.
+ * runtime never reaches huggingface.co.
  *
- * By default the loader REFUSES to fetch from huggingface.co: it sets
+ * The loader REFUSES to fetch from huggingface.co: it sets
  * `env.allowRemoteModels = false` on the Transformers.js environment
  * before calling `pipeline()`. Operators must prime the cache with
  * `scripts/model-fetch.mjs`, which downloads only pinned public URLs and
  * then calls this loader with `allowRemote: false`.
+ *
+ * `allowRemote: true` is a guarded debug/test escape hatch. The only
+ * documented production caller that ever needs it is the fetch
+ * priming path (it flips the flag off again before reaching
+ * `pipeline()`). When set, the loader fails closed BEFORE any
+ * `pipeline(...)` call, surfacing the intent in the error message and
+ * the model:fetch hint. This is what ties the runtime to the verified
+ * cache: the runtime path cannot be tricked into loading substituted
+ * bytes from the network, even by a misconfigured caller.
  *
  * The import of `@huggingface/transformers` is inside the function so a
  * test that only uses FakeEmbedder never touches the heavy native
@@ -514,6 +522,23 @@ export async function loadLocalEmbedder(
   const merged = { ...DEFAULT_LOCAL_OPTIONS, ...opts };
   const cacheDir = merged.cacheDir ?? defaultCacheDir();
   const allowRemote = merged.allowRemote === true;
+  // SECURITY HARDENING: refuse `allowRemote: true` before the pipeline
+  // is built. The runtime path and the reembed script never need
+  // network downloads; only the model:fetch priming path does, and
+  // even it sets this flag back to false before reaching
+  // `pipeline(...)`. A caller that asks for remote at runtime is
+  // either misconfigured or compromised, so the loader fails closed
+  // with a clear `model:fetch` hint. Skipping this check would let
+  // the runtime silently fall through to huggingface.co if the
+  // on-disk cache is missing or corrupted.
+  if (allowRemote) {
+    throw new Error(
+      "embedding loader refused: allowRemote: true is not a runtime " +
+      "option; the model is verified against the pinned SHA-256 cache. " +
+      "Run `npm run model:fetch` to prime the cache, then call " +
+      "loadLocalEmbedder() without allowRemote.",
+    );
+  }
   const key = cacheKey({ ...merged, cacheDir, allowRemote });
   const table = slotTable();
   const slot = table[key] ?? { promise: null };
@@ -551,12 +576,10 @@ export async function loadLocalEmbedder(
     // SECURITY HARDENING: default the loader to refuse remote
     // downloads. The model-fetch script uses its own bounded downloader
     // for pinned URLs and also loads the pipeline with this flag false.
+    // The earlier allowRemote check has already failed closed for any
+    // caller that requested remote, so the assignment here is always
+    // `false`.
     env.allowRemoteModels = allowRemote;
-    if (allowRemote) {
-      // Reading from local cache: tell Transformers.js it is allowed
-      // to read files from the cache directory we control.
-      env.allowLocalModels = true;
-    }
     env.cacheDir = cacheDir;
     const pipelineOptions: Record<string, unknown> = { dtype: mergedOpts.dtype };
     if (typeof mergedOpts.revision === "string" && mergedOpts.revision.length > 0) {

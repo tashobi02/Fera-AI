@@ -308,7 +308,7 @@ export async function run({ split, extractPrediction, matchPrediction, dedupePre
     "```",
     log.filter((l) => l.startsWith("eval:match")).join("") || "(no output captured)",
     "```",
-    `Result summary: measured=${matchResult.measured}, reason=${matchResult.reason ?? "n/a"}, recall@5=${matchResult.recallAt5 ?? "n/a"}%, P@5=${matchResult.pAt5 ?? "n/a"}%, top-1=${matchResult.top1 ?? "n/a"}%, coverage=${matchResult.coverage ?? "n/a"}%, abstention=${matchResult.abstention ?? "n/a"}%, false-positive suggestion rate=${matchResult.falsePosRate ?? "n/a"}%`,
+    `Result summary: measured=${matchResult.measured}, reason=${matchResult.reason ?? "n/a"}, recall@5=${matchResult.recallAt5 ?? "n/a"}% (${matchResult.truthPairMisses?.length ?? "n/a"} true-pair miss), P@5=${matchResult.pAt5 ?? "n/a"}% (denom=${matchResult.totalTruthPairs ?? "n/a"} truth-pair queries; abstentions never excluded), top-1=${matchResult.top1 ?? "n/a"}% (${matchResult.top1Hits ?? "n/a"}/${matchResult.top1Considered ?? "n/a"} covered), coverage=${matchResult.coverage ?? "n/a"}%, abstention=${matchResult.abstention ?? "n/a"}%, false-positive suggestion rate=${matchResult.falsePosRate ?? "n/a"}% (${matchResult.noMatchFalsePositives?.length ?? "n/a"} no-match FP)`,
   ].join("\n\n")));
 
   md.push(mdSection("eval:dedupe", [
