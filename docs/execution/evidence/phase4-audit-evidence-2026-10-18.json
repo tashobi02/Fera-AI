@@ -142,5 +142,33 @@
     "lint": "PASS; zero errors, 51 warnings",
     "focused_tests": "36 passed across existing duplicate UI/detector files",
     "reviews": "Independent Puku UI/TypeScript/React/Bengali/a11y and safeguarding scopes PASS; Codex second opinion verified exact D4 copy and isolated presentation scope."
+  },
+  "git_landing": {
+    "phase2_pr": 47,
+    "phase2_merge": "060e3200834d30bbba96934f69ac1c54685d22f9",
+    "main_pr": 48,
+    "main_merge": "5cbd4c85dc9434e20619db52d3930d9fee27528a",
+    "primary_checkout": "main; clean; locked install, typecheck and ONNX native import passed",
+    "final_combined_ci": "https://github.com/tashobi02/Fera-AI/actions/runs/39116451104",
+    "final_combined_ci_source": "e9f3729aeb1d8083ef211041cfb961cde2c22ca3",
+    "final_combined_ci_result": "check/DB/browser SUCCESS",
+    "superseded_prs_closed": [
+      33,
+      34,
+      43,
+      44,
+      45
+    ],
+    "owner_branches": "retained"
+  },
+  "dependency_audit": {
+    "runtime_known_vulnerabilities": 0,
+    "full_audit_high_entries": 5,
+    "chain": "dev-only eslint-config-next / @next/eslint-plugin-next / fast-glob / micromatch / braces",
+    "advisory": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+    "patched_version": "None at audit time; registry latest braces 3.0.3",
+    "security_disposition": "PASS with WARN",
+    "followup_owner": "Mahim; compatible upstream fix and re-audit before release",
+    "automatic_major_downgrade_applied": false
   }
 }

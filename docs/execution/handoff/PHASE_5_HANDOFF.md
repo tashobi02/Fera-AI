@@ -1,5 +1,7 @@
 # Phase 5 start handoff — 18 October 2026
 
+Git landing: [#47](https://github.com/tashobi02/Fera-AI/pull/47) merged to phase2 (`060e320`), then [#48](https://github.com/tashobi02/Fera-AI/pull/48) merged to main (`5cbd4c8`). The primary checkout pulled main and is clean; original owner branches are retained. Start from fetched `origin/main`, not a parked Phase 3 worktree. Full combined-source [CI passed](https://github.com/tashobi02/Fera-AI/actions/runs/39116451104) at `e9f3729` (check, DB, browser); the merge changes no application content.
+
 Status: PREPARED, NOT STARTED. The software baseline is ready for technical continuation; formal G3/G4/G5 entry evidence remains unmet. See [Phase 4 handoff](PHASE_4_HANDOFF.md), [audit](../PHASE_3_AUDIT_2026-10-18.md) and [verification](../evidence/phase3-finish-verification.md).
 
 ## First agent work
@@ -25,3 +27,5 @@ Start from the fetched merged integration history, preserve dirty work and creat
 Run the existing build, typecheck, lint, unit, DB and browser commands appropriate to a change. Database resets must target a dedicated loopback database. The browser harness needs the verified local E5 cache; use FERA_MODEL_CACHE when it is outside the checkout. Never read or commit environment secrets.
 
 Current verified application source is 9155963: 3,693 unit tests pass (308 skipped), 320 DB tests pass and 78 browser checks pass, plus successful remote CI. The final Git integration PRs will identify the merged branch heads. There is no production smoke, frozen release evaluation, measured spend, r2-freeze tag or formal G6/offline-journey PASS.
+
+Development-tool dependency followup: five HIGH npm entries trace to one unpatched braces advisory in the lint chain; runtime dependency audit reports zero known findings. Mahim should recheck for a compatible upstream fix before release; see the final dependency audit in [verification](../evidence/phase3-finish-verification.md). No automatic major downgrade was applied.
