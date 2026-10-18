@@ -4,6 +4,7 @@
 import { randomUUID } from "node:crypto";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { extractRequestSchema } from "@/contracts";
+import type { Logger } from "@/app/api/_shared/log";
 import { brandProviderDispatch, type LLMProvider, type ProviderDispatch } from "@/server/ai";
 import { brandSttDispatch, type SttProvider } from "@/server/speech/types";
 import { EXTRACT_FIXTURE_SOURCE } from "@/server/cache";
@@ -227,6 +228,61 @@ describe("intake extract orchestrator safeguards (mock runPaidCall)", () => {
       now: () => FIXED_NOW,
     });
     expect(result).toMatchObject({ ok: false, error: { error: { id: "E-023" } } });
+  });
+
+  it("emits a safe spend.price_sheet_invalid log on estimateUpperUsd failure and still fails closed at E-023", async () => {
+    // Regression: orchestrator lines 144/191 used to swallow the cause of an
+    // estimateUpperUsd throw with `catch { throw new DispatchRefused("E-023"); }`.
+    // The fix surfaces a safe allowlisted log event with the cause class only
+    // (no price ids, keys, source, payload, or error message), so an operator
+    // can distinguish a misconfigured price sheet from a budget cap hit.
+    vi.stubEnv("DEMO_MODE", "0");
+    const { deps, principal, token } = await makeSetup();
+    // Force each adapter attempt to fail so the adapter reaches its
+    // fallback dispatch. The fallback's estimateUpperUsd throws (the price
+    // sheet below drops llm.fallback), and the orchestrator's catch turns
+    // it into a DispatchRefused("E-023") with a safe allowlisted log line.
+    runPaidCall.mockImplementation(async () => makeFailed("E-013"));
+    const lines: string[] = [];
+    const captureLogger: Logger = {
+      info: (e) => lines.push(JSON.stringify({ level: 30, ...(e as Record<string, unknown>) })),
+      warn: (e) => lines.push(JSON.stringify({ level: 40, ...(e as Record<string, unknown>) })),
+      error: (e) => lines.push(JSON.stringify({ level: 50, ...(e as Record<string, unknown>) })),
+    };
+    // Drop the fallback price id so estimateUpperUsd throws on the adapter's
+    // fallback dispatch (a non-ApiError cause is what price-sheet.ts would
+    // convert to an internal log; we only assert the orchestrator's catch
+    // re-emits the safe allowlisted shape on its own path).
+    const deps2: OrchestratorDeps = {
+      ...deps,
+      logger: captureLogger,
+      priceSheet: { status: "injected", entries: mockPriceSheet.entries.filter((e) => e.id === "llm.primary") },
+    };
+    const result = await orchestrateExtract(deps2, {
+      body: extractRequestSchema.parse({ kind: "missing", text: EXTRACT_FIXTURE_SOURCE, draft_token: token }),
+      headers: ack(),
+      principal,
+      requestId: "req-test",
+      now: () => FIXED_NOW,
+    });
+    // Fail-closed E-023 must be preserved exactly.
+    expect(result).toMatchObject({ ok: false, error: { error: { id: "E-023" } } });
+    // A safe allowlisted log line was emitted with the cause class only.
+    const priceSheetLines = lines
+      .map((l) => JSON.parse(l))
+      .filter((l) => l.event === "spend.price_sheet_invalid");
+    expect(priceSheetLines.length).toBeGreaterThanOrEqual(1);
+    for (const line of priceSheetLines) {
+      expect(line.error_id).toBe("E-023");
+      expect(typeof line.err_name).toBe("string");
+      // No price ids, no source strings, no payload, no error message text.
+      expect(line.price_id).toBeUndefined();
+      expect(line.source).toBeUndefined();
+      expect(line.payload).toBeUndefined();
+      expect(line.message).toBeUndefined();
+      // The line must not contain phone-shaped digits either (defence in depth).
+      expect(JSON.stringify(line)).not.toMatch(/01[0-9]{9}/);
+    }
   });
 });
 

@@ -28,6 +28,7 @@ import type { Pool } from "pg";
 import { errorEnvelope, toDhakaIso, type CaseDraft, type ErrorEnvelope, type TranscribeResponse, type ExtractResponse, type CaseKind, type TranscribeFields, type ExtractRequest } from "@/contracts";
 import { runPaidCall, PaidCallError, estimateUpperUsd, type UpperUsdEstimate, type PriceSheet } from "@/server/spend";
 import { ApiError } from "@/app/api/_shared/envelope";
+import { createLogger, describeError, type Logger } from "@/app/api/_shared/log";
 import { findExtractFixture } from "@/server/cache";
 import { assertProviderNotice, type OrchestrationDecision, type RuntimeContext, ERR_E023 } from "./runtime";
 import {
@@ -86,6 +87,14 @@ export type OrchestratorDeps = {
     dispatch: ProviderDispatch;
     timeoutMs: number;
   };
+  // Optional request-scoped logger. When provided, the orchestrator's catch
+  // on a misconfigured price sheet emits a safe allowlisted
+  // `spend.price_sheet_invalid` event with the cause class only, so an
+  // operator can distinguish "price sheet missing" from "budget cap" without
+  // ever seeing price ids, keys, source strings, payloads or error messages.
+  // When omitted, a fresh stdout logger is used and the same allowlist is
+  // enforced by the shared `createLogger` sink.
+  logger?: Logger;
 };
 
 // ---------- API-001 transcribe ----------
@@ -131,6 +140,10 @@ function makeLlmBrandedDispatch(
   deps: OrchestratorDeps,
   ctx: { principal: Principal; row: DraftRow; headers: Headers; spendPool?: SpendPool },
 ): ProviderDispatch {
+  // The request-scoped logger is best-effort: when the route wires one in,
+  // the orchestrator's catch on a misconfigured price sheet uses it; when
+  // it does not, a fresh stdout logger enforces the same allowlist.
+  const orchestratorLogger = deps.logger ?? createLogger();
   return brandProviderDispatch(async (provider, request, options) => {
     const slot: LlmPriceSlot = provider === deps.llmDeps.primary ? "primary" : "fallback";
     let upperUsd: UpperUsdEstimate;
@@ -141,7 +154,18 @@ function makeLlmBrandedDispatch(
         inputTokens: estimateExtractInputTokens(request.messages),
         maxOutputTokens: 1024,
       });
-    } catch { throw new DispatchRefused("E-023"); }
+    } catch (err) {
+      // Safe allowlisted event: only the cause class (err_name) and the
+      // error_id. No price ids, no source strings, no payload, no error
+      // message. The error message and the error class are still safe
+      // because log.ts drops anything that fails its allowlist check.
+      orchestratorLogger.error({
+        event: "spend.price_sheet_invalid",
+        error_id: "E-023",
+        err_name: describeError(err).err_name,
+      });
+      throw new DispatchRefused("E-023");
+    }
     const current = ctx.row;
     const runtime: RuntimeContext = {
       principal: ctx.principal,
@@ -179,6 +203,10 @@ function makeSttBrandedDispatch(
   deps: OrchestratorDeps,
   ctx: { principal: Principal; row: DraftRow; headers: Headers; durationSeconds: number; spendPool?: SpendPool },
 ): SttDispatch {
+  // The request-scoped logger is best-effort: when the route wires one in,
+  // the orchestrator's catch on a misconfigured price sheet uses it; when
+  // it does not, a fresh stdout logger enforces the same allowlist.
+  const orchestratorLogger = deps.logger ?? createLogger();
   return brandSttDispatch(async (provider, audio, options) => {
     const slot: SttPriceSlot = provider === deps.speechDeps.primary ? "primary" : "fallback";
     let upperUsd: UpperUsdEstimate;
@@ -188,7 +216,18 @@ function makeSttBrandedDispatch(
         operation: "transcribe",
         maxBillableSeconds: Math.ceil(ctx.durationSeconds),
       });
-    } catch { throw new SttDispatchRefused("E-023"); }
+    } catch (err) {
+      // Safe allowlisted event: only the cause class (err_name) and the
+      // error_id. No price ids, no source strings, no payload, no error
+      // message. The error message and the error class are still safe
+      // because log.ts drops anything that fails its allowlist check.
+      orchestratorLogger.error({
+        event: "spend.price_sheet_invalid",
+        error_id: "E-023",
+        err_name: describeError(err).err_name,
+      });
+      throw new SttDispatchRefused("E-023");
+    }
     const current = ctx.row;
     const runtime: RuntimeContext = {
       principal: ctx.principal,

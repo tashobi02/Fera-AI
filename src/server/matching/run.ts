@@ -1,3 +1,4 @@
+import type { Queryable } from "@/server/db/queryable";
 // TASK-017d / P3-040: the matcher run (D2A §5.7, BR-017/018/019/020, D5 BR-017).
 // Owner: Masnun. Server-only.
 //
@@ -115,11 +116,6 @@ const UPSERT_CANDIDATE_SQL = `
         decided_at = NULL
   RETURNING id`;
 
-const SELECT_FOUND_EMBEDDING_SQL = `
-  SELECT id, embedding::text AS embedding, embedding_model, embedding_revision, embedding_space,
-         anonymised_at
-  FROM cases WHERE id = $1`;
-
 /* ---------- reason + component builders ---------- */
 
 type ReasonAndComponents = { reasonBn: string; reasonEn: string; components: Record<string, number | null> };
@@ -217,19 +213,6 @@ function parseVectorText(value: string): number[] {
     out[i] = n;
   }
   return out;
-}
-
-type FoundEmbedding = { id: string; vector: Float32Array | null; space: string | null };
-
-async function readFoundEmbedding(client: PoolClient, foundId: string): Promise<FoundEmbedding> {
-  const { rows } = await client.query(SELECT_FOUND_EMBEDDING_SQL, [foundId]);
-  if (rows.length === 0) return { id: foundId, vector: null, space: null };
-  const r = rows[0] as Record<string, unknown>;
-  const emb = r.embedding;
-  if (emb === null || emb === undefined) return { id: foundId, vector: null, space: null };
-  const space = typeof r.embedding_space === "string" ? r.embedding_space : null;
-  const arr = parseVectorText(String(emb));
-  return { id: foundId, vector: new Float32Array(arr), space };
 }
 
 /* ---------- found-end embed guard for the duplicate hook ----------
@@ -377,17 +360,19 @@ async function runInsideTransaction(
 
   // 5) Pre-load neighbour set and per-found embeddings.
   const missingDistrictCode = missing.district_code;
-  // Fetch the found rows' district codes + embeddings in one round trip.
+  // Fetch the found rows' district codes + embeddings in ONE round trip. The
+  // eligibility set is bounded by `LIMITS.candidatesPerQueueItem` (≤ 50); the
+  // single `WHERE id = ANY($1::uuid[])` SELECT replaces the prior per-row
+  // serial read so a 50-row fanout is one query, not 50.
   const foundRows = await readFoundRowsForScoring(client, eligible);
   const neighbourSet = await loadNeighbourSet(
     client,
     foundRows.map((r) => r.district_code).filter((c): c is number => c !== null).concat(missingDistrictCode === null ? [] : [missingDistrictCode]),
   );
 
-  const foundEmbeddings = new Map<string, { vector: Float32Array | null; space: string | null; row: CaseRow }>();
+  const foundEmbeddings = new Map<string, { vector: Float32Array | null; space: string | null; row: FoundRowForScoring }>();
   for (const r of foundRows) {
-    const emb = await readFoundEmbedding(client, r.id);
-    foundEmbeddings.set(r.id, { ...emb, row: r });
+    foundEmbeddings.set(r.id, { vector: r.foundEmbedding?.vector ?? null, space: r.foundEmbedding?.space ?? null, row: r });
   }
 
   // 6) Score every pair. An invalid pair (no embeddings, or different spaces) is
@@ -398,7 +383,7 @@ async function runInsideTransaction(
     const fState = foundEmbeddings.get(f.found_case_id);
     if (!fState) continue;
     considered += 1;
-    if (missingEmbedding === null || fState.vector === null) {
+    if (missingEmbedding === null || fState.vector === null || fState.space === null) {
       // No usable embedding: skip ranking for this pair (it cannot qualify).
       continue;
     }
@@ -550,18 +535,57 @@ async function upsertTopFive(
   }
 }
 
-async function readFoundRowsForScoring(
-  client: PoolClient,
+// The per-found-row projection the rest of the run reads: the mapped case
+// row plus the parsed vector and the row's embedding space (used by the
+// lock/version/vector-space validation). The vector and space preserve the
+// pre-existing shape: a missing or null embedding stays a no-op for scoring
+// (the same lock/version/space check at scoring time still applies).
+export type FoundRowForScoring = CaseRow & {
+  foundEmbedding: { vector: Float32Array; space: string } | null;
+};
+
+/**
+ * Read the eligible found case rows in ONE parameterised round trip,
+ * projecting the embedding text + space alongside the case row. The lock,
+ * version and vector-space validation, plus the malformed-pgvector-text
+ * behaviour (`EmbeddingShapeError`), are preserved verbatim. Exported for
+ * the matcher-run unit tests; the matcher run itself consumes the result
+ * through the local `runInsideTransaction` only.
+ */
+export async function readFoundRowsForScoring(
+  client: Queryable,
   eligible: readonly EligibleFoundCandidate[],
-): Promise<CaseRow[]> {
+): Promise<FoundRowForScoring[]> {
   if (eligible.length === 0) return [];
   const ids = Array.from(new Set(eligible.map((e) => e.found_case_id)));
-  // One SELECT for the whole set. CASE_COLUMNS includes every column the matcher reads.
+  // Embed the `CASE_COLUMNS` allowlist once per call; the local SQL string
+  // is parameterised on `$1::uuid[]` so the ids are never interpolated. The
+  // embedding text + space travel in the same statement so a 50-row fanout
+  // is one query, not 50.
+  const { CASE_COLUMNS } = await import("@/server/case/rows");
   const { rows } = await client.query(
-    `SELECT ${(await import("@/server/case/rows")).CASE_COLUMNS} FROM cases WHERE id = ANY($1::uuid[])`,
+    `SELECT ${CASE_COLUMNS}, embedding::text AS embedding, embedding_space AS embedding_space FROM cases WHERE id = ANY($1::uuid[])`,
     [ids],
   );
-  return rows.map((r) => mapCaseRow(r));
+  return rows.map((r) => {
+    const row = r as Record<string, unknown>;
+    const caseRow = mapCaseRow(r);
+    const emb = row.embedding;
+    const spaceRaw = row.embedding_space;
+    let foundEmbedding: { vector: Float32Array; space: string } | null = null;
+    if (emb !== null && emb !== undefined) {
+      const space = typeof spaceRaw === "string" ? spaceRaw : null;
+      // A missing or non-string space is the same as a missing embedding
+      // for the lock/version/space check: the pair cannot qualify and the
+      // scoring loop skips it (BR-017/018, TC-059). An unparseable vector
+      // raises EmbeddingShapeError so the run stamps E-021 as before.
+      if (space !== null) {
+        const arr = parseVectorText(String(emb));
+        foundEmbedding = { vector: new Float32Array(arr), space };
+      }
+    }
+    return { ...caseRow, foundEmbedding };
+  });
 }
 
 /* ---------- public entry point ---------- */
