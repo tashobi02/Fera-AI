@@ -1,4 +1,4 @@
-Last run: 2026-10-18T14:58:17.388Z — 5 run(s) (AUTOMATED) — all green
+Last run: 2026-10-18T19:10:00.000Z — 5 run(s) (AUTOMATED) — all green on a DIRTY tree (uncommitted changes; see pre-main-automated-repeat-summary.json gitStatusPorcelain)
 
 # Pre-main test-journeys — automated offline rehearsal evidence
 
@@ -189,25 +189,26 @@ and 10 tests in 1 file. This iteration resolves both:
 
 | Run | Exit | Pass? | Notes |
 |----:|-----:|:----:|-------|
-| 1 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2316671_0_c64e93
-| 2 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2316671_1_0e909f
-| 3 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2316671_2_d24d0f
-| 4 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2316671_3_480602
-| 5 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2316671_4_bb78e3
+| 1 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2571999_0_b13b5f
+| 2 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2571999_1_d8bed8
+| 3 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2571999_2_00e6b4
+| 4 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2571999_3_010505
+| 5 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2571999_4_b495cf
 
 ## Offline network proof
 
-Scope: browser-originated HTTP(S) requests seen by Playwright `context.route` only. Server-side egress from the Next.js process, the Playwright `request` fixture, Node `fetch` and WebSockets beyond routing are NOT observed by this count. The figures below are from the earlier recorded run and predate the current spec and watchdog changes.
+Scope: browser-originated HTTP(S) requests seen by Playwright `context.route` only. Server-side egress from the Next.js process, the Playwright `request` fixture, Node `fetch` and WebSockets beyond routing are NOT observed by this count.
 
-- Total loopback allow: 184
+- Total loopback allow: 189
 - Total non-loopback deny (external browser attempts): 0
 - Total data:/blob: pass-through: 0
+- Total loopback route errors (not external): 0
 
 Per-host (only hosts the browser attempted):
 
-| Host | Allow | Deny | Pass |
-|------|------:|-----:|-----:|
-| 127.0.0.1 | 184 | 0 | 0 |
+| Host | Allow | Deny | Pass | Error |
+|------|------:|-----:|-----:|------:|
+| 127.0.0.1 | 189 | 0 | 0 | 0 |
 
 ## Offline cache + log
 

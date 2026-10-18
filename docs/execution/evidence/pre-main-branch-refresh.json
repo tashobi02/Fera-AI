@@ -1,8 +1,8 @@
 {
-  "captured_at": "2026-10-18T14:59:04.874780+00:00",
+  "captured_at": "2026-10-18T19:13:46.185784+00:00",
   "initial_main": "8499bce9326e1fcad0431ca9748ea1d3b616f5ae",
-  "remote_main": "7da226bf44b9b0f61a5963a71a14a55973ea9e8b",
-  "pre_main": "b21c4bb932b14918220177301cd1402a03c8c74a",
+  "remote_main": "2ce4cae037f94c6b1a1c3bdd49a9f7e9cfe8fcd9",
+  "pre_main": "2ce4cae037f94c6b1a1c3bdd49a9f7e9cfe8fcd9",
   "refs": [
     {
       "ref": "refs/heads/main",
@@ -374,7 +374,7 @@
     },
     {
       "ref": "refs/heads/pre-main",
-      "sha": "b21c4bb932b14918220177301cd1402a03c8c74a"
+      "sha": "2ce4cae037f94c6b1a1c3bdd49a9f7e9cfe8fcd9"
     },
     {
       "ref": "refs/heads/pre-main--artifact-integrity",
@@ -426,7 +426,7 @@
     },
     {
       "ref": "refs/remotes/origin/HEAD",
-      "sha": "7da226bf44b9b0f61a5963a71a14a55973ea9e8b"
+      "sha": "2ce4cae037f94c6b1a1c3bdd49a9f7e9cfe8fcd9"
     },
     {
       "ref": "refs/remotes/origin/ccr-91b94c1a-754zqx",
@@ -434,7 +434,7 @@
     },
     {
       "ref": "refs/remotes/origin/main",
-      "sha": "7da226bf44b9b0f61a5963a71a14a55973ea9e8b"
+      "sha": "2ce4cae037f94c6b1a1c3bdd49a9f7e9cfe8fcd9"
     },
     {
       "ref": "refs/remotes/origin/phase-2-masnun",
@@ -709,17 +709,46 @@
       "sha": "29c262e83986951a8e99ea707cee46cfdfd5eedc"
     },
     {
+      "ref": "refs/remotes/origin/pr51-review-fixes",
+      "sha": "8294a1c3c4e7c69c9c84dbe0ed8e98c47f6c1a5d"
+    },
+    {
       "ref": "refs/remotes/origin/pre-main",
-      "sha": "b459f6ea692b5ada7389eb278ec0b91fe6d1333a"
+      "sha": "a8e959003ecd10299d484957bb23758e5512c1e4"
     }
   ],
   "remote_changes_since_previous_refresh": [
     {
+      "ref": "refs/remotes/origin/HEAD",
+      "sha": "2ce4cae037f94c6b1a1c3bdd49a9f7e9cfe8fcd9",
+      "previous": "7da226bf44b9b0f61a5963a71a14a55973ea9e8b",
+      "included_by_ancestry": true
+    },
+    {
+      "ref": "refs/remotes/origin/main",
+      "sha": "2ce4cae037f94c6b1a1c3bdd49a9f7e9cfe8fcd9",
+      "previous": "7da226bf44b9b0f61a5963a71a14a55973ea9e8b",
+      "included_by_ancestry": true
+    },
+    {
+      "ref": "refs/remotes/origin/pr51-review-fixes",
+      "sha": "8294a1c3c4e7c69c9c84dbe0ed8e98c47f6c1a5d",
+      "previous": null,
+      "included_by_ancestry": true
+    },
+    {
       "ref": "refs/remotes/origin/pre-main",
-      "previous": "641bdefb36a58e502042ff795d2018b55846b717",
-      "sha": "b459f6ea692b5ada7389eb278ec0b91fe6d1333a"
+      "sha": "a8e959003ecd10299d484957bb23758e5512c1e4",
+      "previous": "b459f6ea692b5ada7389eb278ec0b91fe6d1333a",
+      "included_by_ancestry": true
     }
   ],
   "remote_main_is_ancestor": true,
-  "policy": "Necessary runtime work integrated; superseded historical variants preserved with archive provenance and reconciliation. main merge awaits user approval."
+  "policy": "All necessary new review-fix branch content included. No additional coordinator main merge without user approval.",
+  "external_main_merge": {
+    "pr": 51,
+    "by": "Deatrax",
+    "merge_commit": "2ce4cae",
+    "coordinator_performed_merge": false
+  }
 }

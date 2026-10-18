@@ -1,12 +1,12 @@
 {
-  "captured_at": "2026-10-18T14:59:04.874780+00:00",
-  "source_commit": "b21c4bb932b14918220177301cd1402a03c8c74a",
+  "captured_at": "2026-10-18T19:13:46.185784+00:00",
+  "source_commit": "2ce4cae037f94c6b1a1c3bdd49a9f7e9cfe8fcd9",
   "branch": "pre-main",
-  "main_merge": "HOLD \u2014 user verification and explicit approval required",
+  "main_merge": "HOLD for any further coordinator changes. Another account (Deatrax) merged PR51 into main at2026-10-18T17:44:40Z; coordinator did not perform or approve that merge.",
   "build": {
     "status": "PASS",
     "command": "npm run build; repeated real offline production builds",
-    "source": "b21c4bb932b14918220177301cd1402a03c8c74a"
+    "source": "2ce4cae037f94c6b1a1c3bdd49a9f7e9cfe8fcd9"
   },
   "types": {
     "status": "PASS",
@@ -15,13 +15,13 @@
   "lint": {
     "status": "PASS",
     "errors": 0,
-    "warnings": 81
+    "warnings": 73
   },
   "unit": {
     "status": "PASS",
-    "passed": 3958,
+    "passed": 3981,
     "skipped": 309,
-    "files_passed": 190,
+    "files_passed": 192,
     "files_skipped": 29,
     "note": "Default opt-in skips retained; real DB and native embedding suites run separately."
   },
@@ -35,7 +35,9 @@
     "status": "PASS",
     "passed": 78,
     "skipped": 0,
-    "duration_seconds": 37.9
+    "duration_seconds": 90,
+    "source": "a8e9590 (CI; identical content tree to 2ce4cae)",
+    "duration_display": "1.5m"
   },
   "offline_repeats": {
     "status": "PASS",
@@ -44,18 +46,27 @@
     "checks_total": 65,
     "external_browser_attempts": 0,
     "all_own_databases_cleaned": true,
-    "source": "b21c4bb932b14918220177301cd1402a03c8c74a",
+    "source": "2ce4cae037f94c6b1a1c3bdd49a9f7e9cfe8fcd9",
     "evidence": "pre-main-automated-repeat-summary.json",
-    "boundary": "Intercepted browser requests only; not a server-wide packet capture."
+    "boundary": "Intercepted browser requests only; not a server-wide packet capture.",
+    "browser_requests_per_run": [
+      189,
+      189,
+      189,
+      189,
+      189
+    ],
+    "evidence_only_dirty_tree": "Evidence and archive records changed during repeats; runtime/scripts/tests/config unchanged from the tested source."
   },
   "demo_lifecycle": {
     "status": "PASS",
     "evidence": "pre-main-demo-lifecycle.json",
-    "note": "Real app/login/cookie restart/data reuse/reset; shared developer container unchanged. Run included the reviewed safety fixes before their commit."
+    "note": "Fresh seed-completion marker, actual local sign-in/cookie restart/data reuse/reset passed on integrated source; shared developer container unchanged."
   },
   "native_embeddings": {
     "status": "PASS",
-    "passed": 6
+    "passed": 6,
+    "source": "a8e9590 (CI)"
   },
   "dev_predict": {
     "status": "PASS",
@@ -96,8 +107,73 @@
     "meaning": "Local checks pass; external requirements pending"
   },
   "ci": {
-    "status": "PENDING \u2014 final remote dispatch"
+    "status": "PASS",
+    "run_id": 39157185543,
+    "url": "https://github.com/tashobi02/Fera-AI/actions/runs/39157185543",
+    "head_sha": "a8e959003ecd10299d484957bb23758e5512c1e4",
+    "content_tree_matches_local": true,
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "check",
+        "conclusion": "success",
+        "url": "https://github.com/tashobi02/Fera-AI/actions/runs/39157185543/job/117762710172",
+        "completed_at": "2026-10-18T19:09:12Z"
+      },
+      {
+        "name": "db",
+        "conclusion": "success",
+        "url": "https://github.com/tashobi02/Fera-AI/actions/runs/39157185543/job/117762710429",
+        "completed_at": "2026-10-18T19:08:18Z"
+      },
+      {
+        "name": "e2e",
+        "conclusion": "success",
+        "url": "https://github.com/tashobi02/Fera-AI/actions/runs/39157185543/job/117762710431",
+        "completed_at": "2026-10-18T19:09:48Z"
+      }
+    ],
+    "completed_at": "2026-10-18T19:09:48Z",
+    "unit_passed": 3981,
+    "database_passed": 321,
+    "browser_passed": 78,
+    "offline_passed": 13,
+    "native_embedding_passed": 6
   },
   "formal_G5_G6": "UNVERIFIED \u2014 external/human requirements pending",
-  "round2_submission": "NOT SUBMITTED"
+  "round2_submission": {
+    "status": "REPORTED SUBMITTED by Mahim in repository record8294a1c; not independently verified by coordinator",
+    "submitter": "UNKNOWN",
+    "exact_submission_time": "UNKNOWN",
+    "platform_receipt": "UNKNOWN",
+    "evidence": "submission/round2/platform-submission.md",
+    "link_checks": "Other agent observations, attributed in repository; not reverified by coordinator."
+  },
+  "previous_verification_commit": "ab68b54",
+  "external_integration": {
+    "review_fix_branch": "pr51-review-fixes",
+    "fix_commits": [
+      "dcf350d",
+      "8294a1c"
+    ],
+    "pre_main_merge": "a8e9590",
+    "main_merge": "2ce4cae",
+    "pull_requests": [
+      51,
+      52
+    ],
+    "coordinator_action": "Fast-forwarded only pre-main to the fetched history; no main branch write."
+  },
+  "clean_checkout": {
+    "status": "PASS",
+    "evidence": "pre-main-clean-checkout.json",
+    "dependencies": "Documented Python artifact dependencies in an isolated temporary environment."
+  },
+  "archive_provenance": {
+    "status": "PASS",
+    "entries": 24,
+    "byte_identical": 21,
+    "explicit_home_path_redactions": 3,
+    "manifest": "docs/archive/pre-main-recovered/manifest.json"
+  }
 }

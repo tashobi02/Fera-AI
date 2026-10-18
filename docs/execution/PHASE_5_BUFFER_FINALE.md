@@ -1,6 +1,9 @@
 # Phases 5–6 — Buffer, finale baseline and finale prep · Gate G6
 
-> **Current integration status — 18 Oct 2026.** Phase 4–5 software and local preparation are implemented on `pre-main` and pass local verification. Remote CI is being run before review. The user will verify and explicitly approve before any merge into `main`. No Round 2 submission, production deployment or human acceptance is claimed. Formal G5/G6 remain UNVERIFIED for the original external/human requirements. Current evidence: [final verification](evidence/pre-main-final-verification.json), [closure](pre-main-phase4-phase5-closure.md), [TC matrix](evidence/pre-main-tc-coverage.md).
+> **19 Oct final integration update:** Source `2ce4cae` includes the newly fetched PR52 review fixes. Another account merged PR51 into main; the coordinator did not merge main. Local verification:3,981 unit tests,321 database tests,5×13 stricter offline checks and real demo lifecycle PASS. Full remote CI passes all three jobs. Team-reported submission is recorded in `submission/round2/platform-submission.md`; receipt remains unverified. Current [durable verification](evidence/pre-main-final-verification.json) supersedes the older snapshots below.
+
+
+> **Current integration status — 18 Oct 2026.** Phase 4–5 software and local preparation are implemented on `pre-main` and pass local verification. Full remote CI passes at a8e9590 (same source tree as 2ce4cae). The user will verify and explicitly approve before any merge into `main`. No Round 2 submission, production deployment or human acceptance is claimed. Formal G5/G6 remain UNVERIFIED for the original external/human requirements. Current evidence: [final verification](evidence/pre-main-final-verification.json), [closure](pre-main-phase4-phase5-closure.md), [TC matrix](evidence/pre-main-tc-coverage.md).
 
 > The older dated entries below are historical snapshots; the current integration status and linked final verification supersede their software counts and branch pointers.
 
@@ -76,7 +79,7 @@ User on 18 Oct: "be ready to start, not actually start it." Phase 5 is `todo / p
 | READY-10 | **CLOSED (merged)** | `docs/execution/PHASE_3_AUDIT_2026-10-18.md` §3 (final integration e2e total = 78 passed browser checks, no skips on a fresh local synthetic DB; journey specs integrated into the root tree at `9155963` lineage; current `27bb3c6` carries the same root tree). |
 | READY-11 | **CLOSED (merged)** | The 50 DEV-only blank `{}` rows in `eval/data/labelled.canonical.draft.jsonl` are integrated; 37 tests on the canonical blank inputs run; **no human labels** are supplied; held-out inference and tuning remain forbidden; `eval/extract.mjs` still prints "not measured" until a canonical mapping is supplied (H-15). |
 | READY-12 | **OPEN (HUMAN)** | H-8 — Obidit's explicit production-deploy go-ahead + managed DB access + freeze tag name. Deployment is blocked by missing access, not by a new permission ritual. |
-| READY-13 | **OPEN (HUMAN)** | H-9 — organiser cutoff / channel / formats / extension / prior submission status. Round 2 was **NOT submitted** as of 18 Oct (user-confirmed). |
+| READY-13 | **OPEN (HUMAN)** | H-9 — organiser cutoff / channel / formats / extension / prior submission status. Earlier not-submitted snapshot superseded: Mahim/team-chat submission report is recorded in `submission/round2/platform-submission.md`; platform receipt and exact time remain UNKNOWN. |
 | READY-14 | **OPEN (HUMAN)** | H-1 — TASK-003 provider setup (account, terms, prices, keys out of Git, spend controls). Spend cap default USD 25; team may raise to at most USD 30. |
 | READY-15 | **OPEN (HUMAN)** | H-2 — TASK-011 50 labelled reports. The 50 DEV-only blank rows carry **no human labels**. |
 | READY-16 | **OPEN (HUMAN)** | H-3 — TASK-036 two Android phones. Browser emulation is not a physical-device pass. |
@@ -191,4 +194,6 @@ By **23 Oct** (DEP-009), Mahim records laptop, Android phone and hotspot availab
 
 ## Final automated integration evidence — 18 October
 
-The coordinator integrated all necessary worker output, completed quota-interrupted repairs, and ran 3,958 unit tests, 321 DB tests, 78 browser checks, six native embedding tests and five repetitions of 13 offline checks. Automated rehearsals do not close TASK-054’s human log. See [final verification](evidence/pre-main-final-verification.json). All three owners retain their external items; no owner approval is invented.
+The coordinator integrated all necessary worker output, completed quota-interrupted repairs, and ran 3,981 unit tests, 321 DB tests, 78 browser checks, six native embedding tests and five repetitions of 13 offline checks. Automated rehearsals do not close TASK-054’s human log. See [final verification](evidence/pre-main-final-verification.json). All three owners retain their external items; no owner approval is invented.
+
+Full remote CI: [39157185543](https://github.com/tashobi02/Fera-AI/actions/runs/39157185543) — check, DB and e2e PASS; includes 78 browser checks, 13 stricter offline checks and 6 native embedding checks.

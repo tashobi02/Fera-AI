@@ -1,0 +1,35 @@
+{
+  "recorded_at": "2026-10-18T19:06:47.306382+00:00",
+  "source": "2ce4cae037f94c6b1a1c3bdd49a9f7e9cfe8fcd9",
+  "method": "git archive; no ignored files, local state or node_modules",
+  "python_environment": "temporary isolated QA environment with documented dependencies",
+  "python_packages": [
+    "lxml==6.1.3",
+    "pillow==13.0.0",
+    "python-pptx==1.0.2",
+    "typing-extensions==4.16.0",
+    "xlsxwriter==3.2.9"
+  ],
+  "checks": [
+    {
+      "command": "node scripts/release/check.mjs",
+      "exit_code": 2,
+      "expected_exit_code": 2
+    },
+    {
+      "command": "python3 submission/round2/scripts/claims_check.py",
+      "exit_code": 0,
+      "expected_exit_code": 0
+    },
+    {
+      "command": "node submission/demo/verify.mjs",
+      "exit_code": 0,
+      "expected_exit_code": 0
+    },
+    {
+      "command": "node submission/demo/verify-submission.mjs",
+      "exit_code": 0,
+      "expected_exit_code": 0
+    }
+  ]
+}

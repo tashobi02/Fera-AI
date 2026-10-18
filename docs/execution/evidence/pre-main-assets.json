@@ -1,6 +1,6 @@
 {
-  "captured_at": "2026-10-18T15:03:27.922915+00:00",
-  "source_commit": "b21c4bb932b14918220177301cd1402a03c8c74a",
+  "captured_at": "2026-10-18T19:10:42.522378+00:00",
+  "source_commit": "2ce4cae037f94c6b1a1c3bdd49a9f7e9cfe8fcd9",
   "checks": [
     {
       "check": "actual-video",
@@ -36,9 +36,10 @@
         "README.md",
         "metrics.md"
       ],
-      "bytes": 867942,
-      "sha256": "4019fffb4933fe3ba41934e8fbb652d1aab18153c53b1305f26154b6eb3380ac",
-      "two_builds_identical": true
+      "bytes": 867993,
+      "sha256": "4c4e75e3ab2737092cdeb4987e9717b6d11fea483f659a7d5f78424c705c8263",
+      "two_builds_identical": true,
+      "all_entries_match_current_source": true
     }
   ],
   "tracked_qa_renders": [
@@ -78,5 +79,6 @@
       "path": "submission/round2/build/storyboard-contact-sheet.png",
       "sha256": "6d90c62ba31ddf5f48962c82220010c9e665ab8e80d5dfd7ac5067909d727f3c"
     }
-  ]
+  ],
+  "archive_status": "Rebuilt local verification copy; coordinator has not uploaded or submitted this archive. Team-reported Round2 submission remains attributed in platform-submission.md."
 }

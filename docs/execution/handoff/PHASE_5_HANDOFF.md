@@ -1,6 +1,9 @@
 # Phase 5 start handoff — 18 October 2026
 
-> **Current handoff:** Software/local preparation on `pre-main` passes local verification; remote CI and user review follow. Do not merge into `main` until explicit user approval. [Final closure](../pre-main-phase4-phase5-closure.md) and [durable verification](../evidence/pre-main-final-verification.json) supersede the historical branch pointers and counts below. Formal human/external gates remain UNVERIFIED; Round 2 is NOT submitted.
+> **19 Oct refresh:** New `pr51-review-fixes` content is integrated on pre-main at `2ce4cae`. PR51 was merged into main by another account during the interruption; the coordinator did not merge main. [Current verification](../evidence/pre-main-final-verification.json) records the fresh stricter tests and attributed submission status.
+
+
+> **Current handoff:** Software/local preparation on `pre-main` passes local verification; remote CI passes; user review remains. Do not merge into `main` until explicit user approval. [Final closure](../pre-main-phase4-phase5-closure.md) and [durable verification](../evidence/pre-main-final-verification.json) supersede the historical branch pointers and counts below. Formal human/external gates remain UNVERIFIED; Round 2 is reported submitted in repository record8294a1c via Mahim; receipt/exact time/submitter remain UNKNOWN.
 
 
 Git landing: [#47](https://github.com/tashobi02/Fera-AI/pull/47) merged to phase2 (`060e320`), then [#48](https://github.com/tashobi02/Fera-AI/pull/48) merged to main (`5cbd4c8`). The primary checkout pulled main and is clean; original owner branches are retained. Start from fetched `origin/main`, not a parked Phase 3 worktree. Full combined-source [CI passed](https://github.com/tashobi02/Fera-AI/actions/runs/39116451104) at `e9f3729` (check, DB, browser); the merge changes no application content. Subsequent pre-main integration lands at `9c18e45` (head of `pre-main--closure-docs`).

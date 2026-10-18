@@ -49,6 +49,13 @@
   "started_at": "2026-10-18T16:50:09.057748+06:00",
   "merge_gate_clarification": "Answered by user: software/offline pass is sufficient for main integration. External/human/organiser/Drive requirements stay pending; no false release acceptance.",
   "branch_refresh_policy": "Fetch and compare local/remote refs at every integration checkpoint and before final handoff; recover necessary new work, preserve superseded history without restoring obsolete implementations.",
-  "updated_at": "2026-10-18T14:59:04.874780+00:00",
-  "puku_status": "Monthly quota exhausted; implementation retained, bounded coordinator repairs and required read-only Codex reviewers completed."
+  "updated_at": "2026-10-18T19:13:46.185784+00:00",
+  "puku_status": "Monthly quota exhausted; implementation retained, bounded coordinator repairs and required read-only Codex reviewers completed.",
+  "latest_external_main_merge": {
+    "pr": 51,
+    "by": "Deatrax",
+    "merge_commit": "2ce4cae",
+    "coordinator_performed_merge": false
+  },
+  "verification": "Local and full remote gates PASS; final handoff-only changes await user review."
 }
