@@ -77,11 +77,17 @@ export function EditModeScreen({ locale }: { locale: Locale }) {
   const [error, setError] = useState<ErrorEnvelope | null>(null);
   const [success, setSuccess] = useState<{ ref: string } | null>(null);
   const [storageFailed, setStorageFailed] = useState(false);
+  const [discardOpen, setDiscardOpen] = useState(false);
   const active = useRef(true);
   const submitting = useRef(false);
   const submitter = useRef<ReturnType<typeof createEditSubmitter> | null>(null);
   const refreshController = useRef<AbortController | null>(null);
   const summary = useRef<HTMLDivElement>(null);
+  // Discard dialog trigger and platform <dialog> ref. The browser owns the
+  // focus trap, Escape handling and inert background; the screen owns the
+  // trigger focus restore on cancel.
+  const discardTrigger = useRef<HTMLElement | null>(null);
+  const discardDialog = useRef<HTMLDialogElement | null>(null);
 
   useEffect(() => {
     active.current = true;
@@ -153,6 +159,15 @@ export function EditModeScreen({ locale }: { locale: Locale }) {
   useEffect(() => {
     if (error) summary.current?.focus();
   }, [error]);
+
+  // Wire the platform <dialog> to the open state. The browser owns focus
+  // trap, Escape handling and inert background.
+  useEffect(() => {
+    const node = discardDialog.current;
+    if (!node) return;
+    if (discardOpen) { if (!node.open) node.showModal(); }
+    else if (node.open) node.close();
+  }, [discardOpen]);
 
   if (phase.kind === "loading") {
     return (
@@ -328,11 +343,22 @@ export function EditModeScreen({ locale }: { locale: Locale }) {
       }
     }
   }
-  function discard() {
+  function requestDiscard(event?: { currentTarget: EventTarget & HTMLElement }) {
     if (submitting.current) return;
-    if (!window.confirm(t.reviewEditDiscard)) return;
+    // event is optional so test harnesses can call without one.
+    discardTrigger.current = event?.currentTarget ?? null;
+    setDiscardOpen(true);
+  }
+  function cancelDiscard() {
+    setDiscardOpen(false);
+    queueMicrotask(() => { discardTrigger.current?.focus(); discardTrigger.current = null; });
+  }
+  function confirmDiscard() {
+    if (submitting.current) return;
+    setDiscardOpen(false);
     clearEditDraft();
     clearEditMode();
+    discardTrigger.current = null;
     router.push("/status");
   }
 
@@ -384,7 +410,32 @@ export function EditModeScreen({ locale }: { locale: Locale }) {
         <ConfirmBar locale={locale} checked={checked} valid={valid} busy={busy} blocked={conflict || sessionExpired || mockBlocked} mock={mockBlocked ? true : undefined} describedBy={!valid ? "review-edit-required" : undefined} onCheck={setChecked} />
       </form>
       <Link className={TERTIARY_BUTTON} href="/status" aria-disabled={busy || undefined} onClick={(e) => { if (busy) e.preventDefault(); }}>{t.reviewEditBack}</Link>
-      <button type="button" disabled={busy} className={TERTIARY_BUTTON} onClick={discard}><TrashIcon />{t.reviewEditDiscard}</button>
+      <button type="button" disabled={busy} className={TERTIARY_BUTTON} onClick={requestDiscard}><TrashIcon />{t.reviewEditDiscard}</button>
+      {/* In-product confirm dialog. The native <dialog> with showModal() gives
+          the OS focus trap, Escape handling and inert background for free.
+          Cancelling is a no-op for storage and the router; only the explicit
+          confirm button mutates. */}
+      <dialog
+        ref={discardDialog}
+        aria-labelledby="edit-discard-title"
+        aria-describedby="edit-discard-body"
+        lang={locale}
+        onCancel={(event) => { event.preventDefault(); cancelDiscard(); }}
+        className="m-auto w-[min(28rem,calc(100%-2rem))] rounded-lg border border-hairline bg-surface p-[16px] text-body shadow-2 backdrop:bg-scrim sm:p-6"
+      >
+        <div className="flex flex-col gap-4">
+          <h2 id="edit-discard-title" className="text-heading-4 font-semibold text-ink">{t.reviewEditDiscardTitle}</h2>
+          <p id="edit-discard-body" className="text-body-md text-body">{t.reviewEditDiscardBody}</p>
+          <div className="flex flex-wrap gap-3">
+            <button type="button" onClick={cancelDiscard} className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-control bg-elevated px-5 text-body-md font-medium text-ink transition-[background-color,border-color] duration-(--duration-fast) ease-out hover:border-control-strong hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+              {t.discardNo}
+            </button>
+            <button type="button" onClick={confirmDiscard} className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md bg-primary px-5 text-body-md font-semibold text-on-primary transition-[background-color] duration-(--duration-fast) ease-out hover:bg-primary-pressed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+              {t.discardYes}
+            </button>
+          </div>
+        </div>
+      </dialog>
     </div>
   );
 }
