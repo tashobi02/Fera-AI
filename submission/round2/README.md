@@ -67,10 +67,12 @@ The demo is the real local-app capture; the storyboard MP4 in this
 folder is a synthetic on-screen-caption storyboard. The two are kept
 separate so reviewers can tell which is which.
 
+The reviewed slide PNGs and storyboard contact sheet are retained in Git under `build/` so the local claims and release checks also work in a fresh checkout. Regenerate them after changing the deck PDF.
+
 ## Reproducible build
 
 The pack builds with `python-pptx`, `Pillow`, `ffmpeg`, `ffprobe` and
-LibreOffice. No new package dependencies are added to the repo.
+LibreOffice and Poppler (`pdftoppm`). No new package dependencies are added to the repo.
 
 ```bash
 # from this directory (submission/round2/)
@@ -79,6 +81,8 @@ libreoffice --headless --convert-to pdf fera-round2-deck.pptx --outdir .
 python3 scripts/build_video.py
 python3 scripts/cleanup_frames.py
 python3 scripts/build_contact_sheet.py
+mkdir -p build/slide-imgs
+pdftoppm -png -r 90 fera-round2-deck.pdf build/slide-imgs/slide
 
 # verify honest copy before any human review
 python3 scripts/claims_check.py
@@ -202,4 +206,4 @@ The pptx is the 8-slide deck; the PDF has 8 pages at 1280x720 logical size and w
 
 ## Current organiser record (PR50)
 
-Mahim recorded organiser instructions on 18 Oct at 18:45 in PR50: submission through `https://h4hbd.ezassist.me/`, a platform cutoff of 18 Oct 22:00 Asia/Dhaka, and at most eight slides. This is an attributed repository record; the platform page, current cutoff and public access have not been independently verified in this audit. Drive/recipient/account details remain unresolved. Round 2 is still **NOT SUBMITTED**. Historical UNKNOWN entries above describe the earlier planning snapshot and are superseded by this attributed record where applicable. No media upload, email, visibility change or platform submission is performed by these scripts.
+The repository entry at commit `9690361` (`submission/round2/platform-submission.md` and the Phase4 log, merged through PR50) attributes instructions to Mahim on 18 Oct at 18:45: submission through `https://h4hbd.ezassist.me/`, a platform cutoff of 18 Oct 22:00 Asia/Dhaka, and at most eight slides. This is an attributed repository record; the platform page, current cutoff and public access have not been independently verified in this audit. Drive/recipient/account details remain unresolved. Round 2 is still **NOT SUBMITTED**. Historical UNKNOWN entries above describe the earlier planning snapshot and are superseded by this attributed record where applicable. No media upload, email, visibility change or platform submission is performed by these scripts.

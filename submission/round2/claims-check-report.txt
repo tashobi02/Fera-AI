@@ -1,5 +1,5 @@
 claims-check-report -- Round 2 submission pack
-root: /home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main-artifact-integrity/submission/round2
+root: /home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main/submission/round2
 
 OK    asset present  -- fera-round2-deck.pptx
 OK    asset present  -- fera-round2-deck.pdf

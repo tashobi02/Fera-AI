@@ -6,47 +6,49 @@
     {
       "id": "branch-audit",
       "branch": "pre-main--branch-audit",
-      "state": "running",
+      "state": "integrated and locally verified",
       "harness": "puku-cli opus-4-8",
       "worktree": "/home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main-branch-audit"
     },
     {
       "id": "spec-intake-platform",
       "branch": "pre-main--spec-intake-platform",
-      "state": "running",
+      "state": "integrated and locally verified",
       "harness": "puku-cli opus-4-8",
       "worktree": "/home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main-spec-intake-platform"
     },
     {
       "id": "spec-desk-data",
       "branch": "pre-main--spec-desk-data",
-      "state": "running",
+      "state": "integrated and locally verified",
       "harness": "puku-cli opus-4-8",
       "worktree": "/home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main-spec-desk-data"
     },
     {
       "id": "offline-stack",
       "branch": "pre-main--offline-stack",
-      "state": "running",
+      "state": "integrated and locally verified",
       "harness": "puku-cli opus-4-8",
       "worktree": "/home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main-offline-stack"
     },
     {
       "id": "test-journeys",
       "branch": "pre-main--test-journeys",
-      "state": "running",
+      "state": "integrated and locally verified",
       "harness": "puku-cli opus-4-8",
       "worktree": "/home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main-test-journeys"
     },
     {
       "id": "phase4-release",
       "branch": "pre-main--phase4-release",
-      "state": "running",
+      "state": "integrated and locally verified",
       "harness": "puku-cli opus-4-8",
       "worktree": "/home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main-phase4-release"
     }
   ],
   "started_at": "2026-10-18T16:50:09.057748+06:00",
   "merge_gate_clarification": "Answered by user: software/offline pass is sufficient for main integration. External/human/organiser/Drive requirements stay pending; no false release acceptance.",
-  "branch_refresh_policy": "Fetch and compare local/remote refs at every integration checkpoint and before final handoff; recover necessary new work, preserve superseded history without restoring obsolete implementations."
+  "branch_refresh_policy": "Fetch and compare local/remote refs at every integration checkpoint and before final handoff; recover necessary new work, preserve superseded history without restoring obsolete implementations.",
+  "updated_at": "2026-10-18T14:59:04.874780+00:00",
+  "puku_status": "Monthly quota exhausted; implementation retained, bounded coordinator repairs and required read-only Codex reviewers completed."
 }

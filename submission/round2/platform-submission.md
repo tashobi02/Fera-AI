@@ -1,6 +1,6 @@
 # Round 2 platform submission (h4hbd.ezassist.me)
 
-Organiser instructions (received 18 Oct 2026, relayed by Mahim): upload the project to the LooselyCoupled Technology AI Worker Platform at <https://h4hbd.ezassist.me/>. The platform shows the prototype deadline as **18 Oct 2026, 10:00 PM (GMT+6)**. PPT: at most 8 slides, no fixed format. Video: Bangla or English, no fixed format.
+Repository-attributed organiser instructions (the entry committed at `9690361` says received 18 Oct 2026 and relayed by Mahim; the original organiser message and current platform state are independently UNVERIFIED): upload the project to the LooselyCoupled Technology AI Worker Platform at <https://h4hbd.ezassist.me/>. The platform shows the prototype deadline as **18 Oct 2026, 10:00 PM (GMT+6)**. PPT: at most 8 slides, no fixed format. Video: Bangla or English, no fixed format.
 
 Platform route for a project built elsewhere: team workspace → **Upload a solution** → fill the fields below → Save → open the saved demo link in a new tab and confirm it loads → choose a track → Submit. Submitting locks the entry; only an organiser can reopen it. Every link must be a public HTTPS URL and the repository must be on GitHub.
 

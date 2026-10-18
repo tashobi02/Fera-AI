@@ -1,5 +1,8 @@
 # pre-main-dev-quality-audit — Phase 4/5 software/offline test gate diagnostics
 
+> **Historical diagnostic at the old0.5/2 config.** Its software-gate freeze prerequisite and claim that calibration lacked user authorisation are superseded by the user-authorised dev calibration. See [final calibration](pre-main-dev-calibration.md) and [verification](pre-main-final-verification.json). Current dev F1 is86.96%; held-out remains locked. Original diagnostic text is preserved below.
+
+
 Lane: `pre-main-dev-quality-audit` (read-only MLE diagnostic). Owner of this file: lane. Date: 2026-10-18 (Asia/Dhaka). Scope: validate the diagnostic validity of the dev dedupe + match numbers behind the `2026-10-18` Phase 3 report before the Phase 4/5 software/offline test gate; report PASS/WARN/BLOCK for *diagnostic validity* separately from *model-quality / threshold pass*.
 
 All claims below trace to a real command, an existing file in the worktree, or a `.meta.json` in `/tmp/`. No held-out data was loaded, inferred, or tuned (FREEZE_FLAG = NOT SET in `eval/FREEZE.md`; the canonical loader in `eval/dedupe.mjs` and `eval/match.mjs` refuses `test`/`heldout` until that flag is set — verified by reading `checkFreezeGate` in `eval/metric-utils.mjs`).

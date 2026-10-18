@@ -1,0 +1,82 @@
+{
+  "captured_at": "2026-10-18T15:03:27.922915+00:00",
+  "source_commit": "b21c4bb932b14918220177301cd1402a03c8c74a",
+  "checks": [
+    {
+      "check": "actual-video",
+      "exit_code": 0,
+      "expected_exit_code": 0
+    },
+    {
+      "check": "variant-video",
+      "exit_code": 0,
+      "expected_exit_code": 0
+    },
+    {
+      "check": "claims",
+      "exit_code": 0,
+      "expected_exit_code": 0
+    },
+    {
+      "check": "release",
+      "exit_code": 2,
+      "expected_exit_code": 2
+    },
+    {
+      "check": "zip",
+      "exit_code": 0,
+      "entries": [
+        "ARCHIVE_README.txt",
+        "fera-round2-deck.pptx",
+        "fera-round2-deck.pdf",
+        "final.mp4",
+        "captions.srt",
+        "links.txt",
+        "selection-email-draft.md",
+        "README.md",
+        "metrics.md"
+      ],
+      "bytes": 867942,
+      "sha256": "4019fffb4933fe3ba41934e8fbb652d1aab18153c53b1305f26154b6eb3380ac",
+      "two_builds_identical": true
+    }
+  ],
+  "tracked_qa_renders": [
+    {
+      "path": "submission/round2/build/slide-imgs/slide-1.png",
+      "sha256": "e4196ec550ce3dc470de86bba31dd831126aebd0ecd888153dc4da1e7d15958c"
+    },
+    {
+      "path": "submission/round2/build/slide-imgs/slide-2.png",
+      "sha256": "948fb9df757868bd562b0dea03341aec4164d8129caa472ed421d1ddf0a6afab"
+    },
+    {
+      "path": "submission/round2/build/slide-imgs/slide-3.png",
+      "sha256": "f1b6e6962d40a7d6bb795f19e96f9eb219e9be691037df6df4b2eb849029bfc2"
+    },
+    {
+      "path": "submission/round2/build/slide-imgs/slide-4.png",
+      "sha256": "f81c22484a30d56ccfa006e339bd13c842871ad2466d1cc0086f1937fcc0c10b"
+    },
+    {
+      "path": "submission/round2/build/slide-imgs/slide-5.png",
+      "sha256": "4f6b209e285adc01c6b2e2be078df6f98a854ef4010a74dc81856b44bddf6610"
+    },
+    {
+      "path": "submission/round2/build/slide-imgs/slide-6.png",
+      "sha256": "bd027cd602b2cb4850fcf966afa307b9f5bfd9db2b35cd4fb9c4a286bc491a65"
+    },
+    {
+      "path": "submission/round2/build/slide-imgs/slide-7.png",
+      "sha256": "0b35d74567522b24f31ea02e2af302f361948df598faebc63b9403be699b9d9d"
+    },
+    {
+      "path": "submission/round2/build/slide-imgs/slide-8.png",
+      "sha256": "96f0b949ea5b1d7f8a43ee1e3cf87ae20022956b4094f3249f04fd1c07b515c4"
+    },
+    {
+      "path": "submission/round2/build/storyboard-contact-sheet.png",
+      "sha256": "6d90c62ba31ddf5f48962c82220010c9e665ab8e80d5dfd7ac5067909d727f3c"
+    }
+  ]
+}

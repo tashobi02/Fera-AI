@@ -25,9 +25,9 @@ Linked requirements: D6 §8 acceptance list (TC-001 – TC-037 written in D6, TC
 | TC-002 | Rafi scripted note → cache hit | `tests/cache/fixtures.test.ts` "covers all 3 scripted demo cases" + [pre-main-cache-offline-fixes.md](pre-main-cache-offline-fixes.md) | PASS (fixture path only) |
 | TC-003 | One question per missing field | `tests/intake/questions.test.ts`, `tests/intake/rounds.test.ts` | PASS |
 | TC-004 | Review-before-submit server posture | `tests/intake/submit-api.test.ts`, `tests/intake/drafts.test.ts` | PASS |
-| TC-005 | GD draft template | `tests/outputs/*`, `tests/api/cases-read.test.ts` | PASS |
+| TC-005 | GD draft template | `tests/outputs/*`, `tests/rehearsal/full-journey-offline.spec.ts` journey8 (actual PNG signature1080×1350), API output tests | PASS |
 | TC-006 | Poster PNG + 13219 | `tests/outputs/*`, `tests/api/cases-read.test.ts` | PASS |
-| TC-007 | 13219 summary ≤ 80 words | `tests/outputs/*` | PASS |
+| TC-007 | 13219 summary ≤ 80 words | `tests/outputs/*`, real helpline≤80-word check in rehearsal journey8 | PASS |
 | TC-008 | Staff found-child log, no candidate details | `tests/found/log-found.test.ts`, `tests/auth/require-role.test.ts` | PASS |
 | TC-009 | Officer queue ≤ 5 candidates, scores, reasons | `tests/match/match-review.test.ts`, `tests/match/run.test.ts` | PASS |
 | TC-010 | Officer confirm (2 steps) + close + referral + audit | `tests/match/match-review-interaction.test.ts`, `tests/match/match-review-screen.test.ts`, `tests/case/audit.test.ts` | PASS |
@@ -41,7 +41,7 @@ Linked requirements: D6 §8 acceptance list (TC-001 – TC-037 written in D6, TC
 | TC-018 | Edit after submit (version + candidates voided) | `tests/api/case-edit.test.ts`, `tests/db/case-edit-route.test.ts` | PASS |
 | TC-019 | Parent status read scoped | `tests/api/my-case.test.ts`, `tests/auth/require-own-case.test.ts` | PASS |
 | TC-020 | Held-out report (≥ 2 failures, denominators) | `tests/eval/all.test.ts` — extractor prints "not measured" until canonical mapping supplied; heldout freeze UNSET | UNVERIFIED (heldout freeze unset, labels not supplied) |
-| TC-021 | Offline laptop journey, `DEMO_MODE=1` | `tests/cache/fixtures.test.ts`, `tests/intake-ui/offline-local.test.ts`, `tests/release/check.test.ts` (offline validator) | PASS for typed path; real physical-device run UNVERIFIED |
+| TC-021 | Offline laptop journey, `DEMO_MODE=1` | `tests/rehearsal/full-journey-offline.spec.ts` (13 checks×5), actual dedicated demo lifecycle; typed cache paths | PASS for typed path; real physical-device run UNVERIFIED |
 | TC-022 | Cross-role denial (E-004, audit) | `tests/auth/require-role.test.ts`, `tests/api/review-queue.test.ts` | PASS |
 | TC-023 | Officer role guard (API-010) | `tests/auth/require-role.test.ts`, `tests/match/routes.test.ts` | PASS |
 | TC-024 | Wording guard for "পালিয়ে" | `tests/intake/rounds.test.ts`, `tests/outputs/*` (template tests) | PASS |

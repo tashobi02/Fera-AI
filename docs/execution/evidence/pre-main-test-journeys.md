@@ -1,4 +1,4 @@
-Last run: 2026-10-18T14:07:18.939Z — 5 run(s) (AUTOMATED) — all green
+Last run: 2026-10-18T14:58:17.388Z — 5 run(s) (AUTOMATED) — all green
 
 # Pre-main test-journeys — automated offline rehearsal evidence
 
@@ -188,15 +188,15 @@ and 10 tests in 1 file. This iteration resolves both:
 
 | Run | Exit | Pass? | Notes |
 |----:|-----:|:----:|-------|
-| 1 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2194013_1801fe
-| 2 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2195146_e5e6d9
-| 3 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2196386_e94882
-| 4 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2197785_24cb0e
-| 5 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2199033_bdc84f
+| 1 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2316671_0_c64e93
+| 2 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2316671_1_0e909f
+| 3 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2316671_2_d24d0f
+| 4 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2316671_3_480602
+| 5 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2316671_4_bb78e3
 
 ## Offline network proof
 
-- Total loopback allow: 164
+- Total loopback allow: 184
 - Total non-loopback deny (external attempts): 0
 - Total data:/blob: pass-through: 0
 
@@ -204,7 +204,7 @@ Per-host (only hosts the browser attempted):
 
 | Host | Allow | Deny | Pass |
 |------|------:|-----:|-----:|
-| 127.0.0.1 | 164 | 0 | 0 |
+| 127.0.0.1 | 184 | 0 | 0 |
 
 ## Offline cache + log
 

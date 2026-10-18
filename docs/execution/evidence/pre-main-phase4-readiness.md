@@ -1,7 +1,7 @@
 # Round 2 release readiness — Obidit offline release-check
 
-Generated: 2026-10-18T13:54:05.372Z
-Repo root: /home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main-phase4-release
+Generated: 2026-10-18T15:03:27.772Z
+Repo root: /home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main
 Exit code from runChecks: 2
 
 Honest-readiness policy:
@@ -14,13 +14,13 @@ Honest-readiness policy:
 
 | File | Status | Detail |
 |---|---|---|
-| `fera-round2-deck.pptx` | PASS | 53607 bytes, sha256=72c7f31eec1b… |
-| `fera-round2-deck.pdf` | PASS | 233366 bytes, sha256=9cb381a6872a… |
+| `fera-round2-deck.pptx` | PASS | 56946 bytes, sha256=d63482e60ead… |
+| `fera-round2-deck.pdf` | PASS | 155220 bytes, sha256=5af0e993e530… |
 | `final.mp4` | PASS | 864854 bytes, sha256=1403d679c454… |
 | `captions.srt` | PASS | 1399 bytes, sha256=bd70f03e6d3b… |
-| `links.txt` | PASS | 6931 bytes, sha256=d0e9fc06792b… |
+| `links.txt` | PASS | 7435 bytes, sha256=e885449c01f9… |
 | `selection-email-draft.md` | PASS | 1375 bytes, sha256=b9296111c5b6… |
-| `README.md` | PASS | 9133 bytes, sha256=36c873bba534… |
+| `README.md` | PASS | 11102 bytes, sha256=20fc9a9bcf05… |
 | `metrics.md` | PASS | 5592 bytes, sha256=866c0b2dff32… |
 | `allowlist-size` | PASS | 8/8 entries prepared |
 
@@ -29,6 +29,7 @@ Honest-readiness policy:
 | Reference | Status | Detail |
 |---|---|---|
 | `url:https://github.com/tashobi02/Fera-AI` | UNVERIFIED | external URL not contacted; offline check only |
+| `url:https://h4hbd.ezassist.me/` | UNVERIFIED | external URL not contacted; offline check only |
 | `path:../demo/final.mp4` | PASS | exists |
 | `path:../demo/captions.srt` | PASS | exists |
 | `path:../demo/provenance.json` | PASS | exists |

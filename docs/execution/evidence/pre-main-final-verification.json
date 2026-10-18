@@ -1,0 +1,103 @@
+{
+  "captured_at": "2026-10-18T14:59:04.874780+00:00",
+  "source_commit": "b21c4bb932b14918220177301cd1402a03c8c74a",
+  "branch": "pre-main",
+  "main_merge": "HOLD \u2014 user verification and explicit approval required",
+  "build": {
+    "status": "PASS",
+    "command": "npm run build; repeated real offline production builds",
+    "source": "b21c4bb932b14918220177301cd1402a03c8c74a"
+  },
+  "types": {
+    "status": "PASS",
+    "command": "npm run typecheck"
+  },
+  "lint": {
+    "status": "PASS",
+    "errors": 0,
+    "warnings": 81
+  },
+  "unit": {
+    "status": "PASS",
+    "passed": 3958,
+    "skipped": 309,
+    "files_passed": 190,
+    "files_skipped": 29,
+    "note": "Default opt-in skips retained; real DB and native embedding suites run separately."
+  },
+  "database": {
+    "status": "PASS",
+    "passed": 321,
+    "files": 31,
+    "dedicated_databases_cleaned": true
+  },
+  "browser": {
+    "status": "PASS",
+    "passed": 78,
+    "skipped": 0,
+    "duration_seconds": 37.9
+  },
+  "offline_repeats": {
+    "status": "PASS",
+    "runs": 5,
+    "checks_per_run": 13,
+    "checks_total": 65,
+    "external_browser_attempts": 0,
+    "all_own_databases_cleaned": true,
+    "source": "b21c4bb932b14918220177301cd1402a03c8c74a",
+    "evidence": "pre-main-automated-repeat-summary.json",
+    "boundary": "Intercepted browser requests only; not a server-wide packet capture."
+  },
+  "demo_lifecycle": {
+    "status": "PASS",
+    "evidence": "pre-main-demo-lifecycle.json",
+    "note": "Real app/login/cookie restart/data reuse/reset; shared developer container unchanged. Run included the reviewed safety fixes before their commit."
+  },
+  "native_embeddings": {
+    "status": "PASS",
+    "passed": 6
+  },
+  "dev_predict": {
+    "status": "PASS",
+    "passed": 1,
+    "source": "ac44bdb",
+    "records": 86,
+    "connected_groups": 30,
+    "heldout": "NOT RUN \u2014 FREEZE_FLAG NOT SET"
+  },
+  "dev_metrics": {
+    "match_recall_at5": "25/25",
+    "top1": "23/25",
+    "no_match_false_suggestions": "5/7",
+    "dedupe_tp": 10,
+    "dedupe_fp": 1,
+    "dedupe_fn": 2,
+    "dedupe_truth_pairs": 12,
+    "dedupe_f1_percent": 86.95652173913044,
+    "shared_phone_negatives_rejected": "25/25",
+    "release_metrics": "not measured"
+  },
+  "frozen_spec_parity": {
+    "status": "PASS",
+    "manifest_entries": 31,
+    "spec_markdown_parity": true,
+    "runtime_schema_parity": true
+  },
+  "dependencies": {
+    "runtime_audit": "0 known in prior audit; dependency lock unchanged",
+    "full_audit": "WARN \u2014 5 high entries from one development lint-chain braces advisory; no compatible patched release in prior verified registry check",
+    "lock_changed_from_main": false
+  },
+  "assets": {
+    "status": "PASS",
+    "evidence": "pre-main-assets.json",
+    "claims_passed": 65,
+    "release_check_exit": 2,
+    "meaning": "Local checks pass; external requirements pending"
+  },
+  "ci": {
+    "status": "PENDING \u2014 final remote dispatch"
+  },
+  "formal_G5_G6": "UNVERIFIED \u2014 external/human requirements pending",
+  "round2_submission": "NOT SUBMITTED"
+}
