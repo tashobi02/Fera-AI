@@ -63,18 +63,27 @@ describe("eval/dedupe.mjs — buildPredictedPositives + scoreDedupe", () => {
     expect(r.tp).toBe(1);
   });
 
-  it("counts shared-phone distinct-child links as targeted false consolidations", () => {
+  it("counts shared-phone distinct-child links as targeted false consolidations (same-kind, in-split only)", () => {
+    // t1 is in the dev split AND has a cross-kind link to a1, so the
+    // cross-kind filter is observable here. (We deliberately do NOT
+    // place t1 in the test split for this test — we want a clean
+    // observation of the cross-kind reporting.)
     const manifest = {
       ...MANIFEST,
       records: [
         ...MANIFEST.records,
-        { record_id: "t1", split_group_id: "MG-T", split: "test" },
+        { record_id: "t1", split_group_id: "MG-T", split: "dev" },
       ],
     };
     const records = GROUND_TRUTH.records.map((record) => ({
       ...record,
       phone_shared_with_other_identities: [] as string[],
     }));
+    // a1 (kind=missing) -> b1 (kind=missing) is a SAME-KIND, in-split
+    // shared-phone link and counts toward the rejection denominator.
+    // a1 (kind=missing) -> t1 (kind=found, in dev split) is a cross-kind
+    // link in the same split — must be reported separately, NOT in the
+    // targeted denominator.
     records[0].phone_shared_with_other_identities = ["b1", "t1"];
     records[2].phone_shared_with_other_identities = ["a1"];
     records.push({
@@ -92,9 +101,13 @@ describe("eval/dedupe.mjs — buildPredictedPositives + scoreDedupe", () => {
     });
 
     const duplicateSet = buildDuplicateSet({ records, manifest, split: "dev" });
+    // Only the same-kind, in-split pair is in the rejection denominator.
     expect(duplicateSet.sharedPhoneDistinct).toEqual([["a1", "b1"]]);
+    // The cross-kind (a1,t1) pair is also in split — but cross-kind,
+    // so it is reported separately and NOT in the denominator.
+    expect(duplicateSet.sharedPhoneCrossKind).toEqual([["a1", "t1"]]);
 
-    const devIds = new Set(MANIFEST.records.map((record) => record.record_id));
+    const devIds = new Set(manifest.records.map((record) => record.record_id));
     const predicted = buildPredictedPositives([{
       id: "a1",
       links: [
@@ -106,13 +119,47 @@ describe("eval/dedupe.mjs — buildPredictedPositives + scoreDedupe", () => {
       truePairs: duplicateSet.truePairs,
       predicted,
       sharedPhoneNegativePairs: duplicateSet.sharedPhoneDistinct,
+      sharedPhoneCrossKindCount: duplicateSet.sharedPhoneCrossKind.length,
     });
 
-    expect(predicted).toEqual(new Set(["a1|b1"]));
-    expect(score.fp).toBe(1);
+    // Both predictions are in the dev split, so both are kept.
+    expect(predicted).toEqual(new Set(["a1|b1", "a1|t1"]));
+    expect(score.fp).toBe(2);
     expect(score.sharedPhoneNegativeTotal).toBe(1);
     expect(score.sharedPhoneNegativeFp).toBe(1);
     expect(score.sharedPhoneNegativeRejected).toBe(0);
+    expect(score.sharedPhoneCrossKindCount).toBe(1);
+  });
+
+  it("excludes cross-kind shared-phone pairs from the rejection denominator", () => {
+    // Independent GT (no hard-coded IDs from the main fixture): two
+    // cross-kind records (missing vs found) sharing a phone, plus one
+    // same-kind record that does NOT share a phone. The cross-kind
+    // pair must not appear in the rejection denominator.
+    const independentRecords = [
+      { record_id: "m1", kind: "missing", role: "pair_query", identity_id: "X1", duplicate_group_id: "G1", true_partner_ids: [], no_match: false, decoy_type: null, decoy_target_ids: [], phone_shared_with_other_identities: ["f1", "m2"] },
+      { record_id: "f1", kind: "found", role: "pair_found", identity_id: "X2", duplicate_group_id: null, true_partner_ids: [], no_match: false, decoy_type: null, decoy_target_ids: [], phone_shared_with_other_identities: [] },
+      { record_id: "m2", kind: "missing", role: "pair_query", identity_id: "X3", duplicate_group_id: null, true_partner_ids: [], no_match: false, decoy_type: null, decoy_target_ids: [], phone_shared_with_other_identities: ["m1"] },
+    ];
+    const independentManifest = {
+      manifest_revision: "manifest-independent",
+      inputs: { ground_truth_sha256: "11".repeat(32) },
+      records: independentRecords.map((r) => ({ record_id: r.record_id, split_group_id: `MG-${r.record_id}`, split: "dev" })),
+    };
+    const dup = buildDuplicateSet({ records: independentRecords, manifest: independentManifest, split: "dev" });
+    // m1 (missing) ↔ f1 (found) is cross-kind → not in rejection denom.
+    // m1 (missing) ↔ m2 (missing) is same-kind → in rejection denom.
+    expect(dup.sharedPhoneDistinct).toEqual([["m1", "m2"]]);
+    expect(dup.sharedPhoneCrossKind).toEqual([["f1", "m1"]]);
+    const score = scoreDedupe({
+      truePairs: dup.truePairs,
+      predicted: new Set(),
+      sharedPhoneNegativePairs: dup.sharedPhoneDistinct,
+      sharedPhoneCrossKindCount: dup.sharedPhoneCrossKind.length,
+    });
+    expect(score.sharedPhoneNegativeTotal).toBe(1);
+    expect(score.sharedPhoneNegativeRejected).toBe(1);
+    expect(score.sharedPhoneCrossKindCount).toBe(1);
   });
 });
 

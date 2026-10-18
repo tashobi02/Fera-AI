@@ -13,7 +13,8 @@
 //     SHA-256 digests before the pipeline is built
 //   * the default `loadLocalEmbedder` sets
 //     `env.allowRemoteModels = false` before any `pipeline(...)` call,
-//     and `allowRemote: true` is the only way to flip it on
+//     and `allowRemote: true` is REFUSED at runtime — the loader fails
+//     closed with a model:fetch hint before any network access
 //   * the default cache directory is anchored at the repository root,
 //     not the cwd
 //   * the loader caches its pipeline per model/cache/recipe configuration
@@ -438,7 +439,8 @@ describe("verifyModelCache (SHA-256 of every pinned file)", () => {
 /* ----------------------------------------------------------------------- *
  * SECURITY HARDENING (P3-024):                                          *
  *   * default loader refuses remote (`env.allowRemoteModels = false`)    *
- *   * `allowRemote: true` is the only way to flip remote on              *
+ *   * `allowRemote: true` is REFUSED at runtime — the loader fails closed *
+ *     with a model:fetch hint before any network access                  *
  *   * cache directory is anchored at the repository root                  *
  *   * loader caches the pipeline per model/cache/recipe config            *
  * ----------------------------------------------------------------------- */
@@ -503,13 +505,19 @@ describe("loadLocalEmbedder security hardening (P3-024)", () => {
     expect(e.space).toContain(`space=${EMBEDDING.space}`);
   });
 
-  it("allowRemote: true is the only way to enable remote (and skips the SHA-256 check)", async () => {
-    // The remote-allowed path is reserved for the model:fetch priming
-    // script; the runtime path never sets it. We assert the env flag
-    // is flipped on, without needing a real cache.
-    const e = await loadLocalEmbedder({ allowRemote: true });
-    expect(envRecord.allowRemoteModels).toBe(true);
-    expect(e.model).toBe("Xenova/multilingual-e5-small");
+  it("allowRemote: true is refused before any pipeline() call (runtime guard)", async () => {
+    // The runtime path and the reembed script never need network
+    // downloads; only the model:fetch priming path does, and even it
+    // sets this flag back to false before reaching pipeline(). A
+    // caller that asks for remote at runtime fails closed with a
+    // model:fetch hint. Skipping this check would let the runtime
+    // silently fall through to huggingface.co if the on-disk cache
+    // is missing or corrupted.
+    await expect(loadLocalEmbedder({ allowRemote: true })).rejects.toThrow(
+      /allowRemote: true is not a runtime option/,
+    );
+    // The guard fires before the pipeline is built — env is still null.
+    expect(envRecord.allowRemoteModels).toBeNull();
   });
 
   it("an explicit allowRemote: false keeps remote off and verifies the cache", async () => {
@@ -521,18 +529,16 @@ describe("loadLocalEmbedder security hardening (P3-024)", () => {
   });
 
   it("anchors the default cache dir at the repository root, not the cwd", async () => {
-    // Make this unit independent of installed files: with
-    // `allowRemote: true` the loader skips the on-disk SHA-256 check
-    // (the runtime path never sets it; only `npm run model:fetch`
-    // does, and that path is tested in tests/embeddings/scripts-cli).
-    // The fake pipeline above substitutes the heavy Transformers.js
+    // We exercise the cache-anchoring path with an isolated minimal
+    // pinned cache fixture so the runtime SHA-256 check passes. The
+    // fake pipeline above substitutes the heavy Transformers.js
     // pipeline, so the loader is the real one but the bytes stay
     // offline. We assert the env values the loader writes so the
-    // cache anchoring is observable without a real cache.
-    await loadLocalEmbedder({ allowRemote: true });
-    expect(envRecord.cacheDir).toBe(DEFAULT_CACHE_DIR);
-    expect(envRecord.cacheDir).toMatch(/\.cache\/models$/);
-    expect(envRecord.cacheDir!.startsWith("/") || /^[A-Za-z]:[\\/]/.test(envRecord.cacheDir!)).toBe(true);
+    // cache anchoring is observable without touching the real
+    // `.cache/models` directory.
+    const { dir, pins } = withCache();
+    await loadLocalEmbedder({ cacheDir: dir, files: pins });
+    expect(envRecord.cacheDir).toBe(dir);
     // And a separately asserted bare call to defaultCacheDir() anchors
     // at the same path (defends against a regression that drops
     // FERA_MODEL_CACHE back to cwd).
@@ -557,11 +563,16 @@ describe("loadLocalEmbedder security hardening (P3-024)", () => {
   });
 
   it("a different model id triggers a fresh pipeline (per-key cache)", async () => {
-    // With allowRemote, the loader does not require a real on-disk cache
-    // — the test is about the per-key pipeline cache, not the bytes.
-    await loadLocalEmbedder({ allowRemote: true });
+    // The runtime path goes through the per-key cache. Two separate
+    // fixtures are needed because the loader refuses to share a
+    // model identifier between two distinct cache directories; both
+    // here are minimal pinned fixtures that the SHA-256 check
+    // accepts.
+    const { dir: dir1, pins: pins1 } = withCache();
+    await loadLocalEmbedder({ cacheDir: dir1, files: pins1 });
     const before = (envRecord.pipelineOptions ?? []).length;
-    await loadLocalEmbedder({ allowRemote: true, model: "Xenova/another-model" });
+    const { dir: dir2, pins: pins2 } = withCache();
+    await loadLocalEmbedder({ cacheDir: dir2, files: pins2, model: "Xenova/another-model" });
     const after = (envRecord.pipelineOptions ?? []).length;
     expect(after).toBe(before + 1);
   });

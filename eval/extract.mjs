@@ -11,7 +11,7 @@
 // honestly. Fixture / cache hits and the held-out split are excluded unless
 // the freeze gate is satisfied (D2B §17, TC-056, AMD-3-3).
 import {
-  REPO_ROOT, EVAL_DATA_DIR, checkFreezeGate, fileSha256,
+  REPO_ROOT, EVAL_DATA_DIR, MANIFEST_PATH, checkFreezeGate, fileSha256,
   safeReadJsonl, safeReadJson, fieldPresent, valueEqual, sampleFailures,
   pct, fmtPercent, round2, notMeasuredMessage, gitHeadShort,
   loadManifest, loadSplitRecords,
@@ -145,7 +145,7 @@ export function scoreRecord(label, prediction) {
 export function aggregateScores(perRecord) {
   const agg = {};
   for (const f of FIELDS) {
-    agg[f] = { tp: 0, fp: 0, fn: 0, tn: 0, false_additions: 0, false_omissions: 0 };
+    agg[f] = { tp: 0, fp: 0, fn: 0, tn: 0, false_additions: 0, false_omissions: 0, value_mismatches: 0 };
   }
   let totalBothNull = 0, totalOneNull = 0, totalBothPresent = 0;
   let correctCount = 0, totalFieldsMeasured = 0;
@@ -157,9 +157,17 @@ export function aggregateScores(perRecord) {
       if (p.present_labelled && p.present_predicted) {
         if (p.value_match) agg[f].tp += 1;
         else {
-          // A wrong value is a false positive prediction and a missed label.
+          // A wrong value is a false positive prediction and a missed
+          // label. We count it as a single `value_mismatches` event so
+          // the headline numerator (correct / present_labelled) and the
+          // omission/headline totals are not double-charged: a mismatch
+          // is not a separate omission, and not a separate false add.
+          // The mismatch is reported separately on `valueMismatches`
+          // and per-field `value_mismatches`, never folded into
+          // `falseOmissions` or `falseAdditions`.
           agg[f].fp += 1;
           agg[f].fn += 1;
+          agg[f].value_mismatches += 1;
           valueMismatches += 1;
         }
       } else if (!p.present_labelled && p.present_predicted) {
@@ -184,7 +192,7 @@ export function aggregateScores(perRecord) {
   }
   const metrics = {};
   for (const f of FIELDS) {
-    const { tp, fp, fn, false_additions: fieldFalseAdditions, false_omissions: fieldFalseOmissions } = agg[f];
+    const { tp, fp, fn, false_additions: fieldFalseAdditions, false_omissions: fieldFalseOmissions, value_mismatches: fieldValueMismatches } = agg[f];
     const presentPos = tp + fn;
     const presentPred = tp + fp;
     metrics[f] = {
@@ -194,6 +202,7 @@ export function aggregateScores(perRecord) {
       recall: presentPos === 0 ? null : tp / presentPos,
       false_additions: fieldFalseAdditions,
       false_omissions: fieldFalseOmissions,
+      value_mismatches: fieldValueMismatches,
     };
   }
   return {
@@ -209,6 +218,12 @@ export function aggregateScores(perRecord) {
       // equality against 0.5, not 50. Headline is the percent view.
       presentFieldAccuracy: presentLabelled === 0 ? null : correctCount / presentLabelled,
       measured_fields: totalFieldsMeasured,
+      // Three independent failure classes:
+      //   falseAdditions  — predicted but not labelled
+      //   falseOmissions  — labelled but not predicted
+      //   valueMismatches — both present, values disagree
+      // They are reported individually and never double-counted
+      // (a mismatch is not also an omission or a false add).
       falseAdditions,
       falseOmissions,
       valueMismatches,
@@ -375,7 +390,8 @@ export async function run({ inputPath, predictionPath, split, stdout }) {
   lines.push(`  labelled file:        ${labelledPath} (sha256 ${fileSha256(labelledPath).slice(0, 12)}...)`);
   lines.push(`  prediction file:      ${predictionPath}`);
   lines.push(`  split:                ${split}`);
-  lines.push(`  manifest hash:        ${manifest ? (manifest.inputs?.ground_truth_sha256?.slice(0, 12) ?? "n/a") + "..." : "n/a"}`);
+  lines.push(`  manifest hash (sha256 of eval/manifest.json): ${manifest ? fileSha256(MANIFEST_PATH).slice(0, 12) + "..." : "n/a"}`);
+  lines.push(`  ground-truth hash (from manifest.inputs):      ${manifest ? (manifest.inputs?.ground_truth_sha256?.slice(0, 12) ?? "n/a") + "..." : "n/a"}`);
   lines.push(`  commit:               ${gitHeadShort() ?? "n/a"}`);
   lines.push(`  cache/fixture hits excluded: ${cacheHitsCount}`);
   lines.push(`  total labelled records (denominator): ${labels.length}`);
@@ -394,9 +410,21 @@ export async function run({ inputPath, predictionPath, split, stdout }) {
     lines.push(
       `    ${f}: precision=${fmtPercent(m.precision === null ? null : m.precision * 100)} ` +
       `recall=${fmtPercent(m.recall === null ? null : m.recall * 100)} ` +
-      `n_labelled=${m.present_labelled} false_add=${m.false_additions} false_omission=${m.false_omissions}`,
+      `n_labelled=${m.present_labelled} false_add=${m.false_additions} ` +
+      `false_omission=${m.false_omissions} ` +
+      `value_mismatches=${m.value_mismatches}`,
     );
   }
+  // Totals — three independent failure classes are reported
+  // separately so the headline is not double-counted. A wrong
+  // present value is a value mismatch; it is not also a false
+  // omission and not a false add.
+  lines.push(
+    `  totals: falseAdditions=${agg.totals.falseAdditions}, ` +
+    `falseOmissions=${agg.totals.falseOmissions}, ` +
+    `valueMismatches=${agg.totals.valueMismatches} ` +
+    `(independently counted; a mismatch is NOT also an omission or a false add)`,
+  );
   // Headline (present-field) accuracy = correct / present_labelled.
   // A field with no prediction is a miss; we don't drop it from the
   // denominator. Null agreement is reported separately, never headline.

@@ -9,7 +9,7 @@
 // We never call a model. Predictions without a label are excluded and
 // counted. Cache / fixture hits are excluded and counted (TC-056).
 import {
-  REPO_ROOT, checkFreezeGate, fileSha256, safeReadJsonl, safeReadJson,
+  REPO_ROOT, MANIFEST_PATH, checkFreezeGate, fileSha256, safeReadJsonl, safeReadJson,
   notMeasuredMessage, gitHeadShort, loadManifest, loadSplitRecords,
   splitInfoFromManifest, pct, fmtPercent,
 } from "./metric-utils.mjs";
@@ -123,29 +123,48 @@ export function buildQueries({ records, manifest, split }) {
 }
 
 export function scorePredictions({ queries, predictionsById }) {
+  // Recall@5 / top-1 / P@5 are scored against TRUE-pair queries only.
+  // A no-match query returning a non-empty list is a FALSE POSITIVE
+  // (the detector promised a partner when the truth says no partner
+  // exists). It is NEVER folded into recall@5 / top-1 / P@5 — the
+  // denominators for those metrics are the truth-pair queries, and a
+  // false-positive suggestion has no defensible "truth-pair" position.
+  // The two failure classes are tracked separately so the printed
+  // report can name them (D2B §17: failures are taken from real
+  // output, never invented).
   let recallAt5Hits = 0;       // of TRUE-pair queries, did the top-5 contain ANY true partner?
   let top1Hits = 0;            // of TRUE-pair queries, was the top-1 a true partner?
-  let top1Considered = 0;
-  let coveredShortlists = 0;
-  let emptyShortlists = 0;
+  let top1Considered = 0;      // truth-pair queries that returned a non-empty shortlist
+  let coveredShortlists = 0;   // truth-pair queries that returned a non-empty shortlist
+  let emptyShortlists = 0;     // truth-pair queries with no prediction / empty shortlist
   let falsePositiveSuggestions = 0; // of NO-MATCH queries, did we return ANY candidate?
-  // P@5 = among all queries with a prediction, average precision @ 5.
-  const pAt5Deno = 0;
+  // P@5: average precision over truth-pair queries, using the
+  // returned shortlist length (up to 5) as the divisor. An empty
+  // shortlist contributes precision 0 (we do NOT drop abstentions
+  // from the denominator — that would inflate the metric by hiding
+  // the cases the detector failed to serve). The denominator is the
+  // number of truth-pair queries, so a measured shortlist of length
+  // < 5 lowers the average, never raises it.
   let pAt5Num = 0;
   const falsePosDecoysAcross = new Map(); // queryId -> number of decoys
-  const failuresRecallAt5 = [];
+  const truthPairMisses = [];   // truth-pair queries that failed (empty / no hit)
+  const noMatchFalsePositives = []; // no-match queries that returned a non-empty list
   for (const qid of queries.truthPairQueries) {
     const partners = queries.partnerSet.get(qid) || new Set();
     const p = predictionsById.get(qid);
     if (!p) {
       emptyShortlists += 1;
-      failuresRecallAt5.push(qid);
+      truthPairMisses.push(qid);
+      // P@5: a missing prediction contributes 0 to the numerator;
+      // we do NOT exclude it from the denominator.
+      pAt5Num += 0;
       continue;
     }
     const ranked = Array.isArray(p.ranked) ? p.ranked.slice(0, 5) : [];
     if (ranked.length === 0) {
       emptyShortlists += 1;
-      failuresRecallAt5.push(qid);
+      truthPairMisses.push(qid);
+      pAt5Num += 0;
       continue;
     }
     const decoys = queries.decoysByQuery.get(qid) || [];
@@ -158,9 +177,12 @@ export function scorePredictions({ queries, predictionsById }) {
     const hit = ranked.some((c) => partners.has(c));
     if (hit) recallAt5Hits += 1;
     coveredShortlists += 1;
-    // P@5
+    // P@5: precision at the actual shortlist length, never padded
+    // up to 5. An empty/short shortlist contributes a smaller
+    // fraction, which is the honest measure.
     const relevant = ranked.filter((c) => partners.has(c)).length;
-    pAt5Num += relevant / Math.max(1, ranked.length);
+    pAt5Num += relevant / ranked.length;
+    if (!hit) truthPairMisses.push(qid);
   }
   for (const qid of queries.noMatchQueries) {
     const p = predictionsById.get(qid);
@@ -168,27 +190,45 @@ export function scorePredictions({ queries, predictionsById }) {
     const ranked = Array.isArray(p.ranked) ? p.ranked : [];
     if (ranked.length > 0) {
       falsePositiveSuggestions += 1;
-      failuresRecallAt5.push(qid);
+      noMatchFalsePositives.push(qid);
     }
   }
   const totalTruth = queries.truthPairQueries.length;
   const totalNoMatch = queries.noMatchQueries.length;
   const recallAt5 = pct(recallAt5Hits, totalTruth);
-  const top1 = pct(top1Hits, top1Considered === 0 ? 0 : top1Considered);
+  // Top-1 denominator is the COVERED truth-pair queries (those that
+  // returned a non-empty shortlist). An empty shortlist cannot be
+  // a top-1 hit; it would be a tautology. We report the explicit
+  // numerator/denominator so a reader can see the covered/empty
+  // split.
+  const top1 = pct(top1Hits, top1Considered);
   const coverage = pct(coveredShortlists, totalTruth);
   const abstention = pct(emptyShortlists, totalTruth);
-  const pAt5 = pAt5Deno === 0 ? pct(pAt5Num, queries.truthPairQueries.length) : pct(pAt5Num, pAt5Deno);
+  // P@5 denominator is the truth-pair query count (every query
+  // contributes its slice, including empty/zero). We never exclude
+  // abstentions to inflate quality.
+  const pAt5 = pct(pAt5Num, totalTruth);
   const falsePosRate = pct(falsePositiveSuggestions, totalNoMatch);
   return {
     totalTruthPairs: totalTruth,
     totalNoMatchQueries: totalNoMatch,
     recallAt5,
     top1,
+    top1Hits,
+    top1Considered,
     coverage,
     abstention,
     pAt5,
+    pAt5Num,
     falsePosRate,
-    failures: Array.from(new Set(failuresRecallAt5)),
+    falsePositiveSuggestions,
+    truthPairMisses,
+    noMatchFalsePositives,
+    // `failures` is the union of the two failure classes for
+    // backward compatibility with callers that did not distinguish
+    // them. New readers should consult `truthPairMisses` and
+    // `noMatchFalsePositives` separately.
+    failures: Array.from(new Set([...truthPairMisses, ...noMatchFalsePositives])),
     falsePosDecoysAcross: Array.from(falsePosDecoysAcross.entries()),
   };
 }
@@ -262,22 +302,29 @@ export async function run({ split, predictionPath, stdout }) {
   lines.push("eval:match summary");
   lines.push(`  split:                  ${split}`);
   lines.push(`  commit:                 ${gitHeadShort() ?? "n/a"}`);
-  lines.push(`  manifest hash:          ${manifest.inputs?.ground_truth_sha256?.slice(0, 12) ?? "n/a"}...`);
+  lines.push(`  manifest hash (sha256 of eval/manifest.json): ${fileSha256(MANIFEST_PATH).slice(0, 12)}...`);
+  lines.push(`  ground-truth hash (from manifest.inputs):     ${manifest.inputs?.ground_truth_sha256?.slice(0, 12) ?? "n/a"}...`);
   lines.push(`  prediction file:        ${predictionPath}`);
   lines.push(`  cache/fixture excluded: ${cacheHits}`);
-  lines.push(`  truth-pair queries (denom): ${scored.totalTruthPairs}`);
-  lines.push(`  no-match queries (denom):   ${scored.totalNoMatchQueries}`);
-  lines.push(`  recall@5 on truth pairs:    ${fmtPercent(scored.recallAt5)} (${scored.failures.length} missed)`);
-  lines.push(`  top-1 accuracy on covered:  ${fmtPercent(scored.top1)}`);
-  lines.push(`  P@5 (truth pairs):          ${fmtPercent(scored.pAt5)}`);
+  lines.push(`  truth-pair queries (denom for recall@5 / P@5): ${scored.totalTruthPairs}`);
+  lines.push(`  no-match queries (denom for FP rate):          ${scored.totalNoMatchQueries}`);
+  lines.push(`  recall@5 on truth pairs:                       ${fmtPercent(scored.recallAt5)} (${scored.truthPairMisses.length} true-pair miss)`);
+  lines.push(`  top-1 accuracy on covered truth pairs:         ${fmtPercent(scored.top1)} (${scored.top1Hits}/${scored.top1Considered})`);
+  lines.push(`  P@5 on truth pairs:                            ${fmtPercent(scored.pAt5)} (denom=${scored.totalTruthPairs}, all truth-pair queries including empty/zero; abstentions never excluded)`);
   lines.push(`  coverage (non-empty shortlist on truth pairs): ${fmtPercent(scored.coverage)}`);
   lines.push(`  abstention (empty shortlist on truth pairs):   ${fmtPercent(scored.abstention)}`);
-  lines.push(`  false-positive suggestion rate on no-match:    ${fmtPercent(scored.falsePosRate)}`);
-  if (scored.failures.length === 0) {
+  lines.push(`  false-positive suggestion rate on no-match:    ${fmtPercent(scored.falsePosRate)} (${scored.falsePositiveSuggestions}/${scored.totalNoMatchQueries}, ${scored.noMatchFalsePositives.length} no-match FP)`);
+  if (scored.truthPairMisses.length === 0 && scored.noMatchFalsePositives.length === 0) {
     lines.push("  failures: none observed");
   } else {
-    const sample = scored.failures.slice(0, 5);
-    lines.push(`  failures (first 5 missed or no-match false positives): ${sample.join(", ")}`);
+    const truthSample = scored.truthPairMisses.slice(0, 5);
+    const noMatchSample = scored.noMatchFalsePositives.slice(0, 5);
+    if (truthSample.length > 0) {
+      lines.push(`  failures (true-pair miss, first 5): ${truthSample.join(", ")}`);
+    }
+    if (noMatchSample.length > 0) {
+      lines.push(`  failures (no-match FP, first 5):    ${noMatchSample.join(", ")}`);
+    }
   }
   out(lines.join("\n") + "\n");
 
