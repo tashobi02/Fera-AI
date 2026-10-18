@@ -553,7 +553,7 @@ export function IntakeChat({ locale, mode }: { locale: Locale; mode: IntakeClien
 function Shell({ title, titleRef, children }: { title: string; titleRef: Ref<HTMLHeadingElement>; children: ReactNode }) {
   return (
     <div data-surface="parent" className="mx-auto flex w-full max-w-[30rem] flex-col gap-6 px-[16px] pt-6 pb-12">
-      <h1 ref={titleRef} tabIndex={-1} className="text-heading-3 font-semibold text-ink outline-none [&:lang(en)]:font-bold [&:lang(en)]:tracking-[-0.25px]">
+      <h1 ref={titleRef} tabIndex={-1} className="text-heading-3 font-semibold text-ink rounded-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring [&:lang(en)]:font-bold [&:lang(en)]:tracking-[-0.25px]">
         {title}
       </h1>
       {children}

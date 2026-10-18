@@ -103,16 +103,28 @@ export function ImportForm({
       return;
     }
     inFlight.current = true;
-    const items: AdminImportRequestInput["items"] = state.selectedFixtures
-      .slice(0, IMPORT_MAX_TEXTS)
-      .map((key, index) => {
-        const opt = FIXTURE_OPTIONS.find((o) => o.key === key)!;
-        return {
-          text: opt.text,
-          source_url: syntheticImportSourceUrl(urlRef.current?.value ?? "", index),
-          synthetic: true as const,
-        };
+    // Resolve each selected fixture key against the allowlist. State is typed
+    // as the two literal keys today, but a future fixture could land in state
+    // from anywhere (a test, a future reducer branch, a localStorage bridge);
+    // an unknown key must not crash the submit. The reducer already rejects
+    // `selectedCount === 0` and `> IMPORT_MAX_TEXTS`, so this loop is the only
+    // remaining shape gate.
+    const items: AdminImportRequestInput["items"] = [];
+    for (let index = 0; index < state.selectedFixtures.length; index += 1) {
+      const key = state.selectedFixtures[index];
+      if (index >= IMPORT_MAX_TEXTS) break;
+      const opt = FIXTURE_OPTIONS.find((o) => o.key === key);
+      if (!opt) {
+        inFlight.current = false;
+        dispatch({ type: "outcome", outcome: { kind: "failed", failure: { id: "E-001", seconds: null } } });
+        return;
+      }
+      items.push({
+        text: opt.text,
+        source_url: syntheticImportSourceUrl(urlRef.current?.value ?? "", index),
+        synthetic: true as const,
       });
+    }
     const payload: AdminImportRequestInput = {
       kind: state.kind,
       fixture_intake_at: state.fixtureIntakeAt,

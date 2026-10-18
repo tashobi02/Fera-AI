@@ -34,7 +34,10 @@ import { requireRole } from "@/server/auth/require-role";
 import { listMyCases } from "@/server/parent/my-reports";
 import { getPool } from "@/server/db/pool";
 import { locales } from "@/locales";
+import { createLogger, describeError } from "@/app/api/_shared/log";
 import { StatusCard } from "./status-card";
+
+const logger = createLogger();
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +52,44 @@ export default async function StatusPage() {
   // principal is the same 404 after a page-denial audit.
   const { principal } = await requireRole(["parent"], "/status");
   // API-018 list: parent session → per-case summary; no candidates, no found rows.
-  const list: MyCaseResponse = await listMyCases(principal, getPool());
+  // Catch only the data fetch so an empty list still renders the empty state. The
+  // page is honest about a failure (synthetic label, retry) without ever replacing
+  // a successful empty list with the failure copy.
+  let list: MyCaseResponse;
+  try {
+    list = await listMyCases(principal, getPool());
+  } catch (err) {
+    // E-019 etc. surface as service errors here. Log only safe facts (BR-024, D2B
+    // §10.1); the page renders the bilingual retry region.
+    logger.error({ event: "page.data_unavailable", error_id: "E-021", ...describeError(err) });
+    return (
+      <div
+        data-surface="parent"
+        className="mx-auto flex w-full max-w-[36rem] flex-col gap-6 px-4 py-8"
+      >
+        <header className="flex flex-col gap-3">
+          <h1 className="text-heading-2 font-semibold text-ink">{t.statusTitle}</h1>
+        </header>
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="flex flex-col gap-4 rounded-lg border border-hairline bg-surface p-[16px] sm:p-5"
+        >
+          <p className="text-caption-md uppercase tracking-wide text-faint">
+            {t.statusListErrorSynthetic}
+          </p>
+          <h2 className="text-heading-sm font-semibold text-ink">{t.statusListErrorTitle}</h2>
+          <p className="text-body-lg leading-[1.7] text-body">{t.statusListErrorBody}</p>
+          <a
+            href="/status"
+            className="inline-flex min-h-12 max-w-full items-center justify-center gap-2 self-start rounded-md bg-primary px-5 text-body-lg font-medium text-on-primary no-underline hover:bg-primary-pressed"
+          >
+            {t.statusListErrorRetry}
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

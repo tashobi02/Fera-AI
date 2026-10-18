@@ -388,7 +388,7 @@ function DistrictTable({
                     <a
                       href={`/officer/map?district=${d.code}`}
                       aria-current={isSel ? "true" : undefined}
-                      className="text-ink underline-offset-2 hover:underline focus:underline"
+                      className="inline-flex min-h-11 min-w-11 items-center text-ink underline-offset-2 hover:underline focus:underline"
                       lang={locale === "bn" ? "bn" : "en"}
                     >
                       {name}
@@ -431,7 +431,7 @@ function DistrictTable({
               <a
                 href={`/officer/map?district=${d.code}`}
                 aria-current={isSel ? "true" : undefined}
-                className="text-body-md font-medium text-ink underline-offset-2 hover:underline focus:underline"
+                className="inline-flex min-h-11 min-w-11 items-center text-body-md font-medium text-ink underline-offset-2 hover:underline focus:underline"
                 lang={locale === "bn" ? "bn" : "en"}
               >
                 {name}
