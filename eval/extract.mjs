@@ -121,7 +121,7 @@ export function scoreRecord(label, prediction) {
       valueMatch = valueEqual(labVal, predVal);
       correct = valueMatch;
     } else if (labPresent && !predPresent) {
-      bothNull++;
+      oneNull++;
       falseOm = true;
     } else if (!labPresent && predPresent) {
       oneNull++;
@@ -145,24 +145,37 @@ export function scoreRecord(label, prediction) {
 export function aggregateScores(perRecord) {
   const agg = {};
   for (const f of FIELDS) {
-    agg[f] = { tp: 0, fp: 0, fn: 0, tn: 0 };
+    agg[f] = { tp: 0, fp: 0, fn: 0, tn: 0, false_additions: 0, false_omissions: 0 };
   }
   let totalBothNull = 0, totalOneNull = 0, totalBothPresent = 0;
   let correctCount = 0, totalFieldsMeasured = 0;
+  let presentLabelled = 0, presentPredicted = 0;
+  let falseAdditions = 0, falseOmissions = 0, valueMismatches = 0;
   for (const r of perRecord) {
     for (const f of FIELDS) {
       const p = r.perField[f];
       if (p.present_labelled && p.present_predicted) {
         if (p.value_match) agg[f].tp += 1;
-        else agg[f].fn += 1; // labelled present but wrong
+        else {
+          // A wrong value is a false positive prediction and a missed label.
+          agg[f].fp += 1;
+          agg[f].fn += 1;
+          valueMismatches += 1;
+        }
       } else if (!p.present_labelled && p.present_predicted) {
         agg[f].fp += 1;
+        agg[f].false_additions += 1;
+        falseAdditions += 1;
       } else if (p.present_labelled && !p.present_predicted) {
         agg[f].fn += 1;
+        agg[f].false_omissions += 1;
+        falseOmissions += 1;
       } else {
         agg[f].tn += 1;
       }
       if (p.value_match) correctCount += 1;
+      if (p.present_labelled) presentLabelled += 1;
+      if (p.present_predicted) presentPredicted += 1;
       if (p.present_labelled || p.present_predicted) totalFieldsMeasured += 1;
     }
     totalBothNull += r.nullAgreement.bothNull;
@@ -171,7 +184,7 @@ export function aggregateScores(perRecord) {
   }
   const metrics = {};
   for (const f of FIELDS) {
-    const { tp, fp, fn, tn } = agg[f];
+    const { tp, fp, fn, false_additions: fieldFalseAdditions, false_omissions: fieldFalseOmissions } = agg[f];
     const presentPos = tp + fn;
     const presentPred = tp + fp;
     metrics[f] = {
@@ -179,8 +192,8 @@ export function aggregateScores(perRecord) {
       present_predicted: presentPred,
       precision: presentPred === 0 ? null : tp / presentPred,
       recall: presentPos === 0 ? null : tp / presentPos,
-      false_additions: fp,
-      false_omissions: fn,
+      false_additions: fieldFalseAdditions,
+      false_omissions: fieldFalseOmissions,
     };
   }
   return {
@@ -190,7 +203,15 @@ export function aggregateScores(perRecord) {
       oneNull: totalOneNull,
       bothPresent: totalBothPresent,
       correct: correctCount,
+      presentLabelled,
+      presentPredicted,
+      // presentFieldAccuracy is a ratio (0..1) — not a percent. Tests assert
+      // equality against 0.5, not 50. Headline is the percent view.
+      presentFieldAccuracy: presentLabelled === 0 ? null : correctCount / presentLabelled,
       measured_fields: totalFieldsMeasured,
+      falseAdditions,
+      falseOmissions,
+      valueMismatches,
       // null agreement = both-null / total field checks; reported separately
       // from accuracy, per D2B §17 ("null agreement reported separately,
       // never headline accuracy").
@@ -227,7 +248,31 @@ export async function run({ inputPath, predictionPath, split, stdout }) {
     return { measured: false, reason: "empty-labels", split, path: labelledPath };
   }
 
-  // 3. Human-empty detection (D2B §17: human labels are required).
+  // 3. Verify label IDs map to canonical manifest records.
+  // D2B §17 + AMD-3-3: human labels reference the canonical UUIDs in
+  // eval/manifest.json. If a label's id is not in the canonical split
+  // we report unmapped-labels rather than silently scoring it.
+  const manifest = loadManifest();
+  const splitInfo = loadSplitRecords(split);
+  const canonicalRecordIds = new Set(
+    Array.isArray(manifest?.records) ? manifest.records.map((r) => r.record_id) : [],
+  );
+  const splitRecordIds = splitInfo?.recordIds ?? new Set();
+  const unmappedLabelIds = labels
+    .map((l) => l?.id)
+    .filter((id) => typeof id === "string" && !canonicalRecordIds.has(id));
+  if (unmappedLabelIds.length > 0) {
+    out(notMeasuredMessage("eval:extract", `label IDs do not map to canonical manifest records (${unmappedLabelIds.length} unmapped; e.g. ${unmappedLabelIds.slice(0, 3).join(", ")})`) + "\n");
+    return {
+      measured: false,
+      reason: "unmapped-labels",
+      split,
+      path: labelledPath,
+      unmappedLabelIds,
+    };
+  }
+
+  // 4. Human-empty detection (D2B §17: human labels are required).
   if (!hasAnyLabel(labels)) {
     out(notMeasuredMessage("eval:extract", "labels are human-empty in this labelled file; no measurement produced (TASK-011 reviewer has not signed off)") + "\n");
     return {
@@ -262,23 +307,47 @@ export async function run({ inputPath, predictionPath, split, stdout }) {
     return { measured: false, reason: "all-cache", split, cacheHits: cacheHitsCount };
   }
 
-  // 6. Pair by id; warn on missing.
+  // 6. Pair by id; warn on missing. Apply the split filter BEFORE scoring
+  // so we never accidentally score held-out records when the caller asked
+  // for dev. Records outside the split are reported but not measured.
   const labelById = new Map();
   for (const l of labels) labelById.set(l.id, l);
   const predById = new Map();
   for (const p of cleanPred) predById.set(p.id, p);
-  const matchedIds = [];
-  const orphanPreds = [];
-  const missingPreds = [];
-  for (const [id, p] of predById) {
-    if (labelById.has(id)) matchedIds.push(id);
-    else orphanPreds.push(id);
+  const allMatchedIds = [];
+  for (const [id] of predById) {
+    if (labelById.has(id)) allMatchedIds.push(id);
   }
+  const allOrphanPreds = [];
+  for (const [id] of predById) {
+    if (!labelById.has(id)) allOrphanPreds.push(id);
+  }
+  const allMissingPreds = [];
   for (const [id] of labelById) {
-    if (!predById.has(id)) missingPreds.push(id);
+    if (!predById.has(id)) allMissingPreds.push(id);
   }
 
-  // 7. Score.
+  // Filter to the current split before scoring.
+  const matchedIds = splitRecordIds.size > 0
+    ? allMatchedIds.filter((id) => splitRecordIds.has(id))
+    : allMatchedIds;
+  const orphanPreds = splitRecordIds.size > 0
+    ? allOrphanPreds.filter((id) => splitRecordIds.has(id))
+    : allOrphanPreds;
+  const missingPreds = splitRecordIds.size > 0
+    ? allMissingPreds.filter((id) => splitRecordIds.has(id))
+    : allMissingPreds;
+  const labelsOutsideSplit = splitRecordIds.size > 0
+    ? allMatchedIds.length - matchedIds.length
+    : 0;
+  const predictionsOutsideSplit = splitRecordIds.size > 0
+    ? (allMatchedIds.length + allOrphanPreds.length) - (matchedIds.length + orphanPreds.length)
+    : 0;
+
+  // 7. Score (only split-filtered records). Missing-prediction labels are
+  // scored against an empty prediction so a missing prediction counts as
+  // a known-label miss, not as "absent" (D2B §17: every present human label
+  // is in the headline denominator).
   const perRecord = [];
   const failures = [];
   for (const id of matchedIds) {
@@ -292,15 +361,13 @@ export async function run({ inputPath, predictionPath, split, stdout }) {
     );
     if (hasFailure) failures.push(id);
   }
-  const agg = aggregateScores(perRecord);
-
-  // 8. Split info: how many of the matched labels are in the current split?
-  const manifest = loadManifest();
-  const splitInfo = loadSplitRecords(split);
-  let inSplit = matchedIds.length;
-  if (manifest && splitInfo) {
-    inSplit = matchedIds.filter((id) => splitInfo.recordIds.has(id)).length;
+  for (const id of missingPreds) {
+    const label = labelById.get(id);
+    const scored = scoreRecord(label.labels || {}, {});
+    perRecord.push({ id, ...scored });
+    failures.push(id);
   }
+  const agg = aggregateScores(perRecord);
 
   // 9. Report.
   const lines = [];
@@ -313,7 +380,10 @@ export async function run({ inputPath, predictionPath, split, stdout }) {
   lines.push(`  cache/fixture hits excluded: ${cacheHitsCount}`);
   lines.push(`  total labelled records (denominator): ${labels.length}`);
   lines.push(`  matched (id present in both):         ${matchedIds.length}`);
-  lines.push(`  of which in ${split} split:            ${inSplit}`);
+  if (labelsOutsideSplit > 0 || predictionsOutsideSplit > 0) {
+    lines.push(`  labels outside ${split} split (excluded from scoring):     ${labelsOutsideSplit}`);
+    lines.push(`  predictions outside ${split} split (excluded from scoring): ${predictionsOutsideSplit}`);
+  }
   lines.push(`  orphan predictions (no label):        ${orphanPreds.length}`);
   lines.push(`  labels without a prediction:          ${missingPreds.length}`);
   // Per-field precision/recall.
@@ -327,13 +397,15 @@ export async function run({ inputPath, predictionPath, split, stdout }) {
       `n_labelled=${m.present_labelled} false_add=${m.false_additions} false_omission=${m.false_omissions}`,
     );
   }
-  // Headline accuracy EXCLUDES both-null pairs (D2B §17).
-  const headlineDenom = agg.totals.bothPresent;
-  const headlineNum = matchedIds.length === 0
-    ? 0
-    : Math.round(agg.totals.correct - agg.totals.bothNull);
-  const headline = pct(headlineNum, headlineDenom);
-  lines.push(`  headline (present-field) accuracy: ${fmtPercent(headline === null ? null : headline)} (${headlineNum}/${headlineDenom}) — null agreement reported separately, never headline accuracy`);
+  // Headline (present-field) accuracy = correct / present_labelled.
+  // A field with no prediction is a miss; we don't drop it from the
+  // denominator. Null agreement is reported separately, never headline.
+  // D2B §17: "null agreement reported separately, never headline accuracy".
+  const headlineDenom = agg.totals.presentLabelled;
+  const headlineNum = agg.totals.correct;
+  const headlineRatio = headlineDenom === 0 ? null : headlineNum / headlineDenom;
+  const headline = headlineRatio === null ? null : headlineRatio * 100;
+  lines.push(`  headline (present-field) accuracy: ${fmtPercent(headline)} (${headlineNum}/${headlineDenom}) — null agreement reported separately, never headline accuracy`);
   lines.push(`  null agreement (both null): ${fmtPercent(agg.totals.nullAgreementPct)} (${agg.totals.bothNull}/${agg.totals.bothNull + agg.totals.oneNull + agg.totals.bothPresent})`);
   // Failure examples (NEVER invent two).
   if (failures.length === 0) {
@@ -351,7 +423,8 @@ export async function run({ inputPath, predictionPath, split, stdout }) {
     prediction: predictionPath,
     cacheHitsExcluded: cacheHitsCount,
     matched: matchedIds.length,
-    inSplit,
+    labelsOutsideSplit,
+    predictionsOutsideSplit,
     orphanPreds,
     missingPreds,
     metrics: agg.metrics,

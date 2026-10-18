@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-// @ts-ignore -- plain ESM script without type declarations
+// @ts-expect-error -- plain ESM script without type declarations
 import { run as runExtract, scoreRecord, aggregateScores, __test } from "../../eval/extract.mjs";
 
 const { FIELDS, detectCacheHit } = __test;
@@ -120,8 +120,12 @@ describe("eval/extract.mjs — aggregateScores", () => {
   });
 
   it("uses every present human-labelled field in accuracy, including missed predictions", () => {
+    type Sample = typeof SAMPLE_LABEL;
     const presentCount = FIELDS.filter((field: string) => {
-      const value = field.split(".").reduce((cur: any, part: string) => cur?.[part], SAMPLE_LABEL as any);
+      const value = field.split(".").reduce<unknown>((cur, part) => {
+        if (cur === null || cur === undefined) return undefined;
+        return (cur as Record<string, unknown>)[part];
+      }, SAMPLE_LABEL as Sample);
       return value !== null && value !== undefined && value !== "";
     }).length;
     const agg = aggregateScores([

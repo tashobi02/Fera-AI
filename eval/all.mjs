@@ -347,8 +347,10 @@ export async function run({ split, extractPrediction, matchPrediction, dedupePre
   if (!extractPrediction) missing.push("- eval:extract: no --extract-prediction file; extraction measurement skipped");
   if (!matchPrediction) missing.push("- eval:match: no --match-prediction file; matching measurement skipped");
   if (!dedupePrediction) missing.push("- eval:dedupe: no --dedupe-prediction file; duplicate measurement skipped");
-  if (extractResult.reason === "human-empty") missing.push("- eval:extract: no human-reviewed labels; no extraction measurement produced");
-  else if (extractResult.reason === "no-labels" || extractResult.reason === "empty-labels") missing.push("- eval:extract: no usable human labels; no extraction measurement produced");
+  if (extractResult.reason === "human-empty" || extractResult.reason === "unmapped-labels")
+    missing.push("- eval:extract: no human-reviewed labels; no extraction measurement produced");
+  else if (extractResult.reason === "no-labels" || extractResult.reason === "empty-labels")
+    missing.push("- eval:extract: no usable human labels; no extraction measurement produced");
   if (manifest.freezeFlag !== "SET") missing.push("- test split remains locked until FREEZE_FLAG is SET after the freeze inputs are reviewed");
   if (missing.length === 0) missing.push("- none");
   md.push(missing.join("\n"));

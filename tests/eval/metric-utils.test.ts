@@ -21,8 +21,8 @@ describe("eval/metric-utils canonical manifest integration", () => {
     const canonicalDev = loadCanonicalSplit(manifest, "dev");
     const dev = loadSplitRecords("dev");
 
-    expect([...dev.recordIds].sort()).toEqual(canonicalDev.map((row: any) => row.record_id).sort());
-    expect([...dev.groupIds].sort()).toEqual([...new Set(canonicalDev.map((row: any) => row.split_group_id))].sort());
+    expect([...dev.recordIds].sort()).toEqual(canonicalDev.map((row: { record_id: string }) => row.record_id).sort());
+    expect([...dev.groupIds].sort()).toEqual([...new Set(canonicalDev.map((row: { split_group_id: string }) => row.split_group_id))].sort());
     expect(dev.split).toBe("dev");
     expect(dev.counts).toEqual(manifest.counts.by_split.dev);
     expect(dev.recordIds.size).toBe(86);

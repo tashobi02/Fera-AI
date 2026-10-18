@@ -107,18 +107,25 @@ export function buildDuplicateSet({ records, manifest, split }) {
       }
     }
   }
-  // Shared-phone distinct-child negatives (TC-038). We rely on
-  // phone_shared_with_other_identities. If absent, we still fall back to
-  // a count of cross-identity pairs that share a phone.
-  const phoneByText = new Map();
+  // Shared-phone distinct-child negatives (TC-038 / BR-021). Records carry
+  // `phone_shared_with_other_identities` (a list of record_ids that share
+  // the reporter's phone but are not the same child). Build unique unordered
+  // pairs restricted to records inside the current split. Targeted
+  // rejection rates are reported, not the simple pairwise metric.
+  const seenShared = new Set();
   for (const r of records) {
     if (!ids.has(r.record_id)) continue;
-    // records.jsonl carries contact_phone; the eval reads ground truth which
-    // does not include the phone. To make TC-038 measurable we'd need the
-    // records.jsonl side. We accept an empty list when the ground truth
-    // does not carry the phone; the test in tests/eval/dedupe.test.ts
-    // exercises an explicit fixture.
-    void phoneByText;
+    const list = Array.isArray(r.phone_shared_with_other_identities) ? r.phone_shared_with_other_identities : [];
+    for (const other of list) {
+      if (!ids.has(other)) continue;
+      if (r.record_id === other) continue;
+      const key = r.record_id < other ? `${r.record_id}|${other}` : `${other}|${r.record_id}`;
+      seenShared.add(key);
+    }
+  }
+  for (const key of seenShared) {
+    const [a, b] = key.split("|");
+    sharedPhoneDistinct.push([a, b]);
   }
   // All distinct-identity pairs in the split count as TN-candidates.
   // We keep them but report the actual count as denominator.
@@ -134,14 +141,17 @@ export function buildDuplicateSet({ records, manifest, split }) {
 
 /**
  * Build predicted set from {id, links: [{a, b, rule}]}.
- * Returns the set of predicted positive pairs (unordered).
+ * Returns the set of predicted positive pairs (unordered). When
+ * `restrictToIds` is provided, pairs that contain an id outside that
+ * set are dropped (used to keep scoring on the requested split).
  */
-export function buildPredictedPositives(predictions) {
+export function buildPredictedPositives(predictions, restrictToIds) {
   const out = new Set();
   for (const p of predictions) {
     if (!p || !Array.isArray(p.links)) continue;
     for (const link of p.links) {
       if (!link || typeof link.a !== "string" || typeof link.b !== "string") continue;
+      if (restrictToIds && (!restrictToIds.has(link.a) || !restrictToIds.has(link.b))) continue;
       const a = link.a < link.b ? link.a : link.b;
       const b = link.a < link.b ? link.b : link.a;
       out.add(`${a}|${b}`);
@@ -154,7 +164,7 @@ function toKey(a, b) {
   return a < b ? `${a}|${b}` : `${b}|${a}`;
 }
 
-export function scoreDedupe({ truePairs, predicted }) {
+export function scoreDedupe({ truePairs, predicted, sharedPhoneNegativePairs }) {
   const truthSet = new Set();
   for (const [a, b] of truePairs) truthSet.add(toKey(a, b));
   let tp = 0, fp = 0;
@@ -168,7 +178,27 @@ export function scoreDedupe({ truePairs, predicted }) {
   const f1 = (precision === null || recall === null || (precision + recall) === 0)
     ? null
     : (2 * precision * recall) / (precision + recall);
-  return { tp, fp, fn, truthSize: truthSet.size, precision, recall, f1 };
+  // Targeted shared-phone distinct-child rejection. Counts:
+  //   sharedPhoneNegativeTotal  = pairs in the ground truth list (in-split)
+  //   sharedPhoneNegativeFp      = detector predicted those pairs as positive
+  //   sharedPhoneNegativeRejected = detector correctly refused those pairs
+  let sharedPhoneNegativeTotal = 0;
+  let sharedPhoneNegativeFp = 0;
+  let sharedPhoneNegativeRejected = 0;
+  if (Array.isArray(sharedPhoneNegativePairs)) {
+    for (const [a, b] of sharedPhoneNegativePairs) {
+      const key = toKey(a, b);
+      sharedPhoneNegativeTotal += 1;
+      if (predicted.has(key)) sharedPhoneNegativeFp += 1;
+      else sharedPhoneNegativeRejected += 1;
+    }
+  }
+  return {
+    tp, fp, fn, truthSize: truthSet.size, precision, recall, f1,
+    sharedPhoneNegativeTotal,
+    sharedPhoneNegativeFp,
+    sharedPhoneNegativeRejected,
+  };
 }
 
 export async function run({ split, predictionPath, stdout }) {
@@ -228,8 +258,12 @@ export async function run({ split, predictionPath, stdout }) {
   }
   const predicted = buildPredictedPositives(clean);
 
-  // 6. Score.
-  const scored = scoreDedupe({ truePairs: dup.truePairs, predicted });
+  // 6. Score (with shared-phone distinct-child negative tracking).
+  const scored = scoreDedupe({
+    truePairs: dup.truePairs,
+    predicted,
+    sharedPhoneNegativePairs: dup.sharedPhoneDistinct,
+  });
 
   // 7. Report.
   const lines = [];
@@ -253,6 +287,18 @@ export async function run({ split, predictionPath, stdout }) {
         ? "misses (FN)"
         : "false consolidations (FP)";
     lines.push(`  failures: ${failureType}; counts above`);
+  }
+  // Shared-phone distinct-child rejection (TC-038). Targeted rejection
+  // is reported separately from overall pairwise precision/recall: BR-021
+  // (shared phone alone never establishes the same child).
+  if (scored.sharedPhoneNegativeTotal > 0) {
+    const total = scored.sharedPhoneNegativeTotal;
+    const fp = scored.sharedPhoneNegativeFp;
+    const rej = scored.sharedPhoneNegativeRejected;
+    lines.push(
+      `  shared-phone distinct-child rejection: ${rej}/${total} refused ` +
+      `(targeted FP ${fp}/${total})`,
+    );
   }
   out(lines.join("\n") + "\n");
 
