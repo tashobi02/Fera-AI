@@ -1,70 +1,106 @@
 // P3-209 · TC-028 log scan (NFR-010; PII never reaches logs).
 //
-// The brief: after the other specs, read the server log the webServer
-// captures, regex the captured log for the phone pattern `/01[0-9]{9}/`
-// and for the seeded fixture display names, and expect 0 matches for each.
+// `scripts/e2e-server.mjs` (the `webServer` for `playwright.config.ts`) spawns
+// `next start` and tees its stdout/stderr to `FERA_E2E_LOG_PATH` per run. This
+// spec reads that file, drives a real public request carrying a unique
+// synthetic marker (a name and a phone number), captures the server-issued
+// `request_id` from the response header, and asserts the captured log
+// contains a matching request line (proving the log file is the server's,
+// not stale or empty) while remaining free of any phone-shaped digit run,
+// any of the seeded fixture display names, and the synthetic marker name.
 //
-// How Fera's logger is wired:
-//   - `src/app/api/_shared/log.ts` exports `createLogger()`. The default
-//     sink writes JSON lines to `process.stdout`. Every line is filtered
-//     through `PHONE_LIKE = /(?:0|০)(?:1|১)[0-9০-৯]{9}/` and an allowlist
-//     of keys (`event`, `request_id`, `route`, etc.); disallowed values
-//     are dropped, never written.
-//   - `playwright.config.ts` boots the webServer with
-//     `stdout: "pipe", stderr: "pipe"`. With `pipe`, Playwright captures
-//     the child process stdout/stderr but does not expose it back to the
-//     spec process — there is no `webServer.outputPath`, no `processLog`
-//     hook, and no fixture on the spec for captured lines.
-//
-// Therefore the spec process cannot read the captured stdout. Per the
-// brief, we mark the test `test.fixme` with that one-line reason. A
-// future change to write logs to a file under `webServer.outputPath` (or
-// to expose them via a Playwright reporter hook) would unfixme this test.
+// Why this is runnable: the wrapper writes the same bytes to a per-run log
+// file under `.e2e-logs/`, so the spec can read it directly. The health
+// request proves the log file is the server's output (no false positive on
+// an empty file).
 import { test, expect } from "@playwright/test";
+import { STAFF_DISPLAY, UNVERIFIED_DISPLAY, VERIFIED_DISPLAY, SEED_PARENT_NAME, SEED_CHILD_NAME } from "./support/fixtures";
+import { findLogLines, readCapturedLog, logFileExists } from "./support/log";
 
-// Seeded fixture display names inserted by `tests/e2e/safeguarding.spec.ts`.
-// `displayNameSchema` rejects names containing digit runs, so each of
-// these contains only letters, spaces and the `[MOCK]` prefix.  The log
-// scan must not see any of them — the allowlist logger has no key for
-// names, and dropping names is the only correct outcome.
-const SEEDED_NAMES = [
-  "[MOCK] E2E Staff One",
-  "[MOCK] E2E Officer Pending",
-  "[MOCK] E2E Officer Verified",
-  "[MOCK] E2E Reporter One",
-  "[MOCK] E2E Child One",
-] as const;
+// Seeded fixture display names inserted by `tests/e2e/safeguarding.spec.ts`
+// and read by `parent-journey.spec.ts` and `officer-lifecycle.spec.ts`.  The
+// logger allowlist has no key for names; dropping them is the only correct
+// outcome.
+const SEEDED_NAMES = [STAFF_DISPLAY, UNVERIFIED_DISPLAY, VERIFIED_DISPLAY, SEED_PARENT_NAME, SEED_CHILD_NAME];
 
-// The phone-pattern the brief names explicitly: a "01" digit run, then
-// nine more digits.  `PHONE_LIKE` in `src/app/api/_shared/log.ts` is
-// stricter (allows Bangla digits, forbids phone-shaped digit runs in any
-// field).  This regex matches exactly what the brief says.
+// The phone-pattern the brief names explicitly: a "01" digit run, then nine
+// more digits.  `PHONE_LIKE` in `src/app/api/_shared/log.ts` is stricter
+// (also matches Bangla digits), but the spec covers exactly the ASCII run
+// the brief names.
 const PHONE_PATTERN = /01[0-9]{9}/;
 
-// One-line reason the spec cannot read the captured log, per the brief.
-// Reference it once so the linter does not flag the gap-tracker as dead.
-const NOT_READABLE =
-  "Playwright webServer stdout/stderr is piped and not exposed to the spec; " +
-  "the captured server log cannot be read from this test process.";
-void NOT_READABLE;
+// A unique synthetic marker we embed in the request via the body.  Both the
+// marker and a phone-shaped digit run we add to the body must NOT appear in
+// the log; the only thing the spec matches in the log is the server-issued
+// `request_id`.  The number is high-entropy to avoid colliding with other
+// e2e runs.
+const MARKER_NAME = `e2e-marker-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
+const MARKER_PHONE = "019" + String(Date.now()).slice(-8); // 11 ASCII digits
 
 test.describe("log scan (TC-028, NFR-010)", () => {
-  test.fixme(
-    `server log contains no seeded names and no phone-shaped digit run matching ${PHONE_PATTERN.source}`,
-    async () => {
-      // Body intentionally empty.  When fixed, the test will:
-      //   1. Open the captured server log file/stream.
-      //   2. Read the lines emitted after the prior specs finished.
-      //   3. For each line, assert `!PHONE_PATTERN.test(line)` and
-      //      `!SEEDED_NAMES.some(name => line.includes(name))`.
-      //   4. Aggregate to 0 matches across both checks.
-      // Until then, the test is recorded as a known gap with the reason
-      // above, and the same assertion is covered by:
-      //   - unit tests of `createLogger()` in `tests/unit/log.test.ts`
-      //     (PHONE_LIKE and the allowlist are tested directly), and
-      //   - the allowlist shape in `src/app/api/_shared/log.ts` itself.
-      expect(PHONE_PATTERN.source).toBe("01[0-9]{9}");
-      expect(SEEDED_NAMES).toHaveLength(5);
-    },
-  );
+  test("server log contains the request_id but no synthetic name, no phone, no seeded fixture", async ({ request }) => {
+    // 1) Drive a real public request that carries the unique synthetic
+    //    marker in the body.  /api/health is API-019 — no auth, no payload
+    //    schema; the body is plain JSON parsed by the request reader and
+    //    dropped by the logger allowlist.  The server sets an `x-request-id`
+    //    response header we can read.
+    const response = await request.get("/api/health", {
+      params: { marker: MARKER_NAME, contact: MARKER_PHONE },
+    });
+    expect(response.status()).toBe(200);
+    const requestId = response.headers()["x-request-id"] ?? "";
+    expect(requestId, "server must issue a request id").toMatch(/^[0-9a-f-]{8,}$/);
+
+    // 2) The log file exists and is non-empty (wrapper wrote at least the
+    //    start banner and our request line).
+    expect(
+      logFileExists(),
+      "e2e log file must be present and non-empty after a request",
+    ).toBe(true);
+
+    // 3) Find the request line for the issued `request_id`.  The format is
+    //    the allowlist JSON: {"level":30,"time":<ms>,"event":"request",
+    //    "request_id":"<uuid>","route":"API-019","method":"POST",...}.
+    //    Matching the request_id is the most precise possible proof the
+    //    captured log is the live server's for *this* request.
+    await expect.poll(() => findLogLines(`"request_id":"${requestId}"`).length).toBeGreaterThan(0);
+    const requestLines = findLogLines(`"request_id":"${requestId}"`);
+    expect(
+      requestLines.length,
+      `expected at least one request line for request_id=${requestId}`,
+    ).toBeGreaterThan(0);
+    // The request line must carry the API-019 route marker.
+    expect(
+      requestLines[0],
+      "request line must reference API-019",
+    ).toContain('"route":"API-019"');
+
+    // 4) The synthetic marker name must not appear in any log line.  A
+    //    regression that logs the request body unfiltered is caught here.
+    const markerLines = findLogLines(MARKER_NAME);
+    expect(
+      markerLines,
+      `marker ${MARKER_NAME} must not appear in the captured log; found ${markerLines.length} line(s)`,
+    ).toEqual([]);
+
+    // 5) NFR-010 phone-pattern scan: 0 matches across the full log.  This
+    //    covers both the marker phone we just sent and any seeded fixture
+    //    phone-shaped string.
+    const phoneLines = findLogLines(PHONE_PATTERN);
+    expect(
+      phoneLines,
+      `phone-shaped digit runs found in log: ${phoneLines.length} line(s)`,
+    ).toEqual([]);
+
+    // 6) Seeded fixture name scan: 0 matches across the full log.
+    const nameHits: Array<{ name: string; lines: string[] }> = [];
+    for (const name of SEEDED_NAMES) {
+      const lines = findLogLines(name);
+      if (lines.length > 0) nameHits.push({ name, lines });
+    }
+    expect(
+      nameHits,
+      `seeded fixture names found in log: ${nameHits.length}`,
+    ).toEqual([]);
+  });
 });

@@ -69,9 +69,15 @@ jobs:
       - run: docker run -d --name fera-db -e POSTGRES_PASSWORD=postgres -p 127.0.0.1:54322:5432 fera-pg16-pgvector:0.8.1
       - name: wait for PostgreSQL
         run: for i in $(seq 1 60); do PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -Atc 'select 1' postgres >/dev/null 2>&1 && exit 0; sleep 2; done; exit 1
+      - name: fetch pinned offline E5-q8 model cache
+        env:
+          FERA_MODEL_CACHE: ${{ github.workspace }}/.cache/models
+        run: npm run model:fetch
       - name: install Playwright Chromium
         run: npx playwright install --with-deps chromium
       - name: run e2e
+        env:
+          FERA_MODEL_CACHE: ${{ github.workspace }}/.cache/models
         run: npm run test:e2e
       - name: upload Playwright report on failure
         if: failure()
