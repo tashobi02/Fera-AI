@@ -168,6 +168,7 @@ export type ImportFormState = {
   texts: string;
   sourceUrl: string;
   kind: "missing" | "found";
+  selectedFixtures: ReadonlyArray<"missing" | "found">;
   fixtureIntakeAt: string;
   status: "idle" | "submitting";
   confirmError: boolean;
@@ -192,6 +193,7 @@ export const initialImportState: ImportFormState = {
   texts: "",
   sourceUrl: "",
   kind: "missing",
+  selectedFixtures: ["missing", "found"],
   fixtureIntakeAt: NOW_ISO(),
   status: "idle",
   confirmError: false,
@@ -205,8 +207,9 @@ export type ImportFormEvent =
   | { type: "input_texts"; value: string }
   | { type: "input_url"; value: string }
   | { type: "set_kind"; value: "missing" | "found" }
+  | { type: "toggle_fixture"; key: "missing" | "found"; checked: boolean }
   | { type: "input_confirm"; value: string }
-  | { type: "submit"; value: string; lineCount: number }
+  | { type: "submit"; value: string; selectedCount: number }
   | { type: "outcome"; outcome: AdminImportOutcome<ImportResponse> };
 
 export function importReducer(state: ImportFormState, event: ImportFormEvent): ImportFormState {
@@ -217,6 +220,16 @@ export function importReducer(state: ImportFormState, event: ImportFormEvent): I
       return { ...state, sourceUrl: event.value };
     case "set_kind":
       return { ...state, kind: event.value };
+    case "toggle_fixture": {
+      const has = state.selectedFixtures.includes(event.key);
+      if (event.checked && !has) {
+        return { ...state, selectedFixtures: [...state.selectedFixtures, event.key] };
+      }
+      if (!event.checked && has) {
+        return { ...state, selectedFixtures: state.selectedFixtures.filter((k) => k !== event.key) };
+      }
+      return state;
+    }
     case "input_confirm":
       if (state.confirmError && confirmationMatchesImport(event.value)) {
         return { ...state, confirmError: false };
@@ -224,10 +237,10 @@ export function importReducer(state: ImportFormState, event: ImportFormEvent): I
       return state;
     case "submit": {
       if (state.status === "submitting") return state;
-      if (event.lineCount === 0) {
+      if (event.selectedCount === 0) {
         return { ...state, confirmError: true, confirmAttempts: state.confirmAttempts + 1, lastError: "too_few", failure: null };
       }
-      if (event.lineCount > IMPORT_MAX_TEXTS) {
+      if (event.selectedCount > IMPORT_MAX_TEXTS) {
         return { ...state, confirmError: true, confirmAttempts: state.confirmAttempts + 1, lastError: "too_many", failure: null };
       }
       if (!confirmationMatchesImport(event.value)) {

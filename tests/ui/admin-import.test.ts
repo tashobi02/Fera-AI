@@ -8,17 +8,24 @@ import { ImportForm } from "@/app/(desk)/admin/import-form";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => undefined }) }));
 
 describe("SCREEN-013 synthetic import form", () => {
-  it("renders bilingual synthetic-only and no-live-extraction copy", () => {
+  it("renders bilingual synthetic-only copy and the protected fixture chooser", () => {
     const bn = renderToStaticMarkup(createElement(ImportForm, { locale: "bn" }));
     const en = renderToStaticMarkup(createElement(ImportForm, { locale: "en" }));
 
     expect(bn).toContain("সিনথেটিক টেক্সট ইমপোর্ট");
     expect(bn).toContain("লাইভ এআই এক্সট্রাকশন চলে না");
+    expect(bn).toContain("শুধু সারাংশ গণনা দেখানো হয়");
     expect(en).toContain("Import synthetic texts");
     expect(en).toContain("Demo imports use deterministic simulation; live AI extraction does not run.");
     expect(en).toContain("Source URLs are never fetched.");
+    expect(en).toContain("Only summary counts are shown.");
     expect(en).toContain("name=\"synthetic_confirmation\"");
     expect(en).toContain('type="url"');
+    // The exact protected fixture texts are visible as a chooser; the form
+    // does not accept arbitrary text input.
+    expect(en).toContain("[MOCK] Missing report");
+    expect(en).toContain("[MOCK] Found report");
+    expect(en).not.toMatch(/<textarea/i);
     expect(en).not.toContain("AI adapter");
   });
 

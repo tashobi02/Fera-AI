@@ -1,33 +1,31 @@
 // Deterministic sample builder for the synthetic public-import path (TASK-048;
 // API-015; TC-014; FR-024).
 //
-// The contract for reviewed drafts is strict: every field must satisfy the
-// submission schema, every CHECK in cases is enforced by the database, and
-// "no guessed fields" is the rule. The builder therefore:
+// The production default DEMO_MODE importer is restricted to the exact
+// protected [MOCK] fixture texts in src/lib/admin-import-fixtures.ts:
+// unknown, altered or arbitrary text is rejected with `invalid_draft` and
+// never persisted. This is the safeguard against prompt injection
+// ("synthetic: true + example.invalid = accept anything") — the URL is
+// reserved and the contract requires it, but only the literal protected
+// fixture text is ever turned into a draft.
 //
-//   1. Rejects texts that are too short or too long before producing anything.
-//   2. Extracts one or two deterministic values from the text (district code
-//      by exact substring, an age digit when present) using small, fixed
-//      dictionaries. Any text that does not match a known phrase keeps the
-//      relevant field as null — the SQL CHECK permits nulls for unknown age,
-//      unknown event time, etc. We never invent a value the text does not
-//      carry.
-//   3. Returns a fully schema-valid draft, parsed through the missing/found
-//      submission schemas. The route then calls processPublicImportItem with
-//      `confirmed: true` semantics implicit in the case service helper.
+// For every non-null derived field the builder extracts a source span
+// (UTF-16 offsets into source_text, the literal quote, and a derivation
+// enum) and passes it through the contracts evidence schema. There is no
+// "evidence: {}" fall-back: an extracted value without a span fails the
+// draft, and the row is not stored.
 //
-// The request supplies the fixture intake time, so the same text, kind and
-// timestamp always produce the same draft (no Date.now, no Math.random). This
-// is the deterministic, labelled simulated path: every output is reproducible, every
-// output carries the synthetic badge in the UI, and no field is invented.
+// "No guessed fields" (BR-001/008/021): the literal synthetic phone
+// 01200-XXX-NNN (01200001234 / 01200001235), the literal event timestamp
+// (2026-10-17T10:00 / 11:00 +06:00), the literal place and district are
+// read directly from the protected fixture text. The clock is never used
+// to invent a date; the sex is read from the literal word "boy" / "girl";
+// the description for found reports is read from the literal "Description:
+// ..." clause when present, otherwise the draft is rejected.
 //
-// Evidence spans are not produced (the schema's evidence schema is strict
-// about UTF-16 offsets). The provenance column is therefore '{}' for every
-// imported row; the cases CHECK on anonymised_at requires
-// provenance = '{}' for redacted rows but does not forbid it on live rows.
-// We do not emit any evidence span, so we never accidentally echo a child
-// payload or a name back into the audit.
-import { createHash } from "node:crypto";
+// Evidence is sourced from a single declared `ADMIN_IMPORT_SAMPLE_FIXTURES`
+// table in src/lib/admin-import-fixtures.ts so the UI and the server share
+// one allowlist.
 import {
   AGE,
   caseDraftSchema,
@@ -38,7 +36,14 @@ import {
   type CaseKind,
   type FoundSubmissionDraft,
   type MissingSubmissionDraft,
+  type EvidenceSpan,
 } from "@/contracts";
+import { ADMIN_IMPORT_SAMPLE_FIXTURES } from "@/lib/admin-import-fixtures";
+
+const FIXTURE_TEXTS = {
+  missing: ADMIN_IMPORT_SAMPLE_FIXTURES.missing,
+  found: ADMIN_IMPORT_SAMPLE_FIXTURES.found,
+} as const;
 
 const DISTRICT_FIXTURE_NAMES: ReadonlyMap<string, number> = new Map([
   ["ঢাকা", 13],
@@ -53,71 +58,168 @@ const DISTRICT_FIXTURE_NAMES: ReadonlyMap<string, number> = new Map([
   ["গাজীপুর", 17],
 ]);
 
-// Lower-case fallback for Latin/romanised district names in mixed-language text.
-const DISTRICT_FIXTURE_LATIN: ReadonlyMap<string, number> = new Map([
-  ["dhaka", 13],
-  ["chattogram", 9],
-  ["chittagong", 9],
-  ["sylhet", 38],
-  ["khulna", 47],
-  ["rajshahi", 50],
-  ["barishal", 4],
-  ["barisal", 4],
-  ["rangpur", 55],
-  ["mymensingh", 39],
-  ["comilla", 8],
-  ["gazipur", 17],
-]);
-
 function findDistrictMention(text: string): { code: number; placeText: string } | null {
   for (const [name, code] of DISTRICT_FIXTURE_NAMES) {
     if (text.includes(name)) return { code, placeText: name };
   }
-  const lower = text.toLowerCase();
-  for (const [name, code] of DISTRICT_FIXTURE_LATIN) {
-    const start = lower.indexOf(name);
-    if (start >= 0) return { code, placeText: text.slice(start, start + name.length) };
-  }
   return null;
 }
 
-function findAgeYears(text: string): number | null {
-  // Match a single 0..17 number adjacent to the words বয়স / age / years.
-  const m = text.match(/(?:বয়স|age|বছর|years?)[\s:ঃ]*?([0-9]{1,2})/i);
-  if (!m) return null;
-  const n = Number(m[1]);
-  if (!Number.isInteger(n) || n < 0 || n > 17) return null;
-  return n;
-}
-
-function findSex(text: string): "male" | "female" | "other" | "unknown" {
-  if (/(ছেলে|বালক|পুত্র|son|boy)/i.test(text)) return "male";
-  if (/(মেয়ে|বালিকা|কন্যা|girl|daughter)/i.test(text)) return "female";
-  return "unknown";
-}
-
-// "আজ" / "আজকে" / "এখন" — relative to the clock. "গতকাল" / "yesterday" — clock-1d.
-function findEventWindow(text: string, now: Date): { at: string; at_lower: string; at_upper: string; at_approx: boolean } {
-  const nowIso = inputDateTimeSchema.parse(now.toISOString());
-  if (/(আজ|আজকে|এখন|now|today)/i.test(text)) {
-    return { at: nowIso, at_lower: nowIso, at_upper: nowIso, at_approx: false };
+// `direct` evidence: a literal substring of `source` that exactly matches
+// `quote` and lives at `start_utf16`..`end_utf16`. The call site has to
+// compute the offsets; this helper just stamps the derivation.
+function directSpan(source: string, quote: string, derivation: "direct" | "district_mapping" = "direct"): EvidenceSpan {
+  const start = source.indexOf(quote);
+  if (start < 0) throw new Error(`evidence quote not found: ${quote}`);
+  if (source.slice(start, start + quote.length) !== quote) {
+    throw new Error(`evidence quote mismatch at ${start}: ${quote}`);
   }
-  if (/(গতকাল|yesterday)/i.test(text)) {
-    const y = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const yIso = inputDateTimeSchema.parse(y.toISOString());
-    return { at: yIso, at_lower: yIso, at_upper: yIso, at_approx: false };
-  }
-  // Unparseable: keep the SQL CHECK happy with the clock-aligned defaults.
-  // We never guess a date.
-  return { at: nowIso, at_lower: nowIso, at_upper: nowIso, at_approx: true };
+  return {
+    quote,
+    start_utf16: start,
+    end_utf16: start + quote.length,
+    derivation,
+  };
 }
 
-function deterministicPhone(text: string, seed: string): string {
-  // A synthetic placeholder matching the database's required 11-digit shape.
-  // The first 9 SHA-256 hex digits are mapped to digits and prefixed with "01".
-  const hash = createHash("sha256").update(`${seed}|${text}`).digest("hex").slice(0, 9);
-  const digits = hash.replace(/[a-f]/g, (c) => String(parseInt(c, 16) % 10));
-  return `01${digits.slice(0, 9)}`;
+// Extract the literal `Description: ...` clause from the protected
+// fixture text. The clause ends at the next `.` or end-of-text.
+function extractDescription(source: string): string | null {
+  const marker = "Description:";
+  const start = source.indexOf(marker);
+  if (start < 0) return null;
+  const after = source.slice(start + marker.length).trimStart();
+  const end = after.indexOf(".");
+  const value = (end >= 0 ? after.slice(0, end) : after).trim();
+  return value.length >= 3 ? value : null;
+}
+
+// Extract the literal `Event at: <iso>` clause from the protected fixture
+// text. The ISO must be valid per the inputDateTimeSchema and is returned
+// alongside its source span.
+function extractEventAt(source: string): { value: string; span: EvidenceSpan } | null {
+  const marker = "Event at: ";
+  const start = source.indexOf(marker);
+  if (start < 0) return null;
+  const after = source.slice(start + marker.length);
+  const end = after.indexOf(".");
+  if (end < 0) return null;
+  const candidate = after.slice(0, end).trim();
+  const parsed = inputDateTimeSchema.safeParse(candidate);
+  if (!parsed.success) return null;
+  return {
+    value: parsed.data,
+    span: {
+      quote: candidate,
+      start_utf16: start + marker.length,
+      end_utf16: start + marker.length + candidate.length,
+      derivation: "direct",
+    },
+  };
+}
+
+// Extract the literal `Reporter phone: 0120000NNNN` clause from the
+// protected fixture text. The phone must be exactly 11 digits starting
+// with 01; an altered or unknown value fails the draft.
+function extractReporterPhone(source: string): { value: string; span: EvidenceSpan } | null {
+  const marker = "Reporter phone: ";
+  const start = source.indexOf(marker);
+  if (start < 0) return null;
+  const after = source.slice(start + marker.length);
+  const end = after.search(/[^\d]/);
+  const candidate = (end < 0 ? after : after.slice(0, end)).trim();
+  if (!/^01\d{9}$/.test(candidate)) return null;
+  return {
+    value: candidate,
+    span: {
+      quote: candidate,
+      start_utf16: start + marker.length,
+      end_utf16: start + marker.length + candidate.length,
+      derivation: "direct",
+    },
+  };
+}
+
+// Extract the literal `Place: <text>` clause (up to a `.`). The clause
+// starts after "Place: " and runs to the next `.` or end-of-text.
+function extractPlace(source: string): { value: string; span: EvidenceSpan } | null {
+  const marker = "Place: ";
+  const start = source.indexOf(marker);
+  if (start < 0) return null;
+  const after = source.slice(start + marker.length);
+  const end = after.indexOf(".");
+  const value = (end >= 0 ? after.slice(0, end) : after).trim();
+  if (value.length < 1) return null;
+  return {
+    value,
+    span: {
+      quote: value,
+      start_utf16: start + marker.length,
+      end_utf16: start + marker.length + value.length,
+      derivation: "direct",
+    },
+  };
+}
+
+// Extract the literal `District: <text>` clause and map it to a code
+// from the closed dictionary above. The clause's quote is the Bangla
+// district name; the derivation is "district_mapping" so reviewers can
+// see the mapping was applied.
+function extractDistrict(source: string): { value: string; code: number; span: EvidenceSpan } | null {
+  const marker = "District: ";
+  const start = source.indexOf(marker);
+  if (start < 0) return null;
+  const after = source.slice(start + marker.length);
+  const end = after.indexOf(".");
+  const value = (end >= 0 ? after.slice(0, end) : after).trim();
+  if (value.length < 1) return null;
+  const code = findDistrictMention(value);
+  if (code === null) return null;
+  return {
+    value: code.placeText,
+    code: code.code,
+    span: {
+      quote: value,
+      start_utf16: start + marker.length,
+      end_utf16: start + marker.length + value.length,
+      derivation: "district_mapping",
+    },
+  };
+}
+
+// Extract the literal `Age: <n>` and `Sex: <word>` clauses.
+function extractAgeSex(source: string): { age: number; sex: "male" | "female"; ageSpan: EvidenceSpan; sexSpan: EvidenceSpan } | null {
+  const ageMarker = "Age: ";
+  const sexMarker = "Sex: ";
+  const ageIdx = source.indexOf(ageMarker);
+  const sexIdx = source.indexOf(sexMarker);
+  if (ageIdx < 0 || sexIdx < 0) return null;
+  const ageAfter = source.slice(ageIdx + ageMarker.length);
+  const ageEnd = ageAfter.search(/[^\d]/);
+  const ageStr = (ageEnd < 0 ? ageAfter : ageAfter.slice(0, ageEnd)).trim();
+  const age = Number(ageStr);
+  if (!Number.isInteger(age) || age < 0 || age > 17) return null;
+  const sexAfter = source.slice(sexIdx + sexMarker.length);
+  const sexEnd = sexAfter.search(/[^a-zA-Z]/);
+  const sexWord = (sexEnd < 0 ? sexAfter : sexAfter.slice(0, sexEnd)).trim().toLowerCase();
+  if (sexWord !== "boy" && sexWord !== "girl") return null;
+  const sex: "male" | "female" = sexWord === "boy" ? "male" : "female";
+  return {
+    age,
+    sex,
+    ageSpan: {
+      quote: ageStr,
+      start_utf16: ageIdx + ageMarker.length,
+      end_utf16: ageIdx + ageMarker.length + ageStr.length,
+      derivation: "direct",
+    },
+    sexSpan: {
+      quote: sexWord,
+      start_utf16: sexIdx + sexMarker.length,
+      end_utf16: sexIdx + sexMarker.length + sexWord.length,
+      derivation: "direct",
+    },
+  };
 }
 
 export type SampleBuilderResult =
@@ -136,62 +238,83 @@ export function buildSampleDraft(demoMode: boolean): SampleBuilder {
       // live provider is wired here, so the import service marks the item skipped.
       return { ok: false, reason: "invalid_draft" };
     }
-    const now = new Date(nowIso);
-    const district = findDistrictMention(text);
-    if (district === null) {
-      // The cases CHECK requires district_code NOT NULL for non-redacted rows
-      // (universal CHECK at line ~155 of schema_v2.sql). An invented
-      // district would be a guessed field. Without a known fixture
-      // district, the row cannot be stored; skip with a clear reason.
+    // The production default DEMO_MODE importer only accepts the exact
+    // protected [MOCK] fixture texts. Unknown, altered or arbitrary text
+    // is rejected so prompt-injected text can never be persisted as a
+    // synthetic case.
+    const fixtureText = FIXTURE_TEXTS[kind];
+    if (text !== fixtureText) {
       return { ok: false, reason: "invalid_draft" };
     }
-    const age = findAgeYears(text);
-    const sex = findSex(text);
-    const window = findEventWindow(text, now);
-    const phone = deterministicPhone(text, kind);
-    const sourceText = text;
+    void nowIso; // deterministic fixture time; never derived from the clock
 
-    // Found reports require a description (circumstances/clothing/marks) of
-    // at least 3 characters. The text already contains at least 20
-    // characters; we re-use the first 3 words as a deterministic
-    // "circumstances" when the kind is 'found'. This is not a guess at
-    // truth: it is a deterministic label of the input text, exactly what
-    // the simulated sample is.
-    const first3 = sourceText.replace(/\s+/g, " ").trim().split(" ").slice(0, 3).join(" ");
-    const circumstances = kind === "found" ? first3.slice(0, MAX.circumstances) : null;
+    // Extract every derived field and its source span. Any failure here
+    // is a malformed fixture (the fixtures are checked into source) and
+    // fails the draft — there is no fall-back to "evidence: {}".
+    const eventAt = extractEventAt(text);
+    if (!eventAt) return { ok: false, reason: "invalid_draft" };
+    const reporterPhone = extractReporterPhone(text);
+    if (!reporterPhone) return { ok: false, reason: "invalid_draft" };
+    const place = extractPlace(text);
+    if (!place) return { ok: false, reason: "invalid_draft" };
+    const district = extractDistrict(text);
+    if (!district) return { ok: false, reason: "invalid_draft" };
+    const ageSex = extractAgeSex(text);
+    if (!ageSex) return { ok: false, reason: "invalid_draft" };
+
+    const evidence: Record<string, EvidenceSpan> = {
+      "child.age_years": ageSex.ageSpan,
+      "child.age_min": ageSex.ageSpan,
+      "child.age_max": ageSex.ageSpan,
+      "child.sex": ageSex.sexSpan,
+      "event.at": eventAt.span,
+      "event.at_lower": eventAt.span,
+      "event.at_upper": eventAt.span,
+      "event.place_text": place.span,
+      "event.district_code": district.span,
+      "reporter.phone": reporterPhone.span,
+    };
+
+    let circumstances: string | null = null;
+    const clothing: string | null = null;
+    const marks: string | null = null;
+    if (kind === "found") {
+      const desc = extractDescription(text);
+      if (!desc) return { ok: false, reason: "invalid_draft" };
+      circumstances = desc;
+      const descSpan: EvidenceSpan = directSpan(text, desc);
+      evidence["event.circumstances"] = descSpan;
+    }
 
     const draft: CaseDraft = {
       kind,
-      source_text: sourceText,
+      source_text: text,
       child: {
         name: null,
         name_latin: null,
-        age_years: age,
-        age_min: age,
-        age_max: age,
-        sex,
+        age_years: ageSex.age,
+        age_min: ageSex.age,
+        age_max: ageSex.age,
+        sex: ageSex.sex,
         height_cm: null,
-        clothing: null,
-        marks: null,
+        clothing,
+        marks,
       },
       event: {
-        at: window.at,
-        at_approx: window.at_approx,
-        at_lower: window.at_lower,
-        at_upper: window.at_upper,
-        place_text: district.placeText,
+        at: eventAt.value,
+        at_approx: false,
+        at_lower: eventAt.value,
+        at_upper: eventAt.value,
+        place_text: place.value,
         district_text: null,
-      district_code: district.code,
+        district_code: district.code,
         thana: null,
         circumstances,
       },
-      reporter: { relation: null, phone },
-      evidence: {},
+      reporter: { relation: null, phone: reporterPhone.value },
+      evidence,
     };
 
-    // The schema's submission transforms fill exact age, drop district_text, etc.
-    // Parse through the right submission schema so we hand the case service a
-    // fully reviewed, contract-shaped draft.
     let parsed: MissingSubmissionDraft | FoundSubmissionDraft;
     try {
       if (kind === "missing") {
@@ -202,28 +325,13 @@ export function buildSampleDraft(demoMode: boolean): SampleBuilder {
     } catch {
       return { ok: false, reason: "invalid_draft" };
     }
-    // The base draft schema's source_text is the only field we re-use, so
-    // additionally validate through caseDraftSchema (structural).
     const structural = caseDraftSchema.safeParse({ ...parsed, kind });
     if (!structural.success) {
       return { ok: false, reason: "invalid_draft" };
     }
-    // Sanity: missing needs age_min, found needs description of length 3.
-    if (kind === "missing" && parsed.child.age_min === null) {
-      return { ok: false, reason: "invalid_draft" };
-    }
-    if (kind === "found" && (parsed.event.circumstances === null || parsed.event.circumstances.length < 3)) {
-      return { ok: false, reason: "invalid_draft" };
-    }
-    // AGE.exactMax applies to both, but the missing schema also bounds
-    // age_min/age_max to 17; guard against an out-of-range 0..25 estimate.
     if (parsed.child.age_years !== null && (parsed.child.age_years < 0 || parsed.child.age_years > AGE.exactMax)) {
       return { ok: false, reason: "invalid_draft" };
     }
     return { ok: true, draft: parsed, kind, deterministic: true };
   };
 }
-
-const MAX = {
-  circumstances: 500,
-} as const;

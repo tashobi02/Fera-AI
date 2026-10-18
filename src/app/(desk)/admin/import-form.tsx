@@ -8,11 +8,11 @@
 //   (typed "সিমুলেটেড" / "Synthetic") so an admin cannot accidentally treat
 //   this as a real public-child data import. D3: ACT-026 is a synthetic
 //   import, not a public-child intake.
-// - Up to 5 texts (UI cap), one per line. The contract allows 1..50; the UI
-//   is deliberately conservative because the admin will read each one before
-//   importing. The route enforces the contract's 1..50.
-// - Each text gets an example.invalid URL: a single optional URL applies to
-//   every line; if absent, the client assigns a distinct reserved fixture URL.
+// - The form shows the exact protected [MOCK] fixture texts from
+//   src/lib/admin-import-fixtures.ts and lets the admin select one or both
+//   to import. Unknown, altered, or arbitrary text is never sent: the
+//   client only ever POSTs literal fixture strings, and the server still
+//   re-validates them against the same allowlist.
 // - No URL fetch anywhere. The `example.invalid` TLD is reserved by RFC 2606
 //   and can never resolve; we still never call fetch on it.
 // - Honest copy (D4): every state is clearly labelled simulated, the
@@ -26,6 +26,7 @@ import {
   CircleDashedIcon,
   LoaderCircleIcon,
 } from "@/app/components/icons";
+import { ADMIN_IMPORT_SAMPLE_FIXTURES } from "@/lib/admin-import-fixtures";
 import {
   ADMIN_IMPORT_CONFIRMATION,
   adminImportFailureText,
@@ -33,7 +34,6 @@ import {
   IMPORT_MAX_TEXTS,
   importActionText,
   importDuplicatesText,
-  importEmpty,
   importErrorText,
   importImportedText,
   importReducer,
@@ -58,51 +58,61 @@ function withWord(text: string): ReactNode {
   );
 }
 
+const FIXTURE_OPTIONS: ReadonlyArray<{ kind: "missing" | "found"; key: "missing" | "found"; text: string }> = [
+  { kind: "missing", key: "missing", text: ADMIN_IMPORT_SAMPLE_FIXTURES.missing },
+  { kind: "found", key: "found", text: ADMIN_IMPORT_SAMPLE_FIXTURES.found },
+];
+
 export function ImportForm({
   locale,
-  defaultKind = "missing",
 }: {
   locale: Locale;
-  defaultKind?: "missing" | "found";
 }) {
   const t = locales[locale];
   const router = useRouter();
   const uid = useId();
   const id = {
     title: `${uid}-title`,
-    texts: `${uid}-texts`,
+    fixtures: `${uid}-fixtures`,
     sourceUrl: `${uid}-source-url`,
     confirmation: `${uid}-confirm`,
     error: `${uid}-error`,
     outcome: `${uid}-outcome`,
     intro: `${uid}-intro`,
   };
-  const [state, dispatch] = useReducer(importReducer, { ...initialImportState, kind: defaultKind });
-  const textsRef = useRef<HTMLTextAreaElement>(null);
+  const [state, dispatch] = useReducer(importReducer, {
+    ...initialImportState,
+    kind: "missing",
+    selectedFixtures: ["missing", "found"],
+  });
   const urlRef = useRef<HTMLInputElement>(null);
   const confirmationRef = useRef<HTMLInputElement>(null);
   const inFlight = useRef(false);
   const busy = state.status === "submitting";
 
-  const lines = state.texts.split("\n").map((s) => s.trim()).filter(Boolean);
-  const lineCount = lines.length;
+  const selectedCount = state.selectedFixtures.length;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (inFlight.current) return;
     const value = confirmationRef.current?.value ?? "";
-    const next = importReducer(state, { type: "submit", value, lineCount });
-    dispatch({ type: "submit", value, lineCount });
+    const next = importReducer(state, { type: "submit", value, selectedCount });
+    dispatch({ type: "submit", value, selectedCount });
     if (next.status !== "submitting") {
       confirmationRef.current?.focus();
       return;
     }
     inFlight.current = true;
-    const items: AdminImportRequestInput["items"] = lines.slice(0, IMPORT_MAX_TEXTS).map((text, index) => ({
-      text,
-      source_url: syntheticImportSourceUrl(urlRef.current?.value ?? "", index),
-      synthetic: true as const,
-    }));
+    const items: AdminImportRequestInput["items"] = state.selectedFixtures
+      .slice(0, IMPORT_MAX_TEXTS)
+      .map((key, index) => {
+        const opt = FIXTURE_OPTIONS.find((o) => o.key === key)!;
+        return {
+          text: opt.text,
+          source_url: syntheticImportSourceUrl(urlRef.current?.value ?? "", index),
+          synthetic: true as const,
+        };
+      });
     const payload: AdminImportRequestInput = {
       kind: state.kind,
       fixture_intake_at: state.fixtureIntakeAt,
@@ -112,7 +122,6 @@ export function ImportForm({
     inFlight.current = false;
     dispatch({ type: "outcome", outcome });
     if (outcome.kind === "ok") {
-      if (textsRef.current) textsRef.current.value = "";
       if (urlRef.current) urlRef.current.value = "";
       if (confirmationRef.current) confirmationRef.current.value = "";
     }
@@ -168,25 +177,34 @@ export function ImportForm({
         aria-describedby={id.intro}
         className="flex flex-col gap-4 border-t border-hairline p-[16px] sm:p-6"
       >
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={id.texts} className="text-body-sm font-medium text-ink">
-            {t.adminImportTextareaLabel}
-          </label>
-          <textarea
-            ref={textsRef}
-            id={id.texts}
-            name="texts"
-            rows={5}
-            maxLength={IMPORT_MAX_TEXTS * 2000 + IMPORT_MAX_TEXTS}
-            defaultValue={state.texts}
-            onInput={(e) => dispatch({ type: "input_texts", value: e.currentTarget.value })}
-            aria-describedby={`${id.texts}-hint`}
-            className="min-h-32 rounded-md border border-control bg-elevated px-3 py-2 text-body-md text-ink focus:border-control-strong focus:shadow-1"
-          />
-          <p id={`${id.texts}-hint`} className={`text-mute ${CAPTION}`}>
-            {t.adminImportTextareaHint}
+        <fieldset className="flex flex-col gap-2" aria-describedby={`${id.fixtures}-hint`}>
+          <legend className="text-body-sm font-medium text-ink">{t.adminImportFixtureLabel}</legend>
+          <p id={`${id.fixtures}-hint`} className={`text-mute ${CAPTION}`}>
+            {t.adminImportFixtureHint}
           </p>
-        </div>
+          <ul className="flex flex-col gap-2">
+            {FIXTURE_OPTIONS.map((opt) => {
+              const checked = state.selectedFixtures.includes(opt.key);
+              const checkboxId = `${id.fixtures}-${opt.key}`;
+              return (
+                <li key={opt.key} className="rounded-md border border-control bg-elevated p-3">
+                  <label htmlFor={checkboxId} className="flex items-start gap-2 text-body-sm text-ink">
+                    <input
+                      id={checkboxId}
+                      type="checkbox"
+                      name="fixtures"
+                      value={opt.key}
+                      checked={checked}
+                      onChange={(e) => dispatch({ type: "toggle_fixture", key: opt.key, checked: e.currentTarget.checked })}
+                      className="mt-[0.2em] size-4 accent-control"
+                    />
+                    <span className="min-w-0 [overflow-wrap:anywhere] font-mono text-body-sm">{opt.text}</span>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+        </fieldset>
 
         <div className="flex flex-col gap-1.5">
           <label htmlFor={id.sourceUrl} className="text-body-sm font-medium text-ink">
@@ -207,25 +225,6 @@ export function ImportForm({
             {t.adminImportSourceUrlHint}
           </p>
         </div>
-
-        <fieldset className="flex flex-col gap-1.5">
-          <legend className="text-body-sm font-medium text-ink">{t.adminImportKindLabel}</legend>
-          <div className="flex flex-wrap gap-3">
-            {(["missing", "found"] as const).map((k) => (
-              <label key={k} className="inline-flex min-h-11 items-center gap-2 text-body-md text-body">
-                <input
-                  type="radio"
-                  name="kind"
-                  value={k}
-                  checked={state.kind === k}
-                  onChange={() => dispatch({ type: "set_kind", value: k })}
-                  className="size-4 accent-control"
-                />
-                <span>{k === "missing" ? t.adminImportKindMissing : t.adminImportKindFound}</span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
 
         <div className="flex flex-col gap-1.5">
           <label htmlFor={id.confirmation} className="text-body-sm font-medium text-ink">
@@ -289,7 +288,7 @@ export function ImportForm({
                 </div>
               </div>
             )}
-            {importEmpty(lineCount) && lineCount === 0 && !busy && (
+            {selectedCount === 0 && !busy && (
               <p className="mb-3 text-body-sm text-faint">{t.adminImportEmpty}</p>
             )}
           </div>

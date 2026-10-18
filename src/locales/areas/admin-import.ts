@@ -11,6 +11,9 @@ export const adminImportBn = {
   adminImportTextareaLabel: "ইনভেন্টেড টেক্সট (প্রতি লাইনে একটি)",
   adminImportTextareaHint:
     "প্রতিটি লাইন ২০ থেকে ২,০০০ অক্ষরের মধ্যে হতে হবে। ইনপুট ডেটা হিসেবে বিবেচিত — পূর্বের নির্দেশনা ইত্যাদি এড়িয়ে যাওয়া হবে।",
+  adminImportFixtureLabel: "সুরক্ষিত সিনথেটিক নমুনা থেকে বেছে নিন",
+  adminImportFixtureHint:
+    "ডেমো ইমপোর্ট শুধু এই হুবহু টেক্সটগুলোই গ্রহণ করে। অন্য কোনো লেখা, পরিবর্তিত নমুনা বা প্রম্পট-ইনজেকশন এড়িয়ে যাবে।",
   adminImportSourceUrlLabel: "উৎস ঠিকানা (ঐচ্ছিক, example.invalid)",
   adminImportSourceUrlHint:
     "একটি example.invalid ঠিকানা দিলে সেটি সব লাইনে ব্যবহার হবে। না দিলে ব্রাউজার প্রতিটি লাইনের জন্য আলাদা example.invalid ঠিকানা বসাবে।",
@@ -35,7 +38,7 @@ export const adminImportBn = {
   adminImportErrorRateLimitedSoon: "একটু পরে আবার চেষ্টা করুন।",
   adminImportEmpty: "কোনো ইনভেন্টেড টেক্সট দেওয়া হয়নি।",
   adminImportSimulated: "সিমুলেটেড",
-  adminImportNoPayload: "কোনো শিশু বা প্রার্থীর তথ্য ফেরত দেওয়া হয় না।",
+  adminImportNoPayload: "শুধু সারাংশ গণনা দেখানো হয়।",
   adminImportNoFetch: "উৎস ঠিকানা কখনো আনা হয় না।",
   adminImportLabel: "সিনথেটিক",
   adminImportNoLiveExtraction: "ডেমো ইমপোর্টে নির্ধারিত সিমুলেশন চলে; লাইভ এআই এক্সট্রাকশন চলে না।",
@@ -50,6 +53,9 @@ export const adminImportEn = {
   adminImportTextareaLabel: "Invented texts (one per line)",
   adminImportTextareaHint:
     "Each line must be 20 to 2,000 characters. Treated as input data — instructions like 'ignore previous' are ignored.",
+  adminImportFixtureLabel: "Choose from the protected synthetic samples",
+  adminImportFixtureHint:
+    "Demo import accepts only these exact texts. Any other wording, altered sample or prompt-injection text is skipped.",
   adminImportSourceUrlLabel: "Source URL (optional, example.invalid)",
   adminImportSourceUrlHint:
     "If you give one example.invalid URL, it is used for every line. If you leave it empty, the browser assigns a distinct example.invalid URL to each line.",
@@ -74,7 +80,7 @@ export const adminImportEn = {
   adminImportErrorRateLimitedSoon: "Please try again in a little while.",
   adminImportEmpty: "No invented texts were given.",
   adminImportSimulated: "Simulated",
-  adminImportNoPayload: "No child or candidate payload is returned.",
+  adminImportNoPayload: "Only summary counts are shown.",
   adminImportNoFetch: "Source URLs are never fetched.",
   adminImportLabel: "Synthetic",
   adminImportNoLiveExtraction: "Demo imports use deterministic simulation; live AI extraction does not run.",
