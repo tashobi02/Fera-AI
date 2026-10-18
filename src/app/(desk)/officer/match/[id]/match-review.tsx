@@ -102,6 +102,8 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
   const [state, dispatch] = useReducer(reducer, { status: "idle", failure: null, reasonError: null } as State);
   const [checklist, setChecklist] = useState<Checklist>(emptyChecklist);
   const dialog = useRef<HTMLDialogElement>(null);
+  const dialogTitleRef = useRef<HTMLHeadingElement>(null);
+  const confirmTriggerRef = useRef<HTMLButtonElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const alertRef = useRef<HTMLDivElement>(null);
   const reasonRef = useRef<HTMLTextAreaElement>(null);
@@ -159,6 +161,20 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
     setChecklist(emptyChecklist());
     if (noteRef.current) noteRef.current.value = "";
     dialog.current?.showModal();
+    // Safe initial focus: native dialog focuses the first focusable child, but the heading
+    // is the predictable read-first element. tabIndex=-1 lets it receive focus without
+    // adding a tab stop. Falls back to cancel if the heading is not yet mounted.
+    const raf = typeof requestAnimationFrame === "function" ? requestAnimationFrame : (cb: () => void) => { setTimeout(cb, 0); };
+    raf(() => {
+      if (dialogTitleRef.current) dialogTitleRef.current.focus();
+      else dialog.current?.querySelector<HTMLButtonElement>('button[type="button"]:last-of-type')?.focus();
+    });
+  }
+  function closeDialog() {
+    dialog.current?.close();
+    // Native dialog restores focus to the opener, but on success the trigger is removed
+    // (resultRef is already focused); only restore on CANCEL/Escape.
+    if (state.status !== "decided") confirmTriggerRef.current?.focus();
   }
   async function confirm() {
     const note = noteRef.current?.value ?? "";
@@ -354,6 +370,7 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
           <div className="flex flex-col gap-6">
             <div>
               <button
+                ref={confirmTriggerRef}
                 type="button"
                 onClick={openDialog}
                 aria-disabled={!decidable || submitting || undefined}
@@ -406,10 +423,17 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
       <dialog
         ref={dialog}
         aria-labelledby={`${uid}-dlg-title`}
+        onCancel={() => {
+          // Escape fires before close; restore focus to the trigger on the next tick so
+          // the trigger still exists at the time focus moves.
+          queueMicrotask(() => {
+            if (state.status !== "decided") confirmTriggerRef.current?.focus();
+          });
+        }}
         className="m-auto w-[min(32rem,calc(100%-2rem))] rounded-lg border border-hairline bg-surface p-[16px] text-body shadow-2 backdrop:bg-scrim sm:p-6"
       >
         <form method="dialog" onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-4">
-          <h2 id={`${uid}-dlg-title`} className="text-heading-4 font-semibold text-ink">{t.matchReviewDialogTitle}</h2>
+          <h2 id={`${uid}-dlg-title`} ref={dialogTitleRef} tabIndex={-1} className="text-heading-4 font-semibold text-ink outline-none">{t.matchReviewDialogTitle}</h2>
           <p className="text-body-md">{t.matchReviewDialogBody}</p>
           <fieldset className="flex flex-col gap-2 border-0 p-0">
             <legend className="mb-1 text-body-sm font-medium text-ink">{t.matchReviewChecklistLegend}</legend>
@@ -441,7 +465,7 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
             </button>
             <button
               type="button"
-              onClick={() => dialog.current?.close()}
+              onClick={closeDialog}
               className="min-h-11 rounded-md border border-control bg-elevated px-5 text-body-md font-medium text-ink hover:border-control-strong"
             >
               {t.matchReviewCancel}

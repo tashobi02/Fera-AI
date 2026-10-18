@@ -243,7 +243,7 @@ export function DuplicateReview({ view, locale, listHref }: { view: OfficerDupli
           {t.duplicateScore} · {ruleLabel}
         </p>
         {phoneOnly && (
-          <p className="mt-2 flex items-start gap-2 rounded-md bg-warning-soft px-3 py-2.5 text-body-sm text-warning-text">
+          <p id={`${uid}-phone-only`} className="mt-2 flex items-start gap-2 rounded-md bg-warning-soft px-3 py-2.5 text-body-sm text-warning-text">
             <CircleAlertIcon className="mt-[0.2em] size-4" />
             <span>{t.duplicateRuleSamePhoneWarn}</span>
           </p>
@@ -355,7 +355,7 @@ export function DuplicateReview({ view, locale, listHref }: { view: OfficerDupli
                   if (state.reasonError) dispatch({ type: "reason", error: null });
                 }}
                 aria-invalid={state.reasonError ? true : undefined}
-                aria-describedby={joinIds(state.reasonError && `${uid}-reason-error`, !evidenceChecked && `${uid}-evidence-required`)}
+                aria-describedby={joinIds(state.reasonError && `${uid}-reason-error`)}
                 className="min-h-11 w-full rounded-md border border-control bg-elevated px-3 py-2 text-body-md text-ink hover:border-control-strong focus:border-control-strong aria-invalid:border-danger"
               />
               {state.reasonError && (
@@ -372,6 +372,7 @@ export function DuplicateReview({ view, locale, listHref }: { view: OfficerDupli
                 onClick={() => send("confirmed_same")}
                 disabled={!decidable || phoneOnly}
                 aria-disabled={!decidable || phoneOnly || undefined}
+                aria-describedby={phoneOnly ? `${uid}-phone-only` : undefined}
                 title={phoneOnly ? (t.duplicateSamePhoneCannotConfirm as string) : undefined}
                 className="inline-flex min-h-11 items-center gap-2 rounded-md bg-primary px-5 text-body-md font-semibold text-on-primary hover:bg-primary-pressed disabled:cursor-not-allowed disabled:opacity-60"
               >
