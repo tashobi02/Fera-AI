@@ -2,7 +2,7 @@
 """
 Build the Round 2 submission deck for Fera.
 
-7 editable slides following the Cockpit & Paper palette (DESIGN.md).
+8 editable slides following the Cockpit & Paper palette (DESIGN.md).
 All claims use honest copy; no frozen metrics are invented; every metric
 slot says "not measured" or labels them as "pending".
 
@@ -162,7 +162,7 @@ def slide_01_title(prs):
         x = x + pill_w + gap
     # Footer
     add_text(s, Inches(0.9), Inches(6.5), Inches(11.5), Inches(0.35),
-             "Round 2 working baseline 14 Oct 2026 · Organiser cutoff UNKNOWN · "
+             "Hack for Humanity Bangladesh 2026 · Synthetic-data prototype · "
              "Built for review, not for delivery",
              font="Inter", size=11, color=C_MUTE, italic=True)
     add_notes(s, (
@@ -170,8 +170,8 @@ def slide_01_title(prs):
         "docs/spec/D7_Closing_Pack_V2.md V2 release contract; "
         "docs/execution/PHASE_4_SUBMISSION.md AMD-4-1.\n\n"
         "Honest copy: the title avoids alert/rescue/police/CID claims. "
-        "Working baseline is 14 Oct 2026 22:00; organiser extension "
-        "cutoff/date/email/formats are UNKNOWN. No claim of deployed URL."
+        "Prepared for the 18 Oct 2026 22:00 (GMT+6) prototype submission "
+        "on the organiser platform. No claim of deployed URL."
     ))
 
 
@@ -485,6 +485,70 @@ def slide_06_evaluation(prs):
     ))
 
 
+def slide_engineering(prs):
+    s = prs.slides.add_slide(prs.slide_layouts[6])
+    set_slide_background(s, C_CANVAS)
+    add_rect(s, Inches(0.5), Inches(0.5), Inches(12.333), Inches(6.5),
+             C_CANVAS, line=C_HAIRLINE, line_w=Emu(6350))
+    add_text(s, Inches(0.9), Inches(0.9), Inches(11.5), Inches(0.35),
+             "WHAT WE BUILT · SYNTHETIC DATA",
+             font="Inter", size=11, bold=True, color=C_FAINT)
+    add_text(s, Inches(0.9), Inches(1.35), Inches(11.5), Inches(0.9),
+             "A working app, tested end to end on synthetic records.",
+             font="Inter", size=26, bold=True, color=C_INK)
+    col_w = Inches(5.8)
+    col_h = Inches(3.9)
+    col_y = Inches(2.4)
+    add_rect(s, Inches(0.9), col_y, col_w, col_h, C_SURFACE,
+             line=C_HAIRLINE)
+    add_text(s, Inches(1.1), col_y + Inches(0.2), col_w - Inches(0.4),
+             Inches(0.4), "In the repository",
+             font="Inter", size=11, bold=True, color=C_INFO)
+    items_left = [
+        "16 screens for parents, staff, officers and admins; Bangla and English.",
+        "22 API routes: Zod input, role guard, per-role DTO, error envelope.",
+        "PostgreSQL 16 + pgvector in hand-written SQL; one-transaction confirm; append-only audit.",
+        "Matcher: hard filters, multilingual-e5-small similarity, readable reasons.",
+        "Bangla normaliser; LLM and speech adapters with labelled fallback.",
+        "Duplicate detection; 64-district counts with an accessible table.",
+    ]
+    add_text(s, Inches(1.1), col_y + Inches(0.7), col_w - Inches(0.4),
+             col_h - Inches(0.9), "\n".join("•  " + i for i in items_left),
+             font="Inter", size=12, color=C_BODY)
+    rx = Inches(7.0)
+    add_rect(s, rx, col_y, col_w, col_h, C_SURFACE, line=C_HAIRLINE)
+    add_text(s, rx + Inches(0.2), col_y + Inches(0.2), col_w - Inches(0.4),
+             Inches(0.4), "How it is checked",
+             font="Inter", size=11, bold=True, color=C_SUCCESS)
+    items_right = [
+        "3,693 unit tests pass (308 skipped).",
+        "320 PostgreSQL + pgvector tests pass, fresh database per file.",
+        "78 Playwright + axe browser checks pass (desktop and mobile emulation).",
+        "Strict TypeScript; lint 0 errors; remote CI green.",
+        "Eleven specialist reviews, with a safeguarding gate on every PR.",
+        "Software checks only: no human study or production run yet.",
+    ]
+    add_text(s, rx + Inches(0.2), col_y + Inches(0.7), col_w - Inches(0.4),
+             col_h - Inches(0.9), "\n".join("•  " + i for i in items_right),
+             font="Inter", size=12, color=C_BODY)
+    add_text(s, Inches(0.9), Inches(6.45), Inches(11.5), Inches(0.35),
+             "Team: Mahim (lead, platform) · Obidit (intake, AI, outputs) · "
+             "Masnun (data, matching, officer workflow)",
+             font="Inter", size=11, color=C_MUTE)
+    add_text(s, Inches(0.9), Inches(6.72), Inches(11.5), Inches(0.3),
+             "Counts: README verification at application commit 9155963 and "
+             "remote CI; typecheck, lint and unit re-run 18 Oct 2026.",
+             font="Inter", size=9, color=C_FAINT, italic=True)
+    add_notes(s, (
+        "Sources: README.md status block; package.json scripts; "
+        "find src/app -name page.tsx (16); find src/app/api -name route.ts (22); "
+        "db/schema_v2.sql; CI run 39116451104.\n\n"
+        "Plain wording: these are software checks on synthetic data. They do "
+        "not establish human acceptance, production readiness or matcher "
+        "quality at release level."
+    ))
+
+
 def slide_07_limitations(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
     set_slide_background(s, C_CANVAS)
@@ -526,9 +590,8 @@ def slide_07_limitations(prs):
              font="Inter", size=11, bold=True, color=C_INFO)
     items_right = [
         "Run the frozen held-out evaluation (TASK-043) and publish denominators.",
-        "Confirm organiser cutoff, channel and formats before submission.",
-        "Execute LINK-CHECK before sending and again after delivery.",
-        "Capture TASK-045 actual demo footage once the working build is signed off.",
+        "Human Bangla review of copy and a timed study with real participants.",
+        "Configure a live AI provider within the USD 25 cap and deploy a hosted demo.",
         "Resolve OQ-011 (PDPA specifics) and OQ-018 (referral agency) before any pilot.",
         "Plan partner hand-off only after external identity and guardian procedures are confirmed.",
     ]
@@ -544,9 +607,8 @@ def slide_07_limitations(prs):
         "Sources: D7 §4 (OQ list); PHASE_4_SUBMISSION.md AMD-4-1; "
         "AGENTS.md Principles VI and VII.\n\n"
         "Plain wording: nothing is presented as a result that has not been "
-        "measured. TASK-045 demo footage, production, gate clearance, "
-        "upload and submission remain blocked until the working build is "
-        "signed off and organiser evidence is recorded."
+        "measured. Production deployment, frozen evaluation and human "
+        "studies are next steps, not completed work."
     ))
 
 
@@ -560,6 +622,7 @@ def main():
     slide_04_outputs(prs)
     slide_05_officer(prs)
     slide_06_evaluation(prs)
+    slide_engineering(prs)
     slide_07_limitations(prs)
     prs.save(str(DECK_PATH))
     print(f"wrote {DECK_PATH}")
