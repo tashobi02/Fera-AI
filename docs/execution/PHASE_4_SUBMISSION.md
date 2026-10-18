@@ -90,6 +90,7 @@ Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 ### Obidit
 ### Masnun
 ### Mahim (lead)
+- 2026-10-18 18:45 · Claude Code · ccr-91b94c1a-754zqx · TASK-046 organiser evidence recorded: submission is on the LooselyCoupled AI Worker Platform (https://h4hbd.ezassist.me/), platform deadline 18 Oct 2026 22:00 GMT+6, PPT at most 8 slides, video in Bangla or English. Required fields: name, description, public HTTPS demo link, demo video URL, GitHub repo URL. Deck rebuilt to 8 slides (engineering slide added; internal UNKNOWN/LINK-CHECK lines removed; claims check 64/64 PASS). Video end card re-rendered as submission/demo/final-submission.mp4 (final.mp4 unchanged). Form text: submission/round2/platform-submission.md. Re-run on main 8499bce: typecheck PASS, lint 0 errors/51 warnings, unit 3,691 pass + 2 timing tests pass in isolation (load-sensitive), 308 skipped; DB 320/30 files PASS. Not submitted yet.
 
 ## Audit amendments (2026-10-12)
 
