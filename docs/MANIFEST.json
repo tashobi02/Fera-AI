@@ -23,8 +23,8 @@
     },
     {
       "path": "code/schema_v2.sql",
-      "bytes": 33972,
-      "sha256": "3fe345b1e7658657ff0c1de1afd76456e3dcd55159326bb23e3c1d94d913bf67"
+      "bytes": 36439,
+      "sha256": "08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"
     },
     {
       "path": "code/tokens_v2.css",
@@ -43,8 +43,8 @@
     },
     {
       "path": "markdown/D2_TRD_PartA_V2.md",
-      "bytes": 87023,
-      "sha256": "e158121acb2e83760c387f82262e1ea88fa8777ed11172f833252fde2c592fba"
+      "bytes": 89490,
+      "sha256": "86f4b0653bccd74dde9b02115527ba813f4fb75916716b17605053d2993fec33"
     },
     {
       "path": "markdown/D2_TRD_PartB_V2.md",

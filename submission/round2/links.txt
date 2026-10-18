@@ -1,0 +1,116 @@
+links.txt -- Round 2 submission pack (DRAFT PREPARATION)
+============================================================
+
+Status: this pack is DRAFT PREPARATION. Pptx, PDF and storyboard MP4
+are drafts only.
+
+The **actual TASK-045 local-app demo footage is now prepared and
+verified** under `../demo/` (commit `9155963`, CI run `39114757484`):
+
+- submission/demo/final.mp4            105.000 s, 1280x720, H.264,
+                                        silent, captioned; Playwright
+                                        Chromium on the real Next app
+                                        at 127.0.0.1
+- submission/demo/captions.srt         beat-level SRT from the capture
+- submission/demo/provenance.json       git SHA, beat names, SHA-256
+- submission/demo/proof/               8 curated per-beat PNGs
+- submission/demo/README.md            capture + verify + provenance
+                                        notes
+
+The storyboard MP4 in this folder (`fera-round2-storyboard-preview.mp4`)
+is **not** app footage; it is a synthetic on-screen-caption storyboard
+used to illustrate the intended journey. Both are retained in the source checkout. The draft ZIP contains only
+the actual app recording; the storyboard is excluded.
+
+Production, gate clearance, upload and submission remain blocked
+until the working build is signed off and organiser evidence is
+recorded.
+
+Repo
+----
+- Repo URL: https://github.com/tashobi02/Fera-AI
+- Integration branch: phase3--phase4-handoff; intended merge: phase2 then main
+- Visibility: PRIVATE; organiser access / logged-out link check unresolved
+- Working baseline date: Wed 14 Oct 2026 (Asia/Dhaka)
+- Application source: 9155963d677d987a9aaa64bc00b74b1ec0a7292e
+- Actual-video artifact commit: 27bb3c6
+- CI run:    39114757484 (success)
+
+Organiser / recipient details
+-----------------------------
+- Selection email recipient: UNKNOWN (per PHASE_4_SUBMISSION.md
+  AMD-4-1; TEAM_HANDOVER_V2 §10 leaves exact channel/formats pending)
+- Selection email subject reference: UNKNOWN (organiser template not
+  recorded; see selection-email-draft.md for the placeholder subject)
+- Selection email cutoff: UNKNOWN (organiser extension; new date/time
+  pending evidence)
+- Drive folder link: UNKNOWN (not yet created)
+- Deployed app URL: UNKNOWN (Vercel deploy step is planned; the
+  built deploy is not part of this pack)
+
+Files in this pack
+------------------
+- fera-round2-deck.pptx            7 editable slides (python-pptx)
+- fera-round2-deck.pdf             LibreOffice render of the deck
+- fera-round2-storyboard-preview.mp4  1280x720, 30 fps, 105 s;
+                                       synthetic storyboard,
+                                       NOT app footage
+- frames/shot-01.png ... shot-09.png    one sample per storyboard shot
+- build/storyboard-contact-sheet.png    3x3 contact sheet
+- build/slide-imgs/slide-1.png ... slide-7.png    PDF-rendered slide
+                                                   images for QA
+- video-script.md                  shot list + capture plan
+- metrics.md                       frozen-release metric table
+- selection-email-draft.md         editable selection-email reply
+                                   DRAFT (placeholders only)
+- README.md                        build, run, claims-check
+- scripts/build_pptx.py            deck generator
+- scripts/build_video.py           storyboard + MP4 encoder
+- scripts/cleanup_frames.py        drop intermediate frame_*.png
+- scripts/build_contact_sheet.py   3x3 visual QA contact sheet
+- scripts/claims_check.py          asserts honest-copy rules
+- scripts/replace_dashes.py        one-time helper used in development
+- claims-check-report.txt          output of scripts/claims_check.py
+
+TASK-045 actual app-footage demo (one level up)
+-----------------------------------------------
+- submission/demo/final.mp4        105.000 s, 1280x720, H.264, silent
+- submission/demo/captions.srt     beat-level SRT
+- submission/demo/provenance.json  git SHA + SHA-256 hashes
+- submission/demo/proof/*.png      8 curated per-beat PNGs
+- submission/demo/README.md        capture + verify + provenance notes
+- submission/demo/run.sh           reproducible build (orchestrate
+                                   + capture + postprocess + verify)
+
+Source spec / handover files cited in slides and storyboard
+-----------------------------------------------------------
+- AGENTS.md                        team handbook; Principles I-VII
+- .specify/memory/constitution.md  Fera Constitution
+- docs/spec/D1_PRD_V2.md           FR / BR catalogue
+- docs/spec/D3_App_Flow_V2.md      screens SCREEN-001..016
+- docs/spec/D6_Implementation_Plan_V2.md  tasks TASK-001..064
+- docs/spec/D7_Closing_Pack_V2.md  demo script and release contract
+- docs/execution/PHASE_4_SUBMISSION.md   gate G5, AMD-4-1..3
+- docs/execution/PHASE_3_FULL_SCOPE_QUALITY.md  prev phase
+- docs/execution/EXECUTION_PLAN.md        overall plan
+- DESIGN.md                        visual system (Cockpit & Paper)
+
+Public-claim rules carried into every artifact
+----------------------------------------------
+- No alert, runaway, rescue, CID/police integration or
+  legal-compliance claim anywhere in the pack.
+- No frozen numeric metric presented without its denominator.
+- No prevalence figures copied from D7 (counts, interview totals,
+  January-July figures are NOT in this pack).
+- No deployed URL, no live email, no Drive link shown as live.
+- Synthetic, [MOCK], cached, planned and simulation labels are
+  never hidden.
+- The storyboard MP4 in this folder is **not** app footage; the
+  actual TASK-045 capture is in `../demo/final.mp4` and is
+  captioned as a synthetic local demo with [MOCK] officer
+  verification and a referral-recorded (simulation) label.
+
+Contact for the working build sign-off and organiser evidence
+-------------------------------------------------------------
+- UNKNOWN until Mahim (lead) records the organiser evidence and the
+  working build sign-off in `docs/gates/G5-*.md`.

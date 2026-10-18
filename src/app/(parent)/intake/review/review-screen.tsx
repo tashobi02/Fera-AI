@@ -1,23 +1,70 @@
 "use client";
 
 // TASK-022 / SCREEN-003 / BR-004: restore only on the device; submit is an event.
+// P3-035/ACT017: when the device-local edit pointer is present (set by the
+// "Correct details" lane on S-006), render the EditModeScreen instead of the
+// create flow. The dispatch is read-once and StrictMode-safe; the edit flow
+// owns its own state, draft store, and submitter.
+//
+// The pointer read here is a PURE snapshot (no storage writes during render);
+// the mutation (sweeping stale/corrupt records) is done in a separate effect
+// below, so React 18 StrictMode / concurrent re-renders cannot accidentally
+// drop the pointer between the two hook lifecycles.
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { errorEnvelope, type DraftFieldPath, type ErrorEnvelope } from "@/contracts";
 import { CircleAlertIcon, InfoIcon, LoaderCircleIcon } from "@/app/components/icons";
 import { FocusHeading } from "@/app/components/focus-heading";
 import { clearSubmittedDraft, clearSubmittedReference, createDeviceDraft, readDraft, readSubmittedReference, saveDraft, type DeviceDraft } from "@/lib/intake/draft-store";
-import { clearIntakeMemory, INTAKE_PATH, takeHandoff, type IntakeHandoff } from "@/lib/intake/handoff";
+import { readEditMode } from "@/lib/intake/edit-handoff";
+import { clearIntakeMemory, INTAKE_PATH, MANUAL_FORM_PATH, takeHandoff, type IntakeHandoff } from "@/lib/intake/handoff";
 import { buildSubmission, createSubmitter, editField, newSubmission, validateReview } from "@/lib/intake/review";
 import { localizeDigits } from "@/lib/numerals";
 import { locales, type Locale } from "@/locales";
 import { CircleCheckIcon, HonestLabel, PRIMARY_BUTTON, TERTIARY_BUTTON, TrashIcon } from "../../parent-ui";
-import { ConfirmBar, ReviewFields, reviewLabel } from "./review-fields";
+import { ConfirmBar, ReviewFields, reviewFieldInputId, reviewLabel } from "./review-fields";
+import { EditModeScreen } from "./edit-mode-screen";
+
+// TASK-022 / SCREEN-003 / BR-004: restore only on the device; submit is an event.
+// P3-035/ACT017: when the device-local edit pointer is present (set by the
+// "Correct details" lane on S-006), the edit flow owns the screen. The dispatch
+// is read-once and StrictMode-safe; the create flow is the default.
+//
+// The create flow is inlined into this function (rather than a sub-component)
+// so the existing hook-harness tests' slot recorder sees every `useRef`,
+// `useState` and `useEffect`. Splitting them into sibling components hides the
+// create-flow state from the test harness and breaks lifecycle regression
+// coverage (NODE-hook tests in tests/intake/review/review-lifecycle.test.ts).
+const subscribeToEntry = () => () => {};
+// Pure peek — the snapshot getter must never mutate storage, otherwise a
+// React 18 StrictMode / concurrent re-render can drop the pointer between the
+// two hook lifecycles. The mutation-cleanup effect below performs the
+// sweep (sweeping stale / corrupt records) after mount.
+const readEditEntry = () => readEditMode(undefined, Date.now(), 24 * 60 * 60 * 1000, { mutate: false }) !== null;
+const serverEntry = () => null;
+
+// Resolve device storage after hydration before mounting either flow. Their
+// independent hook lifecycles never depend on a conditional early return.
+export function ReviewEntryScreen({ locale }: { locale: Locale }) {
+  const editing = useSyncExternalStore<boolean | null>(subscribeToEntry, readEditEntry, serverEntry);
+  // Mutation cleanup: this effect runs once after mount with the default
+  // (mutating) read so a stale / corrupt / v1 pointer is still swept on
+  // entry. It is intentionally a fire-and-forget; the snapshot above is the
+  // source of truth for the rendered flow.
+  useEffect(() => {
+    readEditMode();
+  }, []);
+  if (editing === null) return <div data-surface="parent" className="mx-auto max-w-[36rem] px-4 py-8"><h1 className="text-heading-2">{locales[locale].reviewTitle}</h1><p role="status">{locales[locale].stillWorking}</p></div>;
+  return editing ? <EditModeScreen locale={locale} /> : <ReviewScreen locale={locale} />;
+}
 
 export function ReviewScreen({ locale }: { locale: Locale }) {
   const t = locales[locale];
   const router = useRouter();
+  // ACT017: the "Correct details" click on S-006 records a device-local
+  // pointer; the same page here is the only consumer. Read once on first
+  // render so a late write to the pointer does not re-enter edit mode.
   // Guard even null: StrictMode/effect replay must not take a later handoff.
   const read = useRef<{ value: IntakeHandoff | null } | null>(null);
   // eslint-disable-next-line react-hooks/refs -- mandated takeHandoff once-per-consumer guard (OD-021-4)
@@ -33,6 +80,15 @@ export function ReviewScreen({ locale }: { locale: Locale }) {
   const summary = useRef<HTMLDivElement>(null);
   const focusNewId = useRef(false);
   const focusContinued = useRef(false);
+  // Discard dialog: the trigger element is held in a ref so the dialog can
+  // restore focus to the discard button (or the replace button) when the
+  // parent cancels — the same source-field behaviour the previous
+  // window.confirm() provided implicitly. The two dialog refs match the
+  // two dialogs (device discard, and "earlier draft — start with new
+  // details" replace).
+  const discardTrigger = useRef<HTMLElement | null>(null);
+  const discardDialog = useRef<HTMLDialogElement | null>(null);
+  const replaceDialog = useRef<HTMLDialogElement | null>(null);
   const [record, setRecord] = useState<DeviceDraft | null>(null);
   const [pendingHandoff, setPendingHandoff] = useState<IntakeHandoff | null>(null);
   const [ready, setReady] = useState(false);
@@ -46,6 +102,13 @@ export function ReviewScreen({ locale }: { locale: Locale }) {
   const [error, setError] = useState<ErrorEnvelope | null>(null);
   const [fields, setFields] = useState<DraftFieldPath[]>([]);
   const [success, setSuccess] = useState<{ id: string; ref: string; mock?: boolean; cached?: boolean } | null>(null);
+  // Dialog open state is split so the two discard entry points (the bottom
+  // "delete draft" button and the "start with new details" replace button
+  // on the pending-handoff card) each get the correct title/body and cancel
+  // target. "discard" is the device discard, "replace" is the "earlier draft
+  // found — start with new details" confirmation.
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const [replaceOpen, setReplaceOpen] = useState(false);
 
   useEffect(() => {
     active.current = true;
@@ -153,6 +216,20 @@ export function ReviewScreen({ locale }: { locale: Locale }) {
   const conflict = id === "E-006";
   const locked = busy || Boolean(record?.attempted) || sessionExpired || expired;
   const valid = record !== null && buildSubmission(record, true) !== null;
+  // Wire the platform <dialog> elements to their open state. The browser
+  // owns the focus trap, Escape handling and inert background.
+  useEffect(() => {
+    const node = discardDialog.current;
+    if (!node) return;
+    if (discardOpen) { if (!node.open) node.showModal(); }
+    else if (node.open) node.close();
+  }, [discardOpen]);
+  useEffect(() => {
+    const node = replaceDialog.current;
+    if (!node) return;
+    if (replaceOpen) { if (!node.open) node.showModal(); }
+    else if (node.open) node.close();
+  }, [replaceOpen]);
   useEffect(() => {
     if (focusNewId.current && !locked) {
       focusNewId.current = false;
@@ -162,7 +239,14 @@ export function ReviewScreen({ locale }: { locale: Locale }) {
       focusContinued.current = false;
       (document.getElementById("review-frozen") ?? summary.current)?.focus();
     }
-  }, [record?.client_submission_id, locked, pendingHandoff]);
+    // Dialog cancel: when a dialog closes with a stored trigger, restore
+    // focus to the trigger element. The trigger ref is consumed once and
+    // cleared, so the next open/cancel cycle records a fresh trigger.
+    if (!discardOpen && !replaceOpen && discardTrigger.current) {
+      discardTrigger.current.focus();
+      discardTrigger.current = null;
+    }
+  }, [record?.client_submission_id, locked, pendingHandoff, discardOpen, replaceOpen]);
   function persist(next: DeviceDraft, transition?: "payload-conflict") {
     const saved = saveDraft(next, undefined, record?.client_submission_id ?? next.client_submission_id, { transition, requireExisting: everSaved.current });
     everSaved.current ||= saved;
@@ -216,19 +300,59 @@ export function ReviewScreen({ locale }: { locale: Locale }) {
       }
     }
   }
-  function discard() {
+  function requestDiscard(event?: { currentTarget: EventTarget & HTMLElement }) {
     if (submitting.current) return;
-    const isAttempted = Boolean(record?.attempted || corruptAttemptedNotice);
-    const prompt = isAttempted ? t.reviewDiscardWarn : t.discardConfirm;
-    if (!window.confirm(prompt)) return;
+    // event is optional: the button passes a real SyntheticEvent, but the
+    // empty-state button and tests may call without one.
+    discardTrigger.current = event?.currentTarget ?? null;
+    setDiscardOpen(true);
+  }
+  function cancelDiscard() {
+    setDiscardOpen(false);
+    // The focus-restore useEffect picks up the closed dialog state and
+    // returns focus to the trigger element stored in `discardTrigger`.
+  }
+  function confirmDiscard() {
+    if (submitting.current) return;
+    setDiscardOpen(false);
     const cleared = record ? clearSubmittedDraft(record.client_submission_id) : corruptAttemptedNotice ? clearSubmittedDraft(corruptAttemptedNotice) : true;
     clearSubmittedReference();
     clearIntakeMemory();
     setRecord(null); setChecked(false); setError(null);
+    discardTrigger.current = null;
     if (!cleared) { setClearFailed(true); return; }
     router.push(INTAKE_PATH);
   }
+  function requestReplace(event?: { currentTarget: EventTarget & HTMLElement }) {
+    if (submitting.current) return;
+    discardTrigger.current = event?.currentTarget ?? null;
+    setReplaceOpen(true);
+  }
+  function cancelReplace() {
+    setReplaceOpen(false);
+    // See cancelDiscard: focus restore is handled by the useEffect.
+  }
+  function confirmReplace() {
+    if (submitting.current || !record || !pendingHandoff) return;
+    const fresh = createDeviceDraft(pendingHandoff);
+    if (!fresh) return;
+    setReplaceOpen(false);
+    const saved = saveDraft(fresh, undefined, record.client_submission_id, { transition: "discard-replace", requireExisting: true });
+    if (!saved) { setStorageFailed(true); return; }
+    focusNewId.current = true;
+    setPendingHandoff(null);
+    setRecord(fresh); setStorageFailed(false); setExpired(false);
+    setChecked(false); setError(null);
+    setFields(validateReview(fresh));
+    discardTrigger.current = null;
+  }
+  // The empty-state and bottom-row "delete draft" buttons both call
+  // requestDiscard; the empty-state button has no event arg.
 
+  // The discard dialog body switches to the more specific "the server may
+  // have received it" warning when the draft was already attempted; the
+  // title stays the standard "Delete this draft?".
+  const isDiscardAttempted = Boolean(record?.attempted || corruptAttemptedNotice);
   return <div data-surface="parent" lang={locale} className="mx-auto flex w-full max-w-[30rem] flex-col gap-6 px-4 pt-6 pb-12">
     <FocusHeading className="text-heading-2 font-semibold text-ink">{t.reviewTitle}</FocusHeading>
     <div className="flex flex-wrap gap-2"><HonestLabel>{t.syntheticBadge}</HonestLabel>{(success?.mock ?? record?.mock) && <HonestLabel lang="en">{t.mockLabel}</HonestLabel>}{(success?.cached ?? record?.cached) && <HonestLabel>{t.cachedBadge}</HonestLabel>}</div>
@@ -258,7 +382,7 @@ export function ReviewScreen({ locale }: { locale: Locale }) {
       </div>
     ) : ready && !record ? <>
       <p className="text-body-lg text-body">{t.reviewEmpty}</p>
-      {corruptAttemptedNotice && <button type="button" className={TERTIARY_BUTTON} onClick={discard}><TrashIcon />{t.reviewDiscardDevice}</button>}
+      {corruptAttemptedNotice && <button type="button" className={TERTIARY_BUTTON} onClick={requestDiscard}><TrashIcon />{t.reviewDiscardDevice}</button>}
       <Link className={TERTIARY_BUTTON} href={INTAKE_PATH}>{t.reviewBack}</Link>
     </> : record && <>
       {pendingHandoff && (
@@ -271,19 +395,7 @@ export function ReviewScreen({ locale }: { locale: Locale }) {
             <button type="button" disabled={busy} className={TERTIARY_BUTTON} onClick={() => { if (submitting.current) return; focusContinued.current = true; setPendingHandoff(null); }}>
               {t.earlierDraftContinue}
             </button>
-            <button type="button" disabled={busy} className={TERTIARY_BUTTON} onClick={() => {
-              if (submitting.current) return;
-              const fresh = createDeviceDraft(pendingHandoff);
-              if (fresh && window.confirm(t.discardConfirm)) {
-                const saved = saveDraft(fresh, undefined, record.client_submission_id, { transition: "discard-replace", requireExisting: true });
-                if (!saved) { setStorageFailed(true); return; }
-                focusNewId.current = true;
-                setPendingHandoff(null);
-                setRecord(fresh); setStorageFailed(false); setExpired(false);
-                setChecked(false); setError(null);
-                setFields(validateReview(fresh));
-              }
-            }}>
+            <button type="button" disabled={busy} className={TERTIARY_BUTTON} onClick={requestReplace}>
               {t.earlierDraftReplace}
             </button>
           </div>
@@ -295,7 +407,7 @@ export function ReviewScreen({ locale }: { locale: Locale }) {
       <div id="review-required" ref={summary} tabIndex={-1} role="alert" aria-atomic="true" className={error || expired || fields.length > 0 ? "rounded-lg border border-control bg-card p-4 text-body-lg text-body" : "sr-only"}>
         {(error || expired || fields.length > 0) && <>
           <p className="flex items-start gap-2"><CircleAlertIcon className="mt-1 size-5 text-info" />{expired ? t.reviewExpired : id === "E-001" ? t.reviewErrorSummary : conflict ? t.reviewConflict : e019FromApi ? t.reviewSessionExpired : id === "E-002" ? t.reviewSession : error ? (locale === "bn" ? error.error.message_bn : error.error.message_en) : t.reviewRequiredSummary}</p>
-          {fields.length > 0 && <ul className="mt-3 list-inside list-disc">{fields.map((path) => <li key={path}><a href={`#${path.startsWith("child.age_") ? "review-age-exact" : `review-${path}`}`} className="inline-flex min-h-11 items-center" onClick={(e) => { e.preventDefault(); document.getElementById(path.startsWith("child.age_") ? "review-age-exact" : `review-${path}`)?.focus(); }}>{reviewLabel(path, locale)}</a></li>)}</ul>}
+          {fields.length > 0 && <ul className="mt-3 list-inside list-disc">{fields.map((path) => <li key={path}><a href={`#${reviewFieldInputId(path)}`} className="inline-flex min-h-11 items-center" onClick={(e) => { e.preventDefault(); document.getElementById(reviewFieldInputId(path))?.focus(); }}>{reviewLabel(path, locale)}</a></li>)}</ul>}
           {conflict && <button type="button" className={`${TERTIARY_BUTTON} mt-3`} onClick={() => {
             const fresh = newSubmission(record);
             const saved = saveDraft(fresh, undefined, record.client_submission_id, { transition: "payload-conflict", requireExisting: everSaved.current });
@@ -317,11 +429,57 @@ export function ReviewScreen({ locale }: { locale: Locale }) {
         <ConfirmBar locale={locale} checked={checked} valid={valid} busy={busy} blocked={conflict || sessionExpired || expired || Boolean(pendingHandoff)} mock={record.mock} describedBy={!valid ? "review-required" : undefined} onCheck={setChecked} />
       </form>
       <Link className={TERTIARY_BUTTON} href={INTAKE_PATH} aria-disabled={busy || undefined} onClick={(e) => { if (busy) e.preventDefault(); }}>{t.reviewBack}</Link>
-      <span className="inline-flex min-h-11 items-center gap-2 text-body-lg text-mute">
-        {t.reviewPlannedManual}
-        <HonestLabel>{t.plannedLabel}</HonestLabel>
-      </span>
-      <button type="button" disabled={busy} className={TERTIARY_BUTTON} onClick={discard}><TrashIcon />{t.reviewDiscardDevice}</button>
+      <Link className={TERTIARY_BUTTON} href={MANUAL_FORM_PATH} aria-disabled={busy || undefined} onClick={(e) => { if (busy) e.preventDefault(); }}>{t.reviewManualLink}</Link>
+      <button type="button" disabled={busy} className={TERTIARY_BUTTON} onClick={requestDiscard}><TrashIcon />{t.reviewDiscardDevice}</button>
     </>}
+    {/* In-product confirm dialogs. The native <dialog> with showModal() gives
+        the OS focus trap, Escape handling and inert background for free.
+        Cancelling is a no-op for storage and the router; only the explicit
+        confirm button mutates. The dialogs live outside the success/expired/
+        empty/record branches so every entry point (including the empty-state
+        "delete draft" button) shares the same element. */}
+    <dialog
+      ref={discardDialog}
+      aria-labelledby="review-discard-title"
+      aria-describedby="review-discard-body"
+      lang={locale}
+      onCancel={(event) => { event.preventDefault(); cancelDiscard(); }}
+      className="m-auto w-[min(28rem,calc(100%-2rem))] rounded-lg border border-hairline bg-surface p-[16px] text-body shadow-2 backdrop:bg-scrim sm:p-6"
+    >
+      <div className="flex flex-col gap-4">
+        <h2 id="review-discard-title" className="text-heading-4 font-semibold text-ink">{t.discardConfirm}</h2>
+        <p id="review-discard-body" className="text-body-md text-body">{isDiscardAttempted ? t.reviewDiscardWarn : t.discardConfirm}</p>
+        {isDiscardAttempted ? <p className="text-body-sm text-body">{t.reviewDiscardWarn}</p> : null}
+        <div className="flex flex-wrap gap-3">
+          <button type="button" onClick={cancelDiscard} className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-control bg-elevated px-5 text-body-md font-medium text-ink transition-[background-color,border-color] duration-(--duration-fast) ease-out hover:border-control-strong hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+            {t.discardNo}
+          </button>
+          <button type="button" onClick={confirmDiscard} className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md bg-primary px-5 text-body-md font-semibold text-on-primary transition-[background-color] duration-(--duration-fast) ease-out hover:bg-primary-pressed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+            {t.discardYes}
+          </button>
+        </div>
+      </div>
+    </dialog>
+    <dialog
+      ref={replaceDialog}
+      aria-labelledby="review-replace-title"
+      aria-describedby="review-replace-body"
+      lang={locale}
+      onCancel={(event) => { event.preventDefault(); cancelReplace(); }}
+      className="m-auto w-[min(28rem,calc(100%-2rem))] rounded-lg border border-hairline bg-surface p-[16px] text-body shadow-2 backdrop:bg-scrim sm:p-6"
+    >
+      <div className="flex flex-col gap-4">
+        <h2 id="review-replace-title" className="text-heading-4 font-semibold text-ink">{t.replaceTitle}</h2>
+        <p id="review-replace-body" className="text-body-md text-body">{t.replaceBody}</p>
+        <div className="flex flex-wrap gap-3">
+          <button type="button" onClick={cancelReplace} className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-control bg-elevated px-5 text-body-md font-medium text-ink transition-[background-color,border-color] duration-(--duration-fast) ease-out hover:border-control-strong hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+            {t.replaceNo}
+          </button>
+          <button type="button" onClick={confirmReplace} className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md bg-primary px-5 text-body-md font-semibold text-on-primary transition-[background-color] duration-(--duration-fast) ease-out hover:bg-primary-pressed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+            {t.replaceYes}
+          </button>
+        </div>
+      </div>
+    </dialog>
   </div>;
 }

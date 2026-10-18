@@ -34,6 +34,14 @@ const LABELS: Partial<Record<DraftFieldPath, MessageKey>> = {
 export function reviewLabel(path: DraftFieldPath, locale: Locale): string {
   return locales[locale][LABELS[path] ?? FIELD_LABEL[path]];
 }
+// The DOM id of the actual invalid input for a given draft field path. Age
+// shares a single "review-age" card with a radio (mode) and the matching input;
+// pointing the summary link at the input (not the radio) lets a keyboard user
+// fix the value, not just toggle the mode. The input always lives at the same
+// id as the field path (`review-${path}`); the radio is `review-age-${mode}`.
+export function reviewFieldInputId(path: DraftFieldPath): string {
+  return `review-${path}`;
+}
 export function fieldError(path: DraftFieldPath, locale: Locale): string {
   const t = locales[locale];
   return path.startsWith("child.age") ? t.reviewAgeInvalid : path === "reporter.phone" ? t.reviewPhoneInvalid

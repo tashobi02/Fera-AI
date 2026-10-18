@@ -18,4 +18,7 @@ export type { DecisionResult } from "./decision";
 export { closeCase } from "./close";
 export type { CloseResult } from "./close";
 export { readCase } from "./read";
+export { fireMatcherPostcommit } from "./postcommit";
 export type { ReadResult } from "./read";
+export { listOfficerCases } from "./list";
+export type { OfficerCaseListInput, OfficerCaseListResult, ListCasesServiceContext } from "./list";

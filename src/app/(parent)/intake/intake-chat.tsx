@@ -380,9 +380,8 @@ export function IntakeChat({ locale, mode }: { locale: Locale; mode: IntakeClien
           )}
         </p>
         {stage === "slow" && (
-          <Link href={MANUAL_FORM_PATH} onClick={(event) => handTo("manual", event)} className="inline-flex min-h-11 items-center self-start text-body-md">
+          <Link href={MANUAL_FORM_PATH} onClick={(event) => handTo("manual", event)} className="inline-flex min-h-11 items-center self-start text-body-md underline underline-offset-2">
             {t.useFormLink}
-            <HonestLabel>{t.plannedLabel}</HonestLabel>
           </Link>
         )}
 
@@ -498,12 +497,10 @@ export function IntakeChat({ locale, mode }: { locale: Locale; mode: IntakeClien
             </div>
           )}
           {state.latest && <Link href={REVIEW_PATH} onClick={(event) => handTo("review", event)} className={PRIMARY_BUTTON}>{t.reviewAction}</Link>}
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="inline-flex min-h-11 items-center gap-2 text-body-md text-mute">
-              {t.openFormAction}
-            </span>
-            <HonestLabel>{t.plannedLabel}</HonestLabel>
-          </div>
+          <Link href={MANUAL_FORM_PATH} onClick={(event) => handTo("manual", event)} className={`${TERTIARY_BUTTON} self-start`}>
+            <FileTextIcon />
+            {t.openFormAction}
+          </Link>
         </Outcome>
       )}
 
@@ -538,7 +535,9 @@ export function IntakeChat({ locale, mode }: { locale: Locale; mode: IntakeClien
         </section>
       ) : <div className="flex flex-wrap items-center justify-between gap-2 border-t border-hairline pt-3">
         {state.phase !== "manual" ? (
-          <PlannedLink href={MANUAL_FORM_PATH} onClick={(event) => handTo("manual", event)} label={t.openFormAction} planned={t.plannedLabel} />
+          <Link href={MANUAL_FORM_PATH} onClick={(event) => handTo("manual", event)} className={GHOST_BUTTON}>
+            <FileTextIcon />{t.openFormAction}
+          </Link>
         ) : (
           <span />
         )}
@@ -554,7 +553,7 @@ export function IntakeChat({ locale, mode }: { locale: Locale; mode: IntakeClien
 function Shell({ title, titleRef, children }: { title: string; titleRef: Ref<HTMLHeadingElement>; children: ReactNode }) {
   return (
     <div data-surface="parent" className="mx-auto flex w-full max-w-[30rem] flex-col gap-6 px-[16px] pt-6 pb-12">
-      <h1 ref={titleRef} tabIndex={-1} className="text-heading-3 font-semibold text-ink outline-none [&:lang(en)]:font-bold [&:lang(en)]:tracking-[-0.25px]">
+      <h1 ref={titleRef} tabIndex={-1} className="text-heading-3 font-semibold text-ink rounded-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring [&:lang(en)]:font-bold [&:lang(en)]:tracking-[-0.25px]">
         {title}
       </h1>
       {children}
@@ -595,7 +594,7 @@ function ChatMessage({
     // COMP-027: the question in the reader's language; it takes focus when it is new.
     return (
       <Bubble from="fera" name={t.appName}>
-        <p id={questionId} ref={focusRef as Ref<HTMLParagraphElement>} tabIndex={focusRef ? -1 : undefined} onKeyDown={focusRef ? onQuestionKeyDown : undefined} className="font-medium outline-none">
+        <p id={questionId} ref={focusRef as Ref<HTMLParagraphElement>} tabIndex={focusRef ? -1 : undefined} onKeyDown={focusRef ? onQuestionKeyDown : undefined} className="font-medium rounded-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring">
           {message.question[locale]}
         </p>
       </Bubble>
@@ -633,7 +632,7 @@ function Outcome({
         id={headingId}
         ref={focusRef as Ref<HTMLHeadingElement>}
         tabIndex={-1}
-        className="flex items-start gap-2 text-heading-sm font-semibold text-ink outline-none"
+        className="flex items-start gap-2 text-heading-sm font-semibold text-ink rounded-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
       >
         <span className="mt-[0.15em]">{icon}</span>
         {title}
@@ -642,10 +641,6 @@ function Outcome({
     </section>
   );
 }
-
-// Only the unbuilt S-005 manual form keeps its Planned label.
-function PlannedLink({ href, onClick, label, planned }: { href: typeof MANUAL_FORM_PATH; onClick: (event: MouseEvent<HTMLAnchorElement>) => void; label: string; planned: string }) {
-  return <Link href={href} onClick={onClick} className={GHOST_BUTTON}>
-    <FileTextIcon />{label}<HonestLabel>{planned}</HonestLabel>
-  </Link>;
-}
+// S-005 manual form is now built (P3-013); the form link in S-002 is a real
+// ghost link to /intake/form, with no child payload in the URL. The device-local
+// draft (or handoff) carries the parent's words into the form.

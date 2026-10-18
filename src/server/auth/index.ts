@@ -1,7 +1,7 @@
 // Server auth (TASK-006). Route handlers resolve principals through the API layer's
 // default resolver; server components use require-role.ts.
 export { defaultAuth, defaultAuthStore } from "./default";
-export { createAuth, MINTING_APIS } from "./session";
+export { createAuth, MINTING_APIS, MINTING_IF_NO_PARENT_COOKIE } from "./session";
 export type { Auth, AuthDeps, AuthKeys } from "./session";
 export { createSignIn } from "./sign-in";
 export type { SignInDeps } from "./sign-in";

@@ -49,7 +49,13 @@ const rule = (fn: () => unknown) => {
 describe("audit actions", () => {
   it("names every action with the audit_log.action CHECK pattern and keeps the contract codes", () => {
     for (const a of WRITABLE_AUDIT_ACTIONS) expect(a).toMatch(AUDIT_ACTION_PATTERN);
-    expect(WRITABLE_AUDIT_ACTIONS).toEqual(expect.arrayContaining([AUDIT_ACTIONS.matchConfirm, AUDIT_ACTIONS.matchReject, AUDIT_ACTIONS.accessDenied]));
+    expect(WRITABLE_AUDIT_ACTIONS).toEqual(expect.arrayContaining([
+      AUDIT_ACTIONS.matchConfirm,
+      AUDIT_ACTIONS.matchReject,
+      AUDIT_ACTIONS.accessDenied,
+      CASE_AUDIT_ACTIONS.duplicateReviewed,
+      CASE_AUDIT_ACTIONS.duplicateFlagged,
+    ]));
     expect(new Set(WRITABLE_AUDIT_ACTIONS).size).toBe(WRITABLE_AUDIT_ACTIONS.length);
   });
 
@@ -57,6 +63,31 @@ describe("audit actions", () => {
     expect(rule(() => checkAuditEntry(officer, { action: "case.payload_redacted" as never }))).toBe("action");
     expect(rule(() => checkAuditEntry(officer, { action: "case.deleted" as never }))).toBe("action");
     expect(rule(() => checkAuditEntry(officer, { action: CASE_AUDIT_ACTIONS.caseClosed }))).toBe("ok");
+  });
+
+  it("accepts API-023 decision details only for officers and detector flags only for the system", () => {
+    const reviewed = {
+      api: "API-023",
+      duplicate_status: "confirmed_same",
+      duplicate_rule: "profile",
+      reason_recorded: true,
+    } as const;
+    const flagged = { api: "API-023", duplicate_status: "flagged", duplicate_rule: "profile" } as const;
+
+    expect(rule(() => checkAuditEntry(officer, { action: CASE_AUDIT_ACTIONS.duplicateReviewed, details: reviewed }))).toBe("ok");
+    expect(rule(() => checkAuditEntry(SYSTEM_ACTOR, { action: CASE_AUDIT_ACTIONS.duplicateReviewed, details: reviewed }))).toBe("actor");
+    expect(rule(() => checkAuditEntry(SYSTEM_ACTOR, { action: CASE_AUDIT_ACTIONS.duplicateFlagged, details: flagged }))).toBe("ok");
+    expect(rule(() => checkAuditEntry(officer, { action: CASE_AUDIT_ACTIONS.duplicateFlagged, details: flagged }))).toBe("actor");
+  });
+
+  it("allows protected synthetic imports only under case.imported for admins", () => {
+    const admin = actorFor(testUser("6b1f3c2a-4d5e-4f60-8a71-000000000022", "admin"));
+    const imported = { api: "API-015", imported: 2, skipped: 1 } as const;
+
+    expect(rule(() => checkAuditEntry(admin, { action: CASE_AUDIT_ACTIONS.caseImported, details: imported }))).toBe("ok");
+    expect(rule(() => checkAuditEntry(officer, { action: CASE_AUDIT_ACTIONS.caseImported, details: imported }))).toBe("actor");
+    expect(rule(() => checkAuditEntry(SYSTEM_ACTOR, { action: CASE_AUDIT_ACTIONS.caseImported, details: imported }))).toBe("actor");
+    expect(rule(() => checkAuditEntry(admin, { action: CASE_AUDIT_ACTIONS.caseCreated }))).toBe("actor");
   });
 });
 

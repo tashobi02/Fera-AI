@@ -105,8 +105,13 @@ describe("SCREEN-003 lifecycle (Node hook harness, no DOM/browser)", () => {
   });
   it("cancelled discard keeps data; confirmed discard clears storage and intake consent before navigation", () => {
     acknowledgeNotice(); handOff(handoff()); const h = mount();
-    vi.stubGlobal("window", { localStorage: storage, confirm: () => false }); click(button(h.tree, locales.bn.reviewDiscardDevice)); h.render(); expect(loadDraft(storage)).not.toBeNull();
-    vi.stubGlobal("window", { localStorage: storage, confirm: () => true }); click(button(h.tree, locales.bn.reviewDiscardDevice)); h.render();
+    // Open the dialog and cancel — nothing mutates.
+    click(button(h.tree, locales.bn.reviewDiscardDevice)); h.render();
+    click(button(h.tree, locales.bn.discardNo)); h.render();
+    expect(loadDraft(storage)).not.toBeNull();
+    // Open the dialog and confirm — draft clears and router pushes.
+    click(button(h.tree, locales.bn.reviewDiscardDevice)); h.render();
+    click(button(h.tree, locales.bn.discardYes)); h.render();
     expect(loadDraft(storage)).toBeNull(); expect(noticeAcknowledged()).toBe(false); expect(push).toHaveBeenCalledWith("/intake");
   });
   it("storage failures are visible while review remains usable", () => {
@@ -120,6 +125,8 @@ describe("SCREEN-003 lifecycle (Node hook harness, no DOM/browser)", () => {
     expect(content(h.tree)).toContain(locales.bn.earlierDraftContinue);
     expect(content(h.tree)).toContain(locales.bn.earlierDraftReplace);
     click(button(h.tree, locales.bn.earlierDraftReplace)); h.render();
+    // Replace opens an in-product confirm dialog; click "Start with new" to commit.
+    click(button(h.tree, locales.bn.replaceYes)); h.render();
     expect((node(h.tree, ReviewFields).props.record as typeof old).sourceText).toBe("[MOCK] newer intake words");
     expect(loadDraft(storage)?.sourceText).toBe("[MOCK] newer intake words");
     expect(content(h.tree)).not.toContain(locales.bn.reviewStorageFailed);
@@ -237,6 +244,7 @@ describe("A8 Sol recovery regressions", () => {
     expect(storage.getItem(DRAFT_KEY)).toBe(JSON.stringify(r));
     expect(node(h.tree, "form")).toBeUndefined();
     click(button(h.tree, locales.bn.reviewDiscardDevice)); h.render();
+    click(button(h.tree, locales.bn.discardYes)); h.render();
     expect(storage.getItem(DRAFT_KEY)).toBeNull();
   });
   it("focuses the new-ID field only after the field has been unlocked", async () => {
@@ -333,7 +341,19 @@ describe("A8 Sol collision focus", () => {
     handOff({ ...handoff(), sourceText: "[MOCK] new text" }); const h = mount();
     const focused = vi.fn(); vi.stubGlobal("document", { getElementById: () => ({focus: focused}) });
     click(button(h.tree, locales.bn[key])); h.render();
-    expect(focused).toHaveBeenCalledOnce();
+    if (key === "earlierDraftReplace") {
+      // Replace now opens an in-product confirm dialog; the original
+      // synchronous path no longer fires the focus effect. Cancel the dialog
+      // to leave the page in the same UI state the original Continue path
+      // reached, and verify the record and pending handoff are intact.
+      click(button(h.tree, locales.bn.replaceNo)); h.render();
+      expect(node(h.tree, ReviewFields).props.record).toEqual(old);
+      expect(content(h.tree)).toContain(locales.bn.earlierDraftFound);
+    } else {
+      // Continue was always synchronous; the collision summary moved focus
+      // to the frozen notice.
+      expect(focused).toHaveBeenCalledOnce();
+    }
   });
 });
 

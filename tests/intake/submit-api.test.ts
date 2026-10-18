@@ -14,6 +14,7 @@ import { fakeResolver, jsonPost, noParams } from "../api/fakes";
 import { fakeAuth, KEYS } from "../auth/fakes";
 import { fakePool, pgError } from "../case/fakes";
 import { testParent, testUser } from "../support/principals";
+import * as postcommit from "@/server/case/postcommit";
 
 const parent = testParent(IDS.parentSession);
 const requestBody = () => ({
@@ -58,6 +59,7 @@ const errorId = async (response: Response) => errorEnvelopeSchema.parse(await re
 
 describe("API-003 missing-report submission (TASK-022)", () => {
   beforeEach(() => {
+    vi.spyOn(postcommit, "fireMatcherPostcommit").mockResolvedValue({ caseId: IDS.missingCase, state: "queued", candidates: [], considered: 0, abstained: false });
     vi.spyOn(defaultAuth(), "resolvePrincipal").mockImplementation(fakeResolver(parent));
   });
   afterEach(() => {
@@ -79,7 +81,8 @@ describe("API-003 missing-report submission (TASK-022)", () => {
     const audit = db.sent(/^INSERT INTO audit_log/);
     expect(audit.map((q) => q.values[7])).toEqual([response.headers.get("x-request-id"), response.headers.get("x-request-id")]);
     expect(audit.map((q) => q.values[0])).toEqual(["parent", "system"]);
-    expect(db.sent(/^COMMIT$/)).toHaveLength(2);
+    expect(db.sent(/^COMMIT$/).length).toBeGreaterThanOrEqual(2);
+    expect(db.sent(/^COMMIT$/)).toHaveLength(db.sent(/^BEGIN$/).length);
     expect(response.headers.get("cache-control")).toContain("no-store");
     expect(response.headers.get("set-cookie")).toBeNull();
   });
@@ -149,16 +152,18 @@ describe("API-003 missing-report submission (TASK-022)", () => {
     expect(JSON.parse(String(db.sent(/^INSERT INTO audit_log/)[0].values[6]))).toEqual({ error_id: "E-003", api: "API-003" });
   });
 
-  it.each(["absent", "expired"])("an %s parent session gets the auth layer's E-002 without minting a cookie or writing a case", async (state) => {
+  // OD-022-5: no parent cookie at all mints a session at submit (tested on PostgreSQL in
+  // tests/db/submit.test.ts); a present but expired one is still refused here.
+  it("an expired parent session gets the auth layer's E-002, clears the dead cookie and writes nothing", async () => {
     const { auth, store } = fakeAuth();
     vi.mocked(defaultAuth().resolvePrincipal).mockImplementation(auth.resolvePrincipal);
     const db = installDb();
     const session = store.addSession({ expiresInMs: -1 });
-    const headers: Record<string, string> = state === "expired" ? { cookie: `${cookieNames(false).parent}=${signParentToken(KEYS.parent, session.id)}` } : {};
+    const headers: Record<string, string> = { cookie: `${cookieNames(false).parent}=${signParentToken(KEYS.parent, session.id)}` };
     const response = await submit(requestBody(), headers);
     expect(response.status).toBe(401);
     expect(await errorId(response)).toBe("E-002");
-    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(response.headers.get("set-cookie")).toMatch(/^fera_ps=; .*Max-Age=0/);
     expect(store.created).toBe(0);
     expect(db.calls).toHaveLength(0);
   });

@@ -33,6 +33,12 @@ import {
 import { testUser } from "../support/principals";
 import { ORIGIN, captureLogs, get, jsonPost, noParams, reachCounter, sameOriginHeaders, testFactory } from "./fakes";
 
+// This suite tests route composition; readiness probes have their own injected
+// unit suite and offline model/DB integration checks. Do not depend on a local cache.
+vi.mock("@/server/health/readiness", () => ({
+  createHealthReadiness: () => async () => ({ db: "unavailable", embeddings: "unavailable" }),
+}));
+
 const RID = "0b9f6a1e-3c4d-4e5f-8a7b-9c0d1e2f3a4b";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 

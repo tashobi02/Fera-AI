@@ -35,7 +35,7 @@ export function pool(role: DbRole): Pool {
   return new Pool({ connectionString: roleUrl(role), max: 2, connectionTimeoutMillis: 10_000 });
 }
 
-export async function tx<T>(client: ClientBase, fn: () => Promise<T>): Promise<T> {
+export async function tx<T>(client: Pick<ClientBase, "query">, fn: () => Promise<T>): Promise<T> {
   await client.query("BEGIN");
   try {
     const result = await fn();
@@ -78,7 +78,7 @@ export async function expectPgError(work: Promise<unknown>, code: string, messag
   if (message) expect(err?.message).toMatch(message);
 }
 
-export async function one<T = Record<string, unknown>>(client: ClientBase, sql: string, params: unknown[] = []): Promise<T> {
+export async function one<T = Record<string, unknown>>(client: Pick<ClientBase, "query">, sql: string, params: unknown[] = []): Promise<T> {
   const { rows } = await client.query(sql, params);
   if (rows.length !== 1) throw new Error(`expected one row, got ${rows.length}`);
   return rows[0] as T;
@@ -96,7 +96,7 @@ const daysAgo = (d: number) => new Date(Date.now() - d * 86_400_000).toISOString
 export const MOCK_DISTRICT = 1;
 
 // Reference rows are owner data, so the superuser seeds them.
-export async function seedReference(admin: ClientBase): Promise<void> {
+export async function seedReference(admin: Pick<ClientBase, "query">): Promise<void> {
   await admin.query(
     `INSERT INTO districts (code, name_en, name_bn, division_en, lat, lng)
      VALUES ($1, '[MOCK] District 01', '[MOCK] জেলা ০১', '[MOCK] Division', 23.5, 90.4)
@@ -113,7 +113,7 @@ export interface Actors {
 }
 
 // Accounts are seeded by the owner (fera_app has no INSERT on users).
-export async function createActors(owner: ClientBase): Promise<Actors> {
+export async function createActors(owner: Pick<ClientBase, "query">): Promise<Actors> {
   const tag = randomBytes(3).toString("hex");
   const insert = async (name: string, role: string, verified: boolean) =>
     (
@@ -139,7 +139,7 @@ export interface CaseRef {
   phone: string;
 }
 
-export async function insertMissing(app: ClientBase, opts: { status?: string } = {}): Promise<CaseRef> {
+export async function insertMissing(app: Pick<ClientBase, "query">, opts: { status?: string } = {}): Promise<CaseRef> {
   const session = await one<{ id: string }>(app, "INSERT INTO parent_sessions DEFAULT VALUES RETURNING id");
   const ref = `M-${refSuffix()}`;
   const name = `Synthetic Child ${ref}`;
@@ -169,7 +169,7 @@ export async function insertMissing(app: ClientBase, opts: { status?: string } =
   return { id: row.id, ref, name, phone };
 }
 
-export async function insertFound(app: ClientBase, staffId: string): Promise<CaseRef> {
+export async function insertFound(app: Pick<ClientBase, "query">, staffId: string): Promise<CaseRef> {
   const ref = `F-${refSuffix()}`;
   const name = `Synthetic Found ${ref}`;
   const phone = fakePhone();
@@ -187,13 +187,13 @@ export async function insertFound(app: ClientBase, staffId: string): Promise<Cas
   return { id: row.id, ref, name, phone };
 }
 
-export async function openMissing(app: ClientBase, id: string): Promise<void> {
+export async function openMissing(app: Pick<ClientBase, "query">, id: string): Promise<void> {
   await app.query("UPDATE cases SET status = 'open' WHERE id = $1", [id]);
 }
 
 // Inserts a pending candidate on both current versions and moves open endpoints to
 // matched_pending_review in the same transaction.
-export async function addCandidate(app: ClientBase, missingId: string, foundId: string, rank = 1): Promise<string> {
+export async function addCandidate(app: Pick<ClientBase, "query">, missingId: string, foundId: string, rank = 1): Promise<string> {
   return tx(app, async () => {
     const c = await one<{ id: string }>(
       app,
@@ -224,7 +224,7 @@ export interface ConfirmInput {
 }
 
 // The API-010 write set in one transaction (TASK-015 owns the real service).
-export async function confirmPair(app: ClientBase, input: ConfirmInput): Promise<void> {
+export async function confirmPair(app: Pick<ClientBase, "query">, input: ConfirmInput): Promise<void> {
   const { candidateId: c, missingId: m, foundId: f, officerId: o } = input;
   await tx(app, async () => {
     if (input.voidCandidates?.length) {
@@ -253,7 +253,7 @@ export async function confirmPair(app: ClientBase, input: ConfirmInput): Promise
   });
 }
 
-export async function closeMissing(app: ClientBase, id: string, outcome = "coordination_recorded"): Promise<void> {
+export async function closeMissing(app: Pick<ClientBase, "query">, id: string, outcome = "coordination_recorded"): Promise<void> {
   await app.query(
     "UPDATE cases SET status = 'closed', outcome = $2, outcome_note = '[MOCK] synthetic closure note', closed_at = now() WHERE id = $1",
     [id, outcome],
@@ -261,7 +261,7 @@ export async function closeMissing(app: ClientBase, id: string, outcome = "coord
 }
 
 // A complete synthetic pair: missing closed (coordination recorded), found referred.
-export async function closedPair(app: ClientBase, actors: Actors): Promise<{ missing: CaseRef; found: CaseRef; candidateId: string }> {
+export async function closedPair(app: Pick<ClientBase, "query">, actors: Actors): Promise<{ missing: CaseRef; found: CaseRef; candidateId: string }> {
   const missing = await insertMissing(app);
   await openMissing(app, missing.id);
   const found = await insertFound(app, actors.staff);

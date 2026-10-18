@@ -15,6 +15,7 @@ import { setPoolForTests } from "@/server/db/pool";
 import { jsonPost, noParams } from "../api/fakes";
 import { KEYS, KEY_SOURCE } from "../auth/fakes";
 import { MOCK_DISTRICT, connect, dbTestsEnabled, one, pool, seedReference } from "./support/db";
+import * as postcommit from "@/server/case/postcommit";
 
 describe.skipIf(!dbTestsEnabled)("API-003 on PostgreSQL 16 (TASK-022)", () => {
   let admin: Client;
@@ -22,6 +23,7 @@ describe.skipIf(!dbTestsEnabled)("API-003 on PostgreSQL 16 (TASK-022)", () => {
   let app: Pool;
 
   beforeAll(async () => {
+    vi.spyOn(postcommit, "fireMatcherPostcommit").mockImplementation(async (caseId) => ({ caseId, state: "queued", candidates: [], considered: 0, abstained: false }));
     admin = await connect("admin");
     appClient = await connect("app");
     app = pool("app");
@@ -161,13 +163,50 @@ describe.skipIf(!dbTestsEnabled)("API-003 on PostgreSQL 16 (TASK-022)", () => {
     expect(JSON.stringify(audit.rows)).not.toContain(token);
   });
 
-  it("requires a pre-existing parent session, without creating one at submit", async () => {
+  // OD-022-5 (Mahim, 2026-10-17): a browser with no parent cookie gets one new
+  // anonymous session at submit (S-005 manual form; S-002 before API-001/002 exist).
+  it("mints one parent session for a browser with no parent cookie, owns the case by it, and replays with it", async () => {
+    const before = await counts();
+    const sessionsBefore = await one<{ n: number }>(appClient, "SELECT count(*)::int AS n FROM parent_sessions");
+    const body = manualRequest();
+    const response = await submit(body);
+    expect(response.status).toBe(201);
+    const created = createMissingResponseSchema.parse(await response.json());
+    const setCookie = response.headers.getSetCookie();
+    expect(setCookie).toHaveLength(1);
+    expect(setCookie[0]).toMatch(new RegExp(`^${cookieNames(false).parent}=p1\\.`));
+    expect((await one<{ n: number }>(appClient, "SELECT count(*)::int AS n FROM parent_sessions")).n).toBe(sessionsBefore.n + 1);
+    const owner = await one<{ reporter_session_id: string }>(appClient, "SELECT reporter_session_id FROM cases WHERE id = $1", [created.id]);
+    const minted = /=p1\.([0-9a-f-]{36})\./.exec(setCookie[0]!)?.[1]; // the session ID inside the signed cookie
+    expect(owner.reporter_session_id).toBe(minted);
+    expect((await counts()).cases).toBe(before.cases + 1);
+    // The same browser (now carrying the cookie) replays the same report, no new session.
+    const cookie = setCookie[0]!.split(";")[0]!;
+    const replay = await submit(body, cookie);
+    expect(replay.status).toBe(200);
+    expect(createMissingResponseSchema.parse(await replay.json()).ref_code).toBe(created.ref_code);
+    expect((await one<{ n: number }>(appClient, "SELECT count(*)::int AS n FROM parent_sessions")).n).toBe(sessionsBefore.n + 1);
+  });
+
+  it("a cookieless submit that fails validation leaves only session metadata: no case, no audit row", async () => {
+    const before = await counts();
+    const sessionsBefore = await one<{ n: number }>(appClient, "SELECT count(*)::int AS n FROM parent_sessions");
+    const response = await submit({ ...manualRequest(), confirmed: false });
+    expect(response.status).toBe(400);
+    expect(await errorId(response)).toBe("E-001");
+    expect(await counts()).toEqual(before);
+    // Minting runs in the resolver, before the body is parsed: one metadata-only row.
+    expect((await one<{ n: number }>(appClient, "SELECT count(*)::int AS n FROM parent_sessions")).n).toBe(sessionsBefore.n + 1);
+  });
+
+  it("does not replace a present but expired parent session: E-002, the dead cookie cleared, no new session, nothing stored", async () => {
+    const { id } = await one<{ id: string }>(appClient, "INSERT INTO parent_sessions (created_at, expires_at) VALUES (now() - interval '31 days', now() - interval '1 minute') RETURNING id");
     const before = await counts();
     const sessionsBefore = await one(appClient, "SELECT count(*)::int AS n FROM parent_sessions");
-    const response = await submit(manualRequest());
+    const response = await submit(manualRequest(), `${cookieNames(false).parent}=${signParentToken(KEYS.parent, id)}`);
     expect(response.status).toBe(401);
     expect(await errorId(response)).toBe("E-002");
-    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(response.headers.get("set-cookie")).toMatch(new RegExp(`^${cookieNames(false).parent}=; .*Max-Age=0`));
     expect(await counts()).toEqual(before);
     expect(await one(appClient, "SELECT count(*)::int AS n FROM parent_sessions")).toEqual(sessionsBefore);
   });

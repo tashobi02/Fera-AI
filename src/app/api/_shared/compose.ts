@@ -44,7 +44,7 @@ export type RouteHandler = (req: Request, ctx: RouteHandlerContext) => Promise<R
 
 export type ResolverInput = { req: Request; api: ApiId; cookies: CookieJar };
 // Builds a Principal from database rows (TASK-006). It may mint the parent session
-// through `cookies` (API-001/002 only), and may throw ApiError("E-019") for an expired
+// through `cookies` (API-001/002; API-003 only without a parent cookie, OD-022-5), and may throw ApiError("E-019") for an expired
 // parent session; any other throw becomes E-021.
 export type PrincipalResolver = (input: ResolverInput) => Promise<Principal | null>;
 

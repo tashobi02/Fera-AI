@@ -248,7 +248,7 @@ describe("COMP-043 verify officers [MOCK] panel", () => {
 });
 
 describe("SCREEN-013 page", () => {
-  it("is admin only (requireRole) and renders both panels plus the planned import slot", async () => {
+  it("is admin only (requireRole) and renders both panels plus the protected fixture import form", async () => {
     pageData.users = USERS;
     localeCookie = "en";
     const html = renderToStaticMarkup(await AdminPage());
@@ -258,9 +258,15 @@ describe("SCREEN-013 page", () => {
     expect(html).toContain("Admin data tools");
     expect(html).toContain("Redact identifying payloads");
     expect(html).toContain("Verify officers");
-    expect(html).toMatch(/Synthetic import[^]*Planned[^]*Not available yet/);
-    expect(html).toContain("border-dashed");
-    expect(html).not.toMatch(/import text|<textarea/i);
+    expect(html).toContain("Import synthetic texts");
+    expect(html).toContain("[MOCK] Missing report");
+    expect(html).toContain("[MOCK] Found report");
+    expect(html).toContain("Only summary counts are shown.");
+    expect(html).toContain("Source URLs are never fetched.");
+    expect(html).toContain("name=\"synthetic_confirmation\"");
+    expect(html).not.toMatch(/Planned|Not available yet/);
+    // The page must keep role assertions: only an admin can read the page.
+    expect(pageData.roleCalls[0][0]).toEqual(["admin"]);
   });
 
   it("each data source fails on its own panel", async () => {

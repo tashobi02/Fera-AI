@@ -3,12 +3,11 @@
 // SCREEN-016 with an access.denied audit row.
 //
 // The page shows metadata only: an eligible-report count (API-016 eligibility, counted on
-// the redactor pool) and the API-021 AdminUserView rows. No child, candidate or contact
-// field is read here. Each data source fails on its own: its panel shows an
+// the redactor pool), the API-021 AdminUserView rows, and the synthetic-import form
+// (API-015, SCREEN-013 ACT-026; TASK-048, FR-024, TC-014). No child, candidate or
+// contact field is read here. Each data source fails on its own: its panel shows an
 // "unavailable" message and one page.data_unavailable log line (error class/code only).
-// ACT-026 import (API-015, Should) is not built; its slot is a labelled planned panel.
 import type { Metadata } from "next";
-import { CircleDashedIcon } from "@/app/components/icons";
 import { createLogger, describeError } from "@/app/api/_shared/log";
 import { getLocale } from "@/lib/locale-server";
 import { locales } from "@/locales";
@@ -18,6 +17,7 @@ import {
   getRedactorPool,
   listAdminUsers,
 } from "@/server/admin";
+import { ImportForm } from "./import-form";
 import { RedactionForm } from "./redaction-form";
 import { VerifyOfficersForm } from "./verify-officers-form";
 
@@ -93,22 +93,7 @@ export default async function AdminPage() {
           initial={users}
         />
 
-        <section
-          aria-labelledby="admin-import-title"
-          className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-dashed border-hairline-strong px-4 py-3 sm:px-6"
-        >
-          <CircleDashedIcon className="size-4 text-faint" />
-          <h2
-            id="admin-import-title"
-            className="text-body-sm font-medium text-ink"
-          >
-            {t.importTitle}
-          </h2>
-          <HonestChip>{t.plannedLabel}</HonestChip>
-          <p className="basis-full text-body-sm text-mute sm:basis-auto">
-            {t.importPlanned}
-          </p>
-        </section>
+        <ImportForm locale={locale} />
       </div>
     </div>
   );
