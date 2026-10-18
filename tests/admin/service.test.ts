@@ -99,6 +99,7 @@ describe("setOfficerVerified (API-017 [MOCK])", () => {
       api: "API-017",
       verified: true,
       target_role: "officer",
+      target_user_id: OFFICER_ID,
     });
     expect(audit[7]).toBe("6b1f3c2a-4d5e-4f60-8a71-0000000000aa");
   });

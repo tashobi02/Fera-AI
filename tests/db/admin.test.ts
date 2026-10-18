@@ -165,8 +165,8 @@ describe.skipIf(!dbTestsEnabled)("admin tools on PostgreSQL 16 (TASK-032)", () =
       expect(await setOfficerVerified(asAdmin, target, { verified: false }, { pool: appPool })).toEqual({ id: target, role: "officer", verified: false });
       expect(await verified(target)).toBe(false);
       expect(await verificationAudit()).toEqual([
-        { actor_type: "admin", actor_user_id: actors.admin, case_id: null, candidate_id: null, details: { api: "API-017", verified: true, target_role: "officer" } },
-        { actor_type: "admin", actor_user_id: actors.admin, case_id: null, candidate_id: null, details: { api: "API-017", verified: false, target_role: "officer" } },
+        { actor_type: "admin", actor_user_id: actors.admin, case_id: null, candidate_id: null, details: { api: "API-017", verified: true, target_role: "officer", target_user_id: target } },
+        { actor_type: "admin", actor_user_id: actors.admin, case_id: null, candidate_id: null, details: { api: "API-017", verified: false, target_role: "officer", target_user_id: target } },
       ]);
     });
 

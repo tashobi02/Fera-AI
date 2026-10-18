@@ -92,6 +92,15 @@ describe("audit actions", () => {
 });
 
 describe("audit details allowlist", () => {
+  it("stores strictly validated internal subject UUIDs for verification and duplicate review", () => {
+    const admin = actorFor(testUser(OFFICER, "admin"));
+    expect(checkAuditEntry(admin, { action: CASE_AUDIT_ACTIONS.userVerificationChanged, details: { target_user_id: CASE } as never }).details).toEqual({ target_user_id: CASE });
+    expect(checkAuditEntry(officer, { action: CASE_AUDIT_ACTIONS.duplicateReviewed, details: { duplicate_link_id: CASE } as never }).details).toEqual({ duplicate_link_id: CASE });
+    for (const key of ["target_user_id", "duplicate_link_id"]) {
+      expect(rule(() => checkAuditEntry(officer, { action: CASE_AUDIT_ACTIONS.duplicateReviewed, details: { [key]: "[MOCK] free text" } as never }))).toBe("details");
+    }
+  });
+
   it("accepts typed tokens, IDs, versions, statuses and counts", () => {
     const safe = checkAuditEntry(officer, {
       action: CASE_AUDIT_ACTIONS.matchConfirm,

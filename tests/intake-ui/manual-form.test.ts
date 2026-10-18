@@ -95,6 +95,49 @@ describe("SCREEN-005 manual form lifecycle (P3-013 / TASK-025 / FR-026 / TC-017)
     expect(fetcher).not.toHaveBeenCalled();
   });
 
+  it.each(["", "[MOCK] typed report kept after E-023"])("TC-017/036: a text-only manual handoff creates editable unknown fields (%s)", (sourceText) => {
+    const fetcher = vi.fn();
+    vi.stubGlobal("fetch", fetcher);
+    handOff({ ...handoff(), to: "manual", response: null, sourceText });
+    const h = mount();
+    const record = node(h.tree, ReviewFields).props.record;
+    expect(record.sourceText).toBe(sourceText);
+    expect(record.draft.source_text).toBe(sourceText);
+    expect(record.draft.child).toMatchObject({ name: null, sex: "unknown", age_years: null });
+    expect(record.draft.event).toMatchObject({ district_code: null, place_text: null, at: null });
+    expect(record.draft.evidence).toEqual({});
+    expect(record.draftToken).toBeUndefined();
+    expect(node(h.tree, ConfirmBar).props.valid).toBe(false);
+    expect(loadDraft(storage)?.sourceText).toBe(sourceText);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("keeps the full text-only handoff locally when source history exceeds the submission text limit", () => {
+    const sourceText = "[MOCK] " + "ক".repeat(5000);
+    handOff({ ...handoff(), to: "manual", response: null, sourceText });
+    const h = mount();
+    expect(node(h.tree, ReviewFields).props.record.sourceText).toBe(sourceText);
+    expect(loadDraft(storage)?.sourceText).toBe(sourceText);
+    expect(node(h.tree, ReviewFields).props.record.draft.source_text.length).toBeLessThanOrEqual(4000);
+  });
+
+  it("requires explicit replacement before a text-only handoff can replace an attempted submission", () => {
+    const earlier = { ...completeManualRecord(), attempted: true };
+    saveDraft(earlier, storage);
+    const sourceText = "[MOCK] new manual report";
+    handOff({ ...handoff(), to: "manual", response: null, sourceText });
+    const h = mount();
+    expect(content(h.tree)).toContain(locales.bn.earlierDraftFound);
+    expect(loadDraft(storage)?.client_submission_id).toBe(earlier.client_submission_id);
+    click(button(h.tree, locales.bn.earlierDraftReplace)); h.render();
+    const dialog = elements(h.tree).find((e) => e.props["aria-labelledby"] === "manual-replace-title");
+    if (!dialog) throw new Error("expected replacement dialog");
+    click(button(dialog, locales.bn.discardYes)); h.render();
+    expect(node(h.tree, ReviewFields).props.record.sourceText).toBe(sourceText);
+    expect(loadDraft(storage)?.attempted).toBe(false);
+    expect(loadDraft(storage)?.client_submission_id).not.toBe(earlier.client_submission_id);
+  });
+
   it("writes the empty draft to device storage on mount so a refresh restores it", () => {
     const h = mount();
     const stored = loadDraft(storage);
