@@ -1,12 +1,30 @@
-# Round 2 submission pack — DRAFT PREPARATION
+# Round 2 submission pack — DRAFT PREPARATION (with TASK-045 local-app demo)
 
 This directory is a draft submission pack for Round 2. It contains
 the deck, the video storyboard, the supporting markdown, the build
 scripts and a claims check. **It is DRAFT PREPARATION only.** The
-Pptx, PDF and MP4 are drafts. Actual TASK-045 demo footage,
-production, gate clearance, upload and submission remain blocked
-until the working build is signed off and organiser evidence is
-recorded.
+Pptx, PDF and storyboard MP4 are drafts.
+
+The **actual** TASK-045 local-app demo footage is now prepared and
+verified separately under `../demo/`:
+
+- `submission/demo/final.mp4` — 105.000 s, 1280x720, H.264, silent,
+  on-screen-captioned Playwright/Chromium recording of the real Next
+  app on `127.0.0.1`.
+- `submission/demo/captions.srt` — beat-level caption manifest
+  generated from the actual capture timings.
+- `submission/demo/provenance.json` — git SHA, beat names,
+  SHA-256 hashes.
+- `submission/demo/proof/` — 8 curated per-beat PNGs.
+
+The storyboard MP4 in this directory (`fera-round2-storyboard-preview.mp4`)
+is **not** app footage; it is a synthetic on-screen-caption storyboard
+illustrating the intended journey. Both are honest copy and neither
+hides the distinction.
+
+Round 2 production, gate clearance, upload and submission remain
+blocked until the working build is signed off and organiser evidence
+is recorded.
 
 Every artifact in this pack is honest copy. No alert, runaway,
 rescue, CID/police-integration or legal-compliance claim is made
@@ -19,13 +37,14 @@ Synthetic, `[MOCK]`, cached and simulation labels are never hidden.
 |---|---|---|
 | `fera-round2-deck.pptx` | 7-slide editable deck (Cockpit & Paper) | draft |
 | `fera-round2-deck.pdf`  | LibreOffice render of the deck | draft |
-| `fera-round2-storyboard-preview.mp4` | 1280x720, 30 fps, 105 s synthetic storyboard; not a recording of the running app | draft |
+| `fera-round2-storyboard-preview.mp4` | 1280x720, 30 fps, 105 s synthetic storyboard; **not** a recording of the running app | draft |
 | `frames/shot-01.png` ... `shot-09.png` | one sample frame per storyboard shot | QA |
 | `build/storyboard-contact-sheet.png` | 3x3 visual QA contact sheet | QA |
 | `build/slide-imgs/slide-1.png` ... `slide-7.png` | PDF-rendered slide images | QA |
 | `video-script.md` | shot list, source citations, capture plan for the real TASK-045 build | source |
-| `metrics.md` | frozen-release metric table; every metric says "pending" with reason | source |
+| `metrics.md` | frozen-release metric table; every metric says "not measured" with reason | source |
 | `links.txt` | UNKNOWN placeholders for org/email/drive, plus this pack's manifest | source |
+| `selection-email-draft.md` | editable selection-email reply DRAFT (placeholders only; not yet dispatched) | source |
 | `scripts/build_pptx.py` | rebuild the deck | script |
 | `scripts/build_video.py` | rebuild the storyboard and MP4 | script |
 | `scripts/build_contact_sheet.py` | rebuild the visual QA sheet | script |
@@ -33,6 +52,20 @@ Synthetic, `[MOCK]`, cached and simulation labels are never hidden.
 | `scripts/claims_check.py` | assert honest-copy rules | gate |
 | `scripts/replace_dashes.py` | one-time ASCII helper used during dev | helper |
 | `claims-check-report.txt` | output of `scripts/claims_check.py` | gate |
+
+The TASK-045 actual app-footage demo lives one level up at
+`../demo/` (commit `9155963`, CI run `39114757484`):
+
+| File | Purpose |
+|---|---|
+| `submission/demo/final.mp4` | 105.000 s, 1280x720, H.264, silent, captioned; Playwright/Chromium recording of the real Next app on `127.0.0.1` |
+| `submission/demo/captions.srt` | beat-level SRT, scaled from the raw capture timings |
+| `submission/demo/provenance.json` | git SHA, beat names, SHA-256 hashes |
+| `submission/demo/proof/` | 8 curated per-beat PNGs |
+
+The demo is the real local-app capture; the storyboard MP4 in this
+folder is a synthetic on-screen-caption storyboard. The two are kept
+separate so reviewers can tell which is which.
 
 ## Reproducible build
 
@@ -151,3 +184,8 @@ of them is invented in this pack.
 - Production access and human labels / audio / devices / timing /
   provider evidence are **not available** (**NO**) for this
   cycle. Recorded as "not completed" for this submission cycle.
+Repository visibility is PRIVATE; organiser access and logged-out link verification are unresolved.
+
+## Local draft archive
+
+Run `python3 build-submission-zip.py` from this folder to create `fera-round2-draft.zip`. It contains nine allowlisted entries: the deck/PDF, actual local video, captions, links, email draft, README, metrics and archive note. Sources, storyboard, proof images, raw recordings, credentials and caches are excluded. The archive note explains source-checkout paths. No upload or email is performed.
