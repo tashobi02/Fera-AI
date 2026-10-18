@@ -37,7 +37,11 @@ describe("status edit-handoff (P3-102)", () => {
     const storage = memoryStorage();
     beginEditMode({ caseId: CASE_ID, refCode: REF_CODE }, storage, NOW);
     const read = readEditMode(storage, NOW);
-    expect(read).toEqual({ version: 1, caseId: CASE_ID, refCode: REF_CODE, savedAt: NOW });
+    // P3-035/ACT017: a status-card read with no live version stores the legacy
+    // v1 shape (no expectedVersion). The reader normalises it to v2 with
+    // expectedVersion: 0 so the review page knows to re-read API-004 for the
+    // live version before PATCHing.
+    expect(read).toEqual({ version: 2, caseId: CASE_ID, refCode: REF_CODE, expectedVersion: 0, savedAt: NOW });
   });
 
   it("readEditMode clears and returns null on a corrupt record", () => {
