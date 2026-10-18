@@ -142,8 +142,12 @@ async function audit(client, { type, userId = null, sessionId = null, action, ca
 }
 
 // Returns { inserted, skipped }. Throws before writing anything if the staff accounts are missing.
-export async function seedCases(client, { set }) {
-  const records = loadSyntheticSet(set);
+// `recordIds` is an optional allow-list: when present, only the synthetic records whose record_id
+// is in the set are loaded into the database. Used by the dev-only predict loader to filter
+// BEFORE any insert (no DELETE-after-insert round-trip; the dev loader never reads labels).
+export async function seedCases(client, { set, recordIds }) {
+  const all = loadSyntheticSet(set);
+  const records = recordIds ? all.filter((r) => recordIds.has(r.record_id)) : all;
   const staff = await client.query("SELECT id, username FROM users WHERE username = ANY($1::text[]) AND role = 'staff' AND is_active", [STAFF_USERNAMES]);
   const staffIds = STAFF_USERNAMES.map((u) => staff.rows.find((r) => r.username === u)?.id);
   if (staffIds.some((id) => !id)) throw new Error("staff accounts staff.demo and staff2.demo are missing; run npm run seed:users first");
