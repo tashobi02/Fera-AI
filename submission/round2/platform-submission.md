@@ -4,7 +4,7 @@ Repository-attributed organiser instructions (the entry committed at `9690361` s
 
 Platform route for a project built elsewhere: team workspace → **Upload a solution** → fill the fields below → Save → open the saved demo link in a new tab and confirm it loads → choose a track → Submit. Submitting locks the entry; only an organiser can reopen it. Every link must be a public HTTPS URL and the repository must be on GitHub.
 
-Status: NOT SUBMITTED until a team member submits on the platform and records the time below.
+Status: SUBMITTED on the platform by a team member, as reported by Mahim (lead) on 18 Oct 2026. Exact time, submitter and platform status are not yet recorded; see the record below.
 
 ## Before pasting
 
@@ -44,10 +44,22 @@ https://github.com/tashobi02/Fera-AI/blob/main/submission/round2/fera-round2-dec
 
 **Track**
 
-Chosen on the form by the team: UNKNOWN until submission.
+Track 3, Smart Society & Public Services (per docs/spec/D5_Background_Schema_V2.md and TEAM_HANDOVER_V2.md). The exact option selected on the form is UNKNOWN to this record.
 
 ## Submission record
 
-- Submitted by: UNKNOWN
-- Submitted at (Asia/Dhaka): UNKNOWN
-- Platform status after submit: UNKNOWN
+- Submitted by: a team member (name UNKNOWN to this record)
+- Submitted at (Asia/Dhaka): 18 Oct 2026, exact time UNKNOWN (recorded in this file at 22:12 Asia/Dhaka from Mahim's report; that is not the submission time)
+- Platform status after submit: UNKNOWN (check the platform; record "Submitted" and the time here)
+- Source: Mahim (lead), in chat, 18 Oct 2026
+
+### Links as submitted (shared by Masnun in the team chat; relayed by Mahim)
+
+| Field | Submitted link | Logged-out check (19 Oct 2026, by Claude Code) |
+|---|---|---|
+| Demo link | https://fera-ai-one.vercel.app/ | HTTP 200; pages render. `/api/health` reports `db: "unavailable"`, `embeddings: "unavailable"`, `demo_mode: false`, so database-backed journeys (submit, sign-in, officer review) do not work on this deployment. |
+| Demo video | https://youtu.be/y70J_Bh95dw | Public; YouTube title "Fera Explainer Video - H4H" (Masnun Kabir). Not the repository's `final-submission.mp4`. |
+| Repository | https://github.com/tashobi02/Fera-AI | HTTP 404 logged out: the repository was still PRIVATE at check time. |
+| Presentation | Dropbox: Fera-AI-Deck.pdf | Downloads; 8 pages, Keynote export of the repository deck content. |
+
+The links were shared in the team chat at 00:17 on 19 Oct by the clock of Mahim's phone (China time, UTC+8), which is 22:17 Asia/Dhaka. That is when the links were shared, not a verified submission time.

@@ -101,9 +101,23 @@ function parseDockerLabels(rawJson) {
   return out;
 }
 
+// `docker inspect` exits non-zero both when the object is absent and
+// when docker itself is unusable (daemon down, binary missing,
+// permission denied). Only the former may be read as "missing"; the
+// latter must surface so callers never report a false "missing".
+const NO_SUCH_OBJECT = /no such (container|volume|object)/i;
+
+function inspectFailure(kind, name, code, stderr) {
+  if (NO_SUCH_OBJECT.test(stderr || "")) return null;
+  const detail = (stderr || "").trim().split("\n").slice(-1)[0] || `exit ${code}`;
+  // Callers sanitize before printing (stderr may carry URLs).
+  throw new Error(`offline-stack: docker ${kind} inspect ${name} failed (docker unreachable?): ${detail}`);
+}
+
 // Look up the offline-stack container by exact name AND owner label.
-// A container with the same name but a different owner is rejected:
-// the helper returns null rather than operating on a foreign resource.
+// A container with the same name but a different owner is flagged
+// `foreign` rather than operated on. Returns null ONLY when docker
+// reports "No such container"; any other inspect failure throws.
 // The label check is exact equality (parsed JSON), not substring, so
 // a foreign owner hash that happens to share a prefix with our hash
 // (e.g. our hash "abc" vs a foreign label "...owner:abcdef...")
@@ -111,11 +125,11 @@ function parseDockerLabels(rawJson) {
 export async function inspectContainer(worktreeRoot) {
   const name = containerNameFor(worktreeRoot);
   assertDemoContainerName(name, worktreeRoot);
-  const { stdout, code } = await run(
+  const { stdout, stderr, code } = await run(
     ["container", "inspect", name, "--format", "{{.State.Status}}\n{{json .Config.Labels}}"],
     { ignoreExitCode: true },
   );
-  if (code !== 0) return null;
+  if (code !== 0) return inspectFailure("container", name, code, stderr);
   const lines = stdout.split("\n", 2);
   const status = (lines[0] ?? "").trim();
   const labels = parseDockerLabels(lines[1] ?? "");
@@ -129,14 +143,15 @@ export async function inspectContainer(worktreeRoot) {
   return { name, status, labels };
 }
 
+// Same contract as `inspectContainer`: null only on "No such volume".
 export async function inspectVolume(worktreeRoot) {
   const name = volumeNameFor(worktreeRoot);
   assertDemoVolumeName(name, worktreeRoot);
-  const { stdout, code } = await run(
+  const { stdout, stderr, code } = await run(
     ["volume", "inspect", name, "--format", "{{.Name}}\n{{json .Labels}}"],
     { ignoreExitCode: true },
   );
-  if (code !== 0) return null;
+  if (code !== 0) return inspectFailure("volume", name, code, stderr);
   const lines = stdout.split("\n", 2);
   if ((lines[0] ?? "").trim() !== name) return null;
   const labels = parseDockerLabels(lines[1] ?? "");
@@ -216,10 +231,9 @@ export async function startContainer(worktreeRoot) {
   return { ok: true, status: "created" };
 }
 
-// `rm -f` followed by `volume rm`. The container is removed FIRST so
-// the data volume is no longer in use; only then is the volume
-// dropped. The old order (volume-first) failed because the live
-// container held the volume busy.
+// Container removal only. Volume removal is owned by `reset`, which
+// label-checks the volume in its pre-flight before removing it; this
+// helper never removes a volume it has not inspected.
 export async function stopContainer(worktreeRoot) {
   const name = containerNameFor(worktreeRoot);
   assertDemoContainerName(name, worktreeRoot);
@@ -230,9 +244,7 @@ export async function stopContainer(worktreeRoot) {
   if (!found) return { ok: true, status: "missing" };
   const r = await run(["rm", "-f", name], { ignoreExitCode: true });
   if (r.code !== 0) return { ok: false, code: r.code, stderr: r.stderr };
-  // After the container is gone the volume can be removed.
-  const v = await run(["volume", "rm", "-f", volumeNameFor(worktreeRoot)], { ignoreExitCode: true });
-  return { ok: v.code === 0, status: "removed+volume", volumeOk: v.code === 0, volumeStderr: v.code === 0 ? null : v.stderr };
+  return { ok: true, code: 0, status: "removed" };
 }
 
 // Container-only stop (volume kept). Used by the regular `stop`

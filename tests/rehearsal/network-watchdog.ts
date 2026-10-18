@@ -8,26 +8,33 @@
 //      though the test webServer is actually serving on loopback;
 //   2) installs a `context.route` handler that ABORTS every request
 //      whose URL host is outside the loopback allowlist (127.0.0.1,
-//      localhost, ::1, and the IPv6 loopback equivalent), and
+//      localhost, and the IPv6 loopback in both `::1` and the
+//      bracketed `[::1]` hostname form WHATWG URL produces), and
 //   3) records the provenance of every URL the browser attempts,
 //      so the spec can assert (a) zero external attempts and (b) the
 //      per-host/per-status counts for evidence.
 //
-// The allowlist is the only definition of "offline" in this run. The
-// spec never trusts a comment claiming the app is offline; it asserts
-// the allowlist is enforced and the recorded counts are correct.
+// Scope, stated exactly: this watchdog observes and blocks
+// BROWSER-ORIGINATED HTTP(S) requests that Playwright routes through
+// `context.route` (documents, scripts, fetch/XHR from pages). It does
+// NOT observe server-side egress from the Next.js process, Node
+// `fetch` calls made by the spec itself, the Playwright `request`
+// fixture / `context.request` API, or WebSocket traffic beyond what
+// Playwright's routing covers. Service workers are blocked in
+// `playwright.offline.config.ts` so their requests cannot bypass
+// routing. A zero count here is evidence about the browser only.
 //
 // The handler is installed at `context` scope (not `page` scope) so it
 // covers the navigation that follows, not just the page that triggered
 // the install. It survives cross-page navigation (parent review →
 // status → edit, etc.) without re-installation per page.
 //
-// Hosts under `127.0.0.1` / `localhost` / `::1` are passed through
-// (the test exercises the app through them). The data URL scheme
-// (fonts, images) is also allowed; this is required for the design
-// tokens bundled in `public/` to render. The chromium-extension
-// scheme is allowed for Playwright's own metadata; the brief asks
-// for "external hosts", not local extensions.
+// Loopback hosts are passed through (the test exercises the app
+// through them). The data URL scheme (fonts, images) is also allowed;
+// this is required for the design tokens bundled in `public/` to
+// render. The chromium-extension scheme is allowed for Playwright's
+// own metadata; the brief asks for "external hosts", not local
+// extensions.
 //
 // `blob:` URLs are produced by the app itself (object URLs for the
 // voice recorder, etc.) and never reach outside; they are allowed.
@@ -46,11 +53,13 @@ export type RequestRecord = {
   method: string;
   /** Resource type from Playwright (document, script, image, ...). */
   resourceType: string;
-  /** "allow" (loopback), "deny" (external host) or "pass" (allowed
-   *  non-http scheme). "deny" rows are the proof the route ran. */
-  decision: "allow" | "deny" | "pass";
-  /** "ok" if the route handler returned without throwing, otherwise
-   *  the abort reason. */
+  /** "allow" (loopback), "deny" (external host), "pass" (allowed
+   *  non-http scheme) or "error" (an allowed loopback request whose
+   *  `route.continue()` threw, e.g. the context closed). Every "deny"
+   *  row is an external attempt, whatever its outcome. */
+  decision: "allow" | "deny" | "pass" | "error";
+  /** "ok" if the route call returned without throwing, "aborted" if a
+   *  deny was aborted, otherwise the thrown error message. */
   outcome: "ok" | "aborted" | string;
   /** The port number, when present and parseable; null otherwise. */
   port: number | null;
@@ -59,7 +68,9 @@ export type RequestRecord = {
 };
 
 /** Loopback host allowlist. Anything else is denied. */
-export const LOOPBACK_HOSTS = new Set<string>(["127.0.0.1", "localhost", "::1"]);
+// `new URL("http://[::1]:3225/").hostname` is "[::1]" (brackets kept),
+// so both spellings are listed.
+export const LOOPBACK_HOSTS = new Set<string>(["127.0.0.1", "localhost", "::1", "[::1]"]);
 /** Non-http schemes the browser attempts; all passed through. The
  *  allowlist deliberately does NOT include http/https; those go
  *  through the host check. */
@@ -95,8 +106,9 @@ export function classifyUrl(raw: string): { allow: boolean; host: string; scheme
  *  record buffer. The buffer is the same instance for the lifetime of
  *  the context. If `shared` is provided, every record is also pushed
  *  into it so a suite-level buffer survives across Playwright's
- *  per-test contexts. */
-export function installNetworkWatchdog(context: BrowserContext, shared?: RequestRecord[]): RequestRecord[] {
+ *  per-test contexts. Both the init script and the route are awaited,
+ *  so no navigation can start before the watchdog is in place. */
+export async function installNetworkWatchdog(context: BrowserContext, shared?: RequestRecord[]): Promise<RequestRecord[]> {
   const records: RequestRecord[] = [];
   // (1) Pin `navigator.onLine` to false BEFORE any page script runs.
   // The brief calls for an initScript that overrides the navigator
@@ -111,7 +123,7 @@ export function installNetworkWatchdog(context: BrowserContext, shared?: Request
   // silently flip the indicator back. The initScript is installed at
   // context scope so it covers every page that opens under the
   // context, not just the first one.
-  context.addInitScript(() => {
+  await context.addInitScript(() => {
     // Object.defineProperty on the prototype is the only way the
     // override survives reads from frames, workers, and any code
     // path that grabbed a reference at module-load time.
@@ -150,7 +162,7 @@ export function installNetworkWatchdog(context: BrowserContext, shared?: Request
   });
   // `context.route` accepts a glob. The URL filter is the function form:
   // everything is matched, the handler classifies per-request.
-  context.route("**/*", async (route: Route, request: Request) => {
+  await context.route("**/*", async (route: Route, request: Request) => {
     const url = request.url();
     const verdict = classifyUrl(url);
     const at = Date.now();
@@ -164,41 +176,39 @@ export function installNetworkWatchdog(context: BrowserContext, shared?: Request
       at,
     };
     if (verdict.allow) {
-      const row = { ...base, decision: verdict.scheme === "http" || verdict.scheme === "https" ? ("allow" as const) : ("pass" as const), outcome: "ok" };
+      const row: RequestRecord = { ...base, decision: verdict.scheme === "http" || verdict.scheme === "https" ? "allow" : "pass", outcome: "ok" };
       records.push(row);
       shared?.push(row);
       try {
         await route.continue();
       } catch (err) {
-        const errRow = { ...base, decision: "deny" as const, outcome: describeAbort(err) };
-        records.push(errRow);
-        shared?.push(errRow);
+        // A failed loopback continue is not an external attempt; it is
+        // recorded as its own decision so it is never mistaken for one.
+        row.decision = "error";
+        row.outcome = describeAbort(err);
       }
       return;
     }
-    const denyRow = { ...base, decision: "deny" as const, outcome: "aborted" };
+    const denyRow: RequestRecord = { ...base, decision: "deny", outcome: "aborted" };
     records.push(denyRow);
     shared?.push(denyRow);
     try {
       await route.abort("blockedbyclient");
     } catch (err) {
-      const errRow = { ...base, decision: "deny" as const, outcome: describeAbort(err) };
-      records.push(errRow);
-      shared?.push(errRow);
+      // The attempt still counts as external (see assertNoExternalAttempts);
+      // only the outcome changes.
+      denyRow.outcome = describeAbort(err);
     }
   });
   return records;
 }
 
 /** Throw a short, structured message if any non-loopback URL was
- *  attempted during the run. The spec calls this at the end of each
- *  journey and at the end of the full suite. */
+ *  attempted. Every "deny" row counts, whatever its outcome: a failed
+ *  `route.abort` is still an external attempt and must not pass. The
+ *  spec calls this after every test and at the end of the suite. */
 export function assertNoExternalAttempts(records: RequestRecord[], label: string): void {
-  const denied = records.filter((r) => r.decision === "deny");
-  // The deny rows include any errored `route.continue` (e.g. context
-  // closed) — those are recorded for evidence but not classified as
-  // "external attempts". Only `outcome === "aborted"` rows are external.
-  const external = denied.filter((r) => r.outcome === "aborted");
+  const external = records.filter((r) => r.decision === "deny");
   assert.equal(
     external.length,
     0,
@@ -210,26 +220,25 @@ export function assertNoExternalAttempts(records: RequestRecord[], label: string
  *  computed once per call; the spec snapshots them so the report is
  *  stable across the test runtime. */
 export function summarize(records: RequestRecord[]): {
-  byHost: Array<{ key: string; allow: number; deny: number; pass: number }>;
-  totals: { allow: number; deny: number; pass: number };
+  byHost: Array<{ key: string; allow: number; deny: number; pass: number; error: number }>;
+  totals: { allow: number; deny: number; pass: number; error: number };
 } {
-  const map = new Map<string, { allow: number; deny: number; pass: number }>();
+  const map = new Map<string, { allow: number; deny: number; pass: number; error: number }>();
   for (const r of records) {
     const key = r.host || "(non-http)";
-    const entry = map.get(key) ?? { allow: 0, deny: 0, pass: 0 };
-    if (r.decision === "allow") entry.allow += 1;
-    else if (r.decision === "deny") entry.deny += 1;
-    else entry.pass += 1;
+    const entry = map.get(key) ?? { allow: 0, deny: 0, pass: 0, error: 0 };
+    entry[r.decision] += 1;
     map.set(key, entry);
   }
   const byHost = Array.from(map.entries())
     .map(([key, v]) => ({ key, ...v }))
-    .sort((a, b) => b.allow + b.deny + b.pass - (a.allow + a.deny + a.pass));
-  const totals = { allow: 0, deny: 0, pass: 0 };
+    .sort((a, b) => b.allow + b.deny + b.pass + b.error - (a.allow + a.deny + a.pass + a.error));
+  const totals = { allow: 0, deny: 0, pass: 0, error: 0 };
   for (const row of byHost) {
     totals.allow += row.allow;
     totals.deny += row.deny;
     totals.pass += row.pass;
+    totals.error += row.error;
   }
   return { byHost, totals };
 }

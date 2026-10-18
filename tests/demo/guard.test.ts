@@ -32,7 +32,7 @@ import {
 // @ts-expect-error -- plain ESM script without type declarations
 import { PINS, EXPECTED_FILES, expectedPin } from "../../scripts/demo/lib/pins.mjs";
 
-const WORKTREE = "/home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main-offline-stack";
+const WORKTREE = "/home/dev/secondBrain/coding/Fera-AI/.worktrees/pre-main-offline-stack";
 const ALLOWED_STATE = `${WORKTREE}/.demo/state.json`;
 
 describe("offline-stack constants (TASK-053, revised)", () => {
@@ -255,11 +255,11 @@ describe("assertStatePath (TASK-053, revised)", () => {
 
   it.each([
     "/etc/passwd",
-    "/home/obidit/.env",
-    "/home/obidit/.env.local",
+    "/home/dev/.env",
+    "/home/dev/.env.local",
     `${WORKTREE}/db/schema_v2.sql`,
     `${WORKTREE}/src/server/case/commands.ts`,
-    "/home/obidit/x/.worktrees/other/.demo/state.json",
+    "/home/dev/x/.worktrees/other/.demo/state.json",
     `${WORKTREE}/.demo/state.json.bak`,
   ])("refuses a path that is not the worktree-owned state file: %j", (p) => {
     expect(() => assertStatePath(p, WORKTREE)).toThrow(/refuses|non-owned|outside/);
@@ -338,10 +338,11 @@ describe("parseCli (TASK-053, revised)", () => {
     expect(r.errors).toEqual([]);
   });
 
-  it("rejects --fresh explicitly (the destructive path is gated to reset --yes)", () => {
+  it("parses --fresh as a flag without a parse error (start() then rejects it before docker; see start-decision.test.ts)", () => {
     const r = parseCli(["node", "cli.mjs", "start", "--fresh"]);
     expect(r.cmd).toBe("start");
     expect(r.flags.fresh).toBe(true);
+    expect(r.errors).toEqual([]);
   });
 
   it("collects unknown commands without echoing the value", () => {

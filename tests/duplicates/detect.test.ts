@@ -11,6 +11,7 @@ import {
   computeAgreement,
   countAgreeingProfileFields,
   decideDuplicateRule,
+  detectDuplicates,
   districtsAgree,
   namesAgree,
   phonesAgree,
@@ -21,6 +22,7 @@ import {
   type SimilarCase,
   type SourceCase,
 } from "@/server/duplicates";
+import type { Queryable } from "@/server/db/queryable";
 import { fakePhone } from "../db/support/db";
 
 const allFalse: FieldAgreement = {
@@ -68,67 +70,67 @@ describe("TASK-018 decideDuplicateRule (pure)", () => {
     expect(decideDuplicateRule(SIMILARITY_THRESHOLD - 0.01, { ...allFalse, name: true })).toBeNull();
   });
 
-  it("returns null at the threshold boundary when no profile field agrees (need >=2)", () => {
-    // similarity exactly equal to threshold passes the gate, but MIN_AGREEING_PROFILE_FIELDS=2
-    // requires at least two agreeing profile fields even when none of them contradicts.
+  it("returns null at the threshold boundary when fewer than 3 profile fields agree (need >=3)", () => {
+    // similarity exactly equal to threshold passes the gate, but MIN_AGREEING_PROFILE_FIELDS=3
+    // requires at least three agreeing profile fields even when none of them contradicts.
     expect(decideDuplicateRule(SIMILARITY_THRESHOLD, allFalse)).toBeNull();
     // Even with a single field that agrees, a single field is not enough any more.
     expect(decideDuplicateRule(SIMILARITY_THRESHOLD, { ...allFalse, name: true })).toBeNull();
   });
 
-  it("returns 'profile' when similarity is high and the name + sex agree (two fields)", () => {
+  it("name + sex alone (two fields) is below the 3-field floor; adding district at 0.95 returns 'profile'", () => {
     // Dev calibration: MIN_AGREEING_PROFILE_FIELDS=3. Two fields alone
-    // are below the floor even at the highest similarity; add a third
-    // (district) to satisfy the rule.
-    expect(decideDuplicateRule(0.9, { ...allFalse, name: true, sex: true })).toBeNull();
+    // are below the floor at any similarity; add a third (district) to
+    // satisfy the rule.
+    expect(decideDuplicateRule(SIMILARITY_THRESHOLD, { ...allFalse, name: true, sex: true })).toBeNull();
     expect(decideDuplicateRule(0.95, { ...allFalse, name: true, sex: true, district: true })).toBe("profile");
   });
 
-  it("returns 'profile' when similarity is high and the name + age agree (two fields)", () => {
-    expect(decideDuplicateRule(0.9, { ...allFalse, name: true, age: true })).toBeNull();
+  it("name + age alone (two fields) is below the 3-field floor; adding sex at 0.95 returns 'profile'", () => {
+    expect(decideDuplicateRule(SIMILARITY_THRESHOLD, { ...allFalse, name: true, age: true })).toBeNull();
     expect(decideDuplicateRule(0.95, { ...allFalse, name: true, age: true, sex: true })).toBe("profile");
   });
 
-  it("returns 'profile' when similarity is high and the age + sex agree (two fields)", () => {
-    expect(decideDuplicateRule(0.9, { ...allFalse, age: true, sex: true })).toBeNull();
+  it("age + sex alone (two fields) is below the 3-field floor; adding district at 0.95 returns 'profile'", () => {
+    expect(decideDuplicateRule(SIMILARITY_THRESHOLD, { ...allFalse, age: true, sex: true })).toBeNull();
     expect(decideDuplicateRule(0.95, { ...allFalse, age: true, sex: true, district: true })).toBe("profile");
   });
 
-  it("returns 'profile' when similarity is high and the age + district agree (two fields)", () => {
-    expect(decideDuplicateRule(0.9, { ...allFalse, age: true, district: true })).toBeNull();
+  it("age + district alone (two fields) is below the 3-field floor; adding sex at 0.95 returns 'profile'", () => {
+    expect(decideDuplicateRule(SIMILARITY_THRESHOLD, { ...allFalse, age: true, district: true })).toBeNull();
     expect(decideDuplicateRule(0.95, { ...allFalse, age: true, district: true, sex: true })).toBe("profile");
   });
 
-  it("returns 'profile' when similarity is high and the age + time agree (two fields)", () => {
-    expect(decideDuplicateRule(0.9, { ...allFalse, age: true, time: true })).toBeNull();
+  it("age + time alone (two fields) is below the 3-field floor; adding sex at 0.95 returns 'profile'", () => {
+    expect(decideDuplicateRule(SIMILARITY_THRESHOLD, { ...allFalse, age: true, time: true })).toBeNull();
     expect(decideDuplicateRule(0.95, { ...allFalse, age: true, time: true, sex: true })).toBe("profile");
   });
 
-  it("returns 'profile' when similarity is high and the district + time agree (two fields)", () => {
-    expect(decideDuplicateRule(0.9, { ...allFalse, district: true, time: true })).toBeNull();
+  it("district + time alone (two fields) is below the 3-field floor; adding age at 0.95 returns 'profile'", () => {
+    expect(decideDuplicateRule(SIMILARITY_THRESHOLD, { ...allFalse, district: true, time: true })).toBeNull();
     expect(decideDuplicateRule(0.95, { ...allFalse, district: true, time: true, age: true })).toBe("profile");
   });
 
   it("returns null with only one profile field agreeing (sex alone)", () => {
     // BR-021 + safeguarding: a single profile field is not enough. Sex alone
     // describes ~50% of children in any district and would over-flag.
-    expect(decideDuplicateRule(0.9, { ...allFalse, sex: true })).toBeNull();
+    expect(decideDuplicateRule(SIMILARITY_THRESHOLD, { ...allFalse, sex: true })).toBeNull();
   });
 
   it("returns null with only one profile field agreeing (district alone)", () => {
     // District alone describes an entire neighbourhood.
-    expect(decideDuplicateRule(0.9, { ...allFalse, district: true })).toBeNull();
+    expect(decideDuplicateRule(SIMILARITY_THRESHOLD, { ...allFalse, district: true })).toBeNull();
   });
 
   it("returns null with only one profile field agreeing (time alone)", () => {
     // A shared time window alone describes a single day in a district.
-    expect(decideDuplicateRule(0.9, { ...allFalse, time: true })).toBeNull();
+    expect(decideDuplicateRule(SIMILARITY_THRESHOLD, { ...allFalse, time: true })).toBeNull();
   });
 
   it("returns null with only one profile field agreeing (name alone)", () => {
     // A shared name alone is a strong cue, but two children in a family may
-    // share a name through transcription. We require a second cue.
-    expect(decideDuplicateRule(0.9, { ...allFalse, name: true })).toBeNull();
+    // share a name through transcription. We require three agreeing fields.
+    expect(decideDuplicateRule(SIMILARITY_THRESHOLD, { ...allFalse, name: true })).toBeNull();
   });
 
   // BR-021 / TC-038: a shared phone number ALONE never links two reports.
@@ -137,7 +139,7 @@ describe("TASK-018 decideDuplicateRule (pure)", () => {
     // With phoneOnly opt-in AND no profile field agreeing, the schema's
     // same_phone rule may exist as a weak flagged cue. That path is not
     // produced by detectDuplicates; only the caller may invoke it. The
-    // agreement set must NOT also satisfy the profile rule (>=2 fields), so
+    // agreement set must NOT also satisfy the profile rule (>=3 fields), so
     // we leave the profile fields all false here.
     expect(
       decideDuplicateRule(
@@ -152,7 +154,7 @@ describe("TASK-018 decideDuplicateRule (pure)", () => {
     // Dev calibration: MIN_AGREEING_PROFILE_FIELDS=3. Two profile
     // fields are below the floor; add a third to satisfy the rule.
     expect(
-      decideDuplicateRule(0.9, { ...allFalse, phone: true, name: true, district: true }),
+      decideDuplicateRule(SIMILARITY_THRESHOLD, { ...allFalse, phone: true, name: true, district: true }),
     ).toBeNull();
     expect(
       decideDuplicateRule(0.95, { ...allFalse, phone: true, name: true, district: true, age: true }),
@@ -163,27 +165,30 @@ describe("TASK-018 decideDuplicateRule (pure)", () => {
     // sex disagrees even though name + district + time agree.
     expect(
       decideDuplicateRule(
-        0.9,
+        SIMILARITY_THRESHOLD,
         { ...allFalse, name: true, district: true, time: true, sex: false },
         { contradicts: true },
       ),
     ).toBeNull();
+    // Same agreement without the contradiction fires, so the null above is the gate.
+    expect(decideDuplicateRule(SIMILARITY_THRESHOLD, { ...allFalse, name: true, district: true, time: true })).toBe("profile");
   });
 
   it("returns null when known disjoint age ranges contradict the pair (safeguarding)", () => {
     expect(
       decideDuplicateRule(
-        0.9,
+        SIMILARITY_THRESHOLD,
         { ...allFalse, name: true, district: true, time: true, age: false },
         { contradicts: true },
       ),
     ).toBeNull();
+    expect(decideDuplicateRule(SIMILARITY_THRESHOLD, { ...allFalse, name: true, district: true, time: true })).toBe("profile");
   });
 
   it("does not apply the contradiction gate when nothing contradicts (compat=false by default)", () => {
     // Dev calibration: MIN_AGREEING_PROFILE_FIELDS=3. Add a third field
     // (sex) so the floor is satisfied and the rule fires.
-    expect(decideDuplicateRule(0.9, { ...allFalse, name: true, district: true })).toBeNull();
+    expect(decideDuplicateRule(SIMILARITY_THRESHOLD, { ...allFalse, name: true, district: true })).toBeNull();
     expect(decideDuplicateRule(0.95, { ...allFalse, name: true, district: true, sex: true })).toBe("profile");
   });
 
@@ -215,22 +220,20 @@ describe("TASK-018 decideDuplicateRule (pure)", () => {
     expect(SIMILARITY_THRESHOLD).toBe(DUPLICATE_CONFIG.SIMILARITY_THRESHOLD);
   });
 
-  // The dev calibration corrects a specific generic false-positive
-  // condition that the previous default (0.5 / 2) exhibited on the
-  // 86 dev records: pairs that match on exactly 2 of {name, age, sex,
-  // district, time} with a moderate embedding similarity (0.85-0.92)
-  // and no contradiction. The pre-main audit
-  // (docs/execution/evidence/pre-main-dev-quality-audit.md) found
-  // 280 of the 290 dev FPs were pairs that agreed on age + sex + time
-  // only — three fields but not "compatible enough" to be a duplicate
-  // signal under BR-021's "compatible profiles" wording. The new
-  // configuration raises both floors so the cross-kind lookalike
-  // pattern is refused.
-  it("rejects a 2-field agreement at borderline similarity (the dev FP pattern)", () => {
+  // What the dev grid (scripts/eval/duplicate-calibration.ts, 86 dev
+  // records, 12 true pairs, rounded baseline scores, in-sample) shows:
+  //   - 0.50/2 (old default): TP=12 FP=290 FN=0
+  //   - 0.50/3:               TP=12 FP=13  FN=0  (277 of the 290 FPs agree
+  //                           on exactly 2 fields)
+  //   - 0.92/2: FP=42, 0.95/2: FP=4 (TP 12, 10)
+  //   - 0.95/3 (chosen):      TP=10 FP=1   FN=2
+  // Either floor removes most FPs on its own; at 0.95 the 3-field floor
+  // removes the last 3 of 4. This test pins the 2-field refusal.
+  it("rejects a 2-field agreement at any similarity (the dominant dev FP pattern)", () => {
     // Two records that look like siblings of different ages in the
     // same district on the same day: only 2 of 5 fields agree
-    // (sex + district). Under the new config, similarity 0.90
-    // (below 0.92) AND 2 agreeing fields (below 3) are both below
+    // (sex + district). Under the current config, similarity 0.90
+    // (below 0.95) AND 2 agreeing fields (below 3) are both below
     // the floor, so the rule must return null.
     const agreement: FieldAgreement = {
       name: false, age: false, sex: true, district: true, time: false, phone: false,
@@ -240,36 +243,38 @@ describe("TASK-018 decideDuplicateRule (pure)", () => {
     // below the dev-calibrated floor of 3.
     expect(decideDuplicateRule(0.95, agreement)).toBeNull();
     // Raising to 3 agreeing fields with the same similarity now
-    // produces the `profile` rule: this is the pattern a real
-    // duplicate has on dev.
+    // produces the `profile` rule.
     expect(decideDuplicateRule(0.95, { ...agreement, age: true })).toBe("profile");
   });
 
-  // The dev calibration retains a genuine compatible duplicate at the
-  // chosen floor. A true duplicate in the dev manifest agrees on at
-  // least 3 of {name, age, sex, district, time}, has similarity >=
-  // 0.92, and is not contradicted (no known sex mismatch, no
-  // disjoint age range). The pre-main baseline JSONL contains
-  // 12 such pairs and the chosen cell keeps 10 of 12 as TPs.
-  it("retains a genuine compatible duplicate (3-field agreement at high similarity)", () => {
+  // Drives the real detector path: pool row `distance` -> similarity
+  // `1 - distance` -> computeAgreement / profilesContradict ->
+  // decideDuplicateRule. A compatible candidate agreeing on exactly 3
+  // fields (age + sex + time; different name and district) is flagged at
+  // similarity 0.95 and refused at 0.949. Note 0.949 would ROUND to score
+  // 95 in the calibration grid's baseline scores; production compares the
+  // raw similarity, so it is refused.
+  it("detectDuplicates flags a compatible 3-field candidate at similarity 0.95 and refuses it at 0.949", async () => {
     const source = makeSource();
-    const candidate = makeCandidate({
-      id: "33333333-3332-4332-8333-333333333333",
-      // Same 3 fields: age + sex + time; different district and name
-      // (a sibling-pair style signature that would be a TP in the
-      // dev manifest when the children share an identity and only
-      // differ on transcription of one field).
-      child_name: "[MOCK] Other",
-      district_code: 2,
-      distance: 0.05, // similarity 0.95
-    });
-    const agreement = computeAgreement(source, candidate);
-    const contradicting = profilesContradict(source, candidate);
-    // 3 fields agree (age + sex + time); no contradiction.
-    const count = countAgreeingProfileFields(agreement);
-    expect(count).toBe(3);
-    expect(contradicting).toBe(false);
-    expect(decideDuplicateRule(0.95, agreement, { contradicts: contradicting })).toBe("profile");
+    const compatible = { child_name: "[MOCK] Other", district_code: 2 };
+    const atFloor = makeCandidate({ ...compatible, id: "33333333-3333-4333-8333-333333333333", distance: 0.05 });
+    const belowFloor = makeCandidate({ ...compatible, id: "44444444-4444-4444-8444-444444444444", distance: 0.051 });
+    expect(1 - atFloor.distance).toBe(0.95);
+    expect(1 - belowFloor.distance).toBeCloseTo(0.949, 12);
+    for (const candidate of [atFloor, belowFloor]) {
+      expect(countAgreeingProfileFields(computeAgreement(source, candidate))).toBe(3);
+      expect(profilesContradict(source, candidate)).toBe(false);
+    }
+    const space = { embedding_model: "m", embedding_revision: "r", embedding_space: "s" };
+    const db: Queryable = {
+      query: async (text: string) => text.includes("AS distance")
+        // The pool SELECT does not fetch contact_phone (BR-021), so the rows omit it.
+        ? { rows: [atFloor, belowFloor].map((row) => ({ ...row, contact_phone: undefined, version: 1, ...space })) }
+        : { rows: [{ ...source, version: 1, has_embedding: true, ...space }] },
+    };
+    const { flags, skipped } = await detectDuplicates(db, source.id);
+    expect(skipped).toBe(false);
+    expect(flags.map((f) => [f.candidate_id, f.rule, f.score])).toEqual([[atFloor.id, "profile", 95]]);
   });
 
   it("countAgreeingProfileFields counts name/age/sex/district/time but not phone", () => {

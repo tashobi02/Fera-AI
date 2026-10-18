@@ -7,6 +7,7 @@
 // where the daemon has not yet finished init.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import {
   assertLoopbackUrl,
   containerNameFor,
@@ -14,11 +15,13 @@ import {
   DEMO_PORT,
   DEMO_APP_PORT,
   maskUrl,
+  sanitizeError,
   withDemoDatabase,
 } from "./lib/guard.mjs";
 import { inspectContainer, inspectVolume, waitForReady } from "./lib/docker.mjs";
 import { loadState } from "./lib/state.mjs";
 import { cacheLayoutExists, defaultCacheDir } from "./lib/cache.mjs";
+import { SEED_COMPLETE_MARKER } from "./lib/guard.mjs";
 import { spawnSync } from "node:child_process";
 
 function resolveWorktree() {
@@ -29,24 +32,39 @@ async function probeDb(dbName) {
   if (!dbName) return { ok: false, reason: "no state file" };
   const adminUrl = assertLoopbackUrl("postgresql://postgres:postgres@127.0.0.1:3215/postgres");
   const targetUrl = withDemoDatabase(adminUrl, dbName);
-  const r = spawnSync("psql", [targetUrl.href, "-X", "-q", "-At", "-c", "SELECT 1"], { encoding: "utf8", env: { ...process.env, PGCONNECT_TIMEOUT: "3" }, timeout: 5000 });
+  // Ready means the seed finished: the seed-complete marker that start
+  // stamps last must be present, not just a reachable database.
+  const r = spawnSync("psql", [targetUrl.href, "-X", "-q", "-At", "-c", "SELECT coalesce(shobj_description(oid, 'pg_database'), '') FROM pg_database WHERE datname = current_database()"], { encoding: "utf8", env: { ...process.env, PGCONNECT_TIMEOUT: "3" }, timeout: 5000 });
   if (r.status !== 0) return { ok: false, reason: r.stderr?.split("\n").at(-1)?.trim() ?? "psql exit " + r.status };
-  return { ok: /1/.test(r.stdout), database: dbName };
+  if (r.stdout.trim() !== SEED_COMPLETE_MARKER) return { ok: false, reason: "seed-incomplete (run reset --yes, then start)", database: dbName };
+  return { ok: true, database: dbName };
 }
 
 export async function status() {
   const worktree = resolveWorktree();
-  const ctn = await inspectContainer(worktree);
-  const vol = await inspectVolume(worktree);
+  // A failed inspect (daemon down, binary missing, permission denied)
+  // is reported as `docker.ok:false`, never as a "missing" resource.
+  let ctn = null;
+  let vol = null;
+  let dockerError = null;
+  let stateError = null;
+  try {
+    ctn = await inspectContainer(worktree);
+    vol = await inspectVolume(worktree);
+  } catch (err) {
+    dockerError = sanitizeError(err);
+  }
   const state = (() => {
-    try { return loadState({ worktreeRoot: worktree }); } catch { return null; }
+    try { return loadState({ worktreeRoot: worktree }); } catch (err) { stateError = sanitizeError(err); return null; }
   })();
   const cacheLayout = cacheLayoutExists(defaultCacheDir());
   const adminUrl = assertLoopbackUrl("postgresql://postgres:postgres@127.0.0.1:3215/postgres");
 
   // Real readiness: actual pg_isready, not just "container exists".
-  let ready = { ok: false, reason: "no state file" };
-  if (ctn && !ctn.foreign && ctn.status === "running") {
+  let ready = { ok: false, reason: stateError ? `state file unreadable: ${stateError}` : "no state file" };
+  if (dockerError) {
+    ready = { ok: false, reason: "docker unreachable" };
+  } else if (ctn && !ctn.foreign && ctn.status === "running") {
     const isReady = await waitForReady(worktree, 5_000);
     if (isReady.ok) {
       ready = await probeDb(state?.database);
@@ -58,15 +76,16 @@ export async function status() {
   }
 
   return {
-    ok: ready.ok && ctn?.foreign !== true,
+    ok: dockerError === null && ready.ok && ctn?.foreign !== true,
     worktree,
+    docker: dockerError ? { ok: false, reason: dockerError } : { ok: true },
     owner: state?.owner ?? null,
     container: {
       name: containerNameFor(worktree),
-      status: ctn?.status ?? "missing",
+      status: dockerError ? "unknown" : ctn?.status ?? "missing",
       foreign: ctn?.foreign === true,
     },
-    volume: vol ?? null,
+    volume: dockerError ? { status: "unknown" } : vol ?? null,
     db: ready,
     cache: cacheLayout,
     stateFile: join(worktree, ".demo", "state.json"),
@@ -78,7 +97,9 @@ export async function status() {
     startedAt: state?.startedAt ?? null,
     pid: state?.pid ?? null,
     adminUrl: maskUrl(adminUrl.href),
-    next: ready.ok
+    next: dockerError
+      ? ["docker is unreachable; start the Docker daemon (or fix permissions) and retry status"]
+      : ready.ok
       ? [
           "to stop (keep data): node scripts/demo/cli.mjs stop",
           "to wipe data: node scripts/demo/cli.mjs reset --yes",
@@ -91,11 +112,11 @@ export async function status() {
   };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
   status()
     .then((r) => {
       console.log(JSON.stringify(r, null, 2));
-      process.exit(r.db?.ok === true ? 0 : 1);
+      process.exit(r.ok === true ? 0 : 1);
     })
     .catch((err) => {
       console.error(err instanceof Error ? err.message : String(err));

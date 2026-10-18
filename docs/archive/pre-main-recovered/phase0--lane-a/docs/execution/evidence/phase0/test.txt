@@ -1,7 +1,7 @@
 npm notice run fera-ai@0.1.0 test
 npm notice run vitest run
 
- RUN  v5.0.4 /home/obidit/Coding/fera-lanes/lane-a
+ RUN  v5.0.4 <lanes>/lane-a
 
 
  Test Files  1 passed (1)

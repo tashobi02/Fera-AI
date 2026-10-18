@@ -22,8 +22,11 @@
 // pinned in one place.
 //
 // Network allowlist: the rehearsal spec records every URL the browser
-// attempts and aborts anything outside 127.0.0.1 / localhost / ::1.
-// That guarantee is the offline proof; it is the spec, not a comment.
+// attempts through Playwright routing and aborts anything outside
+// 127.0.0.1 / localhost / ::1. That covers browser-originated HTTP(S)
+// only; it does not observe server-side egress, the Playwright
+// `request` fixture, Node `fetch`, or WebSockets beyond routing.
+// Service workers are blocked below so they cannot bypass routing.
 //
 // Synthetic-only / no provider calls: the wrapper sets DEMO_MODE=1
 // (cache-only) and points FERA_MODEL_CACHE at the shared
@@ -122,6 +125,9 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
+    // A service worker's requests are not seen by `context.route`; block
+    // registration so the browser-side network watchdog sees everything.
+    serviceWorkers: "block",
   },
   // Single project: desktop 1280×800. The parent mobile project is
   // covered by the existing `a11y.spec.ts` and `parent-journey.spec.ts`;

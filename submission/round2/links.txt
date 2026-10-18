@@ -113,7 +113,7 @@ Public-claim rules carried into every artifact
 Offline release-check (Obidit lane, local only)
 -----------------------------------------------
 - ../../scripts/release/check.mjs                 offline release-check CLI
-- ../../tests/release/check.test.ts              19 unit tests, local HTTP
+- ../../tests/release/check.test.ts              26 unit tests, local HTTP
                                             fixture on 127.0.0.1
 - ../../docs/execution/evidence/pre-main-phase4-readiness.md
                                             produced by the CLI;
@@ -135,5 +135,5 @@ Current attributed organiser record (PR50, Mahim 18 Oct 18:45)
 - Platform: https://h4hbd.ezassist.me/ (access UNVERIFIED)
 - Recorded cutoff: 18 Oct 2026 22:00 Asia/Dhaka; current platform state not independently verified.
 - Recorded deck limit: at most 8 slides.
-- Form text: platform-submission.md (NOT SUBMITTED; public sharing/account access pending).
+- Form text: platform-submission.md (reported submitted by a team member per Mahim, 18 Oct 2026; time and platform status UNKNOWN).
 - This branch awaits user verification and approval before coordinator merge to main.

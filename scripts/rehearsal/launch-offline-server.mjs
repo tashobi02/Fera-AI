@@ -8,8 +8,9 @@
 //     `FERA_REHEARSAL_LOG_PATH` rather than `FERA_E2E_LOG_PATH` so the
 //     two webServers cannot share a log file. The rehearsal spec reads
 //     the same per-run path (`tests/rehearsal/network-watchdog.ts`
-//     consumes the offline log alongside the route allowlist to prove
-//     no external host was reached).
+//     consumes the offline log alongside the route allowlist to show no
+//     browser-originated HTTP(S) request reached an external host; it
+//     does not observe server-side egress).
 //
 // Lifecycle and capture mirror the existing wrapper:
 //   * Stdout and stderr are teed to `FERA_REHEARSAL_LOG_PATH` per run.

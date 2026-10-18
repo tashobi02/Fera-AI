@@ -1,7 +1,7 @@
 # Round 2 release readiness — Obidit offline release-check
 
 Generated: 2026-10-18T15:03:27.772Z
-Repo root: /home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main
+Repo root: <repo>/.worktrees/pre-main
 Exit code from runChecks: 2
 
 Honest-readiness policy:

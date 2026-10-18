@@ -1,7 +1,7 @@
 # Pre-main convergence evidence — Obidit-owned features (001 / 002 / 003)
 
 **Lane**: `pre-main-spec-intake-platform` (worktree) · **Owner**: Obidit · **Date**: 2026-10-18 (Asia/Dhaka)
-**Worktree**: `/home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main-spec-intake-platform`
+**Worktree**: `<repo>/.worktrees/pre-main-spec-intake-platform`
 **Owned paths only**: `specs/001-platform-foundation/**`, `specs/002-intake-ai/**`, `specs/003-parent-outputs/**`, `docs/execution/evidence/pre-main-convergence-intake.md`. No application code, no app server, no shared shell, no contracts, no schema, no spend ledger, no AI/STT provider call, no parent session, no DB role, no Vercel/Vercel-like change was made. (`AGENTS.md` ownership; per-feature `docs/execution/PHASE_2_MUST_CORE.md` and `docs/execution/PHASE_3_AUDIT_2026-10-18.md` are the cross-team source of truth for the runtime state; this file only documents the convergence pass.)
 
 This is an artifact-only convergence pass. The original `tasks.md` files for 001 and 002, and the existing `spec.md` for all three, are **not** rewritten. For 003, the missing `plan.md` and `tasks.md` are recovered from the existing source (per `.specify/templates/{plan,tasks}-template.md`) without rewriting the V2 spec pack, the constitution or any existing source/test file. The V2 spec pack, the constitution and any existing source/test file remain untouched.

@@ -37,10 +37,10 @@ Commands:
            next steps.
   stop     Remove the dedicated container; keep the volume + state
            so the next start --reuse reattaches the same DB.
-  reset    Destructive: remove the container, the volume, drop the
-           database, remove the state file. Requires --yes.
-  verify   Read-only: pinned cache audit, db script hashes, real
-           container + DB readiness. Exits non-zero on any failure.
+  reset    Destructive: remove this worktree's labelled container
+           and volume, then the state file. Requires --yes.
+  verify   Read-only: pinned cache audit, db script presence, real
+           container + seeded-DB readiness. Exits non-zero on any failure.
 
 Flags:
   --reuse       (start)  keep the previous state file's database

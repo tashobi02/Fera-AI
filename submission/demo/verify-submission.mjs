@@ -41,6 +41,10 @@ const arg = process.argv.find((a) => a === "--regenerated");
 const regenPath = arg
   ? process.argv[process.argv.indexOf(arg) + 1]
   : null;
+if (arg && (!regenPath || regenPath.startsWith("--"))) {
+  console.error("--regenerated needs a PATH to the regenerated file");
+  process.exit(2);
+}
 
 function sha256OfFile(path) {
   const h = createHash("sha256");
@@ -205,4 +209,6 @@ if (!checks.every((c) => c.ok)) {
   console.error("VERIFY FAILED");
   process.exit(1);
 }
-console.log("VERIFY OK");
+console.log(regenPath
+  ? "VERIFY OK (regenerated file checked; end-card labels recorded, not OCR-verified)"
+  : "VERIFY OK (end-card labels recorded, not OCR-verified)");

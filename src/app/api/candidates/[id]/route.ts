@@ -10,7 +10,8 @@ export const runtime = "nodejs"; // pg
 
 // Let malformed IDs reach readCandidate's hidden branch so an authenticated
 // probe gets the same E-004 and nullable-FK denial audit as an absent UUID.
-const params = z.strictObject({ id: z.string() });
+// The 64-character bound only stops unbounded path input; a UUID is 36.
+const params = z.strictObject({ id: z.string().max(64) });
 
 // Not from the spec pack: a documented default (OD-028-3). Every read that serves a phone is audited.
 const CANDIDATE_READS: RateLimitRule = { id: "candidate.principal", limit: 120, windowMs: 60_000, scope: "principal", onStoreError: "allow" };

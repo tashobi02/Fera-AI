@@ -15,7 +15,8 @@
 //   * `truthy(raw)` — coerce a CLI flag value to boolean.
 //   * `replaceSection(text, startHeader, body)` — surgical markdown
 //     section replacement; preserves the H2 heading and any
-//     subsequent H2 sections.
+//     subsequent H2 sections. Throws when the heading is missing so
+//     stale evidence can never be stamped with a new summary line.
 //   * `dropRehearsalDb(rawName, adminUrl)` — guarded DB drop; refuses
 //     anything outside the `fera_e2e_premainjourney_` prefix and
 //     non-loopback admin hosts.
@@ -38,15 +39,14 @@ export const KNOWN_FLAGS = new Set([
   "help",
 ]);
 
-/** Default admin URL. The runner never reads `.env*`; the env override
- *  the Playwright config sets is the only source. The default targets
- *  the same loopback pg the existing `scripts/db/guard.mjs` uses
- *  (port 54322, db `postgres`) so a misconfigured env does not point
- *  at the wrong server. */
-export const DEFAULT_DATABASE_URL =
-  process.env.FERA_DB_ADMIN_URL ??
-  process.env.DATABASE_URL ??
-  "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
+/** Default admin URL. The runner never reads `.env*`. The admin
+ *  connection comes only from `FERA_DB_ADMIN_URL` or this loopback
+ *  default (the same pg `scripts/db/guard.mjs` uses: port 54322, db
+ *  `postgres`). `DATABASE_URL` is deliberately NOT consulted: it is the
+ *  app's runtime connection, not an admin one, and must never be used
+ *  to drop databases. */
+export const LOOPBACK_ADMIN_URL = "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
+export const DEFAULT_DATABASE_URL = process.env.FERA_DB_ADMIN_URL ?? LOOPBACK_ADMIN_URL;
 
 /** Tokenise CLI args. Throws on an unknown flag. */
 export function parseArgs(argv) {
@@ -149,14 +149,19 @@ export async function dropRehearsalDb(rawName, adminUrlRaw = DEFAULT_DATABASE_UR
  * `body` may be a literal block (the replacement preserves the H2
  * heading itself by deriving it from the matched line). Pass
  * `body` as the full section content WITHOUT the leading heading.
+ *
+ * Throws when the heading is not present: a silent no-op would let
+ * the caller stamp a fresh "all green" summary over stale evidence.
  */
 export function replaceSection(text, startHeader, body) {
   const start = text.search(startHeader);
-  if (start < 0) return text;
-  const headerEnd = text.indexOf("\n", start);
-  if (headerEnd < 0) return text;
+  if (start < 0) {
+    throw new Error(`evidence section heading not found: ${startHeader}`);
+  }
+  const newline = text.indexOf("\n", start);
+  const headerEnd = newline < 0 ? text.length : newline;
   const headingLine = text.slice(start, headerEnd);
-  const after = text.slice(headerEnd + 1);
+  const after = text.slice(Math.min(headerEnd + 1, text.length));
   const nextHeader = after.search(/^##\s/m);
   const sectionEnd = nextHeader < 0 ? text.length : headerEnd + 1 + nextHeader;
   const before = text.slice(0, start);

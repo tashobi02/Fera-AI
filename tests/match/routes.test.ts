@@ -1,19 +1,32 @@
 // TASK-028 / API-009 and API-010 route contracts: defineRoute with the same schemas and a
 // fake case service. The decision transaction itself is tested in tests/case and tests/db.
 import { randomUUID } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import {
   ERROR_CATALOGUE, candidateDecisionViewSchema, decisionRequestSchema, decisionResponseSchema, errorEnvelopeSchema, isUuid, uuidSchema,
 } from "@/contracts";
 import { exampleCandidateDecisionView, exampleConfirmDecisionRequest, exampleConfirmDecisionResponse } from "@/contracts/examples";
 import { ApiError } from "@/app/api/_shared";
+import { GET as candidateGET } from "@/app/api/candidates/[id]/route";
+import { readCandidate } from "@/server/matching/candidate-read";
+import { auditAccessDenied } from "@/server/audit/denied";
+import type { Principal } from "@/contracts/server";
 import { jsonPost, sameOriginHeaders, testFactory, get } from "../api/fakes";
 import { testParent, testUser } from "../support/principals";
 
+// The real API-009 route module is exercised below with its DB-bound
+// collaborators replaced: the principal resolver, the access.denied audit
+// writer and readCandidate. Everything else (Zod params, role guard, error
+// envelope, response schema) is the production route.
+const real = vi.hoisted(() => ({ principal: null as Principal | null }));
+vi.mock("@/server/auth/default", () => ({ defaultAuth: () => ({ resolvePrincipal: async () => real.principal }) }));
+vi.mock("@/server/audit/denied", () => ({ auditAccessDenied: vi.fn(async () => {}), auditPageDenied: vi.fn(async () => {}) }));
+vi.mock("@/server/matching/candidate-read", () => ({ readCandidate: vi.fn() }));
+
 const candidateId = randomUUID();
 const params = z.strictObject({ id: uuidSchema });
-const readParams = z.strictObject({ id: z.string() });
+const readParams = z.strictObject({ id: z.string().max(64) });
 const officer = () => testUser(randomUUID(), "officer", { verified: true });
 
 function decisionRoute(principal: ReturnType<typeof testUser> | ReturnType<typeof testParent> | null, fail?: Error) {
@@ -118,9 +131,42 @@ describe("API-009 candidate route", () => {
     }
   });
 
-  it("malformed candidate IDs use E-004 for a verified officer", async () => {
-    const res = await readRoute(officer())(get("/api/candidates/not-a-uuid"), ctx("not-a-uuid"));
-    expect(res.status).toBe(404);
-    expect(await errorId(res)).toBe("E-004");
+});
+
+describe("API-009 real route handler (mocked readCandidate)", () => {
+  beforeEach(() => {
+    vi.mocked(readCandidate).mockReset();
+    vi.mocked(auditAccessDenied).mockClear();
+    // Mirrors readCandidate's own non-UUID early return (hidden, null case id).
+    vi.mocked(readCandidate).mockImplementation(async (_p, id) => isUuid(id)
+      ? { kind: "ok", view: exampleCandidateDecisionView }
+      : { kind: "hidden", caseId: null });
+    real.principal = officer();
+  });
+
+  it("malformed candidate IDs (up to 64 chars) reach readCandidate and return an audited E-004", async () => {
+    for (const id of ["not-a-uuid", "x".repeat(64)]) {
+      vi.mocked(auditAccessDenied).mockClear();
+      const res = await candidateGET(get(`/api/candidates/${id}`), ctx(id));
+      expect(res.status).toBe(404);
+      expect(await errorId(res)).toBe("E-004");
+      expect(vi.mocked(readCandidate)).toHaveBeenLastCalledWith(real.principal, id, expect.objectContaining({ requestId: expect.any(String) }));
+      expect(vi.mocked(auditAccessDenied)).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(auditAccessDenied).mock.calls[0][0]).toMatchObject({ api: "API-009", errorId: "E-004", caseId: null });
+    }
+  });
+
+  it("an ID longer than 64 chars is refused by Zod before readCandidate", async () => {
+    const id = "x".repeat(65);
+    const res = await candidateGET(get(`/api/candidates/${id}`), ctx(id));
+    expect(res.status).toBe(400);
+    expect(await errorId(res)).toBe("E-001");
+    expect(vi.mocked(readCandidate)).not.toHaveBeenCalled();
+  });
+
+  it("a valid UUID returns the strict candidate view", async () => {
+    const res = await candidateGET(get(`/api/candidates/${candidateId}`), ctx());
+    expect(res.status).toBe(200);
+    expect(candidateDecisionViewSchema.safeParse(await res.json()).success).toBe(true);
   });
 });

@@ -13,6 +13,10 @@ import {
   DEFAULT_DATABASE_URL,
   // @ts-expect-error -- the untyped .mjs guard is re-typed locally.
 } from "../../scripts/db/guard.mjs";
+// @ts-expect-error -- the untyped .mjs role-password helper is re-typed locally.
+import { rolePasswordEnv as _rolePasswordEnv } from "../../scripts/db/roles.mjs";
+
+const rolePasswordEnv: () => { FERA_APP_DB_PASSWORD: string } = _rolePasswordEnv as () => { FERA_APP_DB_PASSWORD: string };
 
 const assertLocalDatabaseUrl: (raw: string, label?: string) => URL =
   _assertLocalDatabaseUrl as (raw: string, label?: string) => URL;
@@ -57,8 +61,11 @@ export async function rehearsalOwnerClient(): Promise<Client> {
   const { Client } = await import("pg");
   const url = rehearsalDatabaseUrl();
   const adminRaw = process.env.FERA_DB_ADMIN_URL ?? DEFAULT_DATABASE_URL;
-  assertLocalDatabaseUrl(adminRaw, "test:rehearsal owner");
-  const admin = new URL(adminRaw);
+  const admin = assertLocalDatabaseUrl(adminRaw, "test:rehearsal owner");
+  // The owner connection must reach the SAME server the app uses; a
+  // different loopback port could be another cluster entirely.
+  assert.equal(admin.hostname, url.hostname, "rehearsal admin and app URLs must share a host");
+  assert.equal(admin.port, url.port, "rehearsal admin and app URLs must share a port");
   admin.pathname = `/${url.pathname.slice(1)}`;
   const client = new Client({ connectionString: admin.href, connectionTimeoutMillis: 10_000 });
   await client.connect();
@@ -72,7 +79,10 @@ export async function rehearsalAppClient(): Promise<Client> {
   const url = rehearsalDatabaseUrl();
   const appUrl = new URL(url.href);
   appUrl.username = "fera_app";
-  appUrl.password = process.env.FERA_APP_DB_PASSWORD ?? "fera_app_local_dev";
+  // Same helper `db:reset` uses to create the role: an explicit
+  // FERA_APP_DB_PASSWORD wins; the local default is handed out only
+  // for a loopback admin URL.
+  appUrl.password = rolePasswordEnv().FERA_APP_DB_PASSWORD;
   const client = new Client({ connectionString: appUrl.href, connectionTimeoutMillis: 10_000 });
   await client.connect();
   return client;

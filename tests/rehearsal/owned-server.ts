@@ -20,10 +20,13 @@
 //      throwaway signing keys. The test only needs to inject
 //      `FERA_REHEARSAL_PORT` (the fresh loopback port) before
 //      calling.
-//   3. Polls `${baseURL}/api/health` for up to 60 s. The probe
-//      is the same liveness check the existing wrapper's child
-//      would answer; we wait for `ok` AND a JSON-shaped body so
-//      a half-booted server that returns 200 + HTML is rejected.
+//   3. Polls `${baseURL}/api/health` for up to 60 s. Each probe has
+//      its own `AbortSignal.timeout`, so a hung socket cannot eat the
+//      whole budget. We accept only a 200 whose JSON body is the
+//      API-019 shape with `db: "ready"` and `synthetic_only: true`;
+//      a half-booted server that returns 200 + HTML (or a degraded
+//      DB) is rejected. If the owned child exits or errors while we
+//      wait, the wait fails immediately with the exit code/signal.
 //   4. Returns the `ChildProcess` and the per-call log path so
 //      the caller can attach to the child's streams (e.g. for a
 //      failure report). The caller MUST call `stopOwnedServer`
@@ -50,6 +53,9 @@ export type OwnedServer = {
 
 const REPO_ROOT = resolve(__dirname, "..", "..");
 const WRAPPER = resolve(REPO_ROOT, "scripts/rehearsal/launch-second-server.mjs");
+// A spawn 'error' can fire before anyone waits on the child; it is kept
+// here so the health wait reports it instead of an unhandled 'error'.
+const SPAWN_ERRORS = new WeakMap<ChildProcess, Error>();
 
 /** Start an owned second server on the given port. The caller owns
  *  the lifecycle and must call `stopOwnedServer` in a `finally`.
@@ -87,6 +93,7 @@ export async function startOwnedServer(opts: {
       stdio: ["ignore", "pipe", "pipe"],
     },
   ) as ChildProcess & { stdout: import("node:stream").Readable | null; stderr: import("node:stream").Readable | null };
+  child.on("error", (err: Error) => SPAWN_ERRORS.set(child, err));
   if (opts.onStdout && child.stdout) {
     child.stdout.on("data", (c: Buffer | string) => opts.onStdout!(c.toString("utf8")));
   }
@@ -96,35 +103,86 @@ export async function startOwnedServer(opts: {
   return { child, logPath: opts.logPath };
 }
 
-/** Wait for `${baseURL}/api/health` to return 200 with a JSON body.
- *  Throws if the probe never succeeds within `timeoutMs`. */
-export async function waitForOwnedHealth(baseURL: string, timeoutMs = 60_000): Promise<void> {
+/** True once the child has exited or been killed by a signal. */
+function hasExited(child: ChildProcess): boolean {
+  return child.exitCode !== null || child.signalCode !== null;
+}
+
+/** Wait for `${baseURL}/api/health` to return 200 with a ready API-019
+ *  body. Throws if the probe never succeeds within `timeoutMs`, and
+ *  fails fast if `child` exits or emits 'error' first. */
+export async function waitForOwnedHealth(
+  baseURL: string,
+  opts: { child?: ChildProcess; timeoutMs?: number; probeTimeoutMs?: number } = {},
+): Promise<void> {
+  const timeoutMs = opts.timeoutMs ?? 60_000;
+  const probeTimeoutMs = opts.probeTimeoutMs ?? 15_000;
   const deadline = Date.now() + timeoutMs;
   let lastErr: string | null = null;
   let lastBody: string | null = null;
-  while (Date.now() < deadline) {
-    try {
-      const res = await fetch(`${baseURL}/api/health`);
-      if (res.status === 200) {
+  let childFailure: string | null = null;
+  const child = opts.child;
+  const onExit = (code: number | null, signal: NodeJS.Signals | null) => {
+    childFailure = `owned server exited before it was healthy (code=${code}, signal=${signal})`;
+  };
+  const onError = (err: Error) => {
+    childFailure = `owned server failed to start: ${err.message}`;
+  };
+  if (child) {
+    const early = SPAWN_ERRORS.get(child);
+    if (early) throw new Error(`owned server failed to start: ${early.message}`);
+    if (hasExited(child)) {
+      throw new Error(`owned server exited before it was healthy (code=${child.exitCode}, signal=${child.signalCode})`);
+    }
+    child.once("exit", onExit);
+    child.once("error", onError);
+  }
+  try {
+    while (Date.now() < deadline) {
+      if (childFailure) throw new Error(childFailure);
+      try {
+        const res = await fetch(`${baseURL}/api/health`, {
+          signal: AbortSignal.timeout(Math.max(1, Math.min(probeTimeoutMs, deadline - Date.now()))),
+        });
         const body = await res.text();
         lastBody = body;
-        try {
-          JSON.parse(body);
-          return;
-        } catch {
-          lastErr = "health response is not JSON";
+        if (res.status !== 200) {
+          lastErr = `status=${res.status}`;
+        } else {
+          const problem = healthBodyProblem(body);
+          if (problem === null) return;
+          lastErr = problem;
         }
-      } else {
-        lastErr = `status=${res.status}`;
+      } catch (err) {
+        lastErr = (err as Error).message;
       }
-    } catch (err) {
-      lastErr = (err as Error).message;
+      if (childFailure) throw new Error(childFailure);
+      await new Promise((r) => setTimeout(r, 250));
     }
-    await new Promise((r) => setTimeout(r, 250));
+  } finally {
+    child?.off("exit", onExit);
+    child?.off("error", onError);
   }
   throw new Error(
     `owned server ${baseURL}/api/health did not respond within ${timeoutMs}ms (last error: ${lastErr}, last body: ${lastBody?.slice(0, 200)})`,
   );
+}
+
+/** Null when `body` is a ready API-019 health response, otherwise a
+ *  short reason. Only the documented fields are read. */
+function healthBodyProblem(body: string): string | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    return "health response is not JSON";
+  }
+  const h = parsed as { version?: unknown; db?: unknown; synthetic_only?: unknown };
+  if (typeof h !== "object" || h === null) return "health response is not an object";
+  if (typeof h.version !== "string" || h.version.length === 0) return "health response has no version";
+  if (h.synthetic_only !== true) return "health response is not synthetic_only";
+  if (h.db !== "ready") return `health db=${String(h.db)}`;
+  return null;
 }
 
 /** Confirm the loopback port is closed (i.e. the owned server
@@ -166,18 +224,18 @@ export async function assertPortClosed(port: number, timeoutMs = 5_000): Promise
  *  without throwing — a test's `finally` must not be derailed by
  *  a teardown error. */
 export async function stopOwnedServer(child: ChildProcess): Promise<void> {
-  if (child.exitCode !== null) return; // already gone
+  if (hasExited(child)) return; // already gone (exit code or signal)
   try {
     child.kill("SIGTERM");
   } catch {
     /* already gone */
   }
   const exitPromise = new Promise<void>((resolveExit) => {
-    child.on("exit", () => resolveExit());
+    child.once("exit", () => resolveExit());
     setTimeout(resolveExit, 5_000).unref?.();
   });
   await exitPromise;
-  if (child.exitCode === null) {
+  if (!hasExited(child)) {
     try {
       child.kill("SIGKILL");
     } catch {

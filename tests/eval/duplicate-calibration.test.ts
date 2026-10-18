@@ -7,19 +7,20 @@
 //      synthetic profiles, deriveFlagRow must reproduce what the
 //      detector's computeAgreement + profilesContradict would produce
 //      for the same inputs.
-//   3. Lock in the picker: pickRecommendedCell must select a cell that
-//      maximises dev pairwise F1 with explicit recall tradeoffs.
+//   3. Lock in the picker: pickRecommendedCell maximises dev pairwise F1,
+//      then recall, then precision, then the lower floors.
 //   4. End-to-end: buildCalibrationGrid against the committed dev
 //      prediction file must reproduce the pre-main baseline (TP=12,
-//      FP=290, FN=0) at the documented SIMILARITY_THRESHOLD=0.5 and
-//      MIN_AGREEING_PROFILE_FIELDS=2, and must surface at least one
-//      strictly better (lower FP, same recall) cell that we can use as
-//      the dev-calibrated config.
+//      FP=290, FN=0) at the old SIMILARITY_THRESHOLD=0.5 and
+//      MIN_AGREEING_PROFILE_FIELDS=2, and the picker must choose the max-F1
+//      cell 0.95/3 (TP=10, FP=1, FN=2), trading 2 of 12 recall for fewer FPs.
 //
-// All inputs are dev-only. The held-out test split is never loaded.
+// All scored inputs are dev-only. records.jsonl and ground_truth.json hold
+// both splits and are read from disk, then filtered to dev IDs; no test-split
+// ID is ever scored (asserted below).
 
 import { describe, expect, it } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -68,11 +69,25 @@ describe("duplicate-calibration: loadDevRecordProfiles (dev-only)", () => {
     }
   });
 
-  it("never loads the held-out test split (114 records stay unread)", () => {
-    // Sanity: records.jsonl has 200 rows total; we read only 86.
+  it("never scores a held-out test-split ID (test rows are read from disk, then discarded)", () => {
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as { records: Array<{ record_id: string; split: string }> };
+    const testIds = new Set(manifest.records.filter((r) => r.split === "test").map((r) => r.record_id));
+    expect(testIds.size).toBe(114);
     const { profiles } = loadDevRecordProfiles(manifestPath, recordsPath);
-    expect(profiles.size).toBeLessThan(200);
-    expect(profiles.size).toBe(86);
+    expect([...profiles.keys()].filter((id) => testIds.has(id))).toEqual([]);
+    const { grid, flags, truthPairs, sharedPhoneDistinct, sharedPhoneCrossKind } = buildCalibrationGrid({
+      predictionPath, manifestPath, recordsPath, groundTruthPath, embedderSpace,
+    });
+    const scored = [
+      ...flags.flatMap((f) => [f.sourceId, f.targetId]),
+      ...[...truthPairs, ...sharedPhoneDistinct, ...sharedPhoneCrossKind].flat(),
+    ];
+    expect(scored.length).toBeGreaterThan(0);
+    expect(scored.filter((id) => testIds.has(id))).toEqual([]);
+    expect(grid.heldoutIdsScored).toBe(0);
+    expect(grid.devRecords).toBe(86);
+    expect(grid.linksWithoutDevProfile).toBe(0);
+    for (const id of grid.scoredRecordIds) expect(testIds.has(id)).toBe(false);
   });
 });
 
@@ -133,7 +148,7 @@ describe("duplicate-calibration: pickRecommendedCell", () => {
     expect(pickRecommendedCell([])).toBeNull();
   });
 
-  it("prefers the cell with the highest precision among FN=0 cells", () => {
+  it("maximises F1 (the 0.95/2 cell with F1 100 wins over lower-F1 FN=0 cells)", () => {
     const cells: GridCell[] = [
       { similarityThreshold: 0.5, minAgreeingProfileFields: 2, tp: 12, fp: 290, fn: 0, truthSize: 12, precision: 3.97, recall: 100, f1: 7.64, sharedPhoneNegativeTotal: 0, sharedPhoneNegativeFp: 0, sharedPhoneNegativeRejected: 0 },
       { similarityThreshold: 0.85, minAgreeingProfileFields: 2, tp: 12, fp: 50, fn: 0, truthSize: 12, precision: 19.35, recall: 100, f1: 32.43, sharedPhoneNegativeTotal: 0, sharedPhoneNegativeFp: 0, sharedPhoneNegativeRejected: 0 },
@@ -141,12 +156,20 @@ describe("duplicate-calibration: pickRecommendedCell", () => {
     ];
     const picked = pickRecommendedCell(cells);
     expect(picked).not.toBeNull();
-    // Among FN=0 cells, precision winner is 100% (sim_thr=0.95); tie-break
-    // prefers the lower (sim_thr, min_agree) which is also sim_thr=0.95.
-    expect(picked!.precision).toBe(100);
+    // Highest F1 is 100 (sim_thr=0.95); no tie-break is needed.
+    expect(picked!.f1).toBe(100);
+    expect(picked!.similarityThreshold).toBe(0.95);
   });
 
-  it("tie-breaks to the lower sim_thr when precision is equal", () => {
+  it("maximises F1 over recall (0.95/3 F1 86.96 beats 0.92/3 F1 72.73 with recall 100)", () => {
+    const cells: GridCell[] = [
+      { similarityThreshold: 0.92, minAgreeingProfileFields: 3, tp: 12, fp: 9, fn: 0, truthSize: 12, precision: 57.14, recall: 100, f1: 72.73, sharedPhoneNegativeTotal: 25, sharedPhoneNegativeFp: 0, sharedPhoneNegativeRejected: 25 },
+      { similarityThreshold: 0.95, minAgreeingProfileFields: 3, tp: 10, fp: 1, fn: 2, truthSize: 12, precision: 90.91, recall: 83.33, f1: 86.96, sharedPhoneNegativeTotal: 25, sharedPhoneNegativeFp: 0, sharedPhoneNegativeRejected: 25 },
+    ];
+    expect(pickRecommendedCell(cells)?.similarityThreshold).toBe(0.95);
+  });
+
+  it("tie-breaks to the lower sim_thr when F1, recall and precision are all equal", () => {
     const cells: GridCell[] = [
       { similarityThreshold: 0.85, minAgreeingProfileFields: 2, tp: 12, fp: 50, fn: 0, truthSize: 12, precision: 19.35, recall: 100, f1: 32.43, sharedPhoneNegativeTotal: 0, sharedPhoneNegativeFp: 0, sharedPhoneNegativeRejected: 0 },
       { similarityThreshold: 0.90, minAgreeingProfileFields: 2, tp: 12, fp: 50, fn: 0, truthSize: 12, precision: 19.35, recall: 100, f1: 32.43, sharedPhoneNegativeTotal: 0, sharedPhoneNegativeFp: 0, sharedPhoneNegativeRejected: 0 },
@@ -176,7 +199,7 @@ describe("duplicate-calibration: end-to-end against the pre-main dev baseline", 
     expect(baseline!.recall).toBeCloseTo(100, 1);
   });
 
-  it("surfaces at least one strictly better cell (lower FP, same recall)", () => {
+  it("surfaces lower-FP cells at full recall, and the F1 picker chooses 0.95/3 (FN=2)", () => {
     const { grid } = buildCalibrationGrid({
       predictionPath,
       manifestPath,
@@ -189,7 +212,8 @@ describe("duplicate-calibration: end-to-end against the pre-main dev baseline", 
       c.fn === 0 && c.fp < baseline.fp && c.similarityThreshold >= 0.5 && c.minAgreeingProfileFields >= 2,
     );
     expect(betterCells.length).toBeGreaterThan(0);
-    // The picker must select one of them.
+    // The picker maximises F1, so it does NOT pick a full-recall cell: it
+    // picks 0.95/3, which misses 2 of 12 dev pairs.
     const picked = pickRecommendedCell(grid.cells);
     expect(picked).not.toBeNull();
     expect(picked!.fp).toBeLessThan(baseline.fp);

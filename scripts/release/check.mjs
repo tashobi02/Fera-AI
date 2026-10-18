@@ -58,7 +58,7 @@
 
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { realpathSync } from "node:fs";
 
@@ -198,14 +198,12 @@ function manifestChecks(repoRoot, allowlist = ALLOWLIST) {
         : entry.detail,
     });
   }
-  // Drift detector: catch any allowlisted file that the Python zip
-  // builder does not include, or vice versa. We only assert that the
-  // JS allowlist is non-empty; cross-check is a future task.
-  if (manifest.length !== allowlist.length) allPass = false;
+  // Aggregate of the per-file entries above. This is NOT a drift check
+  // against build-submission-zip.py: that cross-check is not implemented.
   out.push({
     name: "manifest:allowlist-size",
     status: allPass ? "PASS" : "FAIL",
-    detail: `${manifest.length}/${allowlist.length} entries prepared`,
+    detail: `${manifest.length}/${allowlist.length} entries present (no cross-check with build-submission-zip.py)`,
   });
   return out;
 }
@@ -457,12 +455,12 @@ function writeReport(targetPath, summary, repoRoot) {
   lines.push("");
   lines.push("## Open human / external blockers (UNCHANGED from PHASE_4_SUBMISSION.md)");
   lines.push("");
-  lines.push("- H-9: organiser cutoff, channel, formats, recipient, subject (UNKNOWN).");
+  lines.push("- H-9: organiser instructions are recorded in submission/round2/platform-submission.md; this script does not verify them.");
   lines.push("- Drive folder: UNKNOWN; no signed-in or logged-out readback available in this offline worker.");
-  lines.push("- Repository visibility: PRIVATE; logged-out public readback is owner-decision territory, not an agent's.");
+  lines.push("- Repository visibility: UNKNOWN to this script (check GitHub); logged-out readback is owner-decision territory, not an agent's.");
   lines.push("- Production / deployment / managed DB access: UNKNOWN (READY-12).");
   lines.push("- Frozen held-out manifest, WER, latency, spend, dedupe precision: not measured.");
-  lines.push("- Round 2 submission status: NOT submitted (user-confirmed 18 Oct 2026).");
+  lines.push("- Round 2 submission status: UNKNOWN to this script; see the submission record in submission/round2/platform-submission.md.");
   lines.push("");
   lines.push("This file is the offline worker's readiness artefact. The lead (Mahim) records the formal G5 decision in `docs/gates/G5-*.md`; the script never marks G5 PASS.");
   writeFileSync(abs, lines.join("\n") + "\n");
@@ -478,7 +476,7 @@ function isWithinRoot(abs, root) {
   if (a === r) return true;
   const rel = relative(r, a);
   if (rel === "") return true;
-  if (rel.startsWith("..")) return false;
+  if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) return false;
   return true;
 }
 

@@ -976,13 +976,13 @@
   ],
   "dirty_worktrees": [
     {
-      "path": "/home/obidit/secondBrain/coding/fera-lanes/obidit-spec002",
+      "path": "<lanes>/obidit-spec002",
       "changes": [
         "?? specs/002-intake-ai/tasks.md"
       ]
     },
     {
-      "path": "/home/obidit/secondBrain/coding/fera-lanes/obidit-spec003",
+      "path": "<lanes>/obidit-spec003",
       "changes": [
         "?? specs/003-parent-outputs/"
       ]
