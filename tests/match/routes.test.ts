@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import {
-  ERROR_CATALOGUE, candidateDecisionViewSchema, decisionRequestSchema, decisionResponseSchema, errorEnvelopeSchema, uuidSchema,
+  ERROR_CATALOGUE, candidateDecisionViewSchema, decisionRequestSchema, decisionResponseSchema, errorEnvelopeSchema, isUuid, uuidSchema,
 } from "@/contracts";
 import { exampleCandidateDecisionView, exampleConfirmDecisionRequest, exampleConfirmDecisionResponse } from "@/contracts/examples";
 import { ApiError } from "@/app/api/_shared";
@@ -13,6 +13,7 @@ import { testParent, testUser } from "../support/principals";
 
 const candidateId = randomUUID();
 const params = z.strictObject({ id: uuidSchema });
+const readParams = z.strictObject({ id: z.string() });
 const officer = () => testUser(randomUUID(), "officer", { verified: true });
 
 function decisionRoute(principal: ReturnType<typeof testUser> | ReturnType<typeof testParent> | null, fail?: Error) {
@@ -92,9 +93,10 @@ describe("API-009 candidate route", () => {
     const t = testFactory(principal);
     return t.defineRoute({
       api: "API-009",
-      params,
+      params: readParams,
       response: candidateDecisionViewSchema,
-      handler: async () => {
+      handler: async ({ params: p }) => {
+        if (!isUuid(p.id)) throw new ApiError("E-004");
         if (hidden) throw new ApiError("E-004");
         return exampleCandidateDecisionView;
       },
@@ -114,5 +116,11 @@ describe("API-009 candidate route", () => {
     for (const p of [testUser(randomUUID(), "officer", { verified: false }), testUser(randomUUID(), "staff"), testParent(randomUUID())]) {
       expect(await errorId(await readRoute(p)(get("/x"), ctx()))).toBe("E-004");
     }
+  });
+
+  it("malformed candidate IDs use E-004 for a verified officer", async () => {
+    const res = await readRoute(officer())(get("/api/candidates/not-a-uuid"), ctx("not-a-uuid"));
+    expect(res.status).toBe(404);
+    expect(await errorId(res)).toBe("E-004");
   });
 });
