@@ -525,7 +525,7 @@ def slide_engineering(prs):
         "320 PostgreSQL + pgvector tests pass, fresh database per file.",
         "78 Playwright + axe browser checks pass (desktop and mobile emulation).",
         "Strict TypeScript; lint 0 errors; remote CI green.",
-        "Eleven specialist reviews, with a safeguarding gate on every PR.",
+        "Eleven specialist reviews, including a safeguarding review, at the final commit.",
         "Software checks only: no human study or production run yet.",
     ]
     add_text(s, rx + Inches(0.2), col_y + Inches(0.7), col_w - Inches(0.4),

@@ -20,7 +20,7 @@ Fera AI (ফেরা)
 
 **Description**
 
-Fera is a Bangla-first case coordination prototype for missing and found children in Bangladesh. A parent reports by voice or typed Bangla, reviews every extracted field, and submits only after confirming; unknown values stay unknown. Shelter and station staff log found children. AI retrieves and ranks possible matches by similarity, and a verified officer compares the two reports side by side and records the decision. Confirmation runs as one database transaction with an append-only audit trail, then the case closes and district counts update.
+Fera is a Bangla-first case coordination prototype for missing and found children in Bangladesh. A parent reports by voice or typed Bangla, reviews every extracted field, and submits only after confirming; unknown values stay unknown. Shelter and station staff log found children. AI retrieves and ranks possible matches by similarity, and a verified officer compares the two reports side by side and records the decision. Confirmation runs as one database transaction with an append-only audit trail; the officer then closes the case and district counts update.
 
 Built with Next.js, strict TypeScript, PostgreSQL 16 + pgvector and local multilingual-e5-small embeddings: 16 screens in Bangla and English, 22 role-scoped API routes, 3,693 unit tests, 320 database tests and 78 browser checks passing.
 
