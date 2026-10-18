@@ -6,10 +6,10 @@
 // cache-hit detector rejects and counts fixture hits; held-out runs require
 // the freeze gate.
 import { describe, expect, it } from "vitest";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-// @ts-ignore -- plain ESM script without type declarations
+// @ts-expect-error -- plain ESM script without type declarations
 import { run as runExtract, scoreRecord, aggregateScores, __test } from "../../eval/extract.mjs";
 
 const { FIELDS, detectCacheHit } = __test;
@@ -21,22 +21,23 @@ const SAMPLE_LABEL = {
   reporter: { relation: "self", phone: "01700000001" },
 };
 
-function makeLabels() {
-  return {
-    L001: {
-      id: "L001",
-      text: "আমার ছেলে রাফি...",
-      labels: SAMPLE_LABEL,
+function makeLabels(ids: string[] = ["L001", "L002"]) {
+  return Object.fromEntries(ids.map((id, index) => [id, {
+    id,
+    text: "synthetic test input",
+    labels: index === 0 ? SAMPLE_LABEL : {
+      ...SAMPLE_LABEL,
+      child: { ...SAMPLE_LABEL.child, name: "Sakib", age_years: 12 },
     },
-    L002: {
-      id: "L002",
-      text: "...",
-      labels: {
-        ...SAMPLE_LABEL,
-        child: { ...SAMPLE_LABEL.child, name: "Sakib", age_years: 12 },
-      },
-    },
-  };
+  }]));
+}
+
+async function getRecordIds(split: "dev" | "test", count = 2): Promise<string[]> {
+  const manifest = JSON.parse(await readFile(join(process.cwd(), "eval/manifest.json"), "utf8"));
+  return manifest.records
+    .filter((record: { split: string }) => record.split === split)
+    .slice(0, count)
+    .map((record: { record_id: string }) => record.record_id);
 }
 
 function writeLabels(dir: string, lines: unknown[]) {
@@ -73,6 +74,13 @@ describe("eval/extract.mjs — scoreRecord", () => {
     expect(r.perField["event.district_text"].false_omission).toBe(true);
   });
 
+  it("counts a missing prediction as a known-label miss, not a both-null match", () => {
+    const r = scoreRecord(SAMPLE_LABEL, {});
+    expect(r.perField["child.name"].false_omission).toBe(true);
+    expect(r.nullAgreement.oneNull).toBeGreaterThan(0);
+    expect(r.nullAgreement.bothNull).toBeLessThan(FIELDS.length);
+  });
+
   it("flags a value mismatch when both sides are present but disagree", () => {
     const prediction = { ...SAMPLE_LABEL, child: { ...SAMPLE_LABEL.child, name: "Different" } };
     const r = scoreRecord(SAMPLE_LABEL, prediction);
@@ -94,8 +102,8 @@ describe("eval/extract.mjs — aggregateScores", () => {
     const name = agg.metrics["child.name"];
     expect(name).toBeTruthy();
     // Record a: name Rafi === Rafi -> TP. Record b: name Sakib vs Different -> not match -> FN.
-    // precision = tp / (tp + fp) = 1 / 1 = 1.0
-    expect(name.precision).toBe(1.0);
+    // A mismatched present value is both a false prediction and a missed label.
+    expect(name.precision).toBe(0.5);
     // recall = tp / labelled_present = 1 / 2 = 0.5
     expect(name.recall).toBe(0.5);
     const circ = agg.metrics["event.circumstances"];
@@ -110,10 +118,29 @@ describe("eval/extract.mjs — aggregateScores", () => {
     // nullAgreementPct can be 0 if there are no shared-null fields
     expect(typeof agg.totals.nullAgreementPct === "number" || agg.totals.nullAgreementPct === null).toBe(true);
   });
+
+  it("uses every present human-labelled field in accuracy, including missed predictions", () => {
+    type Sample = typeof SAMPLE_LABEL;
+    const presentCount = FIELDS.filter((field: string) => {
+      const value = field.split(".").reduce<unknown>((cur, part) => {
+        if (cur === null || cur === undefined) return undefined;
+        return (cur as Record<string, unknown>)[part];
+      }, SAMPLE_LABEL as Sample);
+      return value !== null && value !== undefined && value !== "";
+    }).length;
+    const agg = aggregateScores([
+      scoreRecord(SAMPLE_LABEL, SAMPLE_LABEL),
+      scoreRecord(SAMPLE_LABEL, {}),
+    ]);
+    expect(agg.totals.presentLabelled).toBe(presentCount * 2);
+    expect(agg.totals.correct).toBe(presentCount);
+    expect(agg.totals.presentFieldAccuracy).toBe(0.5);
+    expect(agg.totals.bothNull).toBeGreaterThan(0);
+  });
 });
 
 describe("eval/extract.mjs — run() integration", () => {
-  it("prints 'not measured' when labels are human-empty", async () => {
+  it("reports unmapped label IDs as not measured instead of assigning them to a split", async () => {
     const dir = await mkdtemp(join(tmpdir(), "fera-extract-"));
     try {
       // Human-empty labels: every line has `labels: {}`.
@@ -127,8 +154,8 @@ describe("eval/extract.mjs — run() integration", () => {
         stdout: capture,
       });
       expect(result.measured).toBe(false);
-      expect(result.reason).toBe("human-empty");
-      expect(out.join("")).toMatch(/not measured \(labels are human-empty/);
+      expect(result.reason).toBe("unmapped-labels");
+      expect(out.join("")).toMatch(/not measured \(label IDs do not map to canonical manifest records/);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -137,7 +164,8 @@ describe("eval/extract.mjs — run() integration", () => {
   it("prints 'not measured' when no --prediction file is given", async () => {
     const dir = await mkdtemp(join(tmpdir(), "fera-extract-"));
     try {
-      await writeLabels(dir, Object.values(makeLabels()));
+      const labels = makeLabels(await getRecordIds("dev"));
+      await writeLabels(dir, Object.values(labels));
       const out: string[] = [];
       const capture = (s: string) => out.push(s);
       const result = await runExtract({
@@ -157,10 +185,11 @@ describe("eval/extract.mjs — run() integration", () => {
   it("excludes and counts cache/fixture hits; all-cache = not measured", async () => {
     const dir = await mkdtemp(join(tmpdir(), "fera-extract-"));
     try {
-      await writeLabels(dir, Object.values(makeLabels()));
+      const labels = makeLabels(await getRecordIds("dev"));
+      await writeLabels(dir, Object.values(labels));
       await writeFile(join(dir, "pred.jsonl"),
-        JSON.stringify({ id: "L001", draft: SAMPLE_LABEL, cache_hit: true }) + "\n" +
-        JSON.stringify({ id: "L002", draft: SAMPLE_LABEL, source: "fixture" }) + "\n",
+        JSON.stringify({ id: Object.keys(labels)[0], draft: SAMPLE_LABEL, cache_hit: true }) + "\n" +
+        JSON.stringify({ id: Object.keys(labels)[1], draft: SAMPLE_LABEL, source: "fixture" }) + "\n",
         "utf8");
       const out: string[] = [];
       const capture = (s: string) => out.push(s);
@@ -181,11 +210,12 @@ describe("eval/extract.mjs — run() integration", () => {
   it("computes metrics for an honest measured predictions file", async () => {
     const dir = await mkdtemp(join(tmpdir(), "fera-extract-"));
     try {
-      const labels = makeLabels();
+      const labels = makeLabels(await getRecordIds("dev"));
       await writeLabels(dir, Object.values(labels));
+      const ids = Object.keys(labels);
       await writeFile(join(dir, "pred.jsonl"),
-        JSON.stringify({ id: "L001", draft: labels.L001.labels }) + "\n" +
-        JSON.stringify({ id: "L002", draft: labels.L002.labels }) + "\n",
+        JSON.stringify({ id: ids[0], draft: labels[ids[0]].labels }) + "\n" +
+        JSON.stringify({ id: ids[1], draft: labels[ids[1]].labels }) + "\n",
         "utf8");
       const out: string[] = [];
       const capture = (s: string) => out.push(s);
@@ -200,6 +230,8 @@ describe("eval/extract.mjs — run() integration", () => {
       expect(result.cacheHitsExcluded).toBe(0);
       expect(result.failures).toEqual([]);
       expect(out.join("")).toMatch(/recall=/);
+      expect(result.headline).toBe(100);
+      expect(result.totals.bothNull).toBeGreaterThan(0);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -208,13 +240,16 @@ describe("eval/extract.mjs — run() integration", () => {
   it("records failures and never invents them (failures list is from real output)", async () => {
     const dir = await mkdtemp(join(tmpdir(), "fera-extract-"));
     try {
-      const labels = makeLabels();
-      // L002 prediction: a mismatch (name) and a false add (circumstances)
-      const l002Bad = { ...labels.L002.labels, child: { ...labels.L002.labels.child, name: "Wrong" }, event: { ...labels.L002.labels.event, circumstances: "extra" } };
+      const ids = await getRecordIds("dev");
+      const labels = makeLabels(ids);
+      // The second prediction has a mismatch (name) and false add (circumstances).
+      const secondId = ids[1];
+      const secondLabels = labels[secondId].labels;
+      const secondBad = { ...secondLabels, child: { ...secondLabels.child, name: "Wrong" }, event: { ...secondLabels.event, circumstances: "extra" } };
       await writeLabels(dir, Object.values(labels));
       await writeFile(join(dir, "pred.jsonl"),
-        JSON.stringify({ id: "L001", draft: labels.L001.labels }) + "\n" +
-        JSON.stringify({ id: "L002", draft: l002Bad }) + "\n",
+        JSON.stringify({ id: ids[0], draft: labels[ids[0]].labels }) + "\n" +
+        JSON.stringify({ id: secondId, draft: secondBad }) + "\n",
         "utf8");
       const out: string[] = [];
       const capture = (s: string) => out.push(s);
@@ -225,8 +260,65 @@ describe("eval/extract.mjs — run() integration", () => {
         stdout: capture,
       });
       expect(result.measured).toBe(true);
-      expect(result.failures).toContain("L002");
-      expect(result.failures).not.toContain("L001");
+      expect(result.failures).toContain(secondId);
+      expect(result.failures).not.toContain(ids[0]);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("scores only requested-split labels and predictions", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "fera-extract-"));
+    try {
+      const [devId] = await getRecordIds("dev", 1);
+      const [testId] = await getRecordIds("test", 1);
+      const labels = makeLabels([devId, testId]);
+      await writeLabels(dir, Object.values(labels));
+      await writeFile(join(dir, "pred.jsonl"),
+        JSON.stringify({ id: devId, draft: labels[devId].labels }) + "\n" +
+        JSON.stringify({ id: testId, draft: {} }) + "\n",
+        "utf8");
+
+      const result = await runExtract({
+        inputPath: join(dir, "labelled.jsonl"),
+        predictionPath: join(dir, "pred.jsonl"),
+        split: "dev",
+        stdout: () => undefined,
+      });
+
+      expect(result.measured).toBe(true);
+      expect(result.matched).toBe(1);
+      expect(result.labelsOutsideSplit).toBe(1);
+      expect(result.predictionsOutsideSplit).toBe(1);
+      expect(result.headline).toBe(100);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("counts labelled records with no prediction as false omissions in headline accuracy", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "fera-extract-"));
+    try {
+      const ids = await getRecordIds("dev");
+      const labels = makeLabels(ids);
+      await writeLabels(dir, Object.values(labels));
+      await writeFile(join(dir, "pred.jsonl"),
+        JSON.stringify({ id: ids[0], draft: labels[ids[0]].labels }) + "\n",
+        "utf8");
+
+      const result = await runExtract({
+        inputPath: join(dir, "labelled.jsonl"),
+        predictionPath: join(dir, "pred.jsonl"),
+        split: "dev",
+        stdout: () => undefined,
+      });
+
+      expect(result.measured).toBe(true);
+      expect(result.matched).toBe(1);
+      expect(result.missingPreds).toEqual([ids[1]]);
+      expect(result.totals.presentLabelled).toBeGreaterThan(0);
+      expect(result.headline).toBe(50);
+      expect(result.totals.falseOmissions).toBeGreaterThan(0);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -271,7 +363,7 @@ describe("eval/extract.mjs — run() integration", () => {
   it("malformed JSONL in predictions throws a sanitised error (no child text leakage)", async () => {
     const dir = await mkdtemp(join(tmpdir(), "fera-extract-"));
     try {
-      const labels = makeLabels();
+      const labels = makeLabels(await getRecordIds("dev"));
       await writeLabels(dir, Object.values(labels));
       // Malformed: deliberately include text the error must not echo.
       await writeFile(join(dir, "pred.jsonl"), "{broken: child text রহিম হারিয়ে গেছে\n", "utf8");

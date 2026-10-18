@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-// @ts-ignore -- plain ESM script without type declarations
+// @ts-expect-error -- plain ESM script without type declarations
 import { run as runMatch, buildQueries, scorePredictions, __test } from "../../eval/match.mjs";
 
 const { detectCacheHit } = __test;
@@ -134,9 +134,9 @@ describe("eval/match.mjs — run() integration", () => {
       const fs = await import("node:fs/promises");
       const manifest = JSON.parse(await fs.readFile("eval/manifest.json", "utf8"));
       const truth = JSON.parse(await fs.readFile("data/synthetic/ground_truth.json", "utf8"));
-      const devIds = new Set(manifest.records.filter((r: any) => r.split === "dev").map((r: any) => r.record_id));
+      const devIds = new Set(manifest.records.filter((r: { split: string; record_id: string }) => r.split === "dev").map((r: { record_id: string }) => r.record_id));
       // Find one pair_query in dev and one of its true partners.
-      const query = truth.records.find((r: any) => r.role === "pair_query" && devIds.has(r.record_id));
+      const query = truth.records.find((r: { role: string; record_id: string; true_partner_ids: string[] }) => r.role === "pair_query" && devIds.has(r.record_id));
       if (!query) return; // nothing to score on this build
       const partner = (query.true_partner_ids || [])[0];
       const dir = await mkdtemp(join(tmpdir(), "fera-match-"));

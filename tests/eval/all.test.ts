@@ -8,12 +8,12 @@ import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { mkdtemp, rm, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-// @ts-ignore -- plain ESM script without type declarations
+// @ts-expect-error -- plain ESM script without type declarations
 import { run as runAll, __test } from "../../eval/all.mjs";
-// @ts-ignore -- plain ESM utility module without type declarations
+// @ts-expect-error -- plain ESM utility module without type declarations
 import { gitHeadFull, MANIFEST_HASH_PATH } from "../../eval/metric-utils.mjs";
 
-const { parseArgs, notMeasuredMessage } = __test;
+const { parseArgs } = __test;
 
 describe("eval/all.mjs — parseArgs", () => {
   it("defaults to dev split, no prediction files, default paths", () => {
@@ -121,7 +121,7 @@ describe("eval/all.mjs — run() integration", () => {
       expect(md).toMatch(/dev records: `86` \(groups: `30`\)/);
       expect(md).toMatch(/test records: `114` \(groups: `45`\)/);
       expect(md).toMatch(/no human-reviewed labels/);
-      expect(json.modules.extract.reason).toBe("human-empty");
+      expect(json.modules.extract.reason).toBe("unmapped-labels");
       expect(json.existing.wer.measured).toBe(false);
       expect(json.existing.wer.reason).toMatch(/missing|summary output missing/i);
       expect(json.existing.time.measured).toBe(false);
