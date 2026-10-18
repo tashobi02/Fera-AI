@@ -45,7 +45,16 @@ export const parentIntakeBn = {
   reviewEditRefreshing: "বর্তমান তথ্য দেখা হচ্ছে…",
   reviewEditBack: "আমার রিপোর্টে ফিরে যান",
   reviewEditDiscard: "সংশোধন বাতিল",
+  reviewEditDiscardTitle: "এই সংশোধন বাতিল করবেন?",
+  reviewEditDiscardBody: "সংশোধন বাতিল হলে আপনার পরিবর্তনগুলো আর রাখা হবে না।",
   reviewEditCheckLabel: "আমি যা বদলেছি তা যাচাই করেছি",
+  // "Start with new details" replace dialog: shown when a fresh handoff
+  // arrives but an older attempted draft is still on the device. The user
+  // must confirm before the older draft is replaced.
+  replaceTitle: "নতুন তথ্য দিয়ে শুরু করবেন?",
+  replaceBody: "আগের খসড়া মুছে নতুন তথ্য দিয়ে শুরু হবে।",
+  replaceYes: "নতুন দিয়ে শুরু করুন",
+  replaceNo: "আগেরটি রাখুন",
 } as const;
 
 export const parentIntakeEn = {
@@ -78,5 +87,13 @@ export const parentIntakeEn = {
   reviewEditRefreshing: "Reloading current details…",
   reviewEditBack: "Back to my reports",
   reviewEditDiscard: "Cancel correction",
+  reviewEditDiscardTitle: "Cancel this correction?",
+  reviewEditDiscardBody: "Cancelling will discard the changes you just made on this device.",
   reviewEditCheckLabel: "I have reviewed my changes",
+  // "Start with new details" replace dialog: shown when a fresh handoff
+  // arrives but an older attempted draft is still on the device.
+  replaceTitle: "Start with new details?",
+  replaceBody: "The earlier draft will be replaced by the new details.",
+  replaceYes: "Start with new",
+  replaceNo: "Keep earlier draft",
 } as const;

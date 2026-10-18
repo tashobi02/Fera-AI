@@ -203,11 +203,13 @@ describe("SCREEN-005 manual form lifecycle (P3-013 / TASK-025 / FR-026 / TC-017)
 
   it("clears the device draft on confirmed discard and refuses if the parent cancels the confirm", () => {
     handOff(handoff()); const h = mount();
-    vi.stubGlobal("window", { localStorage: storage, confirm: () => false });
+    // 1) Open the dialog and cancel — nothing mutates.
     click(button(h.tree, locales.bn.reviewDiscardDevice)); h.render();
+    click(button(h.tree, locales.bn.discardNo)); h.render();
     expect(loadDraft(storage)).not.toBeNull();
-    vi.stubGlobal("window", { localStorage: storage, confirm: () => true });
+    // 2) Open the dialog and confirm — draft clears and router pushes.
     click(button(h.tree, locales.bn.reviewDiscardDevice)); h.render();
+    click(button(h.tree, locales.bn.discardYes)); h.render();
     expect(loadDraft(storage)).toBeNull();
     expect(push).toHaveBeenCalledWith("/intake");
   });
@@ -220,6 +222,7 @@ describe("SCREEN-005 manual form lifecycle (P3-013 / TASK-025 / FR-026 / TC-017)
     expect(storage.getItem(DRAFT_KEY)).toBe(JSON.stringify(r));
     expect(elements(h.tree).some((element) => element.type === "form")).toBe(false);
     click(button(h.tree, locales.bn.reviewDiscardDevice)); h.render();
+    click(button(h.tree, locales.bn.discardYes)); h.render();
     expect(storage.getItem(DRAFT_KEY)).toBeNull();
   });
 
