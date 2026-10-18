@@ -29,11 +29,12 @@
 // Everything else is internal. `opts.embedder` is required; tests inject
 // `createFakeEmbedder` (no model download, no paid call).
 import type { PoolClient } from "pg";
+import { canonicalCaseText } from "@/server/embeddings/text";
 import { ApiError } from "@/app/api/_shared/envelope";
 import { LIMITS, isUuid, type MatchingState } from "@/contracts";
 import { SYSTEM_ACTOR } from "@/server/audit";
 import type { Embedder } from "@/server/embeddings/model";
-import { EmbeddingShapeError, EMBEDDING_DIM, loadLocalEmbedder } from "@/server/embeddings/model";
+import { EmbeddingShapeError, EMBEDDING_DIM, loadLocalEmbedder, normaliseVectors } from "@/server/embeddings/model";
 import {
   lockCases,
   lockCandidates,
@@ -51,6 +52,7 @@ import { reasonsFor, type MatchReason } from "./reasons";
 import { rankCandidates, scorePair, type RankedCandidate, type ScoredCandidate } from "./score";
 import { MissingNotEmbeddableError, embedMissingForRun } from "./embed";
 import { districtNeighbourFor, loadNeighbourSet } from "./neighbour";
+import { persistDuplicateFlags } from "@/server/duplicates/persist";
 
 /* ---------- public options and return shape ---------- */
 
@@ -224,6 +226,69 @@ async function readFoundEmbedding(client: PoolClient, foundId: string): Promise<
   const space = typeof r.embedding_space === "string" ? r.embedding_space : null;
   const arr = parseVectorText(String(emb));
   return { id: foundId, vector: new Float32Array(arr), space };
+}
+
+/* ---------- found-end embed guard for the duplicate hook ----------
+ *
+ * `runMatcherForFoundCase` must run the duplicate persister for the found
+ * case even when the missing-fanout loop has zero rows (the matcher can be
+ * a no-op for an empty queue and the duplicate review surface still needs
+ * to be populated for a freshly opened found report). Found reports are
+ * embedded synchronously by API-007 / `reembedAll`, so this helper only
+ * VALIDATES the row: it never calls the provider. Refusals are explicit
+ * (redacted / wrong kind / closed-or-referred / no embedding / wrong
+ * version) so the orchestrator can return a precise matcher state.
+ */
+
+export class FoundNotEmbeddableError extends Error {
+  constructor(readonly caseId: string, readonly reason: "redacted" | "terminal" | "wrong_kind" | "no_embedding" | "stale_version") {
+    super(`found case ${caseId} not embeddable (${reason})`);
+    this.name = "FoundNotEmbeddableError";
+  }
+}
+
+export type FoundEmbeddingState = {
+  vector: Float32Array;
+  model: string;
+  revision: string | null;
+  space: string;
+  version: number;
+};
+
+/**
+ * Validate the found case's current embedding in its own space. NO provider
+ * call. Throws `FoundNotEmbeddableError` for: wrong kind, anonymised,
+ * terminal status (closed / referred / confirmed), missing embedding, or
+ * a row whose model/revision/space tags are absent. The returned version
+ * is the row's current version; the duplicate persister re-checks it
+ * under the lock.
+ */
+export async function embedFoundForRun(client: PoolClient, foundCaseId: string, embedder?: Embedder): Promise<FoundEmbeddingState> {
+  const { rows } = await client.query(`SELECT id, kind, status, version, anonymised_at, embedding::text AS embedding,
+    embedding_model, embedding_revision, embedding_space, clothing, marks, circumstances, place_text
+    FROM cases WHERE id=$1`, [foundCaseId]);
+  const row = rows[0] as Record<string, unknown> | undefined;
+  if (!row || row.kind !== "found") throw new FoundNotEmbeddableError(foundCaseId, "wrong_kind");
+  if (row.anonymised_at !== null) throw new FoundNotEmbeddableError(foundCaseId, "redacted");
+  if (row.status !== "open" && row.status !== "matched_pending_review") throw new FoundNotEmbeddableError(foundCaseId, "terminal");
+  const version = Number(row.version);
+  if (row.embedding !== null && typeof row.embedding_model === "string" && typeof row.embedding_space === "string") {
+    return { vector: normaliseVectors([parseVectorText(String(row.embedding))], EMBEDDING_DIM)[0]!,
+      model: row.embedding_model, revision: typeof row.embedding_revision === "string" ? row.embedding_revision : null, space: row.embedding_space, version };
+  }
+  if (!embedder || embedder.dimension !== EMBEDDING_DIM) throw new FoundNotEmbeddableError(foundCaseId, "no_embedding");
+  const text = canonicalCaseText({ kind: "found", clothing: typeof row.clothing === "string" ? row.clothing : null,
+    marks: typeof row.marks === "string" ? row.marks : null, circumstances: typeof row.circumstances === "string" ? row.circumstances : null,
+    place_text: typeof row.place_text === "string" ? row.place_text : null });
+  if (text.trim() === "passage:") throw new FoundNotEmbeddableError(foundCaseId, "no_embedding");
+  const raw = await embedder.embed([text]);
+  if (raw.length !== 1) throw new EmbeddingShapeError("expected one found embedding");
+  const vector = normaliseVectors(raw, EMBEDDING_DIM)[0]!;
+  const updated = await client.query(`UPDATE cases SET embedding=$1::vector, embedding_model=$2,
+    embedding_revision=$3, embedding_space=$4 WHERE id=$5 AND version=$6 AND anonymised_at IS NULL
+    AND status IN ('open','matched_pending_review')`, [`[${Array.from(vector).join(",")}]`, embedder.model, embedder.revision, embedder.space, foundCaseId, version]);
+  if (updated.rowCount !== 1) throw new FoundNotEmbeddableError(foundCaseId, "stale_version");
+  return { vector, model: embedder.model, revision: embedder.revision, space: embedder.space, version };
 }
 
 /* ---------- run core ---------- */
@@ -508,6 +573,12 @@ async function readFoundRowsForScoring(
  * writes, then a separate bounded transaction persists `matching_state = failed`
  * with a safe error ID. The case creation/open transaction is already committed
  * before this entry point is called, so matcher failure never removes the report.
+ *
+ * Duplicate hook: after the matcher transaction commits successfully, the
+ * missing case is run through `persistDuplicateFlags` (same-kind = missing).
+ * The hook is awaited inline — never detached. A duplicate-step failure is
+ * mapped to a safe matcher failed state (`E-021`) and the previously
+ * submitted/open case row stays saved.
  */
 export async function runMatcherForCase(
   missingCaseId: string,
@@ -522,10 +593,25 @@ export async function runMatcherForCase(
     if (embedder.dimension !== EMBEDDING_DIM) {
       throw new EmbeddingShapeError(`embedder dimension ${embedder.dimension} != ${EMBEDDING_DIM}`);
     }
-    return await tx(
+    const result = await tx(
       async (client) => runInsideTransaction(client, missingCaseId, opts, embedder),
       { pool: opts.pool } satisfies TxOptions,
     );
+    // Post-commit duplicate hook. Runs only after the matcher transaction
+    // commits; a thrown error here MUST NOT roll back candidate writes.
+    if (result.state === "complete") {
+      try {
+        await persistDuplicateFlags(missingCaseId, {
+          pool: opts.pool,
+          requestId: opts.requestId ?? null,
+        });
+      } catch (hookErr) {
+        const errorId = safeFailureId(hookErr);
+        await persistFailure(missingCaseId, errorId, opts, "missing");
+        return { caseId: missingCaseId, state: "failed", candidates: [], considered: 0, abstained: false, errorId };
+      }
+    }
+    return result;
   } catch (err) {
     const errorId = safeFailureId(err);
     await persistFailure(missingCaseId, errorId, opts, "missing");
@@ -566,6 +652,14 @@ function safeFailureId(err: unknown): string {
  * Re-evaluate at most 100 live missing reports after a found report commits.
  * Any remaining live reports stay durably queued and can be retried one at a
  * time through API-014. The found row stores only the aggregate run state.
+ *
+ * Duplicate hook: the found case's own same-kind duplicate flags must be
+ * populated even when the missing-fanout is empty, so the matcher validates
+ * the found case's existing embedding with `embedFoundForRun` (no provider
+ * call) and then runs `persistDuplicateFlags(foundCaseId, …)` after the
+ * missing fanout + the matcher stamp complete. A duplicate-step failure
+ * is mapped to a safe matcher failed state (`E-021`); the found case row
+ * is left saved.
  */
 export async function runMatcherForFoundCase(
   foundCaseId: string,
@@ -576,6 +670,27 @@ export async function runMatcherForFoundCase(
   }
   const tx = opts.withTransaction ?? withTransaction;
   try {
+    // Step 1: validate the found case's existing embedding in a short
+    // post-commit transaction. Found reports are embedded by API-007 /
+    // `reembedAll`; this helper never calls the provider, it only
+    // asserts the row carries a current embedding in a known space and
+    // is open / non-redacted / not terminal. A refusal here is treated
+    // as a matcher failure (the case row is left saved by the create/
+    // open transaction, so the safe error code surfaces in
+    // `match_error_id` for an admin to inspect).
+    try {
+      await tx(async (client) => {
+        await embedFoundForRun(client, foundCaseId, opts.embedder ?? await loadLocalEmbedder());
+      }, { pool: opts.pool } satisfies TxOptions);
+    } catch (embedErr) {
+      const errorId = embedErr instanceof FoundNotEmbeddableError
+        ? (embedErr.reason === "redacted" ? "E-018" : "E-005")
+        : "E-021";
+      await persistFailure(foundCaseId, errorId, { ...opts, api: "API-007" }, "found");
+      return { caseId: foundCaseId, state: "failed", candidates: [], considered: 0, abstained: false, errorId };
+    }
+
+    // Step 2: re-queue live missing reports and fan out the bounded batch.
     const { rows } = await tx(async (client) => {
       // This is a separate postcommit transaction. It records outstanding work
       // before selecting the bounded batch; processed rows are stamped below.
@@ -608,6 +723,26 @@ export async function runMatcherForFoundCase(
         [foundCaseId, state, errorId ?? null],
       );
     }, { pool: opts.pool } satisfies TxOptions);
+
+    // Step 3: persist the found case's own same-kind duplicate flags. Run
+    // only when the aggregate matcher state is `complete` (an in-flight
+    // missing-fanout failure has already produced a safe `match_error_id`
+    // on the found case row and the case service should retry on the
+    // next trigger). The hook is awaited inline; a thrown error is
+    // mapped to a safe matcher failure but the found row stays saved.
+    if (state === "complete") {
+      try {
+        await persistDuplicateFlags(foundCaseId, {
+          pool: opts.pool,
+          requestId: opts.requestId ?? null,
+        });
+      } catch (hookErr) {
+        const hookErrorId = safeFailureId(hookErr);
+        await persistFailure(foundCaseId, hookErrorId, { ...opts, api: "API-007" }, "found");
+        return { caseId: foundCaseId, state: "failed", candidates: [], considered: 0, abstained: false, errorId: hookErrorId };
+      }
+    }
+
     return {
       caseId: foundCaseId,
       state,
