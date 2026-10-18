@@ -21,6 +21,7 @@
 // single failure to the route.
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
+import type { Pool, PoolClient } from "pg";
 import {
   createDbDraftRegistry,
   type DbRegistryOptions,
@@ -44,25 +45,33 @@ function fakePgError(code: string, message: string): Error & { code: string } {
   return err;
 }
 
-// Minimal PoolLike: only `connect` is exercised by `create()`. The fake
-// `client.query` is routed through a small dispatch so the test can
-// decide which step throws and with what code.
+// Minimal PoolLike: `connect` is exercised by `create()`, `query` is exercised
+// by `get()` / `reload()`. The fake `client.query` is routed through a small
+// dispatch so the test can decide which step throws and with what code. The
+// inner client is typed as the real `PoolClient` so the connect() return
+// satisfies the registry's seam without any escape hatches.
 type ClientDispatch = (sql: string) => Promise<unknown>;
 
 function makeFakePool(dispatch: ClientDispatch): {
-  pool: { connect: () => Promise<{ query: (sql: string, params?: unknown[]) => Promise<unknown>; release: () => void }>; releases: { count: number } };
+  pool: Pick<Pool, "query" | "connect">;
+  releases: { count: number };
 } {
   const releases = { count: 0 };
-  const pool = {
+  // pg's Pool.query is heavily overloaded (string, QueryConfig, Submittable);
+  // the registry only ever passes a string, so the fake exposes the
+  // string-only overload and is typed against pg's `Pool` to keep the seam
+  // honest. The dispatch result is what the test scripted for that step.
+  const query = async (sql: string): Promise<unknown> => dispatch(sql);
+  const pool: Pick<Pool, "query" | "connect"> = {
+    query: query as Pool["query"],
     async connect() {
-      return {
-        async query(sql: string) {
-          return dispatch(sql);
-        },
+      const client = {
+        query: query as PoolClient["query"],
         release() {
           releases.count += 1;
         },
       };
+      return client as PoolClient;
     },
   };
   return { pool, releases };
@@ -73,11 +82,20 @@ function makeRegistry(opts: {
   sink: (line: string) => void;
 }): { registry: DraftRegistry } {
   const logger = createLogger(opts.sink);
+  // The registry's logger seam takes a contravariant `object` entry. The
+  // runtime `createLogger` accepts the wider `LogEntry` shape, so the only
+  // honest port is to forward each method with an entry-typed parameter and
+  // rely on the registry's own call site to pass a `LogEntry`-shaped object.
+  const registryLogger: NonNullable<DbRegistryOptions["logger"]> = {
+    info: (entry) => logger.info(entry as Parameters<typeof logger.info>[0]),
+    warn: (entry) => logger.warn(entry as Parameters<typeof logger.warn>[0]),
+    error: (entry) => logger.error(entry as Parameters<typeof logger.error>[0]),
+  };
   const registry = createDbDraftRegistry({
     signer: createDraftSigner(SECRET),
     verify: (token, kind, principal) => verifyDraftToken(SECRET, token, kind, principal),
     pool: opts.pool,
-    logger,
+    logger: registryLogger,
   });
   return { registry };
 }
@@ -239,13 +257,23 @@ describe("createDbDraftRegistry — create() error observability (BLOCK B5')", (
     // outages into a "null → E-019" path.
     const outageChildPayload = "connection terminated for child 01111111111";
     const seen: string[] = [];
-    const fakePool = {
-      async query(sql: string) {
+    const fakePool: DbRegistryOptions["pool"] = {
+      // pg's Pool.query is heavily overloaded; only the string overload is
+      // exercised by get()/reload(). Typed against pg's `Pool` so the seam
+      // is honest.
+      query: (async (sql: string): Promise<never> => {
         seen.push(sql);
         const err = new Error(outageChildPayload) as Error & { code?: string };
         err.name = "PgError";
         err.code = "08006"; // connection_failure — a real SQLSTATE
         throw err;
+      }) as Pool["query"],
+      // The outage path here only exercises get()/reload() (which use
+      // pool.query), but the registry's PoolLike seam requires both methods.
+      // A minimal connect stub is the honest port — a throw here would
+      // accidentally flip the test onto a different code path.
+      async connect(): Promise<PoolClient> {
+        throw new Error("outage fake pool never connects");
       },
     };
     const { registry } = makeRegistry({ pool: fakePool, sink: () => undefined });
