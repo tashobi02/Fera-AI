@@ -414,6 +414,7 @@ async function checkSyntheticSubmit(origin, fetchImpl, options, healthResult) {
     headers: {
       "content-type": "application/json",
       accept: "application/json",
+      origin,
       ...(cookieHeader() ? { cookie: cookieHeader() } : {}),
     },
     body: JSON.stringify(body),
@@ -448,6 +449,7 @@ async function checkSyntheticSubmit(origin, fetchImpl, options, healthResult) {
     headers: {
       "content-type": "application/json",
       accept: "application/json",
+      origin,
       ...(cookieHeader() ? { cookie: cookieHeader() } : {}),
     },
     body: JSON.stringify(body),
