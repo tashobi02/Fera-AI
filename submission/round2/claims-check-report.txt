@@ -1,5 +1,5 @@
 claims-check-report -- Round 2 submission pack
-root: /home/user/Fera-AI/submission/round2
+root: /home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main-artifact-integrity/submission/round2
 
 OK    asset present  -- fera-round2-deck.pptx
 OK    asset present  -- fera-round2-deck.pdf
@@ -24,6 +24,7 @@ OK    slide image  -- slide-4.png
 OK    slide image  -- slide-5.png
 OK    slide image  -- slide-6.png
 OK    slide image  -- slide-7.png
+OK    slide image  -- slide-8.png
 OK    contact sheet  -- storyboard-contact-sheet.png
 OK    mp4 resolution  -- 1280x720
 OK    mp4 framerate  -- 30/1
@@ -66,5 +67,5 @@ OK    text present (no-live-url disclaimer)
 OK    text present (draft label)
 OK    text present (draft preparation banner)
 
-summary: 0 FAIL(s), 64 OK(s)
+summary: 0 FAIL(s), 65 OK(s)
 verdict: PASS
