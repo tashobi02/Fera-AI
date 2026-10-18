@@ -1,7 +1,7 @@
 {
   "base": "8499bce9326e1fcad0431ca9748ea1d3b616f5ae",
   "staging_branch": "pre-main",
-  "merge_condition": "All applicable staging checks PASS; formal external/human requirements never fabricated. No merge to main if unresolved required software failures.",
+  "merge_condition": "LATEST USER STEERING: build and thoroughly test submission-ready pre-main; user will verify and approve before any merge to main. Do not merge main automatically.",
   "lanes": [
     {
       "id": "branch-audit",
@@ -47,5 +47,6 @@
     }
   ],
   "started_at": "2026-10-18T16:50:09.057748+06:00",
-  "merge_gate_clarification": "User asked whether to require software/offline checks alone or also external/human release evidence; response pending. Main stays unchanged during work."
+  "merge_gate_clarification": "Answered by user: software/offline pass is sufficient for main integration. External/human/organiser/Drive requirements stay pending; no false release acceptance.",
+  "branch_refresh_policy": "Fetch and compare local/remote refs at every integration checkpoint and before final handoff; recover necessary new work, preserve superseded history without restoring obsolete implementations."
 }

@@ -1,0 +1,10 @@
+npm notice run fera-ai@0.1.0 test
+npm notice run vitest run
+
+ RUN  v5.0.4 /home/obidit/Coding/fera-lanes/lane-a
+
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  01:14:18
+   Duration  124ms (transform 58%, import 21%, tests 13%, worker 8%)

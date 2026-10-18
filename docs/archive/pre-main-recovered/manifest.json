@@ -1,0 +1,218 @@
+[
+  {
+    "source_ref": "refs/remotes/origin/phase2--masnun-duplicates",
+    "source_commit": "7ade150f0b4bd11aa38963cfd6491e5190323e76",
+    "original_path": "docs/execution/evidence/duplicates.md",
+    "archive_path": "docs/archive/pre-main-recovered/phase2--masnun-duplicates/docs/execution/evidence/duplicates.md",
+    "sha256": "3611c8b9ded45b9fdcd043c647e5a2d974273bd0519f6a52b22ae3d2dfd8c323",
+    "bytes": 14039,
+    "status": "HISTORICAL; not current acceptance evidence"
+  },
+  {
+    "source_ref": "refs/remotes/origin/phase2--masnun-embeddings",
+    "source_commit": "51db365063cf025bc1f6e8c571562fb2646e56c6",
+    "original_path": "docs/execution/evidence/embeddings.md",
+    "archive_path": "docs/archive/pre-main-recovered/phase2--masnun-embeddings/docs/execution/evidence/embeddings.md",
+    "sha256": "e980cfa8f1dff0a32df60f85a1a92696fd3dd43333d74a26102bb7ab61b1b821",
+    "bytes": 15483,
+    "status": "HISTORICAL; not current acceptance evidence"
+  },
+  {
+    "source_ref": "refs/remotes/origin/phase2--masnun-manifest",
+    "source_commit": "b72aac9ade7dce27a7da17be86c12d5c2425da0d",
+    "original_path": "docs/execution/evidence/manifest.md",
+    "archive_path": "docs/archive/pre-main-recovered/phase2--masnun-manifest/docs/execution/evidence/manifest.md",
+    "sha256": "2ffb0e9fbcc0e3951c693c1f494dd31c297331f149ca7651debabea2092e50a5",
+    "bytes": 3814,
+    "status": "HISTORICAL; not current acceptance evidence"
+  },
+  {
+    "source_ref": "refs/remotes/origin/phase2--mahim-manual-form",
+    "source_commit": "2fbb8d00aaec2e3372173c7e9a32fef2f25ce462",
+    "original_path": "docs/execution/evidence/s005-manual-form.md",
+    "archive_path": "docs/archive/pre-main-recovered/phase2--mahim-manual-form/docs/execution/evidence/s005-manual-form.md",
+    "sha256": "576bd2196c28c13ebfb36340fe14f8a2fe7fbb4ed8d86cb34dad970db5ad12b5",
+    "bytes": 6844,
+    "status": "HISTORICAL; not current acceptance evidence"
+  },
+  {
+    "source_ref": "refs/heads/phase0--lane-a",
+    "source_commit": "074b5429a68b923bc0754862cf4620337b6f3bbb",
+    "original_path": "docs/execution/evidence/phase0/README.md",
+    "archive_path": "docs/archive/pre-main-recovered/phase0--lane-a/docs/execution/evidence/phase0/README.md",
+    "sha256": "40e46e91dcbe0bb425c8783d2df858060fe38b6bd444f1fa756a21c6752d9a50",
+    "bytes": 4124,
+    "status": "HISTORICAL; not current acceptance evidence"
+  },
+  {
+    "source_ref": "refs/heads/phase0--lane-a",
+    "source_commit": "074b5429a68b923bc0754862cf4620337b6f3bbb",
+    "original_path": "docs/execution/evidence/phase0/build.txt",
+    "archive_path": "docs/archive/pre-main-recovered/phase0--lane-a/docs/execution/evidence/phase0/build.txt",
+    "sha256": "68ab42003fe1b9e533da52a08932d927e55763bd3d1a58bd07da5b54dd0e5b82",
+    "bytes": 549,
+    "status": "HISTORICAL; not current acceptance evidence"
+  },
+  {
+    "source_ref": "refs/heads/phase0--lane-a",
+    "source_commit": "074b5429a68b923bc0754862cf4620337b6f3bbb",
+    "original_path": "docs/execution/evidence/phase0/companion-typecheck-coverage.txt",
+    "archive_path": "docs/archive/pre-main-recovered/phase0--lane-a/docs/execution/evidence/phase0/companion-typecheck-coverage.txt",
+    "sha256": "bc4a1251ffae8e329327063d2cf76ffadf67af9d2b895c1da2b62f2553aba053",
+    "bytes": 65,
+    "status": "HISTORICAL; not current acceptance evidence"
+  },
+  {
+    "source_ref": "refs/heads/phase0--lane-a",
+    "source_commit": "074b5429a68b923bc0754862cf4620337b6f3bbb",
+    "original_path": "docs/execution/evidence/phase0/dependency-audit.json",
+    "archive_path": "docs/archive/pre-main-recovered/phase0--lane-a/docs/execution/evidence/phase0/dependency-audit.json",
+    "sha256": "f0e54297216fb73c40370aa49411245a0ed7d99cd01379f7af98d533066632f0",
+    "bytes": 3024,
+    "status": "HISTORICAL; not current acceptance evidence"
+  },
+  {
+    "source_ref": "refs/heads/phase0--lane-a",
+    "source_commit": "074b5429a68b923bc0754862cf4620337b6f3bbb",
+    "original_path": "docs/execution/evidence/phase0/embedding-blocker.md",
+    "archive_path": "docs/archive/pre-main-recovered/phase0--lane-a/docs/execution/evidence/phase0/embedding-blocker.md",
+    "sha256": "c184edd4d3e7cee0b46e7d5d2019dd0dde2f7cb69ab273a586cbf3acae3bcaa4",
+    "bytes": 899,
+    "status": "HISTORICAL; not current acceptance evidence"
+  },
+  {
+    "source_ref": "refs/heads/phase0--lane-a",
+    "source_commit": "074b5429a68b923bc0754862cf4620337b6f3bbb",
+    "original_path": "docs/execution/evidence/phase0/github-auth-2026-10-13-1132.md",
+    "archive_path": "docs/archive/pre-main-recovered/phase0--lane-a/docs/execution/evidence/phase0/github-auth-2026-10-13-1132.md",
+    "sha256": "a2fb37e025a0d3f4833ebbdc412322f4339b482e16321920626a0a93238d61c2",
+    "bytes": 749,
+    "status": "HISTORICAL; not current acceptance evidence"
+  },
+  {
+    "source_ref": "refs/heads/phase0--lane-a",
+    "source_commit": "074b5429a68b923bc0754862cf4620337b6f3bbb",
+    "original_path": "docs/execution/evidence/phase0/human-blockers.md",
+    "archive_path": "docs/archive/pre-main-recovered/phase0--lane-a/docs/execution/evidence/phase0/human-blockers.md",
+    "sha256": "346d84d5faf0a317b8cf808ce677f4c4dae8ac5fa49a62e784daa11c409bfdd6",
+    "bytes": 1743,
+    "status": "HISTORICAL; not current acceptance evidence"
+  },
+  {
+    "source_ref": "refs/heads/phase0--lane-a",
+    "source_commit": "074b5429a68b923bc0754862cf4620337b6f3bbb",
+    "original_path": "docs/execution/evidence/phase0/lint.txt",
+    "archive_path": "docs/archive/pre-main-recovered/phase0--lane-a/docs/execution/evidence/phase0/lint.txt",
+    "sha256": "db6416b640701feaeea01e1b6511ae86286579f686f7daaffba2a5843770f642",
+    "bytes": 134,
+    "status": "HISTORICAL; not current acceptance evidence"
+  },
+  {
+    "source_ref": "refs/heads/phase0--lane-a",
+    "source_commit": "074b5429a68b923bc0754862cf4620337b6f3bbb",
+    "original_path": "docs/execution/evidence/phase0/local-schema-apply.txt",
+    "archive_path": "docs/archive/pre-main-recovered/phase0--lane-a/docs/execution/evidence/phase0/local-schema-apply.txt",
+    "sha256": "1cc9df2c03b682d7afdbb1c278d8b65681d91cd193d0680f22872988a55824da",
+    "bytes": 985,
+    "status": "HISTORICAL; not current acceptance evidence"
+  },
+  {
+    "source_ref": "refs/heads/phase0--lane-a",
+    "source_commit": "074b5429a68b923bc0754862cf4620337b6f3bbb",
+    "original_path": "docs/execution/evidence/phase0/local-schema-check.txt",
+    "archive_path": "docs/archive/pre-main-recovered/phase0--lane-a/docs/execution/evidence/phase0/local-schema-check.txt",
+    "sha256": "c2d4b650bf71056135dec97065578f083fea3ff736479a30764e25a9d2046f82",
+    "bytes": 535,
+    "status": "HISTORICAL; not current acceptance evidence"
+  },
+  {
+    "source_ref": "refs/heads/phase0--lane-a",
+    "source_commit": "074b5429a68b923bc0754862cf4620337b6f3bbb",
+    "original_path": "docs/execution/evidence/phase0/production-audit.txt",
+    "archive_path": "docs/archive/pre-main-recovered/phase0--lane-a/docs/execution/evidence/phase0/production-audit.txt",
+    "sha256": "6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3",
+    "bytes": 24,
+    "status": "HISTORICAL; not current acceptance evidence"
+  },
+  {
+    "source_ref": "refs/heads/phase0--lane-a",
+    "source_commit": "074b5429a68b923bc0754862cf4620337b6f3bbb",
+    "original_path": "docs/execution/evidence/phase0/protected-after.json",
+    "archive_path": "docs/archive/pre-main-recovered/phase0--lane-a/docs/execution/evidence/phase0/protected-after.json",
+    "sha256": "a688cb85c8fa34823375259b7ceb8cf4d7f7db06da944b4c0b890f05d9a99495",
+    "bytes": 4353,
+    "status": "HISTORICAL; not current acceptance evidence"
+  },
+  {
+    "source_ref": "refs/heads/phase0--lane-a",
+    "source_commit": "074b5429a68b923bc0754862cf4620337b6f3bbb",
+    "original_path": "docs/execution/evidence/phase0/protected-before.json",
+    "archive_path": "docs/archive/pre-main-recovered/phase0--lane-a/docs/execution/evidence/phase0/protected-before.json",
+    "sha256": "83e5853e4665e246c088a199445c7f9c5127075e39ca018b5355f189a5eb58c3",
+    "bytes": 4352,
+    "status": "HISTORICAL; not current acceptance evidence"
+  },
+  {
+    "source_ref": "refs/heads/phase0--lane-a",
+    "source_commit": "074b5429a68b923bc0754862cf4620337b6f3bbb",
+    "original_path": "docs/execution/evidence/phase0/review.md",
+    "archive_path": "docs/archive/pre-main-recovered/phase0--lane-a/docs/execution/evidence/phase0/review.md",
+    "sha256": "f00d9dea11e7c36c86700007d623a2991924b92eb5a75eb5aedb28d1e0c41ab4",
+    "bytes": 2521,
+    "status": "HISTORICAL; not current acceptance evidence"
+  },
+  {
+    "source_ref": "refs/heads/phase0--lane-a",
+    "source_commit": "074b5429a68b923bc0754862cf4620337b6f3bbb",
+    "original_path": "docs/execution/evidence/phase0/test.txt",
+    "archive_path": "docs/archive/pre-main-recovered/phase0--lane-a/docs/execution/evidence/phase0/test.txt",
+    "sha256": "305157ad34ef91b9efc510e9bd2e47ae75767cd01cbcd6c83195c84be4de1c0c",
+    "bytes": 257,
+    "status": "HISTORICAL; not current acceptance evidence"
+  },
+  {
+    "source_ref": "refs/heads/phase0--lane-a",
+    "source_commit": "074b5429a68b923bc0754862cf4620337b6f3bbb",
+    "original_path": "docs/execution/evidence/phase0/typecheck.txt",
+    "archive_path": "docs/archive/pre-main-recovered/phase0--lane-a/docs/execution/evidence/phase0/typecheck.txt",
+    "sha256": "152f3bceaf6bd018a55d061fd90c3989c60e6cb73369b6f27846556c1ceb6cc4",
+    "bytes": 142,
+    "status": "HISTORICAL; not current acceptance evidence"
+  },
+  {
+    "source_ref": "refs/heads/phase0--lane-a",
+    "source_commit": "074b5429a68b923bc0754862cf4620337b6f3bbb",
+    "original_path": "docs/execution/evidence/phase0/verification.md",
+    "archive_path": "docs/archive/pre-main-recovered/phase0--lane-a/docs/execution/evidence/phase0/verification.md",
+    "sha256": "964f0cf3fedcc3c17de0628a3437ecde8b6b00898973f03ec99285b9c03edf0f",
+    "bytes": 1946,
+    "status": "HISTORICAL; not current acceptance evidence"
+  },
+  {
+    "source_ref": "refs/heads/phase0--lane-a",
+    "source_commit": "074b5429a68b923bc0754862cf4620337b6f3bbb",
+    "original_path": "docs/gates/G0-2026-10-13-1125.md",
+    "archive_path": "docs/archive/pre-main-recovered/phase0--lane-a/docs/gates/G0-2026-10-13-1125.md",
+    "sha256": "5add5d83bb59fde275ced32b1d5f54c085ab830053861053e4e12b5c3f71bed9",
+    "bytes": 5594,
+    "status": "HISTORICAL; not current acceptance evidence"
+  },
+  {
+    "source_ref": "refs/heads/phase0--lane-a",
+    "source_commit": "074b5429a68b923bc0754862cf4620337b6f3bbb",
+    "original_path": "docs/costs.md",
+    "archive_path": "docs/archive/pre-main-recovered/phase0--lane-a/docs/costs.md",
+    "sha256": "50e2b9eb71d80c8ef2a6507fac00bd07ff606c44986c337f85e34949f51f5522",
+    "bytes": 1922,
+    "status": "HISTORICAL; not current acceptance evidence"
+  },
+  {
+    "source_ref": "refs/heads/phase0--lane-a",
+    "source_commit": "074b5429a68b923bc0754862cf4620337b6f3bbb",
+    "original_path": "scripts/db/check-local.sql",
+    "archive_path": "docs/archive/pre-main-recovered/phase0--lane-a/scripts/db/check-local.sql",
+    "sha256": "80c7af6a29e0e64c6a4085309ad6a4f1916dfd604b00ea639548d5e29e433243",
+    "bytes": 1060,
+    "status": "HISTORICAL; not current acceptance evidence"
+  }
+]
