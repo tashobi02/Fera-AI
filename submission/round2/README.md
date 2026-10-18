@@ -35,12 +35,12 @@ Synthetic, `[MOCK]`, cached and simulation labels are never hidden.
 
 | File | Purpose | Status |
 |---|---|---|
-| `fera-round2-deck.pptx` | 7-slide editable deck (Cockpit & Paper) | draft |
+| `fera-round2-deck.pptx` | 8-slide editable deck (Cockpit & Paper) | draft |
 | `fera-round2-deck.pdf`  | LibreOffice render of the deck | draft |
 | `fera-round2-storyboard-preview.mp4` | 1280x720, 30 fps, 105 s synthetic storyboard; **not** a recording of the running app | draft |
 | `frames/shot-01.png` ... `shot-09.png` | one sample frame per storyboard shot | QA |
 | `build/storyboard-contact-sheet.png` | 3x3 visual QA contact sheet | QA |
-| `build/slide-imgs/slide-1.png` ... `slide-7.png` | PDF-rendered slide images | QA |
+| `build/slide-imgs/slide-1.png` ... `slide-8.png` | PDF-rendered slide images | QA |
 | `video-script.md` | shot list, source citations, capture plan for the real TASK-045 build | source |
 | `metrics.md` | frozen-release metric table; every metric says "not measured" with reason | source |
 | `links.txt` | UNKNOWN placeholders for org/email/drive, plus this pack's manifest | source |
@@ -67,10 +67,12 @@ The demo is the real local-app capture; the storyboard MP4 in this
 folder is a synthetic on-screen-caption storyboard. The two are kept
 separate so reviewers can tell which is which.
 
+The reviewed slide PNGs and storyboard contact sheet are retained in Git under `build/` so the local claims and release checks also work in a fresh checkout. Regenerate them after changing the deck PDF.
+
 ## Reproducible build
 
 The pack builds with `python-pptx`, `Pillow`, `ffmpeg`, `ffprobe` and
-LibreOffice. No new package dependencies are added to the repo.
+LibreOffice and Poppler (`pdftoppm`). No new package dependencies are added to the repo.
 
 ```bash
 # from this directory (submission/round2/)
@@ -79,6 +81,8 @@ libreoffice --headless --convert-to pdf fera-round2-deck.pptx --outdir .
 python3 scripts/build_video.py
 python3 scripts/cleanup_frames.py
 python3 scripts/build_contact_sheet.py
+mkdir -p build/slide-imgs
+pdftoppm -png -r 90 fera-round2-deck.pdf build/slide-imgs/slide
 
 # verify honest copy before any human review
 python3 scripts/claims_check.py
@@ -150,7 +154,7 @@ Every frame carries the banner
 - Synthetic, `[MOCK]`, cached, planned and simulation labels are
   present in the deck, the storyboard and the script.
 - The storyboard MP4 file is present, 1280x720, 30 fps, 105 s.
-- The deck has 7 slides.
+- The deck has 8 slides (organiser rule: at most 8).
 - The storyboard has 9 sampled frames.
 
 The claims check verifies presence/absence of the patterns above and
@@ -188,4 +192,18 @@ Repository visibility is PRIVATE; organiser access and logged-out link verificat
 
 ## Local draft archive
 
-Run `python3 build-submission-zip.py` from this folder to create `fera-round2-draft.zip`. It contains nine allowlisted entries: the deck/PDF, actual local video, captions, links, email draft, README, metrics and archive note. Sources, storyboard, proof images, raw recordings, credentials and caches are excluded. The archive note explains source-checkout paths. No upload or email is performed.
+Run `python3 build-submission-zip.py` from this folder to create `fera-round2-draft.zip`. It contains nine allowlisted entries (an archive note plus eight files: the 8-slide deck, the deck PDF, the actual local video, captions, links, email draft, README and metrics). Sources, storyboard MP4, proof images, raw recordings, credentials and caches are excluded. The archive note explains source-checkout paths. No upload or email is performed.
+
+## Current artifact hashes (sha256, 2026-10-18)
+
+- `fera-round2-deck.pptx` — `d63482e60ead16dfc7a00551c615a65860100aae61777029ecb74d9d486a98b9`
+- `fera-round2-deck.pdf` — `5af0e993e530f35169a2bba31962828bb6eb35800e78c0280bc67a6493057428`
+- `fera-round2-storyboard-preview.mp4` — `c3cdb36557d42e85f55ffedcd4a2f4946584f7bd1ca136204bc39128670f8ffe`
+- `../demo/final.mp4` — `1403d679c454712016cec949047c22a0e3bc118752e0f64bc0fa190faf4aaae6` (matches the hash recorded in `submission/demo/provenance.json`)
+
+The pptx is the 8-slide deck; the PDF has 8 pages at 1280x720 logical size and was rendered from the same pptx. The storyboard MP4 is the synthetic on-screen-caption storyboard, **not** an app recording. The actual TASK-045 capture lives at `../demo/final.mp4`.
+
+
+## Current organiser record (PR50)
+
+The repository entry at commit `9690361` (`submission/round2/platform-submission.md` and the Phase4 log, merged through PR50) attributes instructions to Mahim on 18 Oct at 18:45: submission through `https://h4hbd.ezassist.me/`, a platform cutoff of 18 Oct 22:00 Asia/Dhaka, and at most eight slides. This is an attributed repository record; the platform page, current cutoff and public access have not been independently verified in this audit. Drive/recipient/account details remain unresolved. Round 2 was reported submitted on the organiser platform by a team member (per Mahim, 18 Oct 2026); time, submitter and platform status are UNKNOWN to the repository. Historical UNKNOWN entries above describe the earlier planning snapshot and are superseded by this attributed record where applicable. No media upload, email, visibility change or platform submission is performed by these scripts.

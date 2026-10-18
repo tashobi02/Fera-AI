@@ -138,3 +138,71 @@ Story 1 can validate role access after TASK-006/015; Story 2 can validate review
 Complete TASK-001, then TASK-002/007/008/061 in their permitted order; TASK-006/062 follow their D6 predecessors, and TASK-015/031 follow theirs. Independently validate US1 role boundaries first, US2 reviewed persistence second, US3 state/decision integrity third and US4 bilingual navigation when shell and screens exist. This is a work plan, not evidence of an implemented MVP. (D6 §5; BR-001/004/007/010/020/024)
 
 Obidit's parent and Masnun's staff/officer lanes consume the reviewed `src/contracts/` examples and typed case service. Matching implementation belongs to feature 004 and waits for TASK-064's frozen manifest; no matcher, embedding, scoring or threshold work is part of this board. Screens and APIs owned by other features keep their D6 owners. (TASK-017/022/026/028/061/064; AGENTS.md)
+
+## Phase 8: Convergence (append-only, 2026-10-18)
+
+**Purpose**: Record the cross-feature artefacts 002 and 003 still need from 001, plus the open decision that 002 and 003 both wait on. Lane-a spec-only; no code change in this append. The original T001–T023 wording is unchanged. The convergence evidence is in `docs/execution/evidence/pre-main-convergence-intake.md` and uses the severity model in `.agents/skills/speckit-converge/SKILL.md`.
+
+- [ ] T024 [HIGH, missing] (owner: Mahim) `src/contracts/` freeze and the `contracts-v1` tag merge. `001/tasks.md` T003 records the human merge before the tag; `docs/agents/handoff/OBIDIT.md` and `001/tasks.md:24` both show the review pending. 002 and 003 are blocked on the frozen contract for any further API/role changes. Acceptance: reviewed merge of `src/contracts/` examples + projections to `phase2`, the `contracts-v1` tag points at the reviewed merge, and `tests/contracts/platform.test.ts` plus `tests/case/*` are green against that tag. (TASK-061; `docs/execution/evidence/platform-schema.md`; OQ-021 host UNKNOWN; recorded not Obidit-owned)
+- [ ] T025 [MEDIUM, partial] (owner: Mahim) D6 §5 TASK-031, SCREEN-008/016 (`001/tasks.md` T012, T013). Both screens live at `src/app/(auth)/sign-in/page.tsx` and `src/app/not-found.tsx`; Bangla/English + recovery copy per `docs/execution/evidence/platform-signin.md`. Acceptance: bilingual copy covers all sign-in states and the not-found page returns 200 with a Bangla `এই পেজ পাওয়া যায়নি` empty state plus an accessible `হোম` link. No Obidit code change. (TASK-031; AGENTS.md; recorded not owned)
+- [ ] T026 [LOW, unrequested] D6 §5 TASK-006, Auth.js vs. custom session divergence (OD-006-1). The 001 plan and 001 `tasks.md` T009/T010 keep Auth.js as the D6 baseline; the runtime ships the custom session in `src/server/auth/session.ts` per `docs/execution/evidence/platform-auth.md`. Acceptance: all-owner sign-off to either (a) move the spec pack to the custom session as the new baseline, or (b) replace the runtime session with Auth.js. No Obidit code change; recorded as OPEN. (OD-006-1; `001/tasks.md` Conflicts; AGENTS.md)
+- [ ] T027 [MEDIUM, partial] (owner: Mahim) TASK-008, Android phone Bangla glyph + 200% zoom + 320 CSS-px reflow check. Headless screenshots live on a session-local `/tmp` scratchpad (`docs/execution/evidence/intake-ui.md` round 1/2 capture sets); a human phone result is not recorded. Acceptance: Bangla reviewer or coordinator attaches a human phone result for SCREEN-001 / SCREEN-002 / SCREEN-003 covering glyphs, 200% zoom and 320 CSS-px reflow. No Obidit code change; recorded not owned. (TASK-008/031; `docs/execution/evidence/intake-ui.md`; recorded UNVERIFIED)
+
+### Phase 8 references
+
+- `docs/execution/evidence/pre-main-convergence-intake.md` §2.1 and §3 (this convergence pass, owned).
+
+---
+
+## Phase 9: Corrective disposition (2026-10-18, supersedes the §0 first-pass)
+
+**Purpose**: Append-only corrective disposition that supersedes false findings in the §0 first-pass of `pre-main-convergence-intake.md`. The original T001–T023 wording and the Phase 8 T024–T027 lines are preserved as historical record. The disposition below records the authoritative read against the current code/evidence. No checkbox is set to done; no item is silently dropped.
+
+- **T024 — `contracts-v1` tag exists, not missing.** Coordinator-verified: `git show-ref --tags contracts-v1` → `cf4ec2d85206c9d6b31edab7f7690e862af155fe refs/tags/contracts-v1`. The tag is present at the reviewed merge commit of `src/contracts/`. The first-pass "tag missing" framing was wrong. The all-owner sign-off is a separate, recorded UNVERIFIED item (OD-061-1; `docs/execution/evidence/pre-main-convergence-intake.md` §4); the tag itself is not the gap. No Obidit code change.
+- **T025 — recorded not owned.** SCREEN-008/016 live in `src/app/(auth)/sign-in/page.tsx` and `src/app/not-found.tsx`; bilingual copy and recovery text per `docs/execution/evidence/platform-signin.md`. Mahim lane; no Obidit code change.
+- **T026 — technical-decision WARN.** Auth.js vs. custom session divergence is OD-006-1; D6 baseline Auth.js; runtime ships the custom session in `src/server/auth/session.ts`. No invented all-owner approval. No business-contract or package rewrite. Recorded as OPEN.
+- **T027 — recorded not owned.** TASK-008 Android phone Bangla glyph + 200% zoom + 320 CSS-px reflow check remains UNVERIFIED on the human phone side; headless screenshots live on a session-local `/tmp` scratchpad. No Obidit code change.
+
+### Phase 9 references
+
+- `docs/execution/evidence/pre-main-convergence-intake.md` §0 (corrective disposition), §2.1, §3, §4.
+
+---
+
+## Phase 10: Status closure (2026-10-18, final)
+
+**Purpose**: Row-by-row software status for T001–T023 (and Phase 8/9 T024–T027) against the current source/tests/evidence in this worktree. The original T001–T023 / T024–T027 wording is unchanged. No checkbox on the original lines is mutated. The closure matrix in `docs/execution/evidence/pre-main-convergence-intake.md` §7.1 is the canonical version; this section is the spec-board disposition summary.
+
+**Legend** (matches the evidence file): `S` = software implemented on the current source tree, `H` = human-acceptance evidence still pending, `O` = open decision (OD-###), `E` = external (provider, host, phone, organiser), `—` = not applicable (cross-owner / Phase 0 not started in this lane).
+
+| ID | Status | One-line evidence |
+|---|---|---|
+| T001 | — | Phase 0 / Mahim-owned; not Obidit-owned |
+| T002 | S | `src/contracts/*` present; `tests/contracts/*` green; `contracts-v1` tag at `cf4ec2d8` |
+| T003 | S | `src/contracts/{examples,client-examples}.ts`; `tests/contracts/*` green; tag at reviewed merge |
+| T004 | S / E | `db/schema_v2.sql` byte-for-byte copy; `tests/db/platform.test.ts` green; OQ-021 host = `E` |
+| T005 | S | `src/app/api/_shared/*`; `tests/api/platform.test.ts` green |
+| T006 | S / O | `tests/db/platform.test.ts` green; `src/server/auth/*` exists; OD-006-1 = `O` |
+| T007 | S | `tests/db/redaction.test.ts` green; `src/server/audit/write.ts` exists |
+| T008 | S / H | shell + language toggle exist; `tests/locales*` green; round-3 strings `H` |
+| T009 | S | `tests/auth/roles.test.ts` green |
+| T010 | S / O | custom session in `src/server/auth/session.ts`; OD-006-1 = `O` |
+| T011 | S | `src/server/case/read.ts`; `src/app/api/cases/[id]/route.ts`; `tests/api/case-read.test.ts` green |
+| T012 | S / H | `src/app/(auth)/sign-in/page.tsx`; `platform-signin.md` |
+| T013 | S / H | `src/app/not-found.tsx`; `platform-signin.md` |
+| T014 | S | `tests/case/create.test.ts` green |
+| T015 | S | `src/server/case/commands.ts`; `tests/db/submit.test.ts` green |
+| T016 | S | `src/server/case/commands.ts` + `src/server/audit/write.ts` |
+| T017 | S | `tests/case/decision.test.ts` green |
+| T018 | S | `tests/audit/platform.test.ts` green |
+| T019 | S | `src/server/case/state.ts`; covered by `tests/case/decision.test.ts` |
+| T020 | S | `src/server/case/decision.ts`; covered by `tests/case/decision.test.ts` |
+| T021 | S | `src/server/case/close.ts`; covered by `tests/case/close.test.ts` |
+| T022 | S / H | `intake-ui.md` round 1/2 capture sets; Android phone result `H` |
+| T023 | S / E | `docs/execution/PHASE_2_MUST_CORE.md` records the merge; AMD-AGENTS-1 keeps cutoff `E` |
+| T024 | S / H | tag exists at `cf4ec2d8`; all-owner sign-off = `H` (OD-061-1) |
+| T025 | S / H | `src/app/(auth)/sign-in/page.tsx` + `src/app/not-found.tsx`; Mahim surface `H` |
+| T026 | O | OD-006-1 OPEN; no all-owner approval invented; no spec-pack rewrite |
+| T027 | H | Android phone result UNVERIFIED; headless captures exist |
+
+**001 closure**: 23/23 have software evidence on this worktree. The `O` is OD-006-1 only. The `E` is OQ-021 host + organiser cutoff. The `H` is the contracts-v1 all-owner sign-off + the human phone result. No `NotOwned` is asserted as a software gap.

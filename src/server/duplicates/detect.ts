@@ -9,8 +9,8 @@
 // BR-021: a shared phone number ALONE never links two reports and can never
 // support a "same child" confirmation. Phone is therefore not a profile field
 // here; the detector returns `profile` only when the embedding is close AND at
-// least TWO of {name, age, sex, district, time} agree AND no contradicting
-// profile field is known. Two siblings sharing a phone (TC-038) stay
+// least MIN_AGREEING_PROFILE_FIELDS (currently THREE) of {name, age, sex,
+// district, time} agree AND no contradicting profile field is known. Two siblings sharing a phone (TC-038) stay
 // independently visible.
 //
 // Safeguarding (round 2): the rule for `profile` is intentionally stricter than
@@ -26,8 +26,9 @@
 //   - both sexes are known and differ, OR
 //   - both age ranges are known and disjoint
 // and any of those returns null. A pair that disagrees on a single profile
-// field but agrees on at least one other is still flagged (BR-021 allows the
-// cue on compatible profiles).
+// field (other than a contradiction) but agrees on at least
+// MIN_AGREEING_PROFILE_FIELDS others is still flagged (BR-021 allows the cue
+// on compatible profiles).
 //
 // Flagging never hides a report. The detector only RETURNS flags; it does not
 // alter case status and does not write duplicate_links itself. Both reports
@@ -46,16 +47,28 @@ import type { Queryable } from "@/server/db/queryable";
 /** Documented defaults for the duplicate detector. */
 export const DUPLICATE_CONFIG = {
   // Cosine similarity threshold: pairs with similarity below this are never
-  // flagged regardless of field agreement. Documented default, calibrate on the
-  // dev split only (BR-021, AMD-3-3); not spec-derived.
-  SIMILARITY_THRESHOLD: 0.5,
+  // flagged regardless of field agreement. Documented default, calibrated on
+  // the dev split only (BR-018, BR-021, AMD-3-3); not spec-derived.
+  // 0.95 is the TOP EDGE of the swept grid (0.50..0.95); nothing above it
+  // was searched. Dev grid result with min_agree=3: TP=10/FP=1/FN=2 on 86
+  // dev records / 12 true pairs (vs the previous dev default 0.5/2 with
+  // TP=12/FP=290/FN=0). In-sample (the same 12 positives chose and scored
+  // it), on rounded baseline scores (the 0.95 cell admits raw >= 0.945;
+  // this constant is compared to raw similarity). See
+  // docs/execution/evidence/pre-main-dev-calibration.md and the
+  // scripts/eval/duplicate-calibration.ts grid.
+  SIMILARITY_THRESHOLD: 0.95,
   // Minimum number of agreeing profile fields required for a `profile` flag.
   // A single profile field is not enough: a shared district alone or a shared
   // time alone can describe an entire neighbourhood and a single day. Two
-  // agreeing fields (e.g. name + sex, age + district) are a much stronger cue
-  // and still consistent with BR-021's "possible-duplicate cue on compatible
-  // profiles" wording.
-  MIN_AGREEING_PROFILE_FIELDS: 2,
+  // agreeing fields (e.g. name + sex, age + district) used to be the
+  // documented floor. Dev grid cells (86 dev records, 12 true pairs,
+  // rounded scores, in-sample): 0.5/2 FP=290, 0.92/2 FP=42, 0.95/2 FP=4,
+  // 0.95/3 FP=1 (TP 12/12/10/10). Most of the FP drop comes from the
+  // similarity floor; at 0.95 the third field removes 3 of the remaining
+  // 4 FPs at no TP cost. The 0.95 floor itself misses 2 of 12 dev
+  // duplicate pairs. Reports remain searchable.
+  MIN_AGREEING_PROFILE_FIELDS: 3,
   // Max candidates to consider from the embedding pool.
   CANDIDATE_LIMIT: 50,
 } as const;
@@ -249,7 +262,7 @@ export function countAgreeingProfileFields(agreement: FieldAgreement): number {
  *   - similarity is finite and at or above the threshold, AND
  *   - no known profile field contradicts the pair (sex known and different, or
  *     age ranges known and disjoint), AND
- *   - at least MIN_AGREEING_PROFILE_FIELDS (2) of {name, age, sex, district,
+ *   - at least MIN_AGREEING_PROFILE_FIELDS (3) of {name, age, sex, district,
  *     time} agree on the source and the candidate.
  * The `same_phone` rule is an opt-in weak cue: only the caller that sets
  * `phoneOnly: true` may produce it, and only when no profile rule would fire

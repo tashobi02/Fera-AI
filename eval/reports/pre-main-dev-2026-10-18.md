@@ -1,0 +1,149 @@
+# Fera eval:all — 2026-10-18T14:43:25.078Z (dev)
+
+- commit: `ac44bdb` (full: `ac44bdb6e6234556572123e2120fa1dc6830ea0a`)
+- manifest revision: `manifest-2`
+- manifest hash (sha256): `3be3fc653db26c6e8f9d6fc40ee5bc0790e899a582ae1240b0857fd7185b86bd`
+- manifest ground_truth hash: `4d58c21c86cdfc48...`
+- manifest records hash: `0391c36d8ae40b6b...`
+- test split freeze flag: `NOT SET`
+- frozen model revision: `UNKNOWN`
+- dataset total: `200`
+- by-split (dev / test):
+  - dev records: `86` (groups: `30`)
+  - test records: `114` (groups: `45`)
+
+## Measurement status
+
+| Module | Measured | Reason | Denominators |
+| --- | --- | --- | --- |
+| extract | false | unmapped-labels | denom: n/a |
+| match | true | n/a | truth pairs: 25, no-match: 7 |
+| dedupe | true | n/a | truth size: 12 |
+| wer (existing) | false | reference and hypothesis files both missing | clips / matched |
+| time (existing) | false | empty timing file, have 0 | participants / completed |
+| audit (existing) | false | 0 decisions | decisions / covered |
+
+## eval:extract
+
+Output:
+
+```
+
+eval:extract: not measured (label IDs do not map to canonical manifest records (50 unmapped; e.g. L001, L002, L003))
+
+
+```
+
+Result summary: measured=false, reason=unmapped-labels, cache/fixture excluded=0, matched=n/a, in-split=n/a, failures=0
+
+## eval:match
+
+Output:
+
+```
+
+eval:match summary
+  split:                  dev
+  commit:                 ac44bdb
+  manifest hash (sha256 of eval/manifest.json): 3be3fc653db2...
+  ground-truth hash (from manifest.inputs):     4d58c21c86cd...
+  prediction file:        eval/data/pre-main-final-match.dev.jsonl
+  cache/fixture excluded: 0
+  truth-pair queries (denom for recall@5 / P@5): 25
+  no-match queries (denom for FP rate):          7
+  recall@5 on truth pairs:                       100.00% (0 true-pair miss)
+  top-1 accuracy on covered truth pairs:         92.00% (23/25)
+  P@5 on truth pairs:                            32.00% (denom=25, all truth-pair queries including empty/zero; abstentions never excluded)
+  coverage (non-empty shortlist on truth pairs): 100.00%
+  abstention (empty shortlist on truth pairs):   0.00%
+  false-positive suggestion rate on no-match:    71.43% (5/7, 5 no-match FP)
+  failures (no-match FP, first 5):    72c32e9c-3fc1-409f-9191-add9d0273f9c, 31d8609d-e771-4347-9d9c-099ad1ca0562, 36b898d2-36e4-4ff8-ac6e-4c34aa4ab1d9, fc0ab369-0dac-4203-94bb-a2bb730979a0, 15ce6262-fa38-4348-9f27-0dd9f23c6eaf
+
+
+```
+
+Result summary: measured=true, reason=n/a, recall@5=100% (0 true-pair miss), P@5=32% (per-query precision summed to 8 over denom=25 truth-pair queries; abstentions never excluded), top-1=92% (23/25 covered), coverage=100%, abstention=0%, false-positive suggestion rate=71.42857142857143% (5 no-match FP)
+
+## eval:dedupe
+
+Output:
+
+```
+
+eval:dedupe summary
+  split:                  dev
+  commit:                 ac44bdb
+  manifest hash (sha256 of eval/manifest.json): 3be3fc653db2...
+  ground-truth hash (from manifest.inputs):     4d58c21c86cd...
+  prediction file:        eval/data/pre-main-final-dedupe.dev.jsonl
+  cache/fixture excluded: 0
+  declared duplicate pairs (denominator): 12
+  TP: 10  FP: 1  FN: 2
+  pairwise precision: 90.91% (10/11)
+  pairwise recall:    83.33% (10/12)
+  pairwise F1:        86.96%
+  failures: false consolidation (FP) and misses (FN); counts above
+  shared-phone distinct-child rejection (same-kind, in-split): 25/25 refused (targeted FP 0/25)
+  shared-phone cross-kind pairs (excluded from rejection denom, in-split): 3
+
+
+```
+
+Result summary: measured=true, reason=n/a, precision=90.9090909090909%, recall=83.33333333333334%, F1=86.95652173913044%, TP=10, FP=1, FN=2
+
+## eval:wer (existing, delegated)
+
+```
+eval:wer: not measured (reference and hypothesis files both missing)
+
+```
+
+## eval:time (existing, delegated)
+
+```
+eval:time: not measured (empty timing file, have 0)
+
+```
+
+## eval:audit (existing, delegated)
+
+```
+eval:audit: not measured (0 decisions)
+
+```
+
+## Failure examples
+
+- These are taken from real output, never invented to fill a template.
+- If a module is not measured, this section is empty for that module.
+
+| Module | Failures |
+| --- | --- |
+| extract | none observed |
+| match | 5 failure(s); first 5: 72c32e9c-3fc1-409f-9191-add9d0273f9c, 31d8609d-e771-4347-9d9c-099ad1ca0562, 36b898d2-36e4-4ff8-ac6e-4c34aa4ab1d9, fc0ab369-0dac-4203-94bb-a2bb730979a0, 15ce6262-fa38-4348-9f27-0dd9f23c6eaf |
+| dedupe | FP=1, FN=2 (denominator: 12 declared dev pairs). FP pair: 56aa3e31-628f-4eac-8a29-d5d478ceb1c7 / 78c913c7-f858-4c68-915f-c8eb1884e33b (score 96). FN pairs: b33aa7aa-c563-49cf-adce-a2009f2dad46 / c82f2b41-ec18-46c7-87ac-4ebedeb252b8; 01489f44-7276-45bd-b2c3-ec8e960f7dc6 / 4de66a6e-18ba-4d67-b47e-2d6f5dfb09da. Pair IDs derived after generation from eval/data/pre-main-final-dedupe.dev.jsonl against the dev ground truth; eval:dedupe prints counts only. |
+
+Note: P@5 float noise (32.000000000000014) was rounded to 32 by hand in this file and in the JSON, and the dedupe row above was corrected by hand from "none observed"; the generator was not re-run.
+
+## Known weaknesses (dev)
+
+All figures are dev split, in-sample, synthetic, not held-out.
+
+- Match precision is low: P@5 is 32% (mean per-query shortlist precision, summing to 8 over 25 truth-pair queries). Recall@5 is 100% (25/25), so the low P@5 comes from non-partner candidates in the shortlists, not from missed partners.
+- Match top-1 is 92% (23/25): 2 of 25 truth-pair queries do not rank the true partner first.
+- No-match false-positive suggestion rate is 71.43% (5/7). The denominator is only 7 no-match queries, so this rate is very uncertain, but 5 of 7 children with no partner still received a suggested candidate.
+- Duplicate detection at the chosen 0.95/3 floor misses 2 of 12 dev duplicate pairs (recall 83.33%, 10/12) and makes 1 false flag (precision 90.91%, 10/11). The 0.95 floor is the top edge of the swept grid and was chosen on the same 12 positives it is scored on.
+
+## Missing evidence
+
+- eval:extract: no --extract-prediction file; extraction measurement skipped
+- eval:extract: no human-reviewed labels; no extraction measurement produced
+- test split remains locked until FREEZE_FLAG is SET after the freeze inputs are reviewed
+
+## Honest metrics policy
+
+- Every measured number has a denominator in its own section.
+- Missing inputs print `not measured (<reason>)`; never fabricated zero.
+- Cache / fixture hits are excluded and counted (TC-056).
+- Test runs require the canonical freeze flag and manifest hash (TASK-064, D2B §17).
+- Synthetic record text, labels and metric numbers do not imply successful rescue or operational adoption.

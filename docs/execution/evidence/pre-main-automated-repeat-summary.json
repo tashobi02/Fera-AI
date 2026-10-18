@@ -1,0 +1,47 @@
+{
+  "automated": true,
+  "humanRehearsal": false,
+  "results": [
+    {
+      "run": 1,
+      "code": 0,
+      "dbName": "fera_e2e_premainjourney_2316671_0_c64e93",
+      "networkRecords": 184,
+      "externalAttempts": 0,
+      "sourceCommit": "b21c4bb932b14918220177301cd1402a03c8c74a"
+    },
+    {
+      "run": 2,
+      "code": 0,
+      "dbName": "fera_e2e_premainjourney_2316671_1_0e909f",
+      "networkRecords": 184,
+      "externalAttempts": 0,
+      "sourceCommit": "b21c4bb932b14918220177301cd1402a03c8c74a"
+    },
+    {
+      "run": 3,
+      "code": 0,
+      "dbName": "fera_e2e_premainjourney_2316671_2_d24d0f",
+      "networkRecords": 184,
+      "externalAttempts": 0,
+      "sourceCommit": "b21c4bb932b14918220177301cd1402a03c8c74a"
+    },
+    {
+      "run": 4,
+      "code": 0,
+      "dbName": "fera_e2e_premainjourney_2316671_3_480602",
+      "networkRecords": 184,
+      "externalAttempts": 0,
+      "sourceCommit": "b21c4bb932b14918220177301cd1402a03c8c74a"
+    },
+    {
+      "run": 5,
+      "code": 0,
+      "dbName": "fera_e2e_premainjourney_2316671_4_bb78e3",
+      "networkRecords": 184,
+      "externalAttempts": 0,
+      "sourceCommit": "b21c4bb932b14918220177301cd1402a03c8c74a"
+    }
+  ],
+  "recordedAt": "2026-10-18T14:58:17.386Z"
+}

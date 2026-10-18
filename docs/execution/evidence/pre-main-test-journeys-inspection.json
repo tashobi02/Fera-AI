@@ -1,0 +1,75 @@
+{
+  "files": [
+    {
+      "file": "a11y.spec.ts",
+      "tests": 4,
+      "findings": []
+    },
+    {
+      "file": "honest-copy.spec.ts",
+      "tests": 2,
+      "findings": []
+    },
+    {
+      "file": "intake-api.spec.ts",
+      "tests": 3,
+      "findings": []
+    },
+    {
+      "file": "log-scan.spec.ts",
+      "tests": 1,
+      "findings": []
+    },
+    {
+      "file": "officer-lifecycle.spec.ts",
+      "tests": 6,
+      "findings": [
+        {
+          "pattern": "expectTruthyLoose",
+          "count": 2,
+          "why": "loose toBeTruthy — prefer exact value"
+        }
+      ]
+    },
+    {
+      "file": "parent-journey.spec.ts",
+      "tests": 2,
+      "findings": [
+        {
+          "pattern": "expectTruthyLoose",
+          "count": 2,
+          "why": "loose toBeTruthy — prefer exact value"
+        }
+      ]
+    },
+    {
+      "file": "safeguarding.spec.ts",
+      "tests": 6,
+      "findings": []
+    },
+    {
+      "file": "smoke-mutation.spec.ts",
+      "tests": 1,
+      "findings": []
+    },
+    {
+      "file": "smoke.spec.ts",
+      "tests": 2,
+      "findings": []
+    }
+  ],
+  "totals": {
+    "tests": 27,
+    "patterns": 4,
+    "describerTestCount": 0
+  },
+  "notes": [
+    "Tests that look like API bypass: parent-journey.spec.ts uses /api/cases POST to assert 'no server case row before confirm' (BR-004). This is a justified server-only assertion; the UI journey follows it.",
+    "Officer lifecycle spec uses /api/candidates/<id>/decision for the reject/confirm path and also drives the real UI in journey B/C. The split is intentional — the API assertion proves the wire shape; the UI assertion proves the page wires the same shape.",
+    "Safeguarding spec uses addInitScript / deskContext / signInDesk — these are the existing fixtures and they DO set the same-origin header the route's same-origin check requires (no auth bypass).",
+    "Honest-copy spec uses deskContext + signInDesk to reach the desk pages; no UI bypass — it walks every page through the real browser after sign-in.",
+    "Log-scan spec uses /api/health which is a public no-auth endpoint (API-019); the unique marker is in the URL query string (not body), so the route cannot log it as a payload field.",
+    "Smoke-mutation spec uses scripts/smoke.mjs (the team CLI) with the loopback baseURL; the script does its own loopback check before any mutation.",
+    "A11y spec uses keyboard traversal via Tab; the brief explicitly says 'do not claim physical device or actual 400% browser zoom' — the spec keeps the 200% root-scale injection (documented) and the 320 CSS px viewport reflow check, not the 400% device claim."
+  ]
+}

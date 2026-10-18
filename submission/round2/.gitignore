@@ -1,2 +1,8 @@
 __pycache__/
 *.pyc
+# Generated QA artefacts: the visual contact sheet (3x3 storyboard) and
+# the pdftoppm-rendered slide images. These are rebuilt by
+# `python3 scripts/build.py` from the checked-in pptx and pdf, so they
+# stay out of git but exist on disk for the offline release-check to
+# resolve their references in links.txt.
+build/

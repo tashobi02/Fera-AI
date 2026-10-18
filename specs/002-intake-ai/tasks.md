@@ -213,3 +213,129 @@ When the sources disagree, the spec pack (`docs/spec/`) wins. The following conf
 
 5. **Pre-submit Draft Persistence Location**:
    - V1 draft text suggested potential server-stored drafts, whereas the V2 spec pack (`docs/spec/D1_PRD_V2.md` BR-004, `docs/spec/D2_TRD_PartA_V2.md:21` (V2 release contract) and `docs/spec/D2_TRD_PartA_V2.md:145` (§3.4), `docs/spec/D6_Implementation_Plan_V2.md` "V2 release contract") mandates device-local (browser) draft storage with zero child case rows on the server prior to explicit confirmation on SCREEN-003. `docs/spec/` wins.
+
+---
+
+## Phase 8: Convergence (2026-10-18)
+
+**Purpose**: Append-only convergence pass against the existing source tree, the per-feature evidence in `docs/execution/evidence/` and the V2 spec pack. The original T001–T043 wording is **not** changed; no checkbox is set to done without evidence, and no item is silently dropped. Converge finds the buildable gaps that remain on Obidit's owned slice and surfaces them to the coordinator; owner-blocked items are listed but not acted on by this lane.
+
+Status convention for this phase: each new task starts `unchecked`. The `Status (verified evidence)` line under each task records what was observed in the worktree on 2026-10-18 (Asia/Dhaka) by the convergence pass — it is not a checklist mutation of T001–T043.
+
+### Buildable gaps on Obidit's owned slice (CRITICAL/HIGH first)
+
+- [ ] T044 Add two more synthetic `ExtractFixture` rows and matching `TranscriptFixture` rows to `src/server/cache/fixtures.ts` so the protected `DEMO_MODE=1` cache ships three scripted synthetic cases per T033 (TC-021, FR-027/032, BR-026); the SHA-256 key shape and the `cached: true` return path in `findExtractFixture` are already in place. **Status (verified evidence)**: `EXTRACT_FIXTURES` currently has exactly **one** row (`EXTRACT_FIXTURE_DRAFT` for TC-002) and `TRANSCRIPT_FIXTURES` is `Object.freeze([])`; `tests/cache/fixtures.test.ts` passes against this single-row state. The two missing scripted cases are `partial` for the V2 spec's "three scripted synthetic cases" wording. (gap type: partial; severity: HIGH)
+- [ ] T045 Add the offline-cache-miss banner to `src/app/(parent)/intake/intake-chat.tsx` (and the equivalent edit-mode copy in `src/app/(parent)/intake/review/edit-mode-screen.tsx`) so `cache_hit === false && navigator.onLine === false` shows an explicit unavailable/manual state per T033 / TC-021 / E-011/E-013. **Status (verified evidence)**: `provider-notice.tsx` carries the cached/synthetic badges; the offline-miss itself is not visibly distinct from a fresh-page load today. The wording is owned by D3 §7 and needs a Bangla reviewer pass before merge. (gap type: partial; severity: HIGH)
+- [ ] T046 Wire API-001 (`src/app/api/intake/transcribe/route.ts`) to a real STT provider through the existing `createSttAdapter` seam in `src/server/intake/orchestrator.ts` and the `runPaidCall` budget wrapper in `src/server/spend/paid-call.ts`, so the per-attempt reservation and notice requirements are honoured end-to-end. **Status (verified evidence)**: route file (`route.ts`) is a 12-line stub that delegates to `getIntakeRouteDeps().transcribe`; `deps.ts` wires the orchestrator; the orchestrator already calls `runPaidCall` (`orchestrator.ts`); `speech-adapter.md` review ends with "Phone voice test NOT MET". No real provider is configured; OQ-004 / OQ-022 remain UNKNOWN and `docs/costs.md` is absent. This is a coordinator / lead blocker until OQ-004/OQ-022 resolve; on Obidit's owned slice the seam is built. (gap type: partial; severity: HIGH; coordinator decision required)
+- [ ] T047 Have a Bangla reviewer (per `AGENTS.md` agent roster) sign off on the round-3 strings still marked "needs Bangla review" in `intake-ui.md` round-2 SG/SW follow-ups and the new round-3 strings added to `src/locales/areas/parent-{intake,review,form,status}.ts`; the `tests/{locales,locale-cookie,locales-areas}.test.ts` cases are already green. **Status (verified evidence)**: `npm run lint` exit 0; `npm run typecheck` exit 0; `tests/intake-ui` 497/497; new round-3 strings added under review but not signed off. (gap type: partial; severity: MEDIUM; human-review item)
+- [ ] T048 Record in `docs/execution/evidence/spend-cli.md` (or a successor note) that `npm run spend` and `tests/scripts/spend-cli.test.ts` are restored in `package.json` and pass — the lead blocker note in `spend-cli.md` is now historical. **Status (verified evidence)**: `package.json:14` has `"spend": "node scripts/spend.mjs"`; OD-059-4 resolved per `spend-cli.md`. Recorded as converged; no software action. (gap type: partial; severity: MEDIUM; documentation only)
+- [ ] T049 Surface S-005 manual form (TASK-025, owner: Mahim) handoff from S-002 in `src/app/(parent)/intake/intake-chat.tsx` round-2 — `intake-ui.md` confirms E-012/E-013/E-023 already open the manual path; this task only adds the cross-feature verification entry in the S-005 evidence file `s004-outputs.md` (or its successor) so the coordinator sees the Obidit→Mahim handoff is exercised. **Status (verified evidence)**: `src/app/(parent)/intake/form/page.tsx` exists with `manual-form.tsx` (S-005); S-002 calls `takeHandoff()` and routes to it for the documented errors. (gap type: partial; severity: MEDIUM; owner: Mahim lane)
+
+### Unrequested / path drift on Obidit's owned slice
+
+- [ ] T050 Either extract the inline `<HonestLabel>` usage in `provider-notice.tsx`, `intake-chat.tsx`, `review-screen.tsx`, `edit-mode-screen.tsx`, and `manual-form.tsx` into `src/app/components/honest-label.tsx` (a shared component matching T039's path `src/components/badges/cached-badge.tsx`), or leave the path as-is and update the spec-board's T039 path. **Status (verified evidence)**: cached and synthetic badges render correctly via `<HonestLabel>` (`src/locales/index.ts:200-202`); the spec-board's `src/components/badges/cached-badge.tsx` path does not exist. Function met, path drift is the only artefact. (gap type: unrequested; severity: LOW)
+- [ ] T051 Resolve OD-015-1 by either (a) updating the implemented route `src/app/api/cases/route.ts` to return E-005 on changed-payload replay per `docs/spec/D2_TRD_PartA_V2.md:304` and updating `tests/intake/submit-api.test.ts` accordingly, or (b) amending `docs/spec/D2_TRD_PartA_V2.md` to confirm E-006 as the chosen key (matches the current route and tests). **Status (verified evidence)**: route returns E-006 today (`tests/intake/submit-api.test.ts`); pack itself disagrees. All-owner decision required. (gap type: contradicts; severity: LOW; OPEN decision)
+
+### Converged on Obidit's owned slice (recorded for the coordinator)
+
+The following are recorded as converged on Obidit's owned slice with evidence. The original T001–T043 wording is unchanged; these lines are observations, not checkboxes.
+
+- **T001–T012 (US1)**: SCREEN-001 welcome page (`src/app/(parent)/page.tsx`), provider notice (`provider-notice.tsx`), SCREEN-002 intake chat (`src/app/(parent)/intake/intake-chat.tsx`), voice recorder (`src/app/(parent)/intake/voice-recorder.tsx`), typed-text path, language toggle (`src/app/components/language-toggle.tsx`), 13219 link, `FERA_INTAKE_CLIENT=fake` default with `live` HTTP option. Speech adapter (`src/server/speech/{adapter,types,index}.ts`) passes 29/29 in `tests/speech/adapter.test.ts`. `intake-ui.md` rounds 1–4 with safeguarding PASS and Impeccable finish review.
+- **T013–T023 (US2)**: Normaliser (`src/server/normalise/`) 93/93 across 5 files (`tests/normalise/`); LLM adapter (`src/server/ai/`) 535/535 (`tests/ai`); orchestrator + question templates (`src/server/intake/orchestrator.ts`, `questions.ts`, `rounds.ts`) PASS in `tests/intake/orchestrator.test.ts`, `tests/intake/questions.test.ts`, `tests/intake/rounds.test.ts`. `intake-normaliser.md`, `intake-llm-adapter.md`, `intake-questions.md`.
+- **T024–T030 (US3)**: API-003 server half (`src/app/api/cases/route.ts`) PASS at DB level (`tests/db/submit.test.ts`); S-003 device draft store (`src/lib/intake/draft-store.ts`) PASS; S-003 review screen (`src/app/(parent)/intake/review/{page,review-screen,review-fields,edit-mode-screen}.tsx`) PASS; idempotent replay returns 200 with same ref. `intake-submit-api.md`, `review-submit-ui.md`.
+- **T031–T040 (US4)**: Spend counters (`src/server/spend/{service,paid-call,errors,money,price-sheet}.ts`) PASS at DB level (`tests/db/spend.test.ts`, `intake-spend-counters.md`); spend CLI (`scripts/spend.mjs`, `tests/scripts/spend-cli.test.ts`) PASS (`spend-cli.md`); demo cache fixtures (`src/server/cache/fixtures.ts`) PASS for the single prepared case (`tests/cache/fixtures.test.ts`); manual fallback to S-005 wired.
+- **T041–T043 (Polish)**: locale validation green; accessibility audit is Mahim's lane (TASK-034/038); quickstart end-to-end validation is the lead's lane and runs only against the merged `phase2` runtime.
+
+### Cross-feature dependencies this pass leaves for the coordinator
+
+- **001-platform-foundation**: `src/contracts/` freeze / `contracts-v1` tag still pending Mahim's all-owner review (`001/tasks.md:24`, `docs/agents/handoff/OBIDIT.md`); OQ-021 managed host UNKNOWN; OD-006-1 (Auth.js vs. custom session) OPEN. Obidit does not own 001 code; recorded not blocked.
+- **003-parent-outputs**: spec board (plan.md, tasks.md) is recovered as artifacts in this pass (`specs/003-parent-outputs/plan.md`, `tasks.md`); S-004 poster PNG (TASK-024, owner: Mahim), S-005 manual form (TASK-025, owner: Mahim), S-008 sign-in / S-016 not-found (TASK-031, owner: Mahim) live in Mahim's lane. Obidit-owned: API-006 outputs route, API-005 edit-after-submit, API-018 my-case, SCREEN-006 status page — already implemented (`src/app/api/cases/[id]/outputs/route.ts`, `src/app/api/cases/[id]/route.ts` PATCH, `src/app/api/my-case/route.ts`, `src/app/(parent)/status/page.tsx`).
+
+### Phase 8 references
+
+- `docs/execution/evidence/pre-main-convergence-intake.md` (this convergence pass, owned).
+- Per-feature evidence: `intake-ui.md`, `intake-normaliser.md`, `intake-llm-adapter.md`, `intake-questions.md`, `intake-submit-api.md`, `review-submit-ui.md`, `intake-spend-counters.md`, `spend-cli.md`, `outputs-templates.md`, `s004-outputs.md`, `speech-adapter.md`.
+
+---
+
+## Phase 9: Corrective disposition (2026-10-18, supersedes the §0 first-pass)
+
+**Purpose**: Append-only corrective disposition that supersedes false findings in the §0 first-pass of `pre-main-convergence-intake.md`. The original T001–T043 wording and the Phase 8 T044–T052 lines are preserved as historical record. The disposition below records the authoritative read against the current code/evidence. No checkbox is set to done; no item is silently dropped.
+
+- **T044 / T045 — partial, PENDING the `pre-main--cache-offline-fixes` lane.** `src/server/cache/fixtures.ts` ships **one** `EXTRACT_FIXTURE` and zero `TRANSCRIPT_FIXTURES`; T033 / TC-021 ask for three scripted synthetic cases. A separate Puku worker lane is adding the two missing fixtures and the offline-miss banner. Obidit's owned slice (cache key shape, `cached: true` return path, `[MOCK]` / `ক্যাশ · সিনথেটিক` badge wiring) is in place.
+- **T046 — partial, route is implemented.** Coordinator-verified: `src/app/api/intake/transcribe/route.ts` and `src/app/api/intake/extract/route.ts` both exist; deps wired through `src/app/api/intake/deps.ts`; `tests/api` 303/303 across 17 files. The first-pass "API-001 not built" framing was wrong. The remaining gap is "no real STT provider wired" — the `createSttAdapter` seam in `src/server/intake/orchestrator.ts` and the `runPaidCall` budget wrapper are in place; OQ-004 / OQ-022 are UNKNOWN; the route file is not the gap, the real-provider wiring is.
+- **T047 — partial, human-review item.** Round-3 strings still under Bangla reviewer sign-off; `tests/{locales,locale-cookie,locales-areas}.test.ts` are green.
+- **T048 — withdrawn (already functional).** `scripts/spend.mjs` and `tests/scripts/{spend,spend-cli}.test.ts` exist; `package.json:14` has `"spend": "node scripts/spend.mjs"`; OD-059-4 resolved per `spend-cli.md`. No software gap.
+- **T049 — withdrawn (already functional / Mahim lane).** E-012/E-013/E-023 → S-005 manual form handoff wired in `intake-ui.md`; `src/app/(parent)/intake/form/page.tsx` (TASK-025) is Mahim's lane. Recorded not owned.
+- **T050 — unrequested / path drift.** Cached and synthetic badges render correctly via inline `<HonestLabel>` (`provider-notice.tsx`, `intake-chat.tsx`, `review-screen.tsx`, `edit-mode-screen.tsx`, `manual-form.tsx`); the spec-board path `src/components/badges/cached-badge.tsx` does not exist. Function met, path drift is the only artefact.
+- **T051 — withdrawn (already resolved by implementation).** API-003 route lives at `src/app/api/cases/route.ts`; ownership question recorded in the route header. Not an open question on this pass.
+- **T052 — contradicts (OD-015-1 OPEN).** D2 Part A says `same UUID/different payload → E-005`; D2 Part B and Part A define E-006 as `SUBMISSION_PAYLOAD_CONFLICT`; the implemented route returns E-006 (`tests/intake/submit-api.test.ts`). Pack is divided; coordinator / all-owner decision required; no software gap on Obidit's owned slice.
+
+### Phase 9 references
+
+- `docs/execution/evidence/pre-main-convergence-intake.md` §0 (corrective disposition), §2.2, §3, §4.
+
+---
+
+## Phase 10: Status closure (2026-10-18, final)
+
+**Purpose**: Row-by-row software status for T001–T043 (and Phase 8/9 T044–T052) against the current source/tests/evidence in this worktree. The original T001–T043 / T044–T052 wording is unchanged. No checkbox on the original lines is mutated. The closure matrix in `docs/execution/evidence/pre-main-convergence-intake.md` §7.2 is the canonical version; this section is the spec-board disposition summary.
+
+**Legend** (matches the evidence file): `S` = software implemented on the current source tree, `H` = human-acceptance evidence still pending, `O` = open decision (OD-###), `E` = external (provider, host, phone, organiser), `—` = not applicable (cross-owner / Sadman-owned).
+
+| ID | Status | One-line evidence |
+|---|---|---|
+| T001 | S / E | `.env.example` exists; `docs/costs.md` UNKNOWN; OQ-004 / OQ-022 = `E` |
+| T002 | S / H | `db/seed/districts.json` exists; Masnun-owned |
+| T003 | S | `src/contracts/draft.ts`; `tests/contracts/intake-contract.test.ts` green |
+| T004 | S | `src/app/api/_shared/*`; `tests/api/platform.test.ts` green |
+| T005 | S | `tests/speech/adapter.test.ts` 29/29 green |
+| T006 | S | `tests/api/intake-transcribe.test.ts` green |
+| T007 | — / H | `tests/e2e/intake-voice-text.spec.ts` is Sadman's lane |
+| T008 | S | `src/server/speech/validate.ts` + `src/server/intake/audio-metadata.ts` |
+| T009 | S | `src/server/speech/*`; `tests/speech/*` green |
+| T010 | S / E | route + tests green; OQ-004 / OQ-022 = `E` |
+| T011 | S | `src/app/(parent)/page.tsx` + `parent-ui.tsx` + `start-button.tsx` + `provider-notice.tsx` |
+| T012 | S | `src/app/(parent)/intake/{page,intake-chat,voice-recorder}.tsx`; `tests/intake-ui` 502/502 |
+| T013 | S | `tests/normalise/*` 93/93; D6 ≥30 requirement met |
+| T014 | S | `tests/ai/*` 535/535 |
+| T015 | S | `tests/intake/{orchestrator,questions,rounds}.test.ts` 81/81 |
+| T016 | S | `tests/api/intake-extract.test.ts` green |
+| T017 | — / H | `tests/e2e/intake-followup.spec.ts` is Sadman's lane |
+| T018 | S | `src/server/normalise/*` |
+| T019 | S / E | `src/server/ai/*`; OQ-004 = `E` |
+| T020 | S | `src/server/intake/{orchestrator,questions,rounds,index,registry,runtime,drafts,audio-metadata}.ts` |
+| T021 | S | `src/app/api/intake/extract/route.ts`; `tests/api` 303/303 |
+| T022 | S | `src/app/(parent)/intake/{intake-chat,page}.tsx` + `intake/review/*` |
+| T023 | S / H | handoff wired; S-005 = Mahim's TASK-025 |
+| T024 | S | `tests/api/cases-create.test.ts` + `tests/db/submit.test.ts` green |
+| T025 | S | `tests/integration/pre-submit-zero-rows.test.ts` + `tests/api/cases-create.test.ts` |
+| T026 | — / H | `tests/e2e/review-submit.spec.ts` is Sadman's lane |
+| T027 | S | `src/lib/intake/draft-store.ts`; `review-submit-ui.md` |
+| T028 | S | `src/app/(parent)/intake/review/{page,review-screen,review-fields,edit-mode-screen}.tsx` |
+| T029 | S | `src/app/api/cases/route.ts`; route header records the ownership decision |
+| T030 | S / H | Obidit clears the draft; S-004 navigation = Mahim's TASK-024 |
+| T031 | S | `tests/spend/*` green |
+| T032 | S | `tests/intake/spend-concurrency.test.ts` green |
+| T033 | S / pending-merge | Obidit seam in place; 3-row fixtures on sibling `pre-main--cache-offline-fixes` at `dac1b2f` |
+| T034 | — / H | `tests/e2e/demo-mode-offline.spec.ts` is Sadman's lane |
+| T035 | S | `src/server/spend/*` |
+| T036 | S | `scripts/spend.mjs` + `package.json:14`; OD-059-4 resolved |
+| T037 | S / H | `db/seed/districts.json` + `synthetic-set.md`; Masnun-owned |
+| T038 | S / pending-merge | Obidit seam in place; 2 extra fixtures + offline-miss banner on sibling branch |
+| T039 | S | inline `<HonestLabel>`; path drift only |
+| T040 | S / H | handoff wired; S-005 = Mahim's TASK-025 |
+| T041 | — / H | `tests/e2e/parent-a11y.spec.ts` is Sadman's lane |
+| T042 | S / H | `tests/locales*` green; round-3 strings `H` |
+| T043 | — / E | lead's lane; AMD-AGENTS-1 keeps cutoff `UNKNOWN` |
+| T044 | S / pending-merge | closed on sibling branch at `dac1b2f`; root merge pending |
+| T045 | S / pending-merge | closed on sibling branch at `dac1b2f`; root merge pending |
+| T046 | S / E | route + seam in place; OQ-004 / OQ-022 = `E` |
+| T047 | H | `tests/locales*` green; human sign-off `H` |
+| T048 | S | `scripts/spend.mjs`; OD-059-4 resolved |
+| T049 | S / H | handoff wired; S-005 = Mahim's lane |
+| T050 | S | inline `<HonestLabel>`; path drift only |
+| T051 | S | `src/app/api/cases/route.ts`; ownership resolved by implementation |
+| T052 | O | OD-015-1 OPEN; no software change without all-owner decision |
+
+**002 closure**: 43/43 have software evidence on this worktree (with explicit `E` flags for real STT/LLM/provider prices, hosted DB, and organiser cutoff). The cache fixture count gap (T033/T038/T044/T045) is closed on the sibling `pre-main--cache-offline-fixes` branch at `dac1b2f` and is pending root merge. No `NotOwned/RoutesMissing` is asserted as a software gap on Obidit's owned slice.

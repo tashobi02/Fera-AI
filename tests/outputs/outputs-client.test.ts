@@ -57,15 +57,9 @@ describe("requestOutput (API-006)", () => {
     expect(f.calls[0]!.init?.signal).toBeInstanceOf(AbortSignal);
   });
 
-  it("is E-024 without a request when the browser is offline", async () => {
+  it("still requests loopback output when the browser reports offline", async () => {
     const f = fakeFetch(200, poster);
-    expect(
-      await requestOutput(CASE, "gd", {
-        fetchImpl: f.impl,
-        online: () => false,
-      }),
-    ).toEqual({ kind: "failed", failure: { id: "E-024", seconds: null } });
-    expect(f.calls).toHaveLength(0);
+    expect(await requestOutput(CASE, "poster", { fetchImpl: f.impl, online: () => false })).toMatchObject({ kind: "ok" });
   });
 
   it("is E-024 when the connection drops during the request, E-021 when it fails while online", async () => {

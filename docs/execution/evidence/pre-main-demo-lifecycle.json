@@ -1,0 +1,14 @@
+{
+  "sourceCommit": "19c53d5649583b52b04d0dfa348fc02e1f5fddc3",
+  "automated": true,
+  "checks": [
+    "owned database and cache ready",
+    "real desk sign-in and protected officer queue",
+    "real app restart preserves signing keys and authenticated cookie",
+    "idempotent start and container stop/reuse preserve data",
+    "reset removes only owned resources; shared developer container unchanged"
+  ],
+  "startedAt": "2026-10-18T14:51:22.716Z",
+  "pass": true,
+  "finishedAt": "2026-10-18T14:51:30.025Z"
+}

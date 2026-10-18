@@ -1,4 +1,4 @@
-node_modules/
+node_modules
 .env*
 !.env.example
 build/
@@ -21,3 +21,12 @@ graphify-out/cache/
 graphify-out/.graphify_*
 !graphify-out/.graphify_labels.json
 .cache/
+# Local demo state and generated test evidence are specific to one machine/run.
+.demo/
+tests/demo/.evidence/
+playwright-offline-results.json
+
+# Raw per-run rehearsal logs and cleanup manifests; compact summaries are committed.
+docs/execution/evidence/pre-main-test-journeys-logs/
+docs/execution/evidence/pre-main-test-journeys-managed-dbs.*.txt
+docs/execution/evidence/pre-main-test-journeys-records*.json

@@ -1,14 +1,21 @@
 # Phases 5–6 — Buffer, finale baseline and finale prep · Gate G6
 
-> Final snapshot — 18 Oct 2026: application source `9155963`; build/typecheck/lint PASS (51 lint warnings, five build warnings); 3,693 unit pass/308 skip; 320 DB pass; 78 browser pass/zero skip. Full remote CI passed. The seven-slide deck (`ed3bfe6`) and actual 105-second local video (`27bb3c6`) are prepared and reviewed. Audit documents are committed separately. Round 2 is not submitted. Human evidence, production acceptance, frozen quality, organiser instructions, Drive and private-repository sharing remain unresolved. Phase 5 handoff is prepared, not started.
+> **Current integration status — 18 Oct 2026.** Phase 4–5 software and local preparation are implemented on `pre-main` and pass local verification. Remote CI is being run before review. The user will verify and explicitly approve before any merge into `main`. No Round 2 submission, production deployment or human acceptance is claimed. Formal G5/G6 remain UNVERIFIED for the original external/human requirements. Current evidence: [final verification](evidence/pre-main-final-verification.json), [closure](pre-main-phase4-phase5-closure.md), [TC matrix](evidence/pre-main-tc-coverage.md).
+
+> The older dated entries below are historical snapshots; the current integration status and linked final verification supersede their software counts and branch pointers.
+
+
+> **Current status (18 Oct 2026, late).** Latest user steering: **complete Phase 4 and Phase 5 across all three owners except the media-file submission itself** (no Round 2 deck / video / Drive upload / selection-email send by an agent); verify the staged `pre-main--closure-docs` worktree; then the user approves the merge to `main`. **Phase 5 software work is `IN PROGRESS / REVIEW` until final software evidence is in place** — the earlier "be ready to start, not actually start" / "Phase 5 prepared, not started" framing is superseded. **Human formal G5 / G6 stay unpassed** because the pending external / human / production requirements remain on the original owners' queues (organiser instructions, 50 human labels, 60 audio clips, 2 Android devices, 5 person timing study, Bangla human review, provider accounts / prices, production DB, Drive / public sharing, five human rehearsals, spare laptop / mentor clearance, freeze tag). See [pre-main-phase4-phase5-closure.md](pre-main-phase4-phase5-closure.md), the [66-row TC matrix](evidence/pre-main-tc-coverage.md) and the staged [G6-2026-10-18-pre-main.md](../gates/G6-2026-10-18-pre-main.md).
+>
+> Historical snapshot — 18 Oct 2026, pre-main head `9c18e45`: application source `9155963` carried forward; production build / full DB (321 / 31) / full browser (78 / 0 skip in 56.2 s) PASS in `/tmp/fera-pre-main-final-verification.json`; the seven-slide deck (`ed3bfe6`) and actual 105-second local video (`27bb3c6`) are prepared and reviewed; an 8-slide deck variant is also reviewed (PR50 mahim-organiser 18:45, source-attributed). Round 2 is not submitted. Human evidence, production acceptance, frozen quality, organiser instructions, Drive and private-repository sharing remain unresolved. Backup finale plan and Q&A sheet are committed at root `docs/demo/backup-plan.md` and `docs/demo/qa-prep.md` (`173202f`).
 
 **Window:** Phase 5 Thu 15 Oct 2026 (G6 at 20:00) · Phase 6 Fri 16 → Sat 24 Oct (finale at AIUB, 5–10 min + live demo) · Asia/Dhaka
 **Plan:** [Phase 5](EXECUTION_PLAN.md#phase-5--buffer-and-finale-baseline-thu-15-oct--gate-g6) · [Phase 6](EXECUTION_PLAN.md#phase-6--finale-prep-16--24-oct) · **Prev:** [Phase 4](PHASE_4_SUBMISSION.md)
-**Phase status:** `todo / prepared` (user said "be ready to start"; Phase 5 is **not** started. Readiness is blocked by open Phase 3 / Phase 4 requirements; the rebaseline finale is 24 Oct, the kit is due 23 Oct, the organiser cutoff is UNKNOWN.)
-**Last updated:** 2026-10-18 · tasks distributed among Obidit, Masnun and Mahim; lead = Mahim · audit: [PHASE_3_AUDIT_2026-10-18.md](PHASE_3_AUDIT_2026-10-18.md); final review disposition: [phase3-finish-review.md](evidence/phase3-finish-review.md); handoff: [PHASE_5_HANDOFF.md](handoff/PHASE_5_HANDOFF.md)
+**Phase status:** `IN PROGRESS / REVIEW` (latest user steering; the earlier `todo / prepared` framing is superseded). The software-side items (READY-1 … READY-11, the 66-row TC matrix rows with automated evidence, the 3-scripted cache fixtures, the release checker, the spec-kit 003 plans / tasks, intake / platform all-owner status) are closed on this worktree; the human / external items (READY-12 … READY-21) stay open on the original owners. The rebaseline finale is 24 Oct, the kit is due 23 Oct, the organiser cutoff is UNKNOWN.
+**Last updated:** 2026-10-18 · tasks distributed among Obidit, Masnun and Mahim; lead = Mahim · audit: [PHASE_3_AUDIT_2026-10-18.md](PHASE_3_AUDIT_2026-10-18.md); final review disposition: [phase3-finish-review.md](evidence/phase3-finish-review.md); handoff: [PHASE_5_HANDOFF.md](handoff/PHASE_5_HANDOFF.md); pre-main closure: [pre-main-phase4-phase5-closure.md](pre-main-phase4-phase5-closure.md); TC matrix: [evidence/pre-main-tc-coverage.md](evidence/pre-main-tc-coverage.md); gate: [G6-2026-10-18-pre-main.md](../gates/G6-2026-10-18-pre-main.md)
 **Team:** **Obidit** — intake, AI, outputs · **Masnun** — data, matching, officer workflow, dashboard, evaluation · **Mahim** — lead; platform, integration, release (named "Sadman" in AGENTS.md and the spec pack; D6 owner code S). Tasks follow [EXECUTION_PLAN.md](EXECUTION_PLAN.md). The lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`.
 
-> **Reading the headline.** Phase 5 is `todo / prepared`. The user said "be ready to start, not actually start it" on 18 Oct. The lead is Mahim. **Readiness is blocked** by open Phase 3 / Phase 4 requirements. Dates in the rebaseline: kit 23 Oct; AIUB finale 24 Oct; organiser cutoff **UNKNOWN**. The legacy 14 Oct 22:00 baseline is stale and is not treated as current.
+> **Reading the headline.** Phase 5 software work is `IN PROGRESS / REVIEW`. The user said "complete Phase 4 and Phase 5 except media file submission" on 18 Oct (late). The lead is Mahim. The software-side readiness queue is closed; the human / external readiness queue remains on the original owners. Dates in the rebaseline: kit 23 Oct; AIUB finale 24 Oct; organiser cutoff **UNKNOWN**. The legacy 14 Oct 22:00 baseline is stale and is not treated as current.
 
 The plan's Phases 5 and 6 share this file because both run after the Round 2 submission. Nothing here changes the submitted Round 2 build.
 
@@ -79,7 +86,7 @@ User on 18 Oct: "be ready to start, not actually start it." Phase 5 is `todo / p
 | READY-20 | **OPEN (HUMAN)** | H-7 — TASK-056 mentor fixes. Mentor list empty. |
 | READY-21 | **LOCAL CAPTURE CLOSED; DRIVE PENDING** | H-10 — TASK-045 final demo capture. The **local** actual recorded demo is committed at `submission/demo/final.mp4` (105.000 s, 1280×720, H.264, eight proof PNGs, captions/provenance validated in `/tmp/fera-demo-verified.log`; commit `27bb3c6`; typed flow + explicit seeded officer scenario, **no real voice**). **Drive copy pending** until Drive access / folder is granted; logged-out check on a private window is also pending (H-9 + ACCESS). |
 
-Phase 5 is `prepared`. The software-side items (READY-1 … READY-11) are CLOSED; the human-side items (READY-12 … READY-21) carry the original owners. **Authorised local offline preparation may start when the user asks**; the prepared queue is the gate for the human-side items, not a blanket block on every Phase 5 task. No Phase 5 lane work that depends solely on a CLOSED software item may be claimed blocked by that item.
+Historical baseline: Phase 5 was `prepared`. Current software state is verified on `pre-main`, awaiting user review. The software-side items (READY-1 … READY-11) are CLOSED; the human-side items (READY-12 … READY-21) carry the original owners. **Authorised local offline preparation may start when the user asks**; the prepared queue is the gate for the human-side items, not a blanket block on every Phase 5 task. No Phase 5 lane work that depends solely on a CLOSED software item may be claimed blocked by that item.
 
 
 ### Carried over from Phases 2–3
@@ -92,23 +99,23 @@ Link every row that wasn't `done` in Phases 0–4 here (AMD-5-1): the task stays
 Run `/speckit-converge` (Codex `$speckit-converge`) until each feature reports Converged, then close stale tasks in `specs/*/tasks.md`.
 | Feature | Owner | Converged | Stale tasks closed | Notes |
 |---|---|---|---|---|
-| `001-platform-foundation` | Mahim | `todo` | `todo` | |
-| `002-intake-ai` | Obidit | `todo` | `todo` | |
-| `003-parent-outputs` | Obidit | `todo` | `todo` | |
-| `004-matching-data` | Masnun | `todo` | `todo` | |
-| `005-officer-workflow` | Masnun | `todo` | `todo` | |
-| `006-dashboard-admin` | Masnun | `todo` | `todo` | |
-| `007-quality-release` | Mahim | `todo` | `todo` | |
+| `001-platform-foundation` | Mahim | software verified; external items pending | reconciled with evidence | See pre-main convergence and final verification; no human/freeze completion inferred. |
+| `002-intake-ai` | Obidit | software verified; external items pending | reconciled with evidence | See pre-main convergence and final verification; no human/freeze completion inferred. |
+| `003-parent-outputs` | Obidit | software verified; external items pending | reconciled with evidence | See pre-main convergence and final verification; no human/freeze completion inferred. |
+| `004-matching-data` | Masnun | software verified; external items pending | reconciled with evidence | See pre-main convergence and final verification; no human/freeze completion inferred. |
+| `005-officer-workflow` | Masnun | software verified; external items pending | reconciled with evidence | See pre-main convergence and final verification; no human/freeze completion inferred. |
+| `006-dashboard-admin` | Masnun | software verified; external items pending | reconciled with evidence | See pre-main convergence and final verification; no human/freeze completion inferred. |
+| `007-quality-release` | Mahim | software verified; external items pending | reconciled with evidence | See pre-main convergence and final verification; no human/freeze completion inferred. |
 
 ### Tasks — Obidit
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| TASK-058 (start) | Backup recording plan | human | TASK-054 | — | Plan written: shots, devices, labels | `todo` | | |
+| TASK-058 (start) | Backup recording plan | human | TASK-054 | — | Plan written: shots, devices, labels | `review` | `pre-main` | [Backup plan](../demo/backup-plan.md); equipment and Drive copy pending. |
 
 ### Tasks — Mahim (lead)
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| TASK-053 | Finale local stack: Docker DB, model cache, fixtures, `DEMO_MODE=1` | Claude Code + `database-reviewer` | TASK-033 | 4 | Laptop runs the journey offline (TC-021, TC-057) | `todo` | | |
+| TASK-053 | Finale local stack: Docker DB, model cache, fixtures, `DEMO_MODE=1` | Claude Code + `database-reviewer` | TASK-033 | 4 | Laptop runs the journey offline (TC-021, TC-057) | `review` | `pre-main` | [CLI](../demo/CLI.md), [actual lifecycle](evidence/pre-main-demo-lifecycle.json), 5×13 automated offline checks; physical kit acceptance remains pending. |
 
 ### Shared
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
@@ -134,7 +141,7 @@ Tick only from the gate report (`fera-gate`), with evidence linked.
 ### Tasks — Mahim (lead)
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| TASK-055 | Finale deck, timed ≤ 10 min, per [D7 §3.2](../spec/D7_Closing_Pack_V2.md#32-finale-8-minutes-plus-2-minute-qa-buffer) | any + `fera-safeguarding-reviewer` | TASK-043 | 4 | Timed run ≤ 10 min | `todo` | | |
+| TASK-055 | Finale deck, timed ≤ 10 min, per [D7 §3.2](../spec/D7_Closing_Pack_V2.md#32-finale-8-minutes-plus-2-minute-qa-buffer) | any + `fera-safeguarding-reviewer` | TASK-043 | 4 | Timed run ≤ 10 min | `review` | `pre-main` | Current 8-slide deck + [8-minute runbook](../demo/finale-runbook.md); actual human timed run pending. |
 | SPARE | Spare laptop with the same local setup ([D6 §9.4](../spec/D6_Implementation_Plan_V2.md#94-backup-paths)) | human | TASK-053 | — | Spare runs the offline journey | `todo` | | |
 | TASK-057 | 5–10 user conversations — **only if mentors/faculty clear OQ-019** | human | OQ-019 | 4 | Notes with consent; findings slide | `blocked` | | Waiting on OQ-019 |
 
@@ -142,7 +149,7 @@ Tick only from the gate report (`fera-gate`), with evidence linked.
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | TASK-054 | 5 rehearsals, ≥1 internet-off (log below) | human | TASK-053 | 5 | Rehearsal log 5/5 | `todo` | | |
-| QA-PREP | Mentor and judge Q&A prep from D7 §3.2 | any | — | — | Q&A sheet in `docs/` | `todo` | | |
+| QA-PREP | Mentor and judge Q&A prep from D7 §3.2 | any | — | — | Q&A sheet in `docs/` | `review` | `pre-main` | [Q&A sheet](../demo/qa-prep.md), source safeguarding PASS; user review pending. |
 
 Masnun has no Phase 6 D6 tasks; they take rehearsal fixes in their areas and their share of TASK-054 and QA-PREP.
 
@@ -162,6 +169,7 @@ Format: `- YYYY-MM-DD HH:MM · <tool> · <lane> · <ID> <status change or note>`
 ### Obidit
 ### Masnun
 ### Mahim (lead)
+- 2026-10-18 · doc-updater · lane `pre-main--closure-docs` · pre-main Phase 4–5 closure docs staged. User quote at the top of [PHASE_4_SUBMISSION.md](PHASE_4_SUBMISSION.md) and the [pre-main-phase4-phase5-closure.md](pre-main-phase4-phase5-closure.md) closure record replaces the earlier "Phase 5 prepared, not started" framing with the latest user steering (complete P4+P5 except media file submission, software `IN PROGRESS / REVIEW`, formal G5 / G6 unpassed until pending requirements close). New evidence: [pre-main-tc-coverage.md](evidence/pre-main-tc-coverage.md) (66-row D6 TC matrix with real existing test paths or typed `UNVERIFIED`; no fake files; the typed-path tests are fixtures + synthetic recorders, not live-voice acceptances); new gate [G6-2026-10-18-pre-main.md](../gates/G6-2026-10-18-pre-main.md) (pre-main software pass; human / external blocks pending). The 26-test release checker is at `tests/release/check.test.ts` (27 assertions on this worktree, relative paths only, no external URLs); backup finale plan and Q&A sheet at root `docs/demo/backup-plan.md` and `docs/demo/qa-prep.md` (commit `173202f`) are complete. Root verification `/tmp/fera-pre-main-final-verification.json`: build PASS exit 0, DB 321 / 31 PASS, browser 78 / 0 skip PASS in 56.2 s, runtime audit 0 known vulnerabilities, full dep audit WARN (5 HIGH entries tracing to one unpatched `braces` advisory in the lint chain; no automatic downgrade). PR50 mahim-organiser 18:45 8-slide PPT + Bangla video end card integrated on pre-main — **source-attributed, not independently verified**; platform / share / recipient access pending. Round 2 NOT submitted; no media-file submission was sent. No application / schema / Git / secret / external-service writes this round. Future offline CLI / journey workers finish; do not assume their result counts from this file — verify against the sibling evidence files and `/tmp` reports. Frame header / poster PNG / new-restart actual checks stay in the coordinator queue.
 
 ## Audit amendments (2026-10-12)
 
@@ -180,3 +188,7 @@ By **23 Oct** (DEP-009), Mahim records laptop, Android phone and hotspot availab
 **Gap:** convergence and conversations could imply automatic completion.
 **Change:** convergence closes only demonstrably implemented tasks; no stale task is deleted merely to clear the backlog. TASK-057 remains blocked on OQ-019; interview count/consent/approval are UNKNOWN without evidence. TASK-054 #1 and TASK-058 start are partial rows within their D6 5 h/2 h totals; shared-task hours are not multiplied by three. Exact owner split is UNKNOWN.
 **Source:** D6 TASK-054/057/058; handover §§6–7.
+
+## Final automated integration evidence — 18 October
+
+The coordinator integrated all necessary worker output, completed quota-interrupted repairs, and ran 3,958 unit tests, 321 DB tests, 78 browser checks, six native embedding tests and five repetitions of 13 offline checks. Automated rehearsals do not close TASK-054’s human log. See [final verification](evidence/pre-main-final-verification.json). All three owners retain their external items; no owner approval is invented.

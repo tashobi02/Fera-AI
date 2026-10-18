@@ -1,0 +1,2 @@
+npm notice run fera-ai@0.1.0 lint
+npm notice run eslint src tests next.config.ts vitest.config.mts eslint.config.mjs --max-warnings=0

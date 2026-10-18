@@ -772,7 +772,7 @@ Concurrency: use small batches that fit the available worker and CLI capacity, w
 ## 8. Orchestrator launch prompt (copy into Codex Sol 6.1)
 
 ```text
-You are the Phase 3 orchestrator for Fera (repo: /home/obidit/secondBrain/coding/Fera-AI, integration branch phase-3-obidit, checked out in that directory). You never implement features yourself.
+You are the Phase 3 orchestrator for Fera (repo: <repo>, integration branch phase-3-obidit, checked out in that directory). You never implement features yourself.
 
 Read first, in order: AGENTS.md; docs/execution/PHASE_3_PLAN.md (whole file); docs/execution/PHASE_3_FULL_SCOPE_QUALITY.md (log format only).
 
@@ -892,6 +892,6 @@ The final integration HEAD is **`9155963d677d987a9aaa64bc00b74b1ec0a7292e`** (fu
 
 The intermediate-state numbers below (18 / 8 skip; 50 unmapped L001–L050) are **historical** and have been superseded by the integration HEAD `9155963` final counts (`/tmp/fera-finish-{unit,lint,build,typecheck,e2e}.{json,log}` recorded in the durable evidence summary; 78 browser checks / 0 skip). They are retained only for the original audit reconciliation; do not cite them in current claims.
 
-- `p3-finish-journeys` worktree (`/home/obidit/secondBrain/coding/Fera-AI/.worktrees/p3-finish-journeys`) is at `f25de23` and unmerged. **E2E baseline 18 / skip 8 was the integration tree at `f25de23`; the journeys worktree specs have been integrated into the root tree; the current root integration e2e total at `9155963` is 78 passed / 0 skip (`/tmp/fera-finish-e2e.log`).** Treat the integrated journeys as current and the old 18 / 8 figure as historical.
+- `p3-finish-journeys` worktree (`<repo>/.worktrees/p3-finish-journeys`) is at `f25de23` and unmerged. **E2E baseline 18 / skip 8 was the integration tree at `f25de23`; the journeys worktree specs have been integrated into the root tree; the current root integration e2e total at `9155963` is 78 passed / 0 skip (`/tmp/fera-finish-e2e.log`).** Treat the integrated journeys as current and the old 18 / 8 figure as historical.
 - `p3-finish-label-inputs` worktree is at `f25de23` and unmerged. **It holds canonical blank inputs for the evaluator; it does not change unit/db/e2e counts.** Awaiting coordinator integration. The `eval/extract.mjs` path it feeds prints "not measured" at the current commit because the 50 labels L001–L050 have no canonical manifest mapping; do not invent one.
 - Puku workers were resumed on these lanes; their output is in the current commit. Until the canonical label manifest is in place, the dev-diagnostic numbers stand.

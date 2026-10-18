@@ -1,0 +1,20 @@
+DO
+        postgres_version
+---------------------------------
+ 16.12 (Debian 16.12-1.pgdg12+1)
+(1 row)
+
+ extversion
+------------
+ 0.8.1
+(1 row)
+
+        indexname         |                                            indexdef
+--------------------------+------------------------------------------------------------------------------------------------
+ cases_embedding_hnsw_idx | CREATE INDEX cases_embedding_hnsw_idx ON public.cases USING hnsw (embedding vector_cosine_ops)
+(1 row)
+
+ district_rows
+---------------
+             0
+(1 row)

@@ -1,0 +1,888 @@
+{
+  "audit_metadata": {
+    "audit_date": "2026-10-18",
+    "auditor": "Puku CLI Opus 4.8 worker (Fera pre-main branch reconciliation)",
+    "main_sha": "8499bce9326e1fcad0431ca9748ea1d3b616f5ae",
+    "non_ancestor_tips": 30,
+    "in_main_history_tips": 92,
+    "scope": "audit, not merge; no git operations performed",
+    "authorization": "AGENTS.md, constitution.md priority; spec pack priority"
+  },
+  "summary": {
+    "total_tips_audited": 30,
+    "included_in_main": 1,
+    "superseded_by_main": 22,
+    "useful_missing_files_or_patch": 7
+  },
+  "tips": [
+    {
+      "ref": "refs/heads/phase-3-obidit",
+      "sha": "a494a740f40ba3a7a9e298f18f930b47e3e08393",
+      "unique_commits": 21,
+      "disposition": "useful_missing",
+      "status": "RECOVERY_REQUIRED",
+      "reason": "Most earlier work is independently superseded, but a494a740 contains a real candidate-read malformed-ID audit fix missing from baseline main. The case-read fix 050c3d5c46 is already represented in main. Coordinator recovered a494a740 as fa7f743 on pre-main--candidate-audit; focused verification is pending.",
+      "current_equivalent": "main (8499bce) via merge 9155963 (phase3-integration) and 27bb3c6 (phase3-finish); case read z.string() fix in main came via separate path; the candidate read z.string() fix is NOT in main",
+      "files_to_integrate_or_recover": [
+        {
+          "path": "src/app/api/candidates/[id]/route.ts",
+          "action": "patch",
+          "note": "use z.string() in params; throw E-004 inside handler for non-UUID; commit a494a740",
+          "in_main": false,
+          "candidate_patch": true,
+          "test_added": "tests/db/candidate-read-route.test.ts (new) + tests/match/routes.test.ts (assert malformed→E-004)"
+        },
+        {
+          "path": "tests/db/candidate-read-route.test.ts",
+          "action": "create",
+          "note": "DB-backed test that a malformed id returns 404 + writes access.denied row with null case_id",
+          "in_main": false,
+          "candidate_patch": true
+        }
+      ],
+      "regression_risks": [
+        "Removing uuidSchema lets any string through; route must still record a denial audit (null case_id) so the saved-IDs and audit gap match.",
+        "If the malformed branch is taken inside the handler before the role guard, an unverified officer probe that sends a non-UUID would be denied without an audit row — keep the guard before the read."
+      ]
+    },
+    {
+      "ref": "refs/heads/phase-3-obidit--p3-001-mahim-hot-file-split",
+      "sha": "9c2ad8efca55c6a515f7c15b0e70b416e59eabae",
+      "unique_commits": 3,
+      "disposition": "superseded",
+      "status": "SUPERSEDED",
+      "reason": "Splits Phase 3 hot files (eval/*.mjs, scripts/*.mjs, src/app/components/icons.tsx, locale area files). Main already has the same split via later merges.",
+      "current_equivalent": "main: eval/{all,audit,dedupe,extract,match,time,wer}.mjs present; src/locales/areas/* present; scripts/{model-fetch,reembed,smoke}.mjs present",
+      "files_to_integrate_or_recover": [],
+      "regression_risks": []
+    },
+    {
+      "ref": "refs/heads/phase-3-obidit--p3-002-obidit-wording",
+      "sha": "42c2d0f76e8d34240362aab6e6feec72f472d3de",
+      "unique_commits": 3,
+      "disposition": "superseded",
+      "status": "SUPERSEDED",
+      "reason": "Pins matchReviewSimilarityNote and matchReviewDialogBody as D-A negated disclaimers. Main has the keys in src/locales/areas/officer-match.ts (refactored from index.ts) and the test in tests/outputs/guard.test.ts has the same assertion.",
+      "current_equivalent": "src/locales/areas/officer-match.ts lines 4-10; tests/outputs/guard.test.ts lines 81-121",
+      "files_to_integrate_or_recover": [],
+      "regression_risks": []
+    },
+    {
+      "ref": "refs/heads/phase-3-obidit--p3-003-mahim-photo-scan",
+      "sha": "13fa187d6971ee0f01a60ddb38a097c42cfd1e92",
+      "unique_commits": 3,
+      "disposition": "superseded",
+      "status": "SUPERSEDED",
+      "reason": "Narrows the photo-input regex in tests/ui/report-screen.test.ts so audio-only getUserMedia passes. Main has the same NO_PHOTO + stripSafeGetUserMedia pattern (line 174-200).",
+      "current_equivalent": "tests/ui/report-screen.test.ts lines 174-200",
+      "files_to_integrate_or_recover": [],
+      "regression_risks": []
+    },
+    {
+      "ref": "refs/heads/phase-3-obidit--p3-004-mahim-draft-secret",
+      "sha": "12317b5b334a6db27af44a5c1b339f86401733e9",
+      "unique_commits": 3,
+      "disposition": "superseded",
+      "status": "SUPERSEDED",
+      "reason": "Requires DRAFT_SIGNING_KEY at all times (fails closed). Main has the same logic in src/server/auth/secrets.ts (SecretName = DRAFT_SIGNING_KEY; line 14: DRAFT_SIGNING_KEY fails closed even in dev).",
+      "current_equivalent": "src/server/auth/secrets.ts (DRAFT_SIGNING_KEY fails closed); tests/auth/tokens.test.ts 204 lines cover the case",
+      "files_to_integrate_or_recover": [],
+      "regression_risks": []
+    },
+    {
+      "ref": "refs/heads/phase-3-obidit--p3-010-masnun-synthetic",
+      "sha": "d5371b6779750cea010b1a05cad0dc84f523df8f",
+      "unique_commits": 12,
+      "disposition": "superseded",
+      "status": "OBSOLETE_GENERATOR",
+      "reason": "The old 210-record format and generator are superseded by current 200-record synth-2 data. Preserve original work in Git history; do not replace current generator or evaluation data.",
+      "current_equivalent": "db/seed/{synthetic,cases,districts,index}.mjs + data/synthetic/{ground_truth.json,ground_truth.sha256,records.jsonl,records.sha256} (synth-2, 200 records)",
+      "files_to_integrate_or_recover": [
+        {
+          "path": "data/synthetic/SHA256SUMS",
+          "action": "discard",
+          "note": "210-record branch draft; main has 200-record synth-2 generator"
+        },
+        {
+          "path": "data/synthetic/cases.json",
+          "action": "discard",
+          "note": "older flat schema; replaced by records.jsonl"
+        },
+        {
+          "path": "data/synthetic/ground-truth.json",
+          "action": "discard",
+          "note": "older schema; replaced by ground_truth.json (hyphen→underscore)"
+        },
+        {
+          "path": "db/seed/generate-synthetic.mjs",
+          "action": "discard",
+          "note": "replaced by db/seed/cases.mjs and synthetic.mjs"
+        }
+      ],
+      "regression_risks": [
+        "If a coordinator uncritically restores the 210-record set, it will conflict with the current synth-2 generator and the seedCases() entry point."
+      ]
+    },
+    {
+      "ref": "refs/heads/phase-3-obidit--p3-011-masnun-embedding-spike",
+      "sha": "f9b5822486dbf407abff781c3f1b27e7f1218bf0",
+      "unique_commits": 12,
+      "disposition": "superseded",
+      "status": "SUPERSEDED",
+      "reason": "Initial 122-line embedding-spike evidence. Main has docs/execution/evidence/embedding-spike.md (12,836 bytes) with full measurements and R-4 recommendation.",
+      "current_equivalent": "docs/execution/evidence/embedding-spike.md (main)",
+      "files_to_integrate_or_recover": [],
+      "regression_risks": []
+    },
+    {
+      "ref": "refs/heads/phase-3-obidit--p3-012-masnun-labelled-drafts",
+      "sha": "8dac12dfdae24e6e05ba833732944dc5eb5b0999",
+      "unique_commits": 11,
+      "disposition": "superseded",
+      "status": "SUPERSEDED",
+      "reason": "Phase 3 Wave 0.0 gate (PASS) and docs/execution updates. Main has the W0.0 gate file (docs/gates/W0.0-2026-10-17-1146.md) and updated PHASE_3_FULL_SCOPE_QUALITY.md / PHASE_3_PLAN.md.",
+      "current_equivalent": "docs/gates/W0.0-2026-10-17-1146.md; PHASE_3_PLAN.md; PHASE_3_FULL_SCOPE_QUALITY.md (main)",
+      "files_to_integrate_or_recover": [],
+      "regression_risks": []
+    },
+    {
+      "ref": "refs/heads/phase-3-obidit--p3-014-mahim-playwright",
+      "sha": "0bdac057b45ee99779500be5efef89fbafc976ed",
+      "unique_commits": 12,
+      "disposition": "superseded",
+      "status": "SUPERSEDED",
+      "reason": "Adds an isolated Playwright + axe harness (playwright.config.ts, tests/e2e/{smoke.spec,support/db}.ts, vitest.config.mts, .github/workflows/ci.yml update). Main has all of these files.",
+      "current_equivalent": "playwright.config.ts, tests/e2e/smoke.spec.ts, tests/e2e/support/db.ts, vitest.config.mts, .github/workflows/ci.yml (all in main)",
+      "files_to_integrate_or_recover": [],
+      "regression_risks": []
+    },
+    {
+      "ref": "refs/heads/phase-3-obidit--p3-015-obidit-district-review",
+      "sha": "624d15b66da2ce7bdbd7ee982676c9b8cac71baa",
+      "unique_commits": 12,
+      "disposition": "superseded",
+      "status": "SUPERSEDED",
+      "reason": "District-selection in S-003 + link to submitted report. Main has src/app/(parent)/intake/review/{review-fields,review-screen}.tsx with expanded district logic and the same 360-px screenshot (different size, 90,300 bytes vs 112,470 in branch).",
+      "current_equivalent": "src/app/(parent)/intake/review/review-fields.tsx (25,273 bytes main), review-screen.tsx (29,535 bytes main)",
+      "files_to_integrate_or_recover": [],
+      "regression_risks": []
+    },
+    {
+      "ref": "refs/heads/phase-3-obidit--p3-016-mahim-case-read",
+      "sha": "45bc63ba2ae93ef52654e9e5040d844d627539c0",
+      "unique_commits": 12,
+      "disposition": "included",
+      "status": "PARTIAL_RECOVERED",
+      "reason": "Real audit-gap fix for malformed case-read ids (BR-010, TC-052): the route param is z.string() and readCase returns hidden for non-UUIDs so the denial is audited with null case_id. Main already has this fix in src/app/api/cases/[id]/route.ts line 37 (z.strictObject({ id: z.string() })) and the matching malformed-id test in tests/db/case-read.test.ts ('malformed case id → same E-004 and NULL-FK denial audit', line ~325).",
+      "current_equivalent": "src/app/api/cases/[id]/route.ts (line 37) + tests/db/case-read.test.ts + tests/api/cases-read.test.ts 'hides a malformed ID as E-004 and audits the denial' (line ~40)",
+      "files_to_integrate_or_recover": [],
+      "regression_risks": []
+    },
+    {
+      "ref": "refs/heads/phase-3-obidit--p3-018-mahim-case-close",
+      "sha": "33c901745710f8733556da749589c50086572b48",
+      "unique_commits": 12,
+      "disposition": "superseded",
+      "status": "SUPERSEDED",
+      "reason": "P3-018 close/audit preserved draft. Main has the full implementation via 9155963 lineage: src/app/api/cases/[id]/{close,audit}/route.ts, src/server/audit/safe-read.ts (with role-eligibility pre-check, 112 lines vs 104 in branch), and tests/api/case-close.test.ts + tests/db/case-audit-read.test.ts (18,762 bytes). The branch's audit route, close route, safe-read, and tests are all SUPERSEDED by the integration tree.",
+      "current_equivalent": "src/app/api/cases/[id]/close/route.ts (main) + audit/route.ts (main) + src/server/audit/safe-read.ts (main, 112 lines) + tests/db/case-audit-read.test.ts (main, 18,762 bytes)",
+      "files_to_integrate_or_recover": [],
+      "regression_risks": [
+        "Branch safe-read.ts (104 lines) does NOT have the role-eligibility pre-check; if restored, an unverified principal would trigger the audit_log SELECT. Do NOT restore."
+      ]
+    },
+    {
+      "ref": "refs/heads/phase0--lane-a",
+      "sha": "074b5429a68b923bc0754862cf4620337b6f3bbb",
+      "unique_commits": 4,
+      "disposition": "useful_missing",
+      "status": "USEFUL_MISSING_PHASE0_EVIDENCE",
+      "reason": "Phase 0 bootstrap scaffold + evidence (TASK-001/002/003). Main dropped the entire docs/execution/evidence/phase0/ directory and the G0 gate file. The branch holds 18 evidence files (build.txt, lint.txt, typecheck.txt, test.txt, github-auth-2026-10-13-1132.md, embedding-blocker.md, human-blockers.md, dependency-audit.json, protected-{before,after}.json, review.md, verification.md, etc.) plus docs/costs.md and docs/gates/G0-2026-10-13-1125.md. The phase0 evidence is HISTORICAL and predates main's PHASE_3_AUDIT_2026-10-18 / phase3-finish-review evidence, so it is RECOVERABLE but REDUNDANT with main's later evidence trail. Do NOT silently drop; the W0.0 gate relies on phase0's evidence chain being consistent.",
+      "current_equivalent": "main has docs/gates/{G3,G4,G5}-2026-10-18.md but NO phase0/ directory; docs/costs.md is NOT in main; protected-phase1-before.sha256 is in main but not the phase0 protected-{before,after}.json pair",
+      "files_to_integrate_or_recover": [
+        {
+          "path": "docs/execution/evidence/phase0/README.md",
+          "action": "consider",
+          "note": "historical index; not strictly needed because main has later evidence"
+        },
+        {
+          "path": "docs/execution/evidence/phase0/build.txt",
+          "action": "consider",
+          "note": "early build log"
+        },
+        {
+          "path": "docs/execution/evidence/phase0/lint.txt",
+          "action": "consider",
+          "note": "early lint log"
+        },
+        {
+          "path": "docs/execution/evidence/phase0/typecheck.txt",
+          "action": "consider",
+          "note": "early typecheck log"
+        },
+        {
+          "path": "docs/execution/evidence/phase0/test.txt",
+          "action": "consider",
+          "note": "early test log"
+        },
+        {
+          "path": "docs/execution/evidence/phase0/companion-typecheck-coverage.txt",
+          "action": "consider",
+          "note": "early coverage"
+        },
+        {
+          "path": "docs/execution/evidence/phase0/local-schema-apply.txt",
+          "action": "consider",
+          "note": "local schema apply log"
+        },
+        {
+          "path": "docs/execution/evidence/phase0/local-schema-check.txt",
+          "action": "consider",
+          "note": "local schema check log"
+        },
+        {
+          "path": "docs/execution/evidence/phase0/production-audit.txt",
+          "action": "consider",
+          "note": "production audit log"
+        },
+        {
+          "path": "docs/execution/evidence/phase0/dependency-audit.json",
+          "action": "consider",
+          "note": "early dependency audit"
+        },
+        {
+          "path": "docs/execution/evidence/phase0/embedding-blocker.md",
+          "action": "consider",
+          "note": "early embedding blocker record"
+        },
+        {
+          "path": "docs/execution/evidence/phase0/human-blockers.md",
+          "action": "consider",
+          "note": "early human blockers list"
+        },
+        {
+          "path": "docs/execution/evidence/phase0/github-auth-2026-10-13-1132.md",
+          "action": "consider",
+          "note": "GitHub auth correction 13 Oct 2026"
+        },
+        {
+          "path": "docs/execution/evidence/phase0/protected-before.json",
+          "action": "consider",
+          "note": "protected path pre-snapshot"
+        },
+        {
+          "path": "docs/execution/evidence/phase0/protected-after.json",
+          "action": "consider",
+          "note": "protected path post-snapshot"
+        },
+        {
+          "path": "docs/execution/evidence/phase0/review.md",
+          "action": "consider",
+          "note": "phase0 review notes"
+        },
+        {
+          "path": "docs/execution/evidence/phase0/verification.md",
+          "action": "consider",
+          "note": "phase0 verification log"
+        },
+        {
+          "path": "docs/gates/G0-2026-10-13-1125.md",
+          "action": "consider",
+          "note": "G0 gate from 13 Oct 2026 (TASK-001/002 recheck); later G3/G4/G5 gates exist in main"
+        },
+        {
+          "path": "docs/costs.md",
+          "action": "consider",
+          "note": "initial pricing notes from TASK-003 era; main has no docs/costs.md"
+        },
+        {
+          "path": "scripts/db/check-local.sql",
+          "action": "consider",
+          "note": "TASK-002 schema check SQL; not in main"
+        }
+      ],
+      "regression_risks": [
+        "docs/costs.md is a planning doc; restoring it may conflict with later provider price changes (TASK-003 spend cap USD 25/30).",
+        "scripts/db/check-local.sql is a one-shot TASK-002 check; main now uses scripts/db/guard.mjs and scripts/db/test-db.mjs. Restoring the old SQL could create two competing checks.",
+        "docs/gates/G0-2026-10-13-1125.md predates G2' and G3-2026-10-18 / G4-2026-10-18 / G5-2026-10-18; restore only as historical record, not as live gate."
+      ]
+    },
+    {
+      "ref": "refs/heads/phase2--obidit-p3-013-manual-form",
+      "sha": "457af59e8411ca024e6db4c96396d14541476a3d",
+      "unique_commits": 1,
+      "disposition": "superseded",
+      "status": "SUPERSEDED",
+      "reason": "S-005 manual form with extracted emptyManualDraft. Main has manual-form.tsx that defines emptyManualDraft inline (not as a separate empty-draft.ts module). The branch's empty-draft.ts extraction is a stylistic split; main's inline version is functionally equivalent.",
+      "current_equivalent": "src/app/(parent)/intake/form/manual-form.tsx (main, emptyManualDraft() inline)",
+      "files_to_integrate_or_recover": [
+        {
+          "path": "src/app/(parent)/intake/form/empty-draft.ts",
+          "action": "discard",
+          "note": "extraction is stylistic; main has the same logic inline"
+        }
+      ],
+      "regression_risks": []
+    },
+    {
+      "ref": "refs/heads/phase2--obidit-phase3-close-audit",
+      "sha": "7a9fadb85d7cd056f4f6adaeceb00850de3945a3",
+      "unique_commits": 2,
+      "disposition": "superseded",
+      "status": "SUPERSEDED",
+      "reason": "P3-018 repair-attempt preserved draft (7a9fadb + b2fc375). Main has the final implementation via 9155963.",
+      "current_equivalent": "src/app/api/cases/[id]/close/route.ts (main) + src/server/audit/safe-read.ts (main) + tests/db/case-audit-read.test.ts (main)",
+      "files_to_integrate_or_recover": [],
+      "regression_risks": []
+    },
+    {
+      "ref": "refs/heads/phase3-finish--decisions",
+      "sha": "322f6fe6fa847f5e40467023bbf98988ef6e5920",
+      "unique_commits": 1,
+      "disposition": "superseded",
+      "status": "SUPERSEDED",
+      "reason": "PHASE_3_PLAN.md 18-Oct rewrite + phase3-resume-board.md (56 lines) + phase3-resume-decisions.md (110 lines). Main has the same phase3-resume-board.md (58 lines) and phase3-resume-decisions.md (110 lines), with the PHASE_3_PLAN.md now showing all rows in 'review' state.",
+      "current_equivalent": "docs/execution/handoff/phase3-resume-{board,decisions}.md (main); PHASE_3_PLAN.md (main, post-9155963 / 27bb3c6)",
+      "files_to_integrate_or_recover": [],
+      "regression_risks": []
+    },
+    {
+      "ref": "refs/heads/phase3-finish--duplicates-review",
+      "sha": "433949666c6ef713e90f5dd1e5c82534c16df6bb",
+      "unique_commits": 1,
+      "disposition": "superseded",
+      "status": "SUPERSEDED",
+      "reason": "Adds caseImported audit action and a test. Main has CASE_AUDIT_ACTIONS.caseImported: 'case.imported' and the test 'allows protected synthetic imports only under case.imported for admins' (tests/case/audit.test.ts line 83-91).",
+      "current_equivalent": "src/server/audit/actions.ts (caseImported entry); tests/case/audit.test.ts lines 83-91",
+      "files_to_integrate_or_recover": [],
+      "regression_risks": []
+    },
+    {
+      "ref": "refs/heads/phase3-finish--manifest",
+      "sha": "d810e80d7f528bec5fbc901faf9bcadacbee8cab",
+      "unique_commits": 1,
+      "disposition": "superseded",
+      "status": "SUPERSEDED",
+      "reason": "Ports grouped manifest to eval/manifest.json (TASK-064). Main already has eval/manifest.json (108,411 bytes), eval/manifest.sha256, eval/build-manifest.mjs, eval/manifest-lib.mjs, and tests/data/manifest.test.ts. The branch's eval/manifest.mjs is a 533-byte stub; main's is the same.",
+      "current_equivalent": "eval/manifest.json, eval/manifest.sha256, eval/build-manifest.mjs, eval/manifest-lib.mjs, eval/manifest.mjs (main); tests/data/manifest.test.ts + tests/eval/manifest.test.ts",
+      "files_to_integrate_or_recover": [
+        {
+          "path": "data/synthetic/manifest.json",
+          "action": "discard",
+          "note": "branch deletes this; main has the same under eval/manifest.json"
+        },
+        {
+          "path": "data/synthetic/manifest.sha256",
+          "action": "discard",
+          "note": "superseded by eval/manifest.sha256"
+        }
+      ],
+      "regression_risks": []
+    },
+    {
+      "ref": "refs/heads/phase3-finish--matcher-run",
+      "sha": "1d4ff07569993f1541025561c2112b12ae0e3cc8",
+      "unique_commits": 1,
+      "disposition": "superseded",
+      "status": "SUPERSEDED",
+      "reason": "Rematch after owner edits (TASK-049): adds API-005 to MatcherPostcommitApi. Main has the same change in src/server/case/postcommit.ts line 7 (MatcherPostcommitApi = 'API-003' | 'API-005' | 'API-007') and src/server/parent/edit-view.ts line 42 calls runMatcherPostcommit with 'API-005'.",
+      "current_equivalent": "src/server/case/postcommit.ts (line 7); src/server/parent/edit-view.ts (line 42); src/server/case/commands.ts (editMissingCase)",
+      "files_to_integrate_or_recover": [],
+      "regression_risks": []
+    },
+    {
+      "ref": "refs/heads/phase3-finish--parent-status",
+      "sha": "e7eea1373acd671ee72a74b17bd10bb7a6177685",
+      "unique_commits": 1,
+      "disposition": "superseded",
+      "status": "SUPERSEDED",
+      "reason": "Switches tests/db/case-edit-route.test.ts from forceStatus() to a legal-state transitionMissingCase() using openMissing / closeMissing. Main has the same: tests/db/case-edit-route.test.ts line 70 defines transitionMissingCase using openMissing/closeMissing (lines 73-74).",
+      "current_equivalent": "tests/db/case-edit-route.test.ts (main, 276 lines) — transitionMissingCase() at line 70",
+      "files_to_integrate_or_recover": [],
+      "regression_risks": []
+    },
+    {
+      "ref": "refs/heads/phase3-finish--test-stability",
+      "sha": "a7b5e8e806f6bd1d9f6f80d21bd5d69d40e2425a",
+      "unique_commits": 2,
+      "disposition": "superseded",
+      "status": "SUPERSEDED",
+      "reason": "Bounds model-fetch CLI subprocess (67d973ef06) + tsconfig.json excludes worktrees (a7b5e8e806). Main has both: tests/embeddings/model-fetch-test-loader.mjs uses an offline data: URL stub AND intercepts global fetch (more refined than branch); tsconfig.json excludes '.worktrees'.",
+      "current_equivalent": "tests/embeddings/model-fetch-test-loader.mjs (main, 1,529 bytes with fetch intercept); tsconfig.json exclude array contains '.worktrees'",
+      "files_to_integrate_or_recover": [],
+      "regression_risks": []
+    },
+    {
+      "ref": "refs/remotes/origin/phase-2-masnun",
+      "sha": "5bfdaf610e1a0be7c6fb69acb9d2a2a25708762b",
+      "unique_commits": 2,
+      "disposition": "superseded",
+      "status": "SUPERSEDED",
+      "reason": "Removes matchReviewSimilarityNote and matchReviewDialogBody from src/locales/index.ts. Main has the same keys MOVED to src/locales/areas/officer-match.ts (refactored layout). The branch's deletion is part of a refactor that main completed.",
+      "current_equivalent": "src/locales/areas/officer-match.ts (main, lines 4-10); tests/outputs/guard.test.ts pins the same exempt keys",
+      "files_to_integrate_or_recover": [],
+      "regression_risks": []
+    },
+    {
+      "ref": "refs/remotes/origin/phase1",
+      "sha": "2422a0cdf3bb6e6d7e1e717953a4a1a6533ae387",
+      "unique_commits": 5,
+      "disposition": "superseded",
+      "status": "SUPERSEDED",
+      "reason": "5 merge commits (PRs #1, #3, #5, #7, #8) landing Phase 1 scaffold/contracts/DB/shell/TASK-001/002. Main has all of this: Next.js scaffold, @/contracts, db/schema_v2.sql, src/server/{auth,db,case,audit,admin}/. The unique merge commit changes are integration artifacts; the code they carried is in main.",
+      "current_equivalent": "main: full src/contracts, src/server/{auth,db,case,audit,admin}, db/schema_v2.sql, AGENTS.md, .env.example, .github/workflows/ci.yml",
+      "files_to_integrate_or_recover": [],
+      "regression_risks": []
+    },
+    {
+      "ref": "refs/remotes/origin/phase1--mahim-spec007",
+      "sha": "b49316a4589b53ae8f657c988dabec3136f02915",
+      "unique_commits": 1,
+      "disposition": "useful_missing",
+      "status": "USEFUL_MISSING_SPEC_FILE",
+      "reason": "Adds specs/007-quality-release/{spec.md,checklists/requirements.md} — feature 007 (quality and release) specification. Specs 004, 005, 006 are NOT in any non-ancestor tip and NOT in main; only 001-platform-foundation, 002-intake-ai, 003-parent-outputs exist in main. Spec 007 is a real, substantive 20-story feature spec covering release-candidate proof, Bangla/a11y/phone checks, frozen evaluation, WER/devices, Round 2 submission pack, and finale readiness. It is NOT superseded — the underlying tasks (TASK-034..046, TASK-053..058, TASK-060) are tracked in PHASE_3_PLAN.md but the spec.md is the only spec pack entry. RECOVER the spec file as a planning artifact; do NOT back-port code.",
+      "current_equivalent": "none — spec.md and checklist are entirely missing from main's specs/ directory",
+      "files_to_integrate_or_recover": [
+        {
+          "path": "specs/007-quality-release/spec.md",
+          "action": "recover",
+          "note": "feature 007 spec (STORY-022/023, FR-027/028/032, GOAL-001..009, TASK-034..046, TASK-053..058, TASK-060); 8 user stories with acceptance scenarios; quality checklist 15/16; 0 NEEDS CLARIFICATION markers; UNKNOWN open decisions OD-1..OD-8 (organiser cutoff, channel, formats; mentor fixes; devices; volunteers; DB host; prices; judging weights)"
+        },
+        {
+          "path": "specs/007-quality-release/checklists/requirements.md",
+          "action": "recover",
+          "note": "feature 007 quality checklist (Content Quality + Requirement Completeness + Feature Readiness sections)"
+        },
+        {
+          "path": "docs/execution/PHASE_1_SPECS_CONTRACTS.md",
+          "action": "patch",
+          "note": "update the 007 row in the spec-pack table to 'done' for specify stage and link the spec.md; backport only the row, not the whole 5-commit lineage"
+        }
+      ],
+      "regression_risks": [
+        "Recovering spec 007 alone, without specs 004/005/006, leaves a gap in the spec pack table. Coordinators may want to add a note in PHASE_1_SPECS_CONTRACTS.md that 004/005/006 are not on disk.",
+        "The 007 spec references D6 tasks (TASK-034..046, etc.) and TC-001..TC-066. If main's TC numbering has drifted, the spec text may need re-mapping; the spec lists TC numbers but does not assert specific test counts beyond TC-001..TC-066."
+      ]
+    },
+    {
+      "ref": "refs/remotes/origin/phase1--mahim-task001",
+      "sha": "fbd413a097abce697bb90b09ed54195d2e9aa7ec",
+      "unique_commits": 1,
+      "disposition": "superseded",
+      "status": "SUPERSEDED",
+      "reason": "A merge commit for PR #5 (Phase 1 -- mahim-db). The DB stack (PostgreSQL 16 + pgvector, db/schema_v2.sql, scripts/db/) is in main.",
+      "current_equivalent": "db/schema_v2.sql, scripts/db/{guard,reset,roles,seed-users,test-db,up.sh}, tests/db/* (main)",
+      "files_to_integrate_or_recover": [],
+      "regression_risks": []
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--mahim-manual-form",
+      "sha": "2fbb8d00aaec2e3372173c7e9a32fef2f25ce462",
+      "unique_commits": 1,
+      "disposition": "useful_missing",
+      "status": "USEFUL_MISSING_EVIDENCE",
+      "reason": "Adds the S-005 / TASK-025 evidence file docs/execution/evidence/s005-manual-form.md (40+ lines, structured status table for TC-017 with Done / Not done columns, files-built table, verification log, and 18 new tests listed). It also adds src/lib/intake/manual.ts (extracted pure helpers emptyMissingDraft, manualFromStored) and links 'ফর্ম খুলুন' from S-002/S-003. Main has manual.ts logic INLINE in src/app/(parent)/intake/form/manual-form.tsx and tests/intake-ui/manual-form.test.ts, but does NOT have docs/execution/evidence/s005-manual-form.md. The evidence file is HISTORICAL and documents that S-005 partially met TC-017 (no auto-open, no ≤2s timing, no real provider failure). Recover the evidence file as historical record; do NOT restore the separate src/lib/intake/manual.ts module since the inline version works.",
+      "current_equivalent": "src/app/(parent)/intake/form/manual-form.tsx (inline emptyManualDraft); src/lib/intake/manual.ts is missing in main",
+      "files_to_integrate_or_recover": [
+        {
+          "path": "docs/execution/evidence/s005-manual-form.md",
+          "action": "recover",
+          "note": "TASK-025 evidence (Owner: Mahim, Lane: mahim-manual-form, Branch: phase2--mahim-manual-form); states TC-017 partial (S-005 reachable from S-002/S-003, pre-fills parsed fields, keeps text; not done: auto-open, ≤2s timing, real provider failure); 18 new tests in tests/intake/manual/; verification log shows npm run lint/typecheck/test/build all exit 0"
+        },
+        {
+          "path": "src/lib/intake/manual.ts",
+          "action": "discard",
+          "note": "refactor: branch extracted emptyMissingDraft/manualFromStored to a separate file; main has emptyManualDraft inline. Functionally equivalent; restoring splits a file unnecessarily."
+        },
+        {
+          "path": "tests/intake/manual/manual-form.test.ts",
+          "action": "discard",
+          "note": "branch added 18 tests in tests/intake/manual/; main has tests/intake-ui/manual-form.test.ts (equivalent)"
+        },
+        {
+          "path": "tests/intake/manual/manual.test.ts",
+          "action": "discard",
+          "note": "same"
+        }
+      ],
+      "regression_risks": [
+        "Recovering only the evidence file (s005-manual-form.md) without restoring src/lib/intake/manual.ts or tests/intake/manual/* is safe; the evidence references the files but the evidence is independent of them."
+      ]
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--masnun-duplicates",
+      "sha": "7ade150f0b4bd11aa38963cfd6491e5190323e76",
+      "unique_commits": 13,
+      "disposition": "useful_missing",
+      "status": "PARTIAL_USEFUL_MISSING",
+      "reason": "Carries a TASK-018 duplicate detector implementation. Branch has src/server/duplicates/{banner,detect,index}.ts; scripts/dedupe.mjs; tests/duplicates/{assess,banner}.test.ts; tests/db/embeddings.test.ts; tests/embeddings/support.ts; docs/execution/evidence/duplicates.md; docs/execution/evidence/embeddings.md. Main has a SUPERSEDED but SUBSTANTIALLY EXPANDED duplicates module: src/server/duplicates/{detect,index,decision,persist,read}.ts (5 files vs 3), tests/db/duplicates.test.ts, but is MISSING the banner.ts extraction. Main does NOT have scripts/dedupe.mjs (the branch's local CLI). Main does NOT have tests/duplicates/assess.test.ts (branch-only) or banner.test.ts. Main does NOT have docs/execution/evidence/duplicates.md. Main has docs/execution/evidence/embeddings.md MISSING. The branch's banner.ts is a useful refactor (extracts D3/D4 copy to locale files) — main's detect.ts is 18,734 bytes vs branch's likely smaller. The branch's assess/banner tests are recoverable as additional unit coverage.",
+      "current_equivalent": "src/server/duplicates/{detect,index,decision,persist,read}.ts (main, 5 files); tests/db/duplicates.test.ts (main)",
+      "files_to_integrate_or_recover": [
+        {
+          "path": "docs/execution/evidence/duplicates.md",
+          "action": "recover",
+          "note": "TASK-018 evidence (Owner: Masnun, Branch: phase2--masnun-duplicates); design with UNCALIBRATED parameters disclosed; smoke on all 200 records (not dev/test, not a result); 36 links, TP 23 / FP 13 / FN 2; pairwise precision 0.64 / recall 0.92 / F1 0.75; shared-phone different-child same-kind pairs 122 → 18 after hard filters → 0 linked; phone-only links 0"
+        },
+        {
+          "path": "docs/execution/evidence/embeddings.md",
+          "action": "recover",
+          "note": "TASK-016 evidence (Owner: Masnun, Branch: phase2--masnun-embeddings); pinned model 'Xenova/multilingual-e5-small' q8 revision 761b726d…, 384-d; space string 'e5-small-q8-mean-l2-384-text-v1-f88aa34c97'; SHA-256-verified model cache; EMBED_PROVIDER switch fails closed for 'api'; caseEmbeddingText fields documented"
+        },
+        {
+          "path": "tests/duplicates/assess.test.ts",
+          "action": "consider",
+          "note": "22 unit tests in branch (age, range gaps, unknown, 72h boundary, interval comparison, kind mismatch, redacted/terminal, sex conflict, phone-only never links, cosine is not an identity cue, evidence list, cue count, banner wording). Main's tests/db/duplicates.test.ts is integration-only."
+        },
+        {
+          "path": "tests/duplicates/banner.test.ts",
+          "action": "consider",
+          "note": "3 banner wording tests"
+        },
+        {
+          "path": "src/server/duplicates/banner.ts",
+          "action": "consider",
+          "note": "branch extraction of duplicateBannerFor; main has it inline. Refactor-only."
+        },
+        {
+          "path": "scripts/dedupe.mjs",
+          "action": "consider",
+          "note": "local CLI for dedupe --case <uuid> | --all. Useful for local dev but main has no equivalent. The branch dedupe.mjs imports from src/server/duplicates/detect.ts which differs from main's API surface."
+        },
+        {
+          "path": "tests/db/embeddings.test.ts",
+          "action": "consider",
+          "note": "177-line DB test for reembed. Main has tests/db/reembed.test.ts (468 lines) which covers more, but the branch version is a prior implementation that may have assertions worth backporting."
+        },
+        {
+          "path": "tests/embeddings/support.ts",
+          "action": "consider",
+          "note": "fakeEmbedder + seen() helpers; may overlap with main's tests/embeddings/ directory."
+        }
+      ],
+      "regression_risks": [
+        "Branch's src/server/duplicates/banner.ts has a different API than main's detect.ts; restoring it would create two implementations of duplicateBannerFor. Keep banner.ts as a refactor proposal only; do not restore without refactoring main's detect.ts callers.",
+        "Branch's scripts/dedupe.mjs imports { PROFILE_COLUMNS, assessPair, detectDuplicates, toProfile } from src/server/duplicates/detect.ts; main's detect.ts likely has different exports. Restoring dedupe.mjs would require a detect.ts shim.",
+        "docs/execution/evidence/duplicates.md references the BRANCH's UNCALIBRATED parameters and the 200-record smoke. If the smoke was rerun on main's synth-2 generator, the numbers in the doc are stale. Recover with an 'as of branch' disclaimer or rerun the smoke.",
+        "docs/execution/evidence/embeddings.md is a planning doc. The Pinned model and SHA-256 are stable but the caseEmbeddingText field list may have evolved."
+      ]
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--masnun-embeddings",
+      "sha": "51db365063cf025bc1f6e8c571562fb2646e56c6",
+      "unique_commits": 6,
+      "disposition": "useful_missing",
+      "status": "PARTIAL_USEFUL_MISSING",
+      "reason": "Embeddings service implementation (TASK-016). Branch has scripts/embeddings/preflight.mjs (requireTypeStripping), scripts/embeddings/reembed-lib.mjs, src/server/embeddings/{index,model,text}.ts, scripts/{model-fetch,reembed}.mjs, tests/embeddings/{embed,empty-text,submitted-only,text}.test.ts, tests/db/embeddings.test.ts. Main has scripts/embeddings/{preflight.mjs,reembed-lib.mjs}, src/server/embeddings/{index,model,text}.ts, scripts/{model-fetch,reembed}.mjs, tests/embeddings/{embed,empty-text,submitted-only,text,reembed-upgrade}.test.ts, tests/db/reembed.test.ts. Main is SUPERSEDED with the additional tests/db/reembed.test.ts and tests/embeddings/reembed-upgrade.test.ts. The branch's docs/execution/evidence/embeddings.md is MISSING in main.",
+      "current_equivalent": "scripts/embeddings/{preflight,reembed-lib}.mjs, src/server/embeddings/{index,model,text}.ts, tests/db/reembed.test.ts (main, 468 lines)",
+      "files_to_integrate_or_recover": [
+        {
+          "path": "docs/execution/evidence/embeddings.md",
+          "action": "recover",
+          "note": "TASK-016 evidence (Owner: Masnun, Branch: phase2--masnun-embeddings); pinned model details, space string, EMBED_PROVIDER, caseEmbeddingText rationale. Main has docs/execution/evidence/embedding-spike.md (R-4 spike) but NOT embeddings.md (TASK-016 service evidence)"
+        }
+      ],
+      "regression_risks": [
+        "Same as phase2--masnun-duplicates: branch numbers may be stale relative to main's synth-2 set."
+      ]
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--masnun-manifest",
+      "sha": "b72aac9ade7dce27a7da17be86c12d5c2425da0d",
+      "unique_commits": 3,
+      "disposition": "useful_missing",
+      "status": "USEFUL_MISSING_EVIDENCE",
+      "reason": "Adds manifest evidence (TASK-064). Branch has docs/execution/evidence/manifest.md; main does NOT. Main has eval/FREEZE.md, eval/manifest.json, eval/manifest.sha256, eval/manifest-lib.mjs, eval/build-manifest.mjs, tests/data/manifest.test.ts, tests/eval/manifest.test.ts. Recover the evidence file as the human-readable summary; do not restore manifest.json / .sha256 because main's eval/ files are the live canonical.",
+      "current_equivalent": "eval/FREEZE.md, eval/manifest.json, eval/manifest.sha256, eval/manifest-lib.mjs (main)",
+      "files_to_integrate_or_recover": [
+        {
+          "path": "docs/execution/evidence/manifest.md",
+          "action": "recover",
+          "note": "TASK-064 evidence (Owner: Masnun, Branch: phase2--masnun-manifest); identity-grouped dev/test manifest, hash and held-out guard; final test count 11"
+        }
+      ],
+      "regression_risks": []
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--masnun-synthetic",
+      "sha": "dedee07313655e8b055b6bdc452884f0fda610f1",
+      "unique_commits": 3,
+      "disposition": "superseded",
+      "status": "SUPERSEDED",
+      "reason": "Merge of phase-2-masnun into synthetic branch; the only net change is .github/workflows/ci.yml (33 lines added: 'fetch pinned offline E5-q8 model cache' step + FERA_MODEL_CACHE env), the 5bfdaf610e locale fix (already in main via refactor), and the 415de80513 phase2 hot-file split (already in main). The .github/workflows/ci.yml change adds a model cache fetch step that main does NOT have. This is a useful CI improvement: it would make the test:db job reproducible without hitting Hugging Face at CI time.",
+      "current_equivalent": "Current CI already has the pinned E5 cache fetch and FERA_MODEL_CACHE environment in its full browser job; do not duplicate it.",
+      "files_to_integrate_or_recover": [
+        {
+          "path": ".github/workflows/ci.yml",
+          "action": "consider",
+          "note": "branch adds 6 lines: 'fetch pinned offline E5-q8 model cache' step + FERA_MODEL_CACHE env. Useful for CI reproducibility, but main runs with synthetic FAKE embedder (per tests/db/reembed.test.ts); adding a model-cache fetch may slow CI. The branch diff is at dedee07313 line 72-75"
+        }
+      ],
+      "regression_risks": [
+        "Adding the model-cache fetch to CI changes job runtime and disk usage. Check that FERA_MODEL_CACHE is the right path and that the fetch uses the pinned revision 761b726d… from docs/execution/evidence/embeddings.md.",
+        "If the model:fetch step fails (e.g., Hugging Face rate-limit or network), CI would fail; main currently does not depend on this."
+      ]
+    }
+  ],
+  "files_recoverable": {
+    "specs": [
+      {
+        "path": "specs/007-quality-release/spec.md",
+        "source_ref": "refs/remotes/origin/phase1--mahim-spec007",
+        "reason": "feature 007 (quality/release) spec; specs 004, 005, 006 are not in any non-ancestor tip and not in main; only 001, 002, 003 are present. The 007 spec is real, 8 stories, 0 NEEDS CLARIFICATION, 15/16 quality checklist."
+      },
+      {
+        "path": "specs/007-quality-release/checklists/requirements.md",
+        "source_ref": "refs/remotes/origin/phase1--mahim-spec007",
+        "reason": "feature 007 quality checklist"
+      }
+    ],
+    "evidence_docs": [
+      {
+        "path": "docs/execution/evidence/duplicates.md",
+        "source_ref": "refs/remotes/origin/phase2--masnun-duplicates",
+        "reason": "TASK-018 evidence; UNCALIBRATED parameters disclosed; smoke numbers on 200 records; status on shared-phone different-child pairs"
+      },
+      {
+        "path": "docs/execution/evidence/embeddings.md",
+        "source_ref": "refs/remotes/origin/phase2--masnun-embeddings",
+        "reason": "TASK-016 evidence; pinned model + space string + EMBED_PROVIDER; main has the spike (TASK-004) but not the service (TASK-016)"
+      },
+      {
+        "path": "docs/execution/evidence/manifest.md",
+        "source_ref": "refs/remotes/origin/phase2--masnun-manifest",
+        "reason": "TASK-064 evidence; identity-grouped manifest, 11 tests"
+      },
+      {
+        "path": "docs/execution/evidence/s005-manual-form.md",
+        "source_ref": "refs/remotes/origin/phase2--mahim-manual-form",
+        "reason": "TASK-025 evidence; TC-017 partial status; 18 new tests; verification log"
+      }
+    ],
+    "historical_phase0_evidence": [
+      {
+        "path": "docs/execution/evidence/phase0/*",
+        "source_ref": "refs/heads/phase0--lane-a",
+        "reason": "18 historical evidence files (build/lint/typecheck/test, github-auth, embedding-blocker, dependency-audit, protected-{before,after}, review/verification). Main has G3/G4/G5 gates from 18 Oct but NO phase0/ directory."
+      },
+      {
+        "path": "docs/gates/G0-2026-10-13-1125.md",
+        "source_ref": "refs/heads/phase0--lane-a",
+        "reason": "G0 gate from 13 Oct 2026; later G2' / G3-2026-10-18 / G4-2026-10-18 / G5-2026-10-18 exist in main"
+      },
+      {
+        "path": "docs/costs.md",
+        "source_ref": "refs/heads/phase0--lane-a",
+        "reason": "TASK-003 era cost notes; not in main"
+      },
+      {
+        "path": "scripts/db/check-local.sql",
+        "source_ref": "refs/heads/phase0--lane-a",
+        "reason": "TASK-002 schema check SQL; superseded by scripts/db/guard.mjs"
+      }
+    ],
+    "code_patches": [
+      {
+        "path": "src/app/api/candidates/[id]/route.ts",
+        "source_ref": "refs/heads/phase-3-obidit (commit a494a740)",
+        "reason": "use z.string() in params; throw E-004 inside handler for non-UUID so the denial is audited with null case_id. This is a REAL audit gap fix not in main."
+      },
+      {
+        "path": "tests/db/candidate-read-route.test.ts",
+        "source_ref": "refs/heads/phase-3-obidit (commit a494a740)",
+        "reason": "DB-backed test for malformed candidate id → E-004 + access.denied row with null case_id; not in main"
+      },
+      {
+        "path": "tests/match/routes.test.ts (assertion only)",
+        "source_ref": "refs/heads/phase-3-obidit (commit a494a740)",
+        "reason": "adds 'malformed candidate IDs use E-004 for a verified officer' test; main's E-001 test would need to be retired"
+      }
+    ]
+  },
+  "missing_specs_004_005_006": {
+    "explanation": "specs/004-matching-data, specs/005-officer-workflow, and specs/006-dashboard-admin do not exist in main AND do not exist in any non-ancestor tip. They are listed as 'todo' in docs/execution/PHASE_1_SPECS_CONTRACTS.md. To recover them, a worker would have to generate them from scratch using /speckit-specify with the D1/D2/D6 sources — there is no source-of-truth spec.md anywhere in the repo to back-port.",
+    "status": "MISSING_NEEDS_SPEC_GENERATION"
+  },
+  "uncommitted_dirty_worktrees": {
+    "specs_002_intake_ai_tasks": {
+      "worktree_path": "<lanes>/obidit-spec002",
+      "uncommitted": "?? specs/002-intake-ai/tasks.md",
+      "current_main_state": "specs/002-intake-ai/tasks.md EXISTS in main (25,870 bytes) and contains a hand-off note that pre-dates the merging. The dirty worktree is a stale write — the uncommitted version is NOT recoverable as new content unless it differs from main.",
+      "recommendation": "Diff the uncommitted tasks.md against main's tasks.md; only commit if it has new content (e.g., TASK IDs not in main's version). User did not authorize reading the untracked file; UNVERIFIED."
+    },
+    "specs_003_parent_outputs_dir": {
+      "worktree_path": "<lanes>/obidit-spec003",
+      "uncommitted": "?? specs/003-parent-outputs/",
+      "current_main_state": "specs/003-parent-outputs/ EXISTS in main with spec.md (31,606 bytes) and checklists/. The dirty worktree's dir is either a fresh write or superset.",
+      "recommendation": "Diff the uncommitted dir against main's specs/003-parent-outputs/; commit if it adds plan.md / tasks.md / data-model.md / quickstart.md / research.md / contracts/ (which main lacks). UNVERIFIED."
+    }
+  },
+  "candidate_patches_summary": {
+    "real_audit_gap": [
+      "a494a740: src/app/api/candidates/[id]/route.ts — change z.strictObject({ id: uuidSchema }) to z.strictObject({ id: z.string() }) and inside the handler, before readCandidate, throw new ApiError('E-004') if !isUuid(p.id). Pair with tests/db/candidate-read-route.test.ts (new) and an E-004 assertion in tests/match/routes.test.ts."
+    ],
+    "superseded_drafts_NOT_to_merge": [
+      "33c9017457 / 7a9fadb85d (P3-018 close & audit): branch safe-read.ts lacks the role-eligibility pre-check; main's 112-line version is correct. Do NOT restore.",
+      "d5371b6779 (P3-010 synthetic set): 210-record layout is a prior generator; main's synth-2 (200 records) is canonical. Do NOT restore cases.json / ground-truth.json / SHA256SUMS.",
+      "dedee07313 (phase2--masnun-synthetic ci.yml): the 6-line model-cache fetch step is useful but main's CI uses a synthetic FAKE embedder, so the step is currently a no-op. Coordinate before adding.",
+      "5bfdaf610e (phase-2-masnun locale delete): the keys are in src/locales/areas/officer-match.ts in main (refactored). Do NOT re-delete."
+    ]
+  },
+  "ci_guarantee_status": "NO CI GUARANTEE DECLARED. This audit only diffs file presence and inspects commit messages; tests were NOT run. The recommendation phase (coordinator-owned merge) is the only place a green CI / npm test:db / test:e2e run can establish a guarantee.",
+  "gaps_and_blocks": [
+    "specs/004, specs/005, specs/006 not on disk and not in any non-ancestor tip. They would need to be generated from scratch using D1/D2/D6 sources, or marked 'abandoned' in PHASE_1_SPECS_CONTRACTS.md.",
+    "Two uncommitted dirty worktrees (spec002/tasks.md, spec003/dir) cannot be read in this audit session; their delta vs main is UNVERIFIED.",
+    "Main does NOT have docs/execution/evidence/embeddings.md (TASK-016 service evidence) even though it has embedding-spike.md (TASK-004 spike) and the live embedding code. This is an evidence gap.",
+    "Main does NOT have docs/execution/evidence/duplicates.md (TASK-018 evidence) or docs/execution/evidence/manifest.md (TASK-064 evidence). These document UNCALIBRATED parameters and smoke numbers that are not in main's current state. Without them, the submission pack cannot claim a TASK-018/016/064 evidence trail.",
+    "Main does NOT have docs/execution/evidence/phase0/* (18 files) and does NOT have docs/gates/G0-2026-10-13-1125.md. The W0.0 gate (17 Oct) cites phase0 evidence; if a coordinator audits the gate, the chain is broken.",
+    "Main does NOT have docs/execution/evidence/s005-manual-form.md (TASK-025 evidence). The submission pack references the SCREEN-005 manual form; without this evidence, the partial TC-017 status is unrecorded.",
+    "Main does NOT have scripts/dedupe.mjs, src/lib/intake/manual.ts, or src/server/duplicates/banner.ts. These are stylistic refactors and a local CLI; the local CLI (dedupe.mjs) is a useful dev tool that main lacks.",
+    "The candidate-read audit fix a494a740 (TASK-028) is the only non-superseded, non-redundant code change in any non-ancestor tip. It is a REAL audit gap fix; the user's spec asked about a494a740 specifically and that fix must be back-ported or re-implemented in main."
+  ],
+  "files_audit_author_wrote": [
+    "docs/execution/evidence/pre-main-branch-reconciliation.md (human-readable report)",
+    "docs/execution/evidence/pre-main-branch-reconciliation.json (this machine JSON)"
+  ],
+  "coordinator_adjudication": [
+    "User requested every branch, not a particular commit SHA; explicit a494a740 inspection was a coordinator check.",
+    "The candidate-read fix is recovery-required, not already included.",
+    "Current full-browser CI already fetches the real pinned model cache. A static audit does not prove it uses a fake embedder.",
+    "Historical evidence is being preserved byte-for-byte under docs/archive/pre-main-recovered with source/hash manifest, not restored as current acceptance evidence.",
+    "Dirty spec drafts are assigned to the 001/002/003 convergence lane for explicit read/compare; no claim of their completion until its followup."
+  ],
+  "part_ii_extension_audit": {
+    "branch_ref": "origin/ccr-91b94c1a-754zqx",
+    "tip_sha": "e9311397e91223a06f6374eaf52611a0106b4bb0",
+    "tip_committed_at_utc": "2026-10-18T12:25:28+00:00",
+    "tip_committed_at_local": "2026-10-18T18:25:28+06:00",
+    "base_sha": "8499bce9326e1fcad0431ca9748ea1d3b616f5ae",
+    "commits_since_main": 2,
+    "files_changed": 8,
+    "commits": [
+      {
+        "sha": "96903610be0a49ad95f9ef5cd079adc22259209c",
+        "subject": "docs(submission): 8-slide deck, submission video end card and platform form text [TASK-044 TASK-045 TASK-046]"
+      },
+      {
+        "sha": "e9311397e91223a06f6374eaf52611a0106b4bb0",
+        "subject": "docs(submission): apply safeguarding review advisories [TASK-044 TASK-046]"
+      }
+    ],
+    "file_dispositions": [
+      {
+        "path": "docs/execution/PHASE_4_SUBMISSION.md",
+        "change": "+1 audit-log line (Mahim 2026-10-18 18:45 Asia/Dhaka)",
+        "disposition": "INTEGRATABLE",
+        "risk": "LOW",
+        "notes": "Truthful single-line log entry. Quoted test numbers (3,691 unit + 2 timing-sensitive / 308 skip / 320/30 DB / lint 0/51) match README but are UNVERIFIED in this session."
+      },
+      {
+        "path": "submission/round2/fera-round2-deck.pptx",
+        "change": "Binary 53607 -> 56946 bytes; 7 -> 8 slides",
+        "disposition": "INTEGRATABLE_REBUILD_REQUIRED",
+        "risk": "LOW",
+        "notes": "Pre-built PPTX has slide1..slide8 XML entries. Slide 7 = 'WHAT WE BUILT' (engineering). Slide 8 = 'LIMITATIONS AND NEXT STEPS'. Reproducible from build_pptx.py: b706793c (verified text-identical: 141 runs)."
+      },
+      {
+        "path": "submission/round2/fera-round2-deck.pdf",
+        "change": "Binary 233366 -> 155220 bytes; 7 -> 8 pages; LibreOffice 24.2",
+        "disposition": "INTEGRATABLE_REBUILD_REQUIRED",
+        "risk": "MEDIUM",
+        "notes": "PDF page count and content match PPTX. LibreOffice 24.2 (build farm) vs 26.8.1.1 (worktree host) means byte equivalence requires same-host rebuild."
+      },
+      {
+        "path": "submission/round2/platform-submission.md",
+        "change": "New 53-line file",
+        "disposition": "INTEGRATABLE_WITH_CORRECTIONS",
+        "risk": "HIGH",
+        "notes": "Two integrity issues: (a) 'Public HTTPS demo link' is https://claude.ai/artifact/TUnGks7FebMyPRKfZqZnfh which is NOT a public URL (Claude AI artifact URLs are private workspace links); platform guide requires public HTTPS. (b) Showcase page reference is not in tracked repo. Coordinator should replace with github.com/tashobi02/Fera-AI or a real public URL."
+      },
+      {
+        "path": "submission/round2/scripts/build_pptx.py",
+        "change": "+83 / -15 lines (engineering slide, slide-1 footer rewrite, slide-7 next-steps rewrite)",
+        "disposition": "INTEGRATABLE",
+        "risk": "LOW",
+        "notes": "Script produces 8 slides and is deterministic. Reproduces pre-built PPTX text-identical. Docstring header (line 5) says '8 editable slides' which is correct."
+      },
+      {
+        "path": "submission/round2/scripts/claims_check.py",
+        "change": "Deck slide-count check 7 -> 8 (expected-count string updated)",
+        "disposition": "INTEGRATABLE_WITH_DOC_AND_CONFIG_FIXES",
+        "risk": "LOW",
+        "notes": "Docstring lines 10-12 still say '7 editable slides' / '7 slide images' / 'slide-[1-7].png' (stale doc). REQUIRED_SLIDE_IMGS line 192 still range(1, 8) so slide-8.png is generated but not asserted. Update both before final merge."
+      },
+      {
+        "path": "submission/round2/claims-check-report.txt",
+        "change": "Root path stamp rewritten phase3-finish -> <repo>",
+        "disposition": "DISCARD_OR_REGENERATE",
+        "risk": "LOW",
+        "notes": "Hand-edited path stamp carried over from a previous run. Re-run claims_check.py post-merge to refresh the entire report (counts/summaries are recomputed, not hand-edited)."
+      },
+      {
+        "path": "submission/demo/final-submission.mp4",
+        "change": "New binary 1037598 bytes, 105.000s, 1280x720, h264, SHA-256 beea857e6550337265c59e3920b7d7cb58d5a240eb1f4595c66b6401287e87f8",
+        "disposition": "DISCARD_OR_PATCH_WITH_NEW_BUILD_SCRIPT",
+        "risk": "HIGH",
+        "notes": "No in-repo script produces this binary. submission/demo/postprocess.mjs still bakes 'Round 2 NOT submitted' into the closing card. submission/demo/provenance.json still claims hash 1403d679... (final.mp4) and size 864854 (final.mp4). New binary closes with 'Fera - synthetic-data prototype' card and omits the 'Round 2 NOT submitted' line. RECOMMEND: discard and submit existing final.mp4 (whose provenance is byte-accurate) UNLESS team has a specific reason to remove the 'Round 2 NOT submitted' cue. If the cue removal is mandatory, add a build-submission-video.mjs and update provenance.json."
+      }
+    ],
+    "reproducibility_evidence": {
+      "build_pptx_py_text_identical_to_prebuilt": true,
+      "regen_text_runs_count": 141,
+      "prebuilt_pptx_slide_count": 8,
+      "regen_pptx_slide_count": 8,
+      "current_main_pptx_slide_count": 7,
+      "libreoffice_24_2_vs_26_8_byte_divergence": "expected; same-host rebuild required for byte equivalence",
+      "final_submission_mp4_in_repo_script": "NONE",
+      "final_submission_mp4_frames_inspected_at_t100s": "Closing card reads 'Fera - synthetic-data prototype. Release metrics: not measured. Synthetic records only; no real child data. AI ranks possible matches. A verified officer decides. Officer verification is [MOCK]. Referral recorded (simulation). Typed flow, no live voice. No public live URL in this recording. github.com/tashobi02/Fera-AI'",
+      "final_mp4_frames_inspected_at_t102s": "Closing card reads 'Release metrics - not measured. Synthetic local demonstration. Round 2 not submitted. Editorial card: synthetic local demo, release metrics NOT measured, Round 2 NOT submitted. No voice, no edit-claim, no live URL.'",
+      "round_2_not_submitted_in_new_deck": false,
+      "round_2_not_submitted_in_current_main_deck": "in slide 1 footer only ('Round 2 working baseline 14 Oct 2026')",
+      "round_2_not_submitted_in_platform_submission_md": false,
+      "round_2_not_submitted_in_README": true,
+      "round_2_not_submitted_in_links_txt": true,
+      "round_2_not_submitted_in_PHASE_4": true,
+      "round_2_not_submitted_in_original_final_mp4": true
+    },
+    "policy_decision_required": {
+      "issue": "New deck and platform form REMOVE the 'Round 2 NOT submitted' caveat; README/links/PHASE_4/original final.mp4 KEEP it. The new copy is judge-facing for post-submission.",
+      "options": [
+        "MERGE NOW and use the deck only after G5 send-time is recorded in docs/gates/G5-*.md",
+        "KEEP the deck on the current 7-slide + '14 Oct / cutoff UNKNOWN' wording until G5 is recorded"
+      ],
+      "coordinator_recommendation": "This audit does not pick between the two; that is a team decision."
+    },
+    "draft_zip_status": {
+      "path": "submission/round2/fera-round2-draft.zip",
+      "sha256": "b47ed22727800e5d29993075c38f78dcece0b6d424e8ee05c7f68370c4bf201a",
+      "size": 1175858,
+      "updated_by_new_branch": false,
+      "contains_new_files": false,
+      "build_script_allowlist_includes_final_submission_mp4": false,
+      "notes": "draft.zip still contains the OLD 7-slide deck, OLD 7-page PDF, OLD final.mp4. Re-running build-submission-zip.py will pick up the new deck and PDF (if rebuilt) but will still include the OLD final.mp4. The new final-submission.mp4 is not in the FILES list."
+    },
+    "unverified_in_this_audit": [
+      "Test numbers in the new PHASE_4 audit-log line: 3,691 unit / 308 skip / 320 DB / lint 0/51. Plausible (README reports 3,693 unit) but UNVERIFIED without re-running npm test/lint/typecheck/test:db.",
+      "No npm test, npm run lint, npm run typecheck, npm run test:db, or npm run test:e2e was executed in this session.",
+      "Dirty worktrees (obidit-spec002/tasks.md, obidit-spec003/) were not read; their delta vs main is UNVERIFIED.",
+      "docs/archive/pre-main-recovered referenced in the Part I coordinator-adjudication block does NOT exist on this worktree; that adjudication is forward-looking from another lane."
+    ],
+    "files_audit_author_wrote_part_ii": [
+      "docs/execution/evidence/pre-main-branch-reconciliation.md (Part II extension added at the end; Part I content preserved)",
+      "docs/execution/evidence/pre-main-branch-reconciliation.json (this machine JSON; part_ii_extension_audit block added at the end)"
+    ]
+  },
+  "final_coordinator_disposition": {
+    "remote_main_update": "PR50 was externally merged as 7da226b and integrated into pre-main at 167c0d4. Local main was not changed.",
+    "candidate_recovery": "a494a740 recovered as fa7f743; independently tested and merged into pre-main at afd27cc; full integration DB suite321/31 passed.",
+    "archive_recovery": "24 byte-identical historical files under docs/archive/pre-main-recovered; source hashes verified. Archive was created in integration worktree, so its absence from this audit-only worktree is expected.",
+    "dirty_spec_drafts": "Intake/platform Puku corrective worker compared and recovered draft002/003 artifacts; final source status closure in progress.",
+    "media_findings_adjudicated": [
+      "Original submission/demo/provenance.json explicitly describes final.mp4 and remains valid. New final-submission.mp4 needs separate provenance, rather than rewriting the original provenance.",
+      "Omitting a not-submitted line does not assert submission. All active submission records still state NOT SUBMITTED; no personal approval is required merely to prepare honest media.",
+      "Showcase artifact URL access is UNVERIFIED; a URL type alone does not prove it private. Do not replace it with a known-private GitHub URL as a demo URL.",
+      "Portable PDF content/page verification is required; cross-version byte equality is not expected. Existing8pagePDF may remain if verified."
+    ],
+    "media_followup": "Dedicated Puku artifact-integrity lane handles variant provenance, page range and checker/ZIP refresh.",
+    "approval_gate": "Await user verification and approval before coordinator merges pre-main to main."
+  }
+}

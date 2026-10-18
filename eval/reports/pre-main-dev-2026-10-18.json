@@ -1,0 +1,189 @@
+{
+  "measured": true,
+  "split": "dev",
+  "timestamp": "2026-10-18T14:43:25.078Z",
+  "commit": "ac44bdb6e6234556572123e2120fa1dc6830ea0a",
+  "commitShort": "ac44bdb",
+  "manifest": {
+    "hash": "3be3fc653db26c6e8f9d6fc40ee5bc0790e899a582ae1240b0857fd7185b86bd",
+    "groundTruthSha": "4d58c21c86cdfc48fdc0007c6fa81f9ee2dcc251d3f051431fff4bd45c1e11b0",
+    "recordsSha": "0391c36d8ae40b6bfb7494ab2ee2f7552e48ea8431fe910623eb4c9dce5bfde1",
+    "total": 200,
+    "bySplit": {
+      "dev": {
+        "groups": 30,
+        "records": 86,
+        "true_pairs": 25,
+        "no_match_queries": 7,
+        "duplicate_links": 12,
+        "shared_phone_decoys": 3,
+        "decoys": 19
+      },
+      "test": {
+        "groups": 45,
+        "records": 114,
+        "true_pairs": 35,
+        "no_match_queries": 13,
+        "duplicate_links": 13,
+        "shared_phone_decoys": 4,
+        "decoys": 21
+      }
+    },
+    "revision": "manifest-2"
+  },
+  "freeze": {
+    "flag": "NOT SET",
+    "model": "UNKNOWN"
+  },
+  "modules": {
+    "extract": {
+      "measured": false,
+      "reason": "unmapped-labels",
+      "split": "dev",
+      "path": "<repo>/.worktrees/pre-main/eval/data/labelled.draft.jsonl",
+      "unmappedLabelIds": [
+        "L001",
+        "L002",
+        "L003",
+        "L004",
+        "L005",
+        "L006",
+        "L007",
+        "L008",
+        "L009",
+        "L010",
+        "L011",
+        "L012",
+        "L013",
+        "L014",
+        "L015",
+        "L016",
+        "L017",
+        "L018",
+        "L019",
+        "L020",
+        "L021",
+        "L022",
+        "L023",
+        "L024",
+        "L025",
+        "L026",
+        "L027",
+        "L028",
+        "L029",
+        "L030",
+        "L031",
+        "L032",
+        "L033",
+        "L034",
+        "L035",
+        "L036",
+        "L037",
+        "L038",
+        "L039",
+        "L040",
+        "L041",
+        "L042",
+        "L043",
+        "L044",
+        "L045",
+        "L046",
+        "L047",
+        "L048",
+        "L049",
+        "L050"
+      ]
+    },
+    "match": {
+      "measured": true,
+      "split": "dev",
+      "totalTruthPairs": 25,
+      "totalNoMatchQueries": 7,
+      "recallAt5": 100,
+      "top1": 92,
+      "top1Hits": 23,
+      "top1Considered": 25,
+      "coverage": 100,
+      "abstention": 0,
+      "pAt5": 32,
+      "pAt5Num": 8,
+      "falsePosRate": 71.42857142857143,
+      "falsePositiveSuggestions": 5,
+      "truthPairMisses": [],
+      "noMatchFalsePositives": [
+        "72c32e9c-3fc1-409f-9191-add9d0273f9c",
+        "31d8609d-e771-4347-9d9c-099ad1ca0562",
+        "36b898d2-36e4-4ff8-ac6e-4c34aa4ab1d9",
+        "fc0ab369-0dac-4203-94bb-a2bb730979a0",
+        "15ce6262-fa38-4348-9f27-0dd9f23c6eaf"
+      ],
+      "failures": [
+        "72c32e9c-3fc1-409f-9191-add9d0273f9c",
+        "31d8609d-e771-4347-9d9c-099ad1ca0562",
+        "36b898d2-36e4-4ff8-ac6e-4c34aa4ab1d9",
+        "fc0ab369-0dac-4203-94bb-a2bb730979a0",
+        "15ce6262-fa38-4348-9f27-0dd9f23c6eaf"
+      ],
+      "falsePosDecoysAcross": [
+        [
+          "0a610e81-4041-48d4-a41d-44b96bf19ea7",
+          1
+        ],
+        [
+          "56aa3e31-628f-4eac-8a29-d5d478ceb1c7",
+          1
+        ],
+        [
+          "3a64dc6a-5940-4d3b-8601-ad08b2221020",
+          1
+        ],
+        [
+          "9367e9f1-22a7-4b7d-a324-d577ea11ba85",
+          1
+        ],
+        [
+          "bd1d1b7a-5ff7-4108-9d6f-a5f3a5ad0109",
+          1
+        ]
+      ],
+      "cacheHits": 0,
+      "totalQueries": 32
+    },
+    "dedupe": {
+      "measured": true,
+      "split": "dev",
+      "tp": 10,
+      "fp": 1,
+      "fn": 2,
+      "truthSize": 12,
+      "precision": 90.9090909090909,
+      "recall": 83.33333333333334,
+      "f1": 86.95652173913044,
+      "sharedPhoneNegativeTotal": 25,
+      "sharedPhoneNegativeFp": 0,
+      "sharedPhoneNegativeRejected": 25,
+      "sharedPhoneCrossKindCount": 3,
+      "cacheHits": 0
+    }
+  },
+  "existing": {
+    "wer": {
+      "code": 0,
+      "measured": false,
+      "reason": "reference and hypothesis files both missing",
+      "stdout": "eval:wer: not measured (reference and hypothesis files both missing)\n"
+    },
+    "time": {
+      "code": 0,
+      "measured": false,
+      "reason": "empty timing file, have 0",
+      "stdout": "eval:time: not measured (empty timing file, have 0)\n"
+    },
+    "audit": {
+      "code": 0,
+      "measured": false,
+      "reason": "0 decisions",
+      "stdout": "eval:audit: not measured (0 decisions)\n"
+    }
+  }
+}

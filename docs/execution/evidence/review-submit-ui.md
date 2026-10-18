@@ -27,11 +27,11 @@ Submission remains an explicit confirmed POST. Mounting, editing or confirming a
 | W5 accessibility | Descriptions resolve; age/time errors and edited statuses use icon, text and colour; sex summary focuses the first radio; expired alert receives focus after fields disappear. Storage/mock/frozen notices also have icons. | Static description/error/edited tests, lifecycle sex-summary activation and expired-focus-target regression, plus browser description/focus checks. |
 | Cleanup failures | Timer, pre-submit and API E-019 deletion failures remove visible fields, retain inaccessible storage, and show the cleanup warning. | Parameterized “timer/submit/E-019 expiry reports failed storage deletion…” regression. |
 
-Test paths in that table are under `tests/intake/review/` unless qualified. Tests were written before the fixes. RED evidence: `/home/obidit/secondBrain/coding/fera-lanes/_orchestration/shots/s003-r4/logs/s003-r4-red.log` and `/home/obidit/secondBrain/coding/fera-lanes/_orchestration/shots/s003-r4/logs/s003-r4-clock-red.log`. GREEN evidence: `/home/obidit/secondBrain/coding/fera-lanes/_orchestration/shots/s003-r4/logs/s003-r4-{targeted,lint,typecheck,test,build,diffcheck}.log`. Reviewer feedback exposed suffix leakage during incremental HH:mm entry; the new clearing/typing regression reproduced it before the fix. No tests were disabled. Round 2’s excerpt assertions were replaced because the lead reversed that design in round 4.
+Test paths in that table are under `tests/intake/review/` unless qualified. Tests were written before the fixes. RED evidence: `<lanes>/_orchestration/shots/s003-r4/logs/s003-r4-red.log` and `<lanes>/_orchestration/shots/s003-r4/logs/s003-r4-clock-red.log`. GREEN evidence: `<lanes>/_orchestration/shots/s003-r4/logs/s003-r4-{targeted,lint,typecheck,test,build,diffcheck}.log`. Reviewer feedback exposed suffix leakage during incremental HH:mm entry; the new clearing/typing regression reproduced it before the fix. No tests were disabled. Round 2’s excerpt assertions were replaced because the lead reversed that design in round 4.
 
 ## Measured checks (archived round-4 run)
 
-Archived round-4 command logs use `/home/obidit/secondBrain/coding/fera-lanes/_orchestration/shots/s003-r4/logs/s003-r4-*.log`.
+Archived round-4 command logs use `<lanes>/_orchestration/shots/s003-r4/logs/s003-r4-*.log`.
 
 | Command | Exit | Measured result |
 |---|---|---|
@@ -42,11 +42,11 @@ Archived round-4 command logs use `/home/obidit/secondBrain/coding/fera-lanes/_o
 | `npx vitest run tests/intake tests/intake-ui tests/ui/review-screen.test.ts` | 0 | 666 passed; 24 files |
 | `git diff --check` | 0 | No whitespace errors |
 
-An earlier concurrent full run hit the existing auth timing assertion in `tests/auth/password.test.ts` (unknown/wrong-password ratio below its threshold); `/home/obidit/secondBrain/coding/fera-lanes/_orchestration/shots/s003-r4/logs/s003-r4-test-pre.log` retains the failure. The unchanged default suite passed on rerun (`/home/obidit/secondBrain/coding/fera-lanes/_orchestration/shots/s003-r4/logs/s003-r4-test-rerun.log`). No out-of-scope auth files were edited. Skipped DB tests do not establish database acceptance. Coverage percentage was not measured; no coverage dependency was installed.
+An earlier concurrent full run hit the existing auth timing assertion in `tests/auth/password.test.ts` (unknown/wrong-password ratio below its threshold); `<lanes>/_orchestration/shots/s003-r4/logs/s003-r4-test-pre.log` retains the failure. The unchanged default suite passed on rerun (`<lanes>/_orchestration/shots/s003-r4/logs/s003-r4-test-rerun.log`). No out-of-scope auth files were edited. Skipped DB tests do not establish database acceptance. Coverage percentage was not measured; no coverage dependency was installed.
 
 ## Browser evidence (archived round-4 run)
 
-The reviewer used a locally available Playwright; no project dependency changed. Isolated headless Chromium, serving the production build only at localhost. Script: `/home/obidit/secondBrain/coding/fera-lanes/_orchestration/shots/s003-r4/logs/s003-r4-browser.cjs`. Captures and `results.json`: `/home/obidit/secondBrain/coding/fera-lanes/_orchestration/shots/s003-r4/`.
+The reviewer used a locally available Playwright; no project dependency changed. Isolated headless Chromium, serving the production build only at localhost. Script: `<lanes>/_orchestration/shots/s003-r4/logs/s003-r4-browser.cjs`. Captures and `results.json`: `<lanes>/_orchestration/shots/s003-r4/`.
 
 The script produced **23 state captures**: empty, incomplete, valid, attempted, expired, mock-preview and mock-success at **320 px bn, 360 px bn and 1280 px en**, plus incomplete/valid at **320 px bn with 200% text enlargement**. The latter doubles computed text size and line height, including form controls, while keeping the viewport and layout spacing fixed; it is a headless text-only enlargement emulation, not a physical-browser zoom setting.
 

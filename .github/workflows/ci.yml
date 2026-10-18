@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, phase1, phase2]
+    branches: [main, phase1, phase2, pre-main]
   pull_request:
   workflow_dispatch:
 
@@ -75,14 +75,28 @@ jobs:
         run: npm run model:fetch
       - name: install Playwright Chromium
         run: npx playwright install --with-deps chromium
+      - name: verify native offline embeddings
+        env:
+          FERA_MODEL_CACHE: ${{ github.workspace }}/.cache/models
+          FERA_REAL_EMBED: "1"
+        run: npx vitest run tests/embeddings/embed.test.ts
       - name: run e2e
         env:
           FERA_MODEL_CACHE: ${{ github.workspace }}/.cache/models
         run: npm run test:e2e
+      - name: run offline application journeys
+        env:
+          FERA_MODEL_CACHE: ${{ github.workspace }}/.cache/models
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: npm run test:offline
       - name: upload Playwright report on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: playwright-report
+          path: |
+            playwright-report
+            test-results
+            playwright-offline-results.json
+          if-no-files-found: ignore
           retention-days: 7

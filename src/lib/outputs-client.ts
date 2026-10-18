@@ -119,8 +119,7 @@ export async function requestOutput(
   const online =
     opts.online ??
     (() => (typeof navigator === "undefined" ? true : navigator.onLine));
-  if (!online())
-    return { kind: "failed", failure: { id: "E-024", seconds: null } };
+  // Browser connectivity does not determine loopback reachability. Attempt the request.
   let res: Response;
   try {
     res = await (opts.fetchImpl ?? fetch)(

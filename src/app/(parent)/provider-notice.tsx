@@ -4,7 +4,7 @@
 // types (D4 §15 parent-intake regions: processing notice, then synthetic badge).
 import { InfoIcon } from "@/app/components/icons";
 import { locales, type Locale } from "@/locales";
-import { HonestLabel } from "./parent-ui";
+import { CachedClockNotice, HonestLabel } from "./parent-ui";
 
 export const NOTICE_BODY_ID = "provider-notice-body";
 export const START_DESCRIPTION_ID = "provider-review-first";
@@ -42,6 +42,7 @@ export function ProviderNotice({
           <span>{t.providerNotice}</span>
         </p>
         {labels}
+        <CachedClockNotice locale={locale} cached={cached} />
       </section>
     );
   }
@@ -58,6 +59,7 @@ export function ProviderNotice({
         <li>{t.noticeWhoSees}</li>
       </ul>
       {labels}
+      <CachedClockNotice locale={locale} cached={cached} />
     </section>
   );
 }

@@ -165,7 +165,7 @@ function scriptSourceAndCandidate(db: FakeQueryable, sourceRow: Record<string, u
     rows: [{
       ...candidateRow,
       id: candidateRow.id,
-      distance: 0.1,
+      distance: 0.01,
       child_name: candidateRow.child_name ?? "[MOCK] Candidate",
       age_years: 7,
       age_min: 7,
@@ -372,7 +372,7 @@ describe("TASK-018 persistDuplicateFlags (unit, BR-020/021; FR-022/023)", () => 
       match: (sql) => sql.includes("FROM cases") && sql.includes("embedding <=>") && sql.includes("LIMIT $3"),
       rows: [{
         id: candidateRow.id,
-        distance: 0.1,
+        distance: 0.01,
         child_name: "[MOCK] Candidate",
         age_years: 7,
         age_min: 7,
