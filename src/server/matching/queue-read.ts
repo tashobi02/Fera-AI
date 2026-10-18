@@ -64,10 +64,17 @@ export type ReadReviewQueueDeps = {
 };
 const defaultDeps: ReadReviewQueueDeps = { withTransaction };
 
+// Components are the small set of similarity sub-scores the matcher
+// produces (cosine + per-field agree/compare signals). The schema is the
+// contract: anything else would mean DTO drift. The allowlist guards that
+// contract here so a future schema migration cannot silently widen the
+// field set projected to the queue.
+const COMPONENT_KEYS = new Set(["cosine", "name", "clothing", "district", "age"]);
 function decodeComponents(value: unknown): Record<string, number | null> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) throw new RowShapeError(MC, "components");
   const out: Record<string, number | null> = {};
   for (const [key, v] of Object.entries(value)) {
+    if (!COMPONENT_KEYS.has(key)) throw new RowShapeError(MC, "components");
     if (v !== null && (typeof v !== "number" || !Number.isFinite(v))) throw new RowShapeError(MC, "components");
     out[key] = v;
   }

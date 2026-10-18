@@ -14,8 +14,8 @@ import type { Queryable } from "@/server/db/queryable";
 //      found endpoints' current versions. On a same-version conflict, only the
 //      status/decision timestamp are refreshed: fera_app is intentionally not
 //      granted UPDATE on candidate score/rank/reason/component columns. Pairs
-//      already `rejected` at the SAME versions are NEVER re-inserted (BR-019 —
-//      filters.ts excludes them).
+//      already `rejected` at ANY versions are NEVER re-inserted (BR-019 —
+//      filters.ts excludes them by endpoint identity only).
 //   5. reconcileQueueState() moves the missing report to `matched_pending_review`
 //      when it has at least one qualified pending candidate, otherwise to `open`,
 //      and writes a `case.state_changed` audit row for the same transaction
@@ -326,7 +326,25 @@ async function runInsideTransaction(
   await lockCandidates(client, pending.map((candidate) => candidate.id));
 
   // 2) Stamp 'running' so concurrent runs of the same case see one is in flight.
-  await client.query(STAMP_RUNNING_SQL, [missingCaseId]);
+  // SYS-BUG-08: when the case lock is taken serially with another run, the
+  // second run finds matching_state='running'; the WHERE clause filters for
+  // IN ('queued','failed') and would silently produce rowCount=0, letting
+  // the second run proceed and supersede the first mid-flight. Detect that
+  // state and throw LockSetChanged; withTransaction's retry loop will
+  // re-try once the in-flight run has finished.
+  const stampRes = await client.query(STAMP_RUNNING_SQL, [missingCaseId]);
+  if (stampRes.rowCount === 0) {
+    const cur = await client.query<{ matching_state: string }>(
+      "SELECT matching_state FROM cases WHERE id = $1",
+      [missingCaseId],
+    );
+    if (cur.rows[0]?.matching_state === "running") {
+      throw new LockSetChanged();
+    }
+    // Any other state (complete / failed / terminal) means the case is
+    // no longer eligible; let the natural eligibility recheck produce
+    // the right error.
+  }
 
   // 3) Embed the missing case row. The embed helper either returns the existing
   // vector in its current space (reuse) or runs the embedder once and stores it.
@@ -477,12 +495,15 @@ async function supersedeDropped(
   topFiveIds: ReadonlySet<string>,
 ): Promise<void> {
   // Anything still pending at the CURRENT missing version that is not in the
-  // fresh top 5 loses the slot. Pending rows at a different version are
-  // superseded by SUPERSEDE_PRIOR_VERSIONS_SQL before this call.
+  // fresh top 5, or whose found endpoint has been redacted since the
+  // candidate was created, loses the slot (SYS-BUG-09: a redacted found
+  // endpoint can never be served to an officer). Pending rows at a different
+  // version are superseded by SUPERSEDE_PRIOR_VERSIONS_SQL before this call.
   if (topFiveIds.size === 0) {
     await client.query(
       `UPDATE match_candidates SET status = 'superseded', decided_at = now()
-       WHERE missing_case_id = $1 AND status = 'pending' AND missing_version = $2`,
+       WHERE missing_case_id = $1 AND status = 'pending' AND missing_version = $2
+         AND (found_case_id IN (SELECT id FROM cases WHERE anonymised_at IS NOT NULL))`,
       [missingCaseId, currentMissingVersion],
     );
     return;
@@ -490,7 +511,8 @@ async function supersedeDropped(
   await client.query(
     `UPDATE match_candidates SET status = 'superseded', decided_at = now()
      WHERE missing_case_id = $1 AND status = 'pending' AND missing_version = $2
-       AND found_case_id <> ALL($3::uuid[])`,
+       AND (found_case_id <> ALL($3::uuid[])
+            OR found_case_id IN (SELECT id FROM cases WHERE anonymised_at IS NOT NULL))`,
     [missingCaseId, currentMissingVersion, Array.from(topFiveIds)],
   );
 }

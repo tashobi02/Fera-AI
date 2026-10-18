@@ -68,7 +68,14 @@ export function clearSubmittedReference(storage = browserStorage()): boolean {
 }
 
 export function createDeviceDraft(handoff: IntakeHandoff, now = Date.now()): DeviceDraft | null {
-  if (!handoff.response || handoff.response.draft.kind !== "missing") return null;
+  // SYS-BUG-01 / SYS-BUG-10: a handoff with no extract response (e.g. the
+  // manual form was opened before any successful extraction, or the LLM
+  // adapter returned a recoverable failure with no draft) used to return
+  // null and the form lost both the editable fields and the source text.
+  // The handoff always carries sourceText (the parent's own words) — keep
+  // it and let the form build an empty, editable draft around it.
+  if (!handoff.response) return deviceDraftFromText(handoff, now);
+  if (handoff.response.draft.kind !== "missing") return null;
   const serverExpiry = Date.parse(handoff.response.expires_at);
   const maxExpiry = now + 24 * 60 * 60 * 1000;
   const expiresAt = Number.isFinite(serverExpiry) ? Math.min(serverExpiry, maxExpiry) : maxExpiry;
@@ -78,6 +85,44 @@ export function createDeviceDraft(handoff: IntakeHandoff, now = Date.now()): Dev
     expiresAt, draftToken: handoff.response.draft_token,
     edits: {}, approximate: handoff.response.draft.event.at_approx, attempted: false,
     mock: handoff.mock, cached: handoff.cached,
+  };
+}
+
+// Build a minimal device draft that retains the source text but has no
+// extraction metadata. Used when the parent opens the manual form before
+// (or instead of) a successful extraction. All editable fields stay
+// unknown; the parent fills what they know. Submitted-only constraints
+// (e.g. "the child's name is required") are enforced at submit time.
+function deviceDraftFromText(handoff: IntakeHandoff, now: number): DeviceDraft {
+  const draft = caseDraftSchema.parse({
+    kind: "missing",
+    source_text: handoff.sourceText,
+    child: {
+      name: null, name_latin: null, sex: "unknown",
+      age_years: null, age_min: null, age_max: null,
+      height_cm: null, clothing: null, marks: null,
+    },
+    event: {
+      at: null, at_lower: null, at_upper: null, at_approx: false,
+      place_text: null, district_text: null, district_code: null,
+      thana: null, circumstances: null,
+    },
+    reporter: { relation: null, phone: null },
+    evidence: {},
+  });
+  return {
+    version: 1,
+    draft,
+    sourceText: handoff.sourceText,
+    client_submission_id: crypto.randomUUID(),
+    savedAt: now,
+    expiresAt: now + 24 * 60 * 60 * 1000,
+    draftToken: undefined,
+    edits: {},
+    approximate: false,
+    attempted: false,
+    mock: handoff.mock,
+    cached: handoff.cached,
   };
 }
 

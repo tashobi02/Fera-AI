@@ -59,13 +59,21 @@ describe("credential session token", () => {
 });
 
 describe("parent session token", () => {
-  it("binds one session ID and nothing else", () => {
+  it("binds one session ID and a client fingerprint (SYS-BUG-11)", () => {
     const id = randomUUID();
-    const token = signParentToken(KEYS.parent, id);
-    expect(verifyParentToken(KEYS.parent, token)).toBe(id);
-    expect(verifyParentToken(KEYS.parent, token.replace(id, randomUUID()))).toBeNull();
-    expect(verifyParentToken(KEYS.session, token)).toBeNull();
-    expect(verifyParentToken(KEYS.parent, id)).toBeNull();
+    const fp = "203.0.113.7|Mozilla/5.0 (test)";
+    const token = signParentToken(KEYS.parent, id, fp);
+    expect(token).toMatch(/^p1\.[0-9a-f-]{36}\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}$/);
+    expect(verifyParentToken(KEYS.parent, token, fp)).toBe(id);
+    // A captured token replayed from a different browser/network fails.
+    expect(verifyParentToken(KEYS.parent, token, "198.51.100.1|curl/8")).toBeNull();
+    expect(verifyParentToken(KEYS.parent, token, "")).toBeNull();
+    // Edited id or key is refused.
+    expect(verifyParentToken(KEYS.parent, token.replace(id, randomUUID()), fp)).toBeNull();
+    expect(verifyParentToken(KEYS.session, token, fp)).toBeNull();
+    // Old 3-part tokens (pre-fingerprint) are no longer accepted.
+    const legacy = `p1.${id}.${"A".repeat(43)}`;
+    expect(verifyParentToken(KEYS.parent, legacy, fp)).toBeNull();
   });
 });
 

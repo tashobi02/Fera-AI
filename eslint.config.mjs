@@ -93,6 +93,9 @@ const eslintConfig = defineConfig([
     "demo/**",
     "graphify-out/**",
     "coverage/**",
+    // Nested worktrees from prior parallel lanes (AGENTS.md §"Workflow"):
+    // generated and vendored code that should never be linted from the host checkout.
+    ".worktrees/**",
   ]),
 ]);
 

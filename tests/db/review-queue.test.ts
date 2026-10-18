@@ -185,7 +185,7 @@ async function insertCandidate(
        SELECT m.id, f.id, m.version, f.version, $3, $4,
               '[MOCK] একই জেলা, কাছাকাছি সময়, বয়স মেলে',
               '[MOCK] same district, nearby time, age fits',
-              '{"text": 0.7, "age": 1}',
+              '{"cosine": 0.7, "age": 1, "name": 0.5, "clothing": null, "district": 0.9}',
               $5::candidate_status,
               CASE WHEN $5::candidate_status = 'pending' THEN NULL ELSE now() END
        FROM cases m, cases f WHERE m.id = $1 AND f.id = $2 RETURNING id`,
