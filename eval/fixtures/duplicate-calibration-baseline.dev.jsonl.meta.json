@@ -1,0 +1,21 @@
+{
+  "kind": "dedupe",
+  "prediction_file": "/tmp/fera-pre-main-dev-dedupe.jsonl",
+  "prediction_sha256": "2da54235638e1c07758b02ca0ee79e56cf1e4b8c19c35c8e0f630cef63d544e6",
+  "row_count": "86",
+  "row_count_num": 86,
+  "commit": "641bdefb36a58e502042ff795d2018b55846b717",
+  "manifest_sha256": "3be3fc653db26c6e8f9d6fc40ee5bc0790e899a582ae1240b0857fd7185b86bd",
+  "manifest_revision": "manifest-2",
+  "embedder_model": "Xenova/multilingual-e5-small",
+  "embedder_revision": "761b726dd34fb83930e26aab4e9ac3899aa1fa78",
+  "embedder_space": "model=Xenova/multilingual-e5-small;revision=761b726dd34fb83930e26aab4e9ac3899aa1fa78;dtype=q8;pool=mean;normalize=true;query=\"query: \";passage=\"passage: \";space=e5-small-q8-mean-l2-384-text-v1-511d3e3495",
+  "generated_at": "2026-10-18T10:55:40.408Z",
+  "split": "dev",
+  "notes": [
+    "sources=86",
+    "skipped_no_embedding=0",
+    "errors=0",
+    "db_name=fera_predict_premain_41c696"
+  ]
+}

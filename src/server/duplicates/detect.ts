@@ -46,16 +46,25 @@ import type { Queryable } from "@/server/db/queryable";
 /** Documented defaults for the duplicate detector. */
 export const DUPLICATE_CONFIG = {
   // Cosine similarity threshold: pairs with similarity below this are never
-  // flagged regardless of field agreement. Documented default, calibrate on the
-  // dev split only (BR-021, AMD-3-3); not spec-derived.
-  SIMILARITY_THRESHOLD: 0.5,
+  // flagged regardless of field agreement. Documented default, calibrated on
+  // the dev split only (BR-018, BR-021, AMD-3-3); not spec-derived. The
+  // dev-calibrated value 0.95 reproduces TP=10/FP=1/FN=2 on the 86 dev
+  // records / 30 connected groups / 12 true pairs (vs the previous dev
+  // default 0.5 with TP=12/FP=290/FN=0); see
+  // docs/execution/evidence/pre-main-dev-calibration.md and the
+  // scripts/eval/duplicate-calibration.ts grid.
+  SIMILARITY_THRESHOLD: 0.95,
   // Minimum number of agreeing profile fields required for a `profile` flag.
   // A single profile field is not enough: a shared district alone or a shared
   // time alone can describe an entire neighbourhood and a single day. Two
-  // agreeing fields (e.g. name + sex, age + district) are a much stronger cue
-  // and still consistent with BR-021's "possible-duplicate cue on compatible
-  // profiles" wording.
-  MIN_AGREEING_PROFILE_FIELDS: 2,
+  // agreeing fields (e.g. name + sex, age + district) used to be the
+  // documented floor, but the dev calibration (BR-018) shows that 3
+  // agreeing fields are required to keep precision defensible on the
+  // 86 dev records / 30 connected groups / 12 true pairs: at min_agree=2
+  // the dev grid still produces hundreds of FPs because the synthetic
+  // embedding pool clusters nearby reports; at min_agree=3 the dev
+  // grid drops to TP=10/FP=1/FN=2 with two missed dev duplicate pairs. Reports remain searchable.
+  MIN_AGREEING_PROFILE_FIELDS: 3,
   // Max candidates to consider from the embedding pool.
   CANDIDATE_LIMIT: 50,
 } as const;
