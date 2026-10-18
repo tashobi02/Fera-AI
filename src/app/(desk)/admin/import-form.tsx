@@ -254,7 +254,7 @@ export function ImportForm({
               maxLength={40}
               aria-required="true"
               aria-invalid={state.confirmError || undefined}
-              aria-describedby={[id.confirmation, state.confirmError && id.error].filter(Boolean).join(" ")}
+              aria-describedby={state.confirmError ? id.error : undefined}
               onInput={(e) => dispatch({ type: "input_confirm", value: e.currentTarget.value })}
               className="min-h-11 min-w-[min(12rem,100%)] flex-1 rounded-md border border-control bg-elevated px-3 text-body-md text-ink focus:border-control-strong focus:shadow-1 aria-invalid:border-danger"
             />

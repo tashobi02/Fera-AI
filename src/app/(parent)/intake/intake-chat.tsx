@@ -594,7 +594,7 @@ function ChatMessage({
     // COMP-027: the question in the reader's language; it takes focus when it is new.
     return (
       <Bubble from="fera" name={t.appName}>
-        <p id={questionId} ref={focusRef as Ref<HTMLParagraphElement>} tabIndex={focusRef ? -1 : undefined} onKeyDown={focusRef ? onQuestionKeyDown : undefined} className="font-medium outline-none">
+        <p id={questionId} ref={focusRef as Ref<HTMLParagraphElement>} tabIndex={focusRef ? -1 : undefined} onKeyDown={focusRef ? onQuestionKeyDown : undefined} className="font-medium rounded-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring">
           {message.question[locale]}
         </p>
       </Bubble>
@@ -632,7 +632,7 @@ function Outcome({
         id={headingId}
         ref={focusRef as Ref<HTMLHeadingElement>}
         tabIndex={-1}
-        className="flex items-start gap-2 text-heading-sm font-semibold text-ink outline-none"
+        className="flex items-start gap-2 text-heading-sm font-semibold text-ink rounded-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
       >
         <span className="mt-[0.15em]">{icon}</span>
         {title}
