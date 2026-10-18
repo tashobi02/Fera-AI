@@ -48,7 +48,7 @@ import {
 import { getCaseRow, mapCaseRow } from "@/server/case/rows";
 import type { CaseRow } from "@/contracts/server";
 import { eligibleFoundCandidates, type EligibleFoundCandidate } from "./filters";
-import { reasonsFor, type MatchReason } from "./reasons";
+import { reasonsFor, type MatchReason, type ReasonsForView } from "./reasons";
 import { rankCandidates, scorePair, type RankedCandidate, type ScoredCandidate } from "./score";
 import { MissingNotEmbeddableError, embedMissingForRun } from "./embed";
 import { districtNeighbourFor, loadNeighbourSet } from "./neighbour";
@@ -163,10 +163,14 @@ function buildReasonAndComponents(
   };
 }
 
-function viewForReasons(row: CaseRow) {
-  // The reasons module takes an OfficerCaseView; we build the minimum shape it reads
-  // (compareCases is pure and only walks the contract fields). The view is a plain
-  // value, never projected through the route layer, so no DTO leakage happens here.
+function viewForReasons(row: CaseRow): ReasonsForView {
+  // The reasons module takes a ReasonsForView (a Pick<OfficerCaseView, …>) and
+  // forwards the two views to compareCases, which only walks the nine
+  // compareCases fields. Build the minimum shape reasonsFor actually reads so
+  // the call below is typesafe: any future contract drift that adds a
+  // required field is caught by `tsc` here, not by an `as never` cast that
+  // silently drops a property. The view is a plain value, never projected
+  // through the route layer, so no DTO leakage happens here.
   return {
     child: {
       name: row.child_name,
@@ -418,7 +422,7 @@ async function runInsideTransaction(
       foundAgeMin: fState.row.age_min,
       foundAgeMax: fState.row.age_max,
     });
-    const reasons = reasonsFor({ missing: viewForReasons(missing) as never, found: viewForReasons(fState.row) as never });
+    const reasons = reasonsFor({ missing: viewForReasons(missing), found: viewForReasons(fState.row) });
     scored.push({ id: fState.row.id, foundId: fState.row.id, scored: pair, reasons });
   }
 

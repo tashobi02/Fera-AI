@@ -18,7 +18,7 @@ export const LOG_EVENTS = [
   "ai.attempt", "ai.summary", "ai.input_rejected", // TASK-013 LLM adapter (src/server/ai)
   "ratelimit.limited", "ratelimit.unavailable", "ratelimit.degraded", "ratelimit.memory_store", "ratelimit.unknown_address",
   "speech.attempt", "speech.summary",
-  "health.db_probe_failed", "health.embedding_probe_failed",
+  "health.db_probe_failed", "health.embedding_probe_failed", "matcher.postcommit_failed", "matcher.failure_state_unavailable",
 ] as const;
 export type LogEvent = (typeof LOG_EVENTS)[number];
 

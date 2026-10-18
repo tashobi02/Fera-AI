@@ -26,7 +26,7 @@ import { LIMITS, draftTokenSchema, isoDateTimeSchema, toDhakaIso, type CaseDraft
 import { intakeDraftMetadataSchema, type IntakeDraftMetadata, type Principal } from "@/contracts/server";
 import { firstRow, col, RowShapeError } from "@/server/db/decode";
 import { getPool } from "@/server/db/pool";
-import type { Pool, PoolClient } from "pg";
+import type { Pool } from "pg";
 import { createLogger } from "@/app/api/_shared/log";
 
 // pg returns timestamptz as a Date; the schema mandates "+06:00" ISO text. Render
@@ -40,7 +40,6 @@ function toIso(date: Date | null | undefined): string {
 }
 
 type PoolLike = Pick<Pool, "query" | "connect">;
-type Connectable = { query: Pool["query"]; release: PoolClient["release"] };
 
 // Per-principal cap: at most ACTIVE_DRAFTS_PER_PRINCIPAL (3) drafts may exist in
 // the last ACTIVE_DRAFT_WINDOW_MS (24h) before the route returns E-019. The
@@ -250,11 +249,27 @@ export function createInMemoryDraftRegistry(opts: InMemoryRegistryDeps): DraftRe
     if (row.follow_up_round >= LIMITS.followUpRounds) return { ok: false, errorId: "E-023" };
     row.follow_up_round += 1;
     row.revision += 1;
-    row.token = opts.signer(row.kind, principalFromKey(row.principalKey), row.id, Date.parse(row.created_at), 0);
+    // The signed draft token is intentionally identity-bound to (kind,
+    // principal, id, createdMs, follow_up_round=0) and is NEVER rotated
+    // between follow-up rounds. The orchestrator refreshes the row token
+    // on the next create/issueQuestion only when a fresh identity binds a
+    // new draft, never as a side effect of advancing the round. This is
+    // the same invariant the DB-backed registry honours — issue_intake_question
+    // in db/schema_v2.sql only bumps follow_up_round and revision, never the
+    // token column. The follow_up_round counter is metadata for the route;
+    // the token stays the same signed blob across every round of the same
+    // draft, so a resume that holds the original token is still valid.
     return { ok: true, row };
   }
 
   async function setPayloadHash(id: string, hash: string | null, expectedRevision: number): Promise<{ ok: true; row: DraftRow } | { ok: false; errorId: ServerErrorId }> {
+    // Mirror the SQL set_intake_payload_hash guard: a valid hash is exactly 64
+    // lowercase hex characters, or NULL to clear. The SQL function raises
+    // check_violation on a malformed value; the in-memory variant refuses with
+    // E-005 so the route envelope and the test assertions stay in lockstep.
+    if (hash !== null && !/^[0-9a-f]{64}$/.test(hash)) {
+      return { ok: false, errorId: "E-005" };
+    }
     const row = rows.get(id);
     if (!row) return { ok: false, errorId: "E-019" };
     if (Date.parse(row.expires_at) <= now()) return { ok: false, errorId: "E-019" };
@@ -271,18 +286,17 @@ export function createInMemoryDraftRegistry(opts: InMemoryRegistryDeps): DraftRe
     rows.delete(id);
   }
 
-  function tokenFor(row: DraftRow, _principal: Principal): string {
-    return row.token ?? opts.signer(row.kind, principalFromKey(row.principalKey), row.id, Date.parse(row.created_at), 0);
+  function tokenFor(row: DraftRow, principal: Principal): string {
+    // Use the supplied real principal to sign the deterministic token. The
+    // previous reconstruction via principalFromKey threw away the actual
+    // Principal shape and forced an `as Principal` cast, so a stub userId
+    // in tests could disagree with the real principal and still appear to
+    // verify. Sign with the live principal so the route envelope's token
+    // compare is honest.
+    return opts.signer(row.kind, principal, row.id, Date.parse(row.created_at), 0);
   }
 
   return { create, get, reload, verifyToken, issueQuestion, setPayloadHash, revoke, tokenFor };
-}
-
-// Synthetic principal reconstruction from the in-memory principal key. Only
-// used in tests; the production DB-backed registry never reaches this code.
-function principalFromKey(key: string): Principal {
-  if (key.startsWith("s:")) return { kind: "parent", sessionId: key.slice(2) } as Principal;
-  return { kind: "user", userId: key.slice(2), role: "officer", verified: true, isActive: true } as Principal;
 }
 
 // Conservative token-bound estimate from the actual messages and the configured
@@ -412,10 +426,17 @@ export function createDbDraftRegistry(opts: DbRegistryOptions): DraftRegistry {
       // in a separate transaction, so deadlock with the budget->draft order is
       // impossible: we release this lock at COMMIT.
       await client.query("SELECT pg_advisory_xact_lock($1::int)", [principalLockKey(principal)]);
-      const result = await client.query<{ count: string }>(
-        "SELECT count(*)::text AS count FROM intake_drafts WHERE session_id IS NOT DISTINCT FROM $1::uuid AND user_id IS NOT DISTINCT FROM $2::uuid AND created_at > now() - interval '24 hours'",
-        [sessionId, userId],
-      );
+      // Owner-exclusive branch: the intake_drafts CHECK guarantees exactly one
+      // of (session_id, user_id) is non-null, so the active-draft cap is
+      // indexable on either column. We branch on principal kind so the planner
+      // uses intake_drafts_session_id_recent_idx or
+      // intake_drafts_user_id_recent_idx and never falls back to a seq scan
+      // that the older "IS NOT DISTINCT FROM …" form would force.
+      const countSql = principal.kind === "parent"
+        ? "SELECT count(*)::text AS count FROM intake_drafts WHERE session_id = $1::uuid AND created_at > now() - interval '24 hours'"
+        : "SELECT count(*)::text AS count FROM intake_drafts WHERE user_id = $1::uuid AND created_at > now() - interval '24 hours'";
+      const countArg = principal.kind === "parent" ? sessionId : userId;
+      const result = await client.query<{ count: string }>(countSql, [countArg]);
       const count = Number(result.rows[0]?.count ?? "0");
       if (count >= ACTIVE_DRAFTS_PER_PRINCIPAL) {
         await client.query("ROLLBACK");

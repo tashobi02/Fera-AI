@@ -42,10 +42,34 @@ function parseDuration(value: string): number {
   return n;
 }
 
+// Exact base-MIME allowlist for the transcribe audio Content-Type. We split on
+// ";" so any ";codecs=…" parameter is discarded up front, then we check the
+// bare base type against the allowlist. This rejects arbitrary audio/…
+// strings a substring match would have accepted, and a missing/empty
+// Content-Type is E-001 too — we never assume webm by default. The downstream
+// audio-metadata verifier decides whether the declared codec is actually
+// supported and reports E-011 for an unsupported one.
+const ALLOWED_AUDIO_BASE_TYPES = new Set<string>([
+  "audio/webm",
+  "audio/ogg",
+  "audio/mp4",
+  "audio/wav",
+  "audio/x-wav",
+  "audio/wave",
+  "audio/amr",
+  "audio/aac",
+  "audio/mpeg",
+]);
+
 function parseAudioCt(mime: string): string {
-  if (!/^audio\//.test(mime)) throw new ApiError("E-001", { reason: "schema" });
-  if (!/codecs=opus|webm|wav|mp4|ogg|amr|aac/.test(mime)) throw new ApiError("E-001", { reason: "schema" });
-  return mime;
+  if (typeof mime !== "string" || mime.length === 0) throw new ApiError("E-001", { reason: "schema" });
+  // Lowercase and strip any ";…params…" so the base type is checked exactly.
+  // Whitespace around the parameter is intentional and tolerated by the spec.
+  const base = mime.toLowerCase().split(";", 1)[0]?.trim() ?? "";
+  if (base.length === 0) throw new ApiError("E-001", { reason: "schema" });
+  if (!/^audio\//.test(base)) throw new ApiError("E-001", { reason: "schema" });
+  if (!ALLOWED_AUDIO_BASE_TYPES.has(base)) throw new ApiError("E-001", { reason: "schema" });
+  return base;
 }
 
 export function makeTranscribeHandler(getDeps: () => IntakeRouteDeps) {
@@ -71,7 +95,12 @@ export function makeTranscribeHandler(getDeps: () => IntakeRouteDeps) {
       const audioBytes = new Uint8Array(await audioPart.arrayBuffer());
       if (audioBytes.byteLength === 0) throw new ApiError("E-008");
       if (audioBytes.byteLength > LIMITS.audioMaxBytes) throw new ApiError("E-008");
-      const ct = parseAudioCt((audioPart.type || "audio/webm;codecs=opus").toLowerCase());
+      // Refuse the request with E-001 if the client omits a Content-Type. We
+      // never assume webm by default — a real client always sends one.
+      if (typeof audioPart.type !== "string" || audioPart.type.length === 0) {
+        throw new ApiError("E-001", { reason: "schema" });
+      }
+      const ct = parseAudioCt(audioPart.type);
       const fields: TranscribeFields = {
         kind: kind as "missing" | "found",
         duration_s,
@@ -119,3 +148,7 @@ export function buildIntakeRoutes(getDeps: () => IntakeRouteDeps) {
     extract: makeExtractHandler(getDeps),
   };
 }
+
+// Exported for the route-helpers regression tests. Throws ApiError(E-001) on a
+// reject; returns the canonical base type on accept.
+export const __test__ = { parseAudioCt };

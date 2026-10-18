@@ -66,8 +66,17 @@ export type MatchReason = {
 };
 
 // Input shape matches `compareCases` exactly so the adapter cannot drift in
-// how it destructures the pair. Callers pass the two views positionally.
-export type ReasonsForInput = { missing: OfficerCaseView; found: OfficerCaseView };
+// how it destructures the pair. `compareCases` only walks a subset of
+// `OfficerCaseView` (the nine field compare cases), so we accept the same
+// projection here. Using Pick keeps the matcher row's full OfficerCaseView
+// available for call sites that need it, while giving reasonsFor a precise
+// input type that catches a future contract drift at the type level instead
+// of through an `as never` escape hatch in the matcher.
+export type ReasonsForView = Pick<
+  OfficerCaseView,
+  "child" | "event" | "reporter_relation" | "contact_phone" | "contact_phone_masked"
+>;
+export type ReasonsForInput = { missing: ReasonsForView; found: ReasonsForView };
 // Backwards-compatible alias for the existing object-style call sites.
 export type ReasonsPair = ReasonsForInput;
 
