@@ -57,7 +57,9 @@ function districtLabel(code: number | null, nameBn: string | null | undefined, l
 export const displayScore = (n: number): number => Math.floor(n);
 export const displayComponent = (n: number): number => Math.floor(n * 100 + 1e-9) / 100;
 
-export function compareCases(missing: OfficerCaseView, found: OfficerCaseView, locale: "bn" | "en" = "bn"): ComparisonRow[] {
+export type ComparisonCaseView = Pick<OfficerCaseView, "child" | "event">;
+
+export function compareCases(missing: ComparisonCaseView, found: ComparisonCaseView, locale: "bn" | "en" = "bn"): ComparisonRow[] {
   const rows: ComparisonRow[] = [];
 
   const sm = missing.child.sex === "unknown" ? null : missing.child.sex;

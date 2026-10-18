@@ -98,4 +98,82 @@ describe("intake draft metadata counters", () => {
     const after = await registry.create({ kind: KIND, principal, payloadHash: null });
     expect(after).toMatchObject({ ok: true });
   });
+
+  it("validates payload-hash shape the same way as set_intake_payload_hash (E-005)", async () => {
+    // The in-memory registry must mirror the SQL function: a valid hash is
+    // either NULL (cleared) or exactly 64 lowercase hex characters. Anything
+    // else is refused with E-005 so the orchestrator and the route envelope
+    // never see a half-applied hash.
+    const clock = { now: Date.parse("2026-10-18T12:00:00Z") };
+    const principal = testParent(randomUUID());
+    const registry = makeRegistry(clock);
+    const created = await registry.create({ kind: KIND, principal, payloadHash: null });
+    if (!created.ok) throw new Error("fixture draft absent");
+
+    const good = "a".repeat(64);
+    const applied = await registry.setPayloadHash(created.row.id, good, created.row.revision);
+    expect(applied).toMatchObject({ ok: true });
+    if (!applied.ok) return;
+
+    // Malformed hashes — uppercase, short, non-hex, empty string — all E-005.
+    const wrong = await registry.setPayloadHash(applied.row.id, "Z".repeat(64), applied.row.revision);
+    expect(wrong).toMatchObject({ ok: false, errorId: "E-005" });
+    const short = await registry.setPayloadHash(applied.row.id, "a".repeat(63), applied.row.revision);
+    expect(short).toMatchObject({ ok: false, errorId: "E-005" });
+    const nonhex = await registry.setPayloadHash(applied.row.id, "g".repeat(64), applied.row.revision);
+    expect(nonhex).toMatchObject({ ok: false, errorId: "E-005" });
+    const empty = await registry.setPayloadHash(applied.row.id, "", applied.row.revision);
+    expect(empty).toMatchObject({ ok: false, errorId: "E-005" });
+
+    // A NULL clears the existing hash and advances the revision.
+    const cleared = await registry.setPayloadHash(applied.row.id, null, applied.row.revision);
+    expect(cleared).toMatchObject({ ok: true, row: { payload_hash: null } });
+  });
+
+  it("keeps the signed draft token stable across every follow-up round (intent: identity + DB CAS, not a rotating token)", async () => {
+    // The draft token is intentionally bound to (kind, principal, id, createdMs,
+    // follow_up_round=0) and is NEVER rotated by issueQuestion. Only follow_up_round
+    // and revision advance, so a resume that holds the original token stays
+    // valid through every round and the route's tokenFor compare never sees a
+    // different blob mid-draft.
+    const clock = { now: Date.parse("2026-10-18T12:00:00Z") };
+    const principal = testParent(randomUUID());
+    const registry = makeRegistry(clock);
+    const created = await registry.create({ kind: KIND, principal, payloadHash: null });
+    if (!created.ok) throw new Error("fixture draft absent");
+
+    let row = created.row;
+    for (let round = 0; round < 4; round++) {
+      const issued = await registry.issueQuestion(row.id, row.revision);
+      if (!issued.ok) throw new Error(`round ${round} refused: ${issued.errorId}`);
+      row = issued.row;
+      // After every round, the token the registry would sign for this row is
+      // the same blob the create() produced. Round counter is metadata only.
+      expect(registry.tokenFor(row, principal)).toBe(created.token);
+    }
+    // The round counter advanced; the token didn't.
+    expect(row.follow_up_round).toBe(4);
+    expect(row.revision).toBe(5);
+    expect(registry.tokenFor(row, principal)).toBe(created.token);
+  });
+
+  it("refuses setPayloadHash with a stale revision (CAS guard, E-005)", async () => {
+    // The same guard the SQL function enforces: revision must match the row's
+    // current value or the write is refused. The orchestrator reloads after
+    // every paid-call reservation, so it always passes the fresh revision.
+    const clock = { now: Date.parse("2026-10-18T12:00:00Z") };
+    const principal = testParent(randomUUID());
+    const registry = makeRegistry(clock);
+    const created = await registry.create({ kind: KIND, principal, payloadHash: null });
+    if (!created.ok) throw new Error("fixture draft absent");
+
+    const stale = await registry.setPayloadHash(created.row.id, "a".repeat(64), created.row.revision - 1);
+    expect(stale).toMatchObject({ ok: false, errorId: "E-005" });
+
+    // Apply once, then try to re-apply with the pre-apply revision.
+    const applied = await registry.setPayloadHash(created.row.id, "a".repeat(64), created.row.revision);
+    if (!applied.ok) throw new Error("apply refused");
+    const reapply = await registry.setPayloadHash(applied.row.id, "b".repeat(64), applied.row.revision - 1);
+    expect(reapply).toMatchObject({ ok: false, errorId: "E-005" });
+  });
 });

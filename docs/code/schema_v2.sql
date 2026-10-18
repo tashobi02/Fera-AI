@@ -86,6 +86,17 @@ CREATE TABLE intake_drafts (
   CHECK ((session_id IS NOT NULL) <> (user_id IS NOT NULL)),
   CHECK (expires_at > created_at)
 );
+-- Active-draft cap (BR-004 / cap query in createDbDraftRegistry): one partial
+-- index per principal column, both restricted to the 24-hour window the cap
+-- uses. Together they cover the indexable owner-exclusive branches
+-- session_id = $1 / user_id = $1 so the cap query is an index scan instead of
+-- a seq scan that the old "IS NOT DISTINCT FROM" form would force.
+CREATE INDEX intake_drafts_session_id_recent_idx
+  ON intake_drafts (session_id, created_at)
+  WHERE session_id IS NOT NULL;
+CREATE INDEX intake_drafts_user_id_recent_idx
+  ON intake_drafts (user_id, created_at)
+  WHERE user_id IS NOT NULL;
 
 -- Cases --------------------------------------------------------------
 CREATE TABLE cases (

@@ -10,11 +10,13 @@ import { lockCases } from "./lock";
 import { CASE_COLUMNS, getCaseRow, isQueueStatus, mapCaseRow, pendingCandidatesFor } from "./rows";
 import type { Queryable } from "@/server/db/queryable";
 import { withTransaction, type Connectable, type TxOptions } from "./tx";
+import type { Logger } from "@/app/api/_shared/log";
 
 // Per-call options. `requestId` is stored on the audit rows; `pool` is a test seam
 // (default: the fera_app pool); `attempts` bounds transient-conflict retries (default 3,
-// tests use 1 so a deadlock fails instead of being retried away).
-export type ServiceContext = { requestId?: string | null; pool?: Connectable; attempts?: number };
+// tests use 1 so a deadlock fails instead of being retried away); `logger` is a test seam
+// (default: a fresh createLogger() so postcommit path stays observable without setup).
+export type ServiceContext = { requestId?: string | null; pool?: Connectable; attempts?: number; logger?: Logger };
 
 export const txOptions = (ctx: ServiceContext): TxOptions => ({ pool: ctx.pool, attempts: ctx.attempts });
 
