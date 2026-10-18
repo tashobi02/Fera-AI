@@ -71,8 +71,10 @@ export async function importSyntheticCases(
     const perItem = await runOne(principal, item, request.kind, nowIso, deps, ctx);
     results.push(perItem);
   }
-  // Count only repeated text within this request. The response exposes no IDs.
-  const duplicates_flagged = computeDuplicatesFlagged(request.items);
+  // Count only the persisted duplicate flag emitted by the case service.
+  // Submitted text is never hashed; the response exposes no IDs and no
+  // case payload.
+  const duplicates_flagged = computeDuplicatesFlagged(results);
   const imported = results.filter((r) => r.kind === "imported").length;
   const skipped = results.filter((r) => r.kind === "skipped").length;
   return importResponseSchema.parse({ imported, skipped, duplicates_flagged });

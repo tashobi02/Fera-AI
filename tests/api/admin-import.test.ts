@@ -96,13 +96,16 @@ describe("API-015 synthetic import", () => {
     expect(JSON.stringify(body)).not.toContain("[MOCK] payload");
   });
 
-  it("counts extra copies of text only within the submitted batch", () => {
+  it("does not count repeated submissions as persisted duplicate flags", () => {
     expect(computeDuplicatesFlagged([
-      { text: "[MOCK] repeated synthetic text" },
-      { text: "[MOCK] unique synthetic text" },
-      { text: "[MOCK] repeated synthetic text" },
-      { text: "[MOCK] repeated synthetic text" },
-    ])).toBe(2);
-    expect(computeDuplicatesFlagged([{ text: "[MOCK] unique synthetic text" }])).toBe(0);
+      { kind: "imported" },
+      { kind: "skipped", reason: "duplicate_submission" },
+      { kind: "imported" },
+      { kind: "skipped", reason: "invalid_draft" },
+    ])).toBe(0);
+    expect(computeDuplicatesFlagged([
+      { kind: "imported" },
+      { kind: "skipped", reason: "invalid_draft" },
+    ])).toBe(0);
   });
 });
