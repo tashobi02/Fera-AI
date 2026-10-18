@@ -388,6 +388,26 @@ describe("runSmoke (P3-213, TASK-042) — opt-in synthetic submit", () => {
     expect(sub.detail).toBe("ok (mutated, read back)");
   });
 
+  it("sends the validated target origin in the `origin` header on both POSTs (initial + replay)", async () => {
+    const origin = "http://127.0.0.1:3000";
+    const seen: Array<{ url: string; method: string; origin?: string }> = [];
+    const base = syntheticSubmitFetch(origin, { id: "6b1f3c2a-4d5e-4f60-8a71-000000000071", ref: "M-7K2Q9B" });
+    const fetchImpl: FetchImpl = async (input, init = {}) => {
+      const u = new URL(typeof input === "string" ? input : (input as URL).toString(), origin);
+      const headers = (init.headers as Record<string, string> | undefined) ?? {};
+      if (u.pathname === "/api/cases" && (init.method ?? "GET") === "POST") {
+        seen.push({ url: u.toString(), method: "POST", origin: headers.origin });
+      }
+      return base(input, init);
+    };
+    const results = await runSmoke(origin, fetchImpl as unknown as typeof fetch, { syntheticSubmit: true });
+    const sub = getCheck(results, "synthetic-submit");
+    expect(sub.ok).toBe(true);
+    const posts = seen.filter((s) => s.method === "POST" && s.url === `${origin}/api/cases`);
+    expect(posts.length).toBe(2);
+    for (const p of posts) expect(p.origin).toBe(origin);
+  });
+
   it("skips the synthetic submit by default and never counts it as a pass", async () => {
     const origin = "http://127.0.0.1:3000";
     // The synthetic submit fetch is not needed: default is skipped.
