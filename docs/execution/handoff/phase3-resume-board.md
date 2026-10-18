@@ -42,13 +42,15 @@ Current task IDs are in §6/§9 of `PHASE_3_PLAN.md`; update §9 only after reco
 
 ## Human and external evidence queue
 
+On **18 Oct 2026 (Asia/Dhaka)** the user confirmed that the extraction-label review, audio clips/transcripts, Android checks, timing study, and provider account/price/spend setup **are not completed yet**. These remain gate blockers; delegated technical approval cannot replace their evidence. Continue software work and prepare the Phase 4 handoff without asserting G2′/G3/G4 PASS.
+
 | Evidence | Current value | Needed before |
 |---|---|---|
-| Provider keys, terms and current prices | **UNKNOWN** | Any paid provider call or live provider acceptance |
-| Human labels for 50 synthetic evaluation texts | **UNKNOWN** | Labelled evaluation run |
-| 60 consented audio clips | **UNKNOWN** | WER measurement |
-| Two Android phones | **UNKNOWN** | Device compatibility check |
-| At least five timing participants | **UNKNOWN** | Timing study |
+| Provider keys, terms and current prices | **NOT COMPLETED**, user confirmed 18 Oct | Any paid provider call or live provider acceptance |
+| Human labels for 50 synthetic evaluation texts | **NOT COMPLETED**, user confirmed 18 Oct | Labelled evaluation run |
+| 60 consented audio clips and transcripts | **NOT COMPLETED**, user confirmed 18 Oct | WER measurement |
+| Two Android phones | **NOT COMPLETED**, user confirmed 18 Oct | Device compatibility check |
+| At least five timing participants | **NOT COMPLETED**, user confirmed 18 Oct | Timing study |
 | Mentor session 2 findings/fix list | **UNKNOWN** | TASK-056 |
 | Round 2 submission status and organiser cutoff/channel/formats | **UNKNOWN** | Any claim that Round 2 was submitted or TASK-044–046 are complete/not needed |
 | Production DB/Vercel access and deployment go-ahead | **UNKNOWN** | P3-301 |
