@@ -28,6 +28,7 @@ import { firstRow, col, RowShapeError } from "@/server/db/decode";
 import { getPool } from "@/server/db/pool";
 import type { Pool } from "pg";
 import { createLogger } from "@/app/api/_shared/log";
+import { sqlstateOf } from "@/server/case/errors";
 
 // pg returns timestamptz as a Date; the schema mandates "+06:00" ISO text. Render
 // it deterministically so a reload re-derives the same token, and so the
@@ -468,7 +469,20 @@ export function createDbDraftRegistry(opts: DbRegistryOptions): DraftRegistry {
     } catch (err) {
       try { await client.query("ROLLBACK"); } catch { /* ignore */ }
       try {
-        logger.error({ event: "db.tx_failed", tx_stage: "callback", err_name: err instanceof Error ? err.name : "Error" });
+        // Observability only: surface the SQLSTATE so operators can tell a
+        // unique-id collision (23505) or a lock timeout (55P03) apart from
+        // a generic connection outage. The public error stays E-021 — the
+        // route treats every create() failure the same way, and re-using
+        // E-019 here would falsely claim "draft expired". No message,
+        // stack, detail, SQL or data ever leaves the catch.
+        const err_code = sqlstateOf(err) ?? undefined;
+        const entry: { event: "db.tx_failed"; tx_stage: "callback"; err_name?: string; err_code?: string } = {
+          event: "db.tx_failed",
+          tx_stage: "callback",
+          err_name: err instanceof Error ? err.name : "Error",
+        };
+        if (err_code !== undefined) entry.err_code = err_code;
+        logger.error(entry);
       } catch { /* best effort */ }
       return { ok: false, errorId: "E-021" };
     } finally {
