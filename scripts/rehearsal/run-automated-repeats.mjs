@@ -46,6 +46,7 @@
 // the runner's main path consumes the same helpers so the production
 // behaviour and the test assertions cannot drift.
 
+import { randomBytes } from "node:crypto";
 import { spawn, execFileSync } from "node:child_process";
 import { readFile, writeFile, mkdir, copyFile } from "node:fs/promises";
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
@@ -79,6 +80,7 @@ export async function runOnce(runIndex, args) {
   // (`pre-main-test-journeys-managed-dbs.<pid>.txt`) on afterAll
   // with the DB name the Playwright config set. We pick it up
   // by the run's child pid after exit.
+  const ownedDbName = `fera_e2e_premainjourney_${process.pid}_${runIndex}_${randomBytes(3).toString("hex")}`;
   return new Promise((resolveRun) => {
     let child;
     try {
@@ -102,6 +104,7 @@ export async function runOnce(runIndex, args) {
             // namespace its manifest under the runner's pid (the
             // worker's own pid is unrelated to the runner's).
             FERA_REHEARSAL_RUNNER_CHILD_PID: String(process.pid),
+            FERA_REHEARSAL_DB_NAME: ownedDbName,
           },
         },
       );
@@ -114,7 +117,7 @@ export async function runOnce(runIndex, args) {
         stdout: "",
         stderr: `spawn error: ${err.message}`,
         spawnError: true,
-        dbName: null,
+        dbName: ownedDbName,
         logPath: null,
         childPid: null,
       });
@@ -128,7 +131,7 @@ export async function runOnce(runIndex, args) {
       // Async spawn error (e.g. EACCES). Capture as a run failure.
       stdout += `\n[runner] child error event: ${err.message}\n`;
       stderr += `[runner] child error event: ${err.message}\n`;
-      resolveRun({ runIndex, code: 1, stdout, stderr, spawnError: true, dbName: null, logPath: null, childPid: child.pid ?? null });
+      resolveRun({ runIndex, code: 1, stdout, stderr, spawnError: true, dbName: ownedDbName, logPath: null, childPid: child.pid ?? null });
     });
     child.on("close", (code, signal) => {
       // Extract the per-run DB name and log path from the manifest
@@ -139,7 +142,7 @@ export async function runOnce(runIndex, args) {
       // The manifest is keyed by the RUNNER'S pid (forwarded as
       // FERA_REHEARSAL_RUNNER_CHILD_PID) so two concurrent runners
       // cannot collide; the test worker's own pid is unrelated.
-      let dbName = null;
+      let dbName = ownedDbName;
       let logPath = null;
       const manifestPath = join(
         EVIDENCE_PATH_DIR,
@@ -149,7 +152,7 @@ export async function runOnce(runIndex, args) {
         try {
           const raw = readFileSync(manifestPath, "utf8");
           const lines = raw.split("\n").map((l) => l.trim());
-          dbName = lines[0] || null;
+          if (lines[0] && lines[0] !== ownedDbName) code = 1;
           logPath = lines[1] || null;
         } catch {
           /* ignore */
@@ -251,7 +254,7 @@ export async function runRepeatSuite(opts) {
     for (const r of results) {
       if (r.dbName) {
         try {
-          await dropRehearsalDb(r.dbName, DEFAULT_DATABASE_URL);
+          await dropRehearsalDb(r.dbName, process.env.FERA_DB_ADMIN_URL ?? DEFAULT_DATABASE_URL);
           process.stdout.write(`[automated-repeats] dropped fresh owned DB: ${r.dbName}\n`);
         } catch (err) {
           r.code = 1;

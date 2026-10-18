@@ -1455,6 +1455,7 @@ test("suite — restart: real owned restart on the same port preserves DB state 
   // 2) Start child #1.
   const log1 = ownedLogPath("restart1");
   let child1: Awaited<ReturnType<typeof startOwnedServer>>["child"] | null = null;
+  let child2: Awaited<ReturnType<typeof startOwnedServer>>["child"] | null = null;
   try {
     const started1 = await startOwnedServer({
       port: PORT_2,
@@ -1523,7 +1524,8 @@ test("suite — restart: real owned restart on the same port preserves DB state 
         process.stderr.write(`[restart2] ${chunk}`);
       },
     });
-    const child2Pid = started2.child.pid;
+    child2 = started2.child;
+    const child2Pid = child2.pid;
     expect(child2Pid, "child #2 must have a pid").toBeTruthy();
 
     await waitForOwnedHealth(baseURL_2);
@@ -1575,24 +1577,14 @@ test("suite — restart: real owned restart on the same port preserves DB state 
     // 9) Stop child #2 and confirm the port is closed. This is
     // the final teardown; the Playwright-owned first webServer
     // (port 3225) was never touched.
-    await stopOwnedServer(started2.child);
+    await stopOwnedServer(child2);
+    child2 = null;
     await assertPortClosed(PORT_2);
   } finally {
-    // Belt-and-braces: if anything throws between step 2 and the
-    // explicit teardown, both children are stopped and the
-    // loopback port is verified closed. The test never leaves an
-    // owned server running.
-    if (child1) {
-      await stopOwnedServer(child1).catch(() => undefined);
-      await assertPortClosed(PORT_2).catch(() => undefined);
-    }
-    // Final port-close guard. If a child survived the explicit
-    // teardown (a hung Next worker, for example), the assertion
-    // surfaces a real defect rather than a silent leak.
-    try {
+    try { if (child1) await stopOwnedServer(child1); }
+    finally {
+      if (child2) await stopOwnedServer(child2);
       await assertPortClosed(PORT_2);
-    } catch {
-      /* port may still be closing — the assertion fires below */
     }
   }
 });

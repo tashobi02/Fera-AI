@@ -9,7 +9,7 @@ afterEach(()=>{for(const dir of dirs.splice(0))rmSync(dir,{recursive:true,force:
 function fixture(){const root=mkdtempSync(join(tmpdir(),'fera-child-'));dirs.push(root);mkdirSync(join(root,'scripts/rehearsal'),{recursive:true});mkdirSync(join(root,'node_modules/next/dist/bin'),{recursive:true});const wrapper=join(root,'scripts/rehearsal/launch-second-server.mjs');copyFileSync(resolve('scripts/rehearsal/launch-second-server.mjs'),wrapper);return{root,wrapper,next:join(root,'node_modules/next/dist/bin/next')};}
 it('records a missing npx executable as a failed run',()=>{
  const root=mkdtempSync(join(tmpdir(),'fera-spawn-'));dirs.push(root);const script=join(root,'runner.mjs');
- writeFileSync(script,`import {runOnce} from ${JSON.stringify(pathToFileURL(resolve('scripts/rehearsal/run-automated-repeats.mjs')).href)};process.env.PATH='/nonexistent';const r=await runOnce(0,{config:'playwright.offline.config.ts',project:'offline-desktop'});if(r.code!==1||!r.spawnError)process.exit(9);console.log('failure recorded');`);
+ writeFileSync(script,`import {runOnce} from ${JSON.stringify(pathToFileURL(resolve('scripts/rehearsal/run-automated-repeats.mjs')).href)};process.env.PATH='/nonexistent';const r=await runOnce(0,{config:'playwright.offline.config.ts',project:'offline-desktop'});if(r.code!==1||!r.spawnError||!/^fera_e2e_premainjourney_/.test(r.dbName))process.exit(9);console.log('failure recorded');`);
  const r=spawnSync(process.execPath,[script],{encoding:'utf8',timeout:5000});expect(r.status,r.stderr).toBe(0);expect(r.stdout).toContain('failure recorded');
 });
 it('propagates the actual child crash code through the second-server wrapper',()=>{
