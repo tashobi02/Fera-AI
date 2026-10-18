@@ -20,9 +20,11 @@
 // spawn a real Postgres server, and do NOT rely on a real model
 // cache. They use the guard helpers directly and assert on the
 // public surface of each command's result.
-import { describe, expect, it, beforeAll } from "vitest";
+import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { spawnSync } from "node:child_process";
-import { resolve } from "node:path";
+import { resolve, join } from "node:path";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, unlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
 import {
   assertLoopbackUrl,
   assertDemoDatabaseName,
@@ -41,11 +43,16 @@ import {
 import { loadState, createState, saveState } from "../../scripts/demo/lib/state.mjs";
 
 const WORKTREE = resolve(import.meta.dirname, "../..");
+const TEST_ROOT = mkdtempSync(join(tmpdir(), "fera-cli-test-"));
+const FAKE_BIN = join(TEST_ROOT, "bin"); mkdirSync(FAKE_BIN);
+writeFileSync(join(FAKE_BIN, "docker"), "#!/bin/sh\nexit 1\n", { mode: 0o700 });
+afterAll(() => rmSync(TEST_ROOT, { recursive: true, force: true }));
+
 
 function runCli(args: string[]) {
   return spawnSync("node", [resolve(WORKTREE, "scripts/demo/cli.mjs"), ...args], {
-    cwd: WORKTREE,
-    env: { ...process.env },
+    cwd: TEST_ROOT,
+    env: { ...process.env, PATH: FAKE_BIN + ":" + process.env.PATH },
     encoding: "utf8",
     timeout: 30_000,
   });
@@ -149,7 +156,7 @@ describe("lifecycle-invariants: state file retention (TASK-053, revised)", () =>
     // state loader's container-name check must refuse it. (The
     // path is identical because we want the same .demo/ root; the
     // differentiator is the container name.)
-    const statePath = require("node:path").join(WORKTREE, ".demo", "state.json");
+    const statePath = join(TEST_ROOT, ".demo", "state.json");
     const foreignContainer = containerNameFor("/tmp/fera-foreign-worktree-xyz");
     const foreignVolume = volumeNameFor("/tmp/fera-foreign-worktree-xyz");
     const s = createState({
@@ -160,11 +167,11 @@ describe("lifecycle-invariants: state file retention (TASK-053, revised)", () =>
       database: "fera_demo_premain_x",
       cache: { status: "ok", expected: 4, present: 4, missing: [], tampered: [] },
     });
-    saveState(s, { statePath, worktreeRoot: WORKTREE });
+    saveState(s, { statePath, worktreeRoot: TEST_ROOT });
     try {
-      expect(() => loadState({ statePath, worktreeRoot: WORKTREE })).toThrow(/not owned by this worktree/);
+      expect(() => loadState({ statePath, worktreeRoot: TEST_ROOT })).toThrow(/not owned by this worktree/);
     } finally {
-      try { require("node:fs").unlinkSync(statePath); } catch {}
+      try { unlinkSync(statePath); } catch {}
     }
   });
 });

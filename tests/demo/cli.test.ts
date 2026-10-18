@@ -5,16 +5,23 @@
 // never fail the lane on a host that has no daemon. The unit-level
 // guarantees (loopback, dedicated prefix, error sanitization) are
 // covered by tests/demo/guard.test.ts.
-import { describe, expect, it, beforeAll } from "vitest";
+import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { spawnSync } from "node:child_process";
-import { resolve } from "node:path";
+import { resolve, join } from "node:path";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, unlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
 
 const WORKTREE = resolve(import.meta.dirname, "../..");
+const TEST_ROOT = mkdtempSync(join(tmpdir(), "fera-cli-test-"));
+const FAKE_BIN = join(TEST_ROOT, "bin"); mkdirSync(FAKE_BIN);
+writeFileSync(join(FAKE_BIN, "docker"), "#!/bin/sh\nexit 1\n", { mode: 0o700 });
+afterAll(() => rmSync(TEST_ROOT, { recursive: true, force: true }));
+
 
 function runCli(args: string[], { cwd, env, input }: { cwd?: string; env?: Record<string, string>; input?: string } = {}) {
   return spawnSync("node", [resolve(WORKTREE, "scripts/demo/cli.mjs"), ...args], {
-    cwd: cwd ?? WORKTREE,
-    env: { ...process.env, ...(env ?? {}) },
+    cwd: cwd ?? TEST_ROOT,
+    env: { ...process.env, ...(env ?? {}), PATH: FAKE_BIN + ":" + process.env.PATH },
     encoding: "utf8",
     input,
     timeout: 60_000,
@@ -63,10 +70,10 @@ describe("scripts/demo/cli.mjs (TASK-053, revised)", () => {
     // Either it succeeded or it reported a docker problem; in both
     // cases the JSON must say which one.
     expect([0, 1]).toContain(r.status);
-    let parsed: any;
+    let parsed: { worktree: string; steps: unknown[]; port: number; appPort: number; container: { name: string }; overall: boolean; verifyOverall: boolean; cache: unknown; dbScripts: unknown[]; db: { ok: boolean } } | null;
     try { parsed = JSON.parse(r.stdout); } catch { throw new Error(`reset did not print JSON: ${r.stdout}`); }
-    expect(parsed.worktree).toBe(WORKTREE);
-    expect(Array.isArray(parsed.steps)).toBe(true);
+    expect(parsed?.worktree).toBe(TEST_ROOT);
+    expect(Array.isArray(parsed?.steps)).toBe(true);
   });
 
   it("status on a clean worktree prints the JSON shape", () => {
@@ -74,11 +81,11 @@ describe("scripts/demo/cli.mjs (TASK-053, revised)", () => {
     // 0 if db is up; 1 if db is down. Either way the shape must be
     // present and contain the per-worktree container / port fields.
     expect([0, 1]).toContain(r.status);
-    let parsed: any;
+    let parsed: { worktree: string; steps: unknown[]; port: number; appPort: number; container: { name: string }; overall: boolean; verifyOverall: boolean; cache: unknown; dbScripts: unknown[]; db: { ok: boolean } } | null;
     try { parsed = JSON.parse(r.stdout); } catch { throw new Error(`status did not print JSON: ${r.stdout}`); }
-    expect(parsed.port).toBe(3215);
-    expect(parsed.appPort).not.toBe(3215);
-    expect(parsed.container.name).toMatch(/^fera-demo-/);
+    expect(parsed?.port).toBe(3215);
+    expect(parsed?.appPort).not.toBe(3215);
+    expect(parsed?.container.name).toMatch(/^fera-demo-/);
   });
 
   it("verify exits non-zero when any step fails (silent-failure guard)", () => {
@@ -86,7 +93,7 @@ describe("scripts/demo/cli.mjs (TASK-053, revised)", () => {
     // non-zero if any of: cache audit, db scripts, container, or
     // DB probe fails.
     const r = runCli(["verify"]);
-    let parsed: any;
+    let parsed: { worktree: string; steps: unknown[]; port: number; appPort: number; container: { name: string }; overall: boolean; verifyOverall: boolean; cache: unknown; dbScripts: unknown[]; db: { ok: boolean } } | null;
     try { parsed = JSON.parse(r.stdout); } catch { parsed = null; }
     if (parsed) {
       expect(typeof parsed.overall).toBe("boolean");
@@ -104,7 +111,7 @@ describe("scripts/demo/cli.mjs (TASK-053, revised)", () => {
     // The same invariant as the verify test, but for any command.
     // A command whose JSON result has ok:false MUST exit non-zero.
     const r = runCli(["status"]);
-    let parsed: any;
+    let parsed: { worktree: string; steps: unknown[]; port: number; appPort: number; container: { name: string }; overall: boolean; verifyOverall: boolean; cache: unknown; dbScripts: unknown[]; db: { ok: boolean } } | null;
     try { parsed = JSON.parse(r.stdout); } catch { parsed = null; }
     if (parsed && parsed.db && parsed.db.ok === false) {
       expect(r.status).toBe(1);

@@ -178,6 +178,9 @@ describe("dropRehearsalDb (guard only; no live DB)", () => {
     ).rejects.toThrow(/refusing to drop DB against non-loopback host/);
   });
 
+  it.each(["localhost.attacker.example", "127.attacker.example", "127.0.0.2"])("refuses deceptive host %s before connecting", async host => {
+    await expect(dropRehearsalDb("fera_e2e_premainjourney_abc", `postgresql://u:p@${host}:1/postgres`)).rejects.toThrow(/non-loopback/);
+  });
   it("accepts the pinned prefix and a loopback admin host (does not connect)", async () => {
     // We only assert the guard accepts the input shape; the actual
     // DROP DATABASE would require a live pg server. The function

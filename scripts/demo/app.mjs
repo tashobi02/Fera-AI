@@ -118,7 +118,7 @@ export async function loadOrCreateKeys({ worktree }) {
     try {
       parsed = JSON.parse(readFileSync(allowed, "utf8"));
     } catch (err) {
-      throw new Error(`offline-stack: keys file is corrupt; refusing to read partial keys (delete it explicitly to regenerate): ${err instanceof Error ? err.message : String(err)}`);
+      throw new Error("offline-stack: keys file is corrupt; refusing to regenerate");
     }
     if (parsed?.version !== KEYS_VERSION) {
       throw new Error(`offline-stack: keys file version ${String(parsed?.version)} is not recognised (expected ${KEYS_VERSION}); refusing to read partial keys`);

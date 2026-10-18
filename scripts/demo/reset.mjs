@@ -28,8 +28,6 @@
 // containers (`fera-db`, `fera_e2e_*` DBs) are not visible to this
 // script because every helper refuses foreign-owned resources.
 import { join } from "node:path";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import {
   assertDemoDatabaseName,
   assertLoopbackUrl,
@@ -41,34 +39,9 @@ import {
 import { inspectContainer, inspectVolume, stopContainer, run } from "./lib/docker.mjs";
 import { loadState, removeState } from "./lib/state.mjs";
 
-const exec = promisify(execFile);
-const ADMIN_URL = "postgresql://postgres:postgres@127.0.0.1:3215/postgres";
 
 function resolveWorktree() {
   return process.cwd();
-}
-
-async function dropDb(name) {
-  assertDemoDatabaseName(name);
-  const server = withPath(assertLoopbackUrl(ADMIN_URL), "postgres");
-  const terminateArgs = [server.href, "-X", "-q", "-v", "ON_ERROR_STOP=0", "-c",
-    `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${name}' AND pid <> pg_backend_pid()`,
-  ];
-  try {
-    await exec("psql", terminateArgs, { env: { ...process.env, PGCONNECT_TIMEOUT: "10" }, maxBuffer: 4 * 1024 * 1024 });
-  } catch {
-    // Even if the terminate fails (e.g. nothing to terminate), we
-    // fall through to the DROP. The error case is captured below.
-  }
-  // Brief pause so the terminated sessions' state clears in PG.
-  await new Promise((res) => setTimeout(res, 250));
-  const args = [server.href, "-X", "-q", "-v", "ON_ERROR_STOP=1", "-c", `DROP DATABASE IF EXISTS ${name}`];
-  try {
-    const { stdout, stderr } = await exec("psql", args, { env: { ...process.env, PGCONNECT_TIMEOUT: "10" }, maxBuffer: 4 * 1024 * 1024 });
-    return { ok: true, code: 0, stdout, stderr };
-  } catch (err) {
-    return { ok: false, code: typeof err?.code === "number" ? err.code : 1, stderr: sanitizeError(err) };
-  }
 }
 
 export async function reset({ yes = false } = {}) {
@@ -151,14 +124,8 @@ export async function reset({ yes = false } = {}) {
     };
   }
 
-  // 1. Drop the dedicated database (while the server is running).
-  if (state?.database) {
-    const r = await dropDb(state.database);
-    steps.push({ step: "drop-db", database: state.database, ok: r.ok, code: r.code, stderr: r.ok ? null : r.stderr });
-  } else {
-    steps.push({ step: "drop-db", skipped: true, reason: "no state file" });
-  }
-
+  // Reset uses only exact labelled Docker resources. Never send destructive
+  // SQL through a host port which another stack may now occupy.
   // 2. Container. Remove after the DB is dropped.
   if (inspected) {
     const r = await stopContainer(worktree);
@@ -177,7 +144,10 @@ export async function reset({ yes = false } = {}) {
     steps.push({ step: "remove-volume", ok: false, code: volR.code, stderr: volR.stderr });
   }
 
-  // 4. State file last, so a partial reset leaves it for inspection.
+  // Preserve recovery state if any required cleanup failed.
+  if (steps.some(step => step.ok === false)) {
+    return { ok: false, worktree, container: ctnName, volume: volName, steps, statePreserved: true };
+  }
   removeState({ worktreeRoot: worktree });
   steps.push({ step: "remove-state", ok: true });
 

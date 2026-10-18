@@ -27,6 +27,10 @@
     "eval:time": "node eval/time.mjs",
     "eval:audit": "node eval/audit.mjs",
     "test:e2e": "playwright test",
+    "test:offline": "playwright test --config playwright.offline.config.ts",
+    "rehearsal:automated": "node scripts/rehearsal/run-automated-repeats.mjs",
+    "demo:local": "node scripts/demo/cli.mjs",
+    "release:check": "node scripts/release/check.mjs",
     "db:up": "bash scripts/db/up.sh",
     "db:reset": "node scripts/db/reset.mjs",
     "seed:users": "node scripts/db/seed-users.mjs"

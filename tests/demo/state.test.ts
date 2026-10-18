@@ -57,6 +57,7 @@ describe("createState (TASK-053, revised)", () => {
 
   it("rejects a state without a volume field (volume is required for ownership)", () => {
     expect(() =>
+      // @ts-expect-error -- deliberately malformed runtime input lacks volume.
       createState({
         pid: 1,
         port: DEMO_PORT,

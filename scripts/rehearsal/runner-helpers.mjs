@@ -118,7 +118,7 @@ export async function dropRehearsalDb(rawName, adminUrlRaw = DEFAULT_DATABASE_UR
     throw new Error(`refusing to drop DB with non-rehearsal name: ${rawName}`);
   }
   const admin = new URL(adminUrlRaw);
-  if (!/^(127\.|localhost|::1)/.test(admin.hostname)) {
+  if (!["127.0.0.1", "localhost", "[::1]", "::1"].includes(admin.hostname) || !["postgres:", "postgresql:"].includes(admin.protocol) || admin.search || admin.hash) {
     throw new Error(`refusing to drop DB against non-loopback host: ${admin.hostname}`);
   }
   // The admin connection is to the `postgres` database; we never
