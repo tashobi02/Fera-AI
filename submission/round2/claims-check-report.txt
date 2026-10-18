@@ -1,5 +1,5 @@
 claims-check-report -- Round 2 submission pack
-root: /home/obidit/secondBrain/coding/Fera-AI/.worktrees/phase3-finish/submission/round2
+root: /home/user/Fera-AI/submission/round2
 
 OK    asset present  -- fera-round2-deck.pptx
 OK    asset present  -- fera-round2-deck.pdf
@@ -29,7 +29,7 @@ OK    mp4 resolution  -- 1280x720
 OK    mp4 framerate  -- 30/1
 OK    mp4 codec  -- h264
 OK    mp4 duration  -- 105.000s
-OK    deck slide count  -- 7
+OK    deck slide count  -- 8
 OK    slide 2: before-submit metadata only
 OK    slide 2: pre-confirm boundary
 OK    slide 2 / notes: COMP-050 notice cited

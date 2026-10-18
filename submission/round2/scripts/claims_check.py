@@ -381,10 +381,11 @@ def check_deck_slide_count(report: list[str]) -> None:
         return
     prs = Presentation(str(DECK))
     n = len(prs.slides)
-    if n == 7:
-        ok(report, "deck slide count", "7")
+    # Organiser rule (18 Oct announcement): the PPT must not exceed 8 slides.
+    if n == 8:
+        ok(report, "deck slide count", "8")
     else:
-        fail(report, "deck slide count", f"got {n}, expected 7")
+        fail(report, "deck slide count", f"got {n}, expected 8")
     for i, slide in enumerate(prs.slides, 1):
         if len(slide.shapes) < 3:
             fail(report, f"deck slide {i} shape count",
