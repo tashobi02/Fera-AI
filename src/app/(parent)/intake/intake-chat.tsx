@@ -179,7 +179,12 @@ export function IntakeChat({ locale, mode }: { locale: Locale; mode: IntakeClien
     requestTimer.current = timeout;
     let result: IntakeResult<T>;
     try {
-      result = navigator.onLine === false ? failure("E-024") : await call(controller.signal);
+      // Do not pre-check navigator.onLine: it lies for loopback/local servers
+      // (TC-021 / D3 §7 row 14) and would also short-circuit the labelled fake
+      // client on a phone that briefly drops its radio. Let the request attempt;
+      // http-client.send maps a real network failure to E-024 and the server
+      // to its catalogue envelope, and the fake never touches the network.
+      result = await call(controller.signal);
     } catch (err) {
       diagnose("request", err); // error name only: no payload, text or audio
       result = failure("E-021");
