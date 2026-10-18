@@ -57,6 +57,15 @@ export const parentStatusBn = {
   // server's existing draft pre-filled; we hand off a thin pointer.
   statusEditPreparing: "পরিবর্তনের জন্য আপনার রিপোর্ট প্রস্তুত হচ্ছে…",
   statusEditCancel: "সংশোধন বাতিল",
+  // SCREEN-006 server-failure boundary: shown when listMyCases rejects (DB
+  // outage, auth, etc.). We never replace a successful empty list with this
+  // copy; it only appears on a thrown failure (the page catches and renders
+  // it). The retry button reloads the page; "synthetic" stays in the
+  // label per the demo-mode policy.
+  statusListErrorTitle: "রিপোর্টের তালিকা এখন দেখানো যাচ্ছে না",
+  statusListErrorBody: "আবার চেষ্টা করুন। সাহায্য লাগলে ১৩২১৯-এ কল করুন।",
+  statusListErrorRetry: "আবার চেষ্টা করুন",
+  statusListErrorSynthetic: "[MOCK] সিনথেটিক — সার্ভার থেকে তালিকা আসেনি",
 } as const;
 
 export const parentStatusEn = {
@@ -85,4 +94,11 @@ export const parentStatusEn = {
   statusViewReport: "View report",
   statusEditPreparing: "Preparing your report for editing…",
   statusEditCancel: "Cancel correction",
+  // SCREEN-006 server-failure boundary. Bilingual retry copy and a
+  // "[MOCK] synthetic" honest label so a parent (or a reviewer) can tell the
+  // boundary fired, not a successful empty list.
+  statusListErrorTitle: "The report list isn't available right now",
+  statusListErrorBody: "Try again. Call 13219 if you need help.",
+  statusListErrorRetry: "Try again",
+  statusListErrorSynthetic: "[MOCK] synthetic — list did not come from the server",
 } as const;

@@ -41,10 +41,15 @@ function refLabel(ref: string) {
   );
 }
 
-function districtName(counterpart: ReviewQueueResponse["items"][number]["candidates"][number]["counterpart"]): string {
-  // counterpart.event.district_name_bn is null for unknown; fall back to the
-  // numeric district code so the officer still sees the geographic cue.
-  const name = counterpart.event.district_name_bn ?? counterpart.event.district_code?.toString();
+type DistrictEvent = Pick<
+  ReviewQueueResponse["items"][number]["candidates"][number]["counterpart"]["event"],
+  "district_name_bn" | "district_code"
+>;
+
+function districtName(event: DistrictEvent): string {
+  // district_name_bn is null for unknown; fall back to the numeric district
+  // code so the officer still sees the geographic cue.
+  const name = event.district_name_bn ?? event.district_code?.toString();
   return name === null || name === undefined ? "—" : String(name);
 }
 
@@ -92,7 +97,7 @@ export function OfficerQueueList({ locale, view }: { locale: Locale; view: Revie
                 <p className="flex flex-wrap items-center gap-x-3 text-body-sm text-mute">
                   <span className="inline-flex items-center gap-1.5">
                     <MapPinIcon className="size-4" aria-hidden />
-                    <span>{districtName(item.case as never)}</span>
+                    <span>{districtName(item.case.event)}</span>
                   </span>
                   <span className="inline-flex items-center gap-1.5">
                     <GitCompareIcon className="size-4" aria-hidden />
@@ -121,7 +126,7 @@ export function OfficerQueueList({ locale, view }: { locale: Locale; view: Revie
                         {refLabel(c.counterpart.ref_code)}
                       </span>
                       <span className="text-caption-md text-mute">
-                        {t.officerQueueFoundLabel}: {districtName(c.counterpart)}
+                        {t.officerQueueFoundLabel}: {districtName(c.counterpart.event)}
                       </span>
                     </span>
                   </a>

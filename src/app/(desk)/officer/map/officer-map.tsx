@@ -1,9 +1,10 @@
 // COMP-040 district map (SCREEN-011, P3-041, TASK-030a, FR-019, BR-014; TC-012, TC-055).
 // Server-rendered SVG: no client JS, no Leaflet (D3 §1 "Leaflet optional, bundled
-// district outlines"). One focusable button per district, with text label and counts,
-// so the map is operable from the keyboard and readable by a screen reader. The
-// visible table on the page is the accessible equivalent; the markers are a navigation
-// aid, not the source of truth.
+// district outlines"). The SVG is a visual aid only — it is presentation-only and
+// not in the tab order. The visible table on the same page is the accessible
+// equivalent: every district is its own 44 px HTML link with the same counts and
+// bucket label, so the map is operable from the keyboard and readable by a screen
+// reader without relying on the SVG to be interactive.
 //
 // Honest labels:
 // - "No exact locations" note is rendered next to the SVG so a casual reader does not
@@ -22,22 +23,8 @@ export type DistrictMapDatum = {
   pairs: number;
 };
 
-const BUCKET_LABEL: Record<DistrictMapDatum["bucket"], { bn: string; en: string }> = {
-  open: { bn: "খোলা", en: "Open" },
-  matched: { bn: "যাচাই চলছে", en: "Being checked" },
-  closed: { bn: "বন্ধ", en: "Closed" },
-  empty: { bn: "কোনো রিপোর্ট নেই", en: "No reports" },
-};
-
-function localizeNumber(n: number, locale: Locale): string {
-  const bn = "০১২৩৪৫৬৭৮৯";
-  if (locale === "bn") return String(n).replace(/[0-9]/g, (d) => bn[Number(d)]);
-  return String(n);
-}
-
 export function OfficerMap({
   data,
-  locale,
   legend,
   bucketClass,
 }: {
@@ -66,17 +53,12 @@ export function OfficerMap({
       <h2 id="officer-map-svg-title" className="text-body-md font-semibold text-ink">
         {legend.title}
       </h2>
-      <div
-        className="relative w-full overflow-x-auto"
-        role="group"
-        aria-label={legend.title}
-      >
+      <div className="relative w-full overflow-x-auto">
         <svg
           viewBox={`0 0 ${w} ${h}`}
           width="100%"
           height="auto"
-          role="img"
-          aria-labelledby="officer-map-svg-title"
+          aria-hidden="true"
           className="block max-w-full"
         >
           {/* Bangladesh outline. A simplified sketch, not a verified boundary; the page
@@ -86,36 +68,28 @@ export function OfficerMap({
             d="M 30 80 Q 70 30 200 60 T 460 110 L 480 250 Q 460 380 350 460 T 200 640 L 80 600 Q 30 460 40 300 Z"
             className="fill-surface stroke-hairline-strong"
             strokeWidth={1.5}
-            aria-hidden="true"
           />
-          {data.map((d) => {
-            const label = BUCKET_LABEL[d.bucket][locale];
-            const full = `${d.name} · ${label} · ${localizeNumber(d.total, locale)}`;
-            return (
-              <a key={d.code} href={`/officer/map?district=${d.code}`} aria-label={full}>
-                <circle
-                  cx={d.x}
-                  cy={d.y}
-                  r={d.bucket === "empty" ? 5 : 8}
-                  className={[
-                    "transition-colors duration-(--duration-fast) ease-out",
-                    "hover:stroke-2 focus:stroke-2",
-                    bucketClass[d.bucket],
-                  ].join(" ")}
-                  strokeWidth={1.5}
-                  tabIndex={-1}
-                />
-                <text
-                  x={d.x + 10}
-                  y={d.y + 4}
-                  className="fill-ink text-[10px] pointer-events-none"
-                  aria-hidden="true"
-                >
-                  {String(d.code).padStart(2, "0")}
-                </text>
-              </a>
-            );
-          })}
+          {data.map((d) => (
+            <g key={d.code}>
+              <circle
+                cx={d.x}
+                cy={d.y}
+                r={d.bucket === "empty" ? 5 : 8}
+                className={[
+                  "transition-colors duration-(--duration-fast) ease-out",
+                  bucketClass[d.bucket],
+                ].join(" ")}
+                strokeWidth={1.5}
+              />
+              <text
+                x={d.x + 10}
+                y={d.y + 4}
+                className="fill-ink text-[10px] pointer-events-none"
+              >
+                {String(d.code).padStart(2, "0")}
+              </text>
+            </g>
+          ))}
         </svg>
       </div>
       <ul className="flex flex-wrap gap-x-4 gap-y-2 text-caption-md text-body [&:lang(bn)]:text-body-sm" aria-label={legend.title}>

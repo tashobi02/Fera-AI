@@ -140,7 +140,11 @@ async function postClose(
         : undefined;
     if (errorId === "E-005") return { ok: false, failure: "stale" };
     if (errorId === "E-017") return { ok: false, failure: "not-allowed" };
-    if (res.status === 409 || errorId === "E-005") return { ok: false, failure: "stale" };
+    // Status 409 without a parsed envelope is a lock conflict: route it to
+    // the "stale" UI so the officer reloads. Status 404 means the case has
+    // already closed on the server. Anything else is a generic error and the
+    // typed note is preserved.
+    if (res.status === 409) return { ok: false, failure: "stale" };
     if (res.status === 404) return { ok: false, failure: "closed" };
     return { ok: false, failure: "generic" };
   }

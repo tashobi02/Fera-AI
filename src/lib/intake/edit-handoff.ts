@@ -91,11 +91,21 @@ export function beginEditMode(
 // older than `maxAgeMs` is treated as stale and removed; the default matches
 // the existing 24 h draft window so a parent who taps "Correct" and comes back
 // the next day is not shown the edit-in-flight copy.
+//
+// `mutate` is true by default: stale, malformed and corrupt records are swept
+// from storage as a side effect. Callers that run inside a `useSyncExternalStore`
+// snapshot getter (e.g. SCREEN-003 ReviewEntryScreen) MUST pass `mutate: false`
+// to keep the read pure; the screen wires a separate `useEffect` to call
+// `readEditMode()` again with the default (mutating) behaviour so the sweep still
+// happens, just not during render. The v1 → v2 promotion is a return-value shape
+// only; it never writes back to storage, so a pure read is safe across re-renders.
 export function readEditMode(
   storage: Pick<Storage, "getItem" | "setItem" | "removeItem"> | undefined = browserStorage(),
   now = Date.now(),
   maxAgeMs = 24 * 60 * 60 * 1000,
+  options: { mutate?: boolean } = {},
 ): EditMode | null {
+  const mutate = options.mutate !== false;
   try {
     if (!storage) return null;
     const raw = storage.getItem(EDIT_KEY);
@@ -104,24 +114,26 @@ export function readEditMode(
     try {
       value = JSON.parse(raw);
     } catch {
-      storage.removeItem(EDIT_KEY);
+      if (mutate) storage.removeItem(EDIT_KEY);
       return null;
     }
     const v2 = editModeSchema.safeParse(value);
     if (v2.success) {
       if (now - v2.data.savedAt > maxAgeMs) {
-        storage.removeItem(EDIT_KEY);
+        if (mutate) storage.removeItem(EDIT_KEY);
         return null;
       }
       return v2.data;
     }
     // v1 fallback: keep the case id/ref so the review page can still re-load
     // the canonical view. The expected version is unknown; the review page
-    // must read the live version before PATCHing.
+    // must read the live version before PATCHing. v1 records predate
+    // expectedVersion; we return a v2-shaped object literal but never write
+    // back to storage (the read is a pure shape promotion).
     const v1 = editModeV1Schema.safeParse(value);
     if (v1.success) {
       if (now - v1.data.savedAt > maxAgeMs) {
-        storage.removeItem(EDIT_KEY);
+        if (mutate) storage.removeItem(EDIT_KEY);
         return null;
       }
       return {
@@ -132,7 +144,7 @@ export function readEditMode(
         savedAt: v1.data.savedAt,
       };
     }
-    storage.removeItem(EDIT_KEY);
+    if (mutate) storage.removeItem(EDIT_KEY);
     return null;
   } catch { return null; }
 }

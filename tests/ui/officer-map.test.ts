@@ -96,8 +96,10 @@ describe("SCREEN-011 officer map and district drill-through", () => {
 
     expect(html).toContain(locales.en.mockLabel);
     expect(html).toContain(locales.en.officerMapCentroidNote);
-    expect(html).toContain('aria-label="Bagerhat · Being checked · 21"');
-    expect(html).toContain(" · Being checked · 21");
+    // Centroid SVG is presentation-only; the HTML table/list provides the links.
+    expect(html).toContain('aria-hidden="true"');
+    expect(html).toContain('href="/officer/map?district=1"');
+    expect(html).toContain("min-h-11 min-w-11");
     expect(districtOneTableCounts(html)).toEqual(["6", "6", "9", "7"]);
     expect(html).toContain("Total: 21");
     expect(html).toContain("Open 6 · Being checked 6 · Closed 9");

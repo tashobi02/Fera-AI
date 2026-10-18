@@ -5,6 +5,11 @@
 // "Correct details" lane on S-006), render the EditModeScreen instead of the
 // create flow. The dispatch is read-once and StrictMode-safe; the edit flow
 // owns its own state, draft store, and submitter.
+//
+// The pointer read here is a PURE snapshot (no storage writes during render);
+// the mutation (sweeping stale/corrupt records) is done in a separate effect
+// below, so React 18 StrictMode / concurrent re-renders cannot accidentally
+// drop the pointer between the two hook lifecycles.
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
@@ -32,13 +37,24 @@ import { EditModeScreen } from "./edit-mode-screen";
 // create-flow state from the test harness and breaks lifecycle regression
 // coverage (NODE-hook tests in tests/intake/review/review-lifecycle.test.ts).
 const subscribeToEntry = () => () => {};
-const readEditEntry = () => readEditMode() !== null;
+// Pure peek — the snapshot getter must never mutate storage, otherwise a
+// React 18 StrictMode / concurrent re-render can drop the pointer between the
+// two hook lifecycles. The mutation-cleanup effect below performs the
+// sweep (sweeping stale / corrupt records) after mount.
+const readEditEntry = () => readEditMode(undefined, Date.now(), 24 * 60 * 60 * 1000, { mutate: false }) !== null;
 const serverEntry = () => null;
 
 // Resolve device storage after hydration before mounting either flow. Their
 // independent hook lifecycles never depend on a conditional early return.
 export function ReviewEntryScreen({ locale }: { locale: Locale }) {
   const editing = useSyncExternalStore<boolean | null>(subscribeToEntry, readEditEntry, serverEntry);
+  // Mutation cleanup: this effect runs once after mount with the default
+  // (mutating) read so a stale / corrupt / v1 pointer is still swept on
+  // entry. It is intentionally a fire-and-forget; the snapshot above is the
+  // source of truth for the rendered flow.
+  useEffect(() => {
+    readEditMode();
+  }, []);
   if (editing === null) return <div data-surface="parent" className="mx-auto max-w-[36rem] px-4 py-8"><h1 className="text-heading-2">{locales[locale].reviewTitle}</h1><p role="status">{locales[locale].stillWorking}</p></div>;
   return editing ? <EditModeScreen locale={locale} /> : <ReviewScreen locale={locale} />;
 }
