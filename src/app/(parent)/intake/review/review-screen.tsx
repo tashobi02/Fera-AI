@@ -1,6 +1,10 @@
 "use client";
 
 // TASK-022 / SCREEN-003 / BR-004: restore only on the device; submit is an event.
+// P3-035/ACT017: when the device-local edit pointer is present (set by the
+// "Correct details" lane on S-006), render the EditModeScreen instead of the
+// create flow. The dispatch is read-once and StrictMode-safe; the edit flow
+// owns its own state, draft store, and submitter.
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
@@ -8,16 +12,34 @@ import { errorEnvelope, type DraftFieldPath, type ErrorEnvelope } from "@/contra
 import { CircleAlertIcon, InfoIcon, LoaderCircleIcon } from "@/app/components/icons";
 import { FocusHeading } from "@/app/components/focus-heading";
 import { clearSubmittedDraft, clearSubmittedReference, createDeviceDraft, readDraft, readSubmittedReference, saveDraft, type DeviceDraft } from "@/lib/intake/draft-store";
+import { readEditMode } from "@/lib/intake/edit-handoff";
 import { clearIntakeMemory, INTAKE_PATH, MANUAL_FORM_PATH, takeHandoff, type IntakeHandoff } from "@/lib/intake/handoff";
 import { buildSubmission, createSubmitter, editField, newSubmission, validateReview } from "@/lib/intake/review";
 import { localizeDigits } from "@/lib/numerals";
 import { locales, type Locale } from "@/locales";
 import { CircleCheckIcon, HonestLabel, PRIMARY_BUTTON, TERTIARY_BUTTON, TrashIcon } from "../../parent-ui";
-import { ConfirmBar, ReviewFields, reviewLabel } from "./review-fields";
+import { ConfirmBar, ReviewFields, reviewFieldInputId, reviewLabel } from "./review-fields";
+import { EditModeScreen } from "./edit-mode-screen";
 
+// TASK-022 / SCREEN-003 / BR-004: restore only on the device; submit is an event.
+// P3-035/ACT017: when the device-local edit pointer is present (set by the
+// "Correct details" lane on S-006), the edit flow owns the screen. The dispatch
+// is read-once and StrictMode-safe; the create flow is the default.
+//
+// The create flow is inlined into this function (rather than a sub-component)
+// so the existing hook-harness tests' slot recorder sees every `useRef`,
+// `useState` and `useEffect`. Splitting them into sibling components hides the
+// create-flow state from the test harness and breaks lifecycle regression
+// coverage (NODE-hook tests in tests/intake/review/review-lifecycle.test.ts).
 export function ReviewScreen({ locale }: { locale: Locale }) {
   const t = locales[locale];
   const router = useRouter();
+  // ACT017: the "Correct details" click on S-006 records a device-local
+  // pointer; the same page here is the only consumer. Read once on first
+  // render so a late write to the pointer does not re-enter edit mode.
+  const editMode = useRef<{ value: boolean | "absent" } | null>(null);
+  if (editMode.current === null) editMode.current = { value: readEditMode() !== null };
+  if (editMode.current.value) return <EditModeScreen locale={locale} />;
   // Guard even null: StrictMode/effect replay must not take a later handoff.
   const read = useRef<{ value: IntakeHandoff | null } | null>(null);
   // eslint-disable-next-line react-hooks/refs -- mandated takeHandoff once-per-consumer guard (OD-021-4)
@@ -295,7 +317,7 @@ export function ReviewScreen({ locale }: { locale: Locale }) {
       <div id="review-required" ref={summary} tabIndex={-1} role="alert" aria-atomic="true" className={error || expired || fields.length > 0 ? "rounded-lg border border-control bg-card p-4 text-body-lg text-body" : "sr-only"}>
         {(error || expired || fields.length > 0) && <>
           <p className="flex items-start gap-2"><CircleAlertIcon className="mt-1 size-5 text-info" />{expired ? t.reviewExpired : id === "E-001" ? t.reviewErrorSummary : conflict ? t.reviewConflict : e019FromApi ? t.reviewSessionExpired : id === "E-002" ? t.reviewSession : error ? (locale === "bn" ? error.error.message_bn : error.error.message_en) : t.reviewRequiredSummary}</p>
-          {fields.length > 0 && <ul className="mt-3 list-inside list-disc">{fields.map((path) => <li key={path}><a href={`#${path.startsWith("child.age_") ? "review-age-exact" : `review-${path}`}`} className="inline-flex min-h-11 items-center" onClick={(e) => { e.preventDefault(); document.getElementById(path.startsWith("child.age_") ? "review-age-exact" : `review-${path}`)?.focus(); }}>{reviewLabel(path, locale)}</a></li>)}</ul>}
+          {fields.length > 0 && <ul className="mt-3 list-inside list-disc">{fields.map((path) => <li key={path}><a href={`#${reviewFieldInputId(path)}`} className="inline-flex min-h-11 items-center" onClick={(e) => { e.preventDefault(); document.getElementById(reviewFieldInputId(path))?.focus(); }}>{reviewLabel(path, locale)}</a></li>)}</ul>}
           {conflict && <button type="button" className={`${TERTIARY_BUTTON} mt-3`} onClick={() => {
             const fresh = newSubmission(record);
             const saved = saveDraft(fresh, undefined, record.client_submission_id, { transition: "payload-conflict", requireExisting: everSaved.current });

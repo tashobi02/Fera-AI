@@ -18,7 +18,7 @@ import { buildSubmission, createSubmitter, editField, newSubmission, validateRev
 import { localizeDigits } from "@/lib/numerals";
 import { locales, type Locale } from "@/locales";
 import { CircleCheckIcon, HonestLabel, PRIMARY_BUTTON, TERTIARY_BUTTON, TrashIcon } from "../../parent-ui";
-import { ConfirmBar, ReviewFields, reviewLabel } from "../review/review-fields";
+import { ConfirmBar, ReviewFields, reviewFieldInputId, reviewLabel } from "../review/review-fields";
 
 // A blank structural draft the form mounts on when there is no handoff and no
 // stored record. Everything is unknown; the parent fills what they know. The
@@ -314,7 +314,7 @@ export function ManualFormScreen({ locale }: { locale: Locale }) {
       <div id="review-required" ref={summary} tabIndex={-1} role="alert" aria-atomic="true" className={error || expired || fields.length > 0 ? "rounded-lg border border-control bg-card p-4 text-body-lg text-body" : "sr-only"}>
         {(error || expired || fields.length > 0) && <>
           <p className="flex items-start gap-2"><CircleAlertIcon className="mt-1 size-5 text-info" />{expired ? t.reviewExpired : id === "E-001" ? t.reviewErrorSummary : conflict ? t.reviewConflict : e019FromApi ? t.reviewSessionExpired : id === "E-002" ? t.reviewSession : error ? (locale === "bn" ? error.error.message_bn : error.error.message_en) : t.reviewRequiredSummary}</p>
-          {fields.length > 0 && <ul className="mt-3 list-inside list-disc">{fields.map((path) => <li key={path}><a href={`#${path.startsWith("child.age_") ? "review-age-exact" : `review-${path}`}`} className="inline-flex min-h-11 items-center" onClick={(e) => { e.preventDefault(); document.getElementById(path.startsWith("child.age_") ? "review-age-exact" : `review-${path}`)?.focus(); }}>{reviewLabel(path, locale)}</a></li>)}</ul>}
+          {fields.length > 0 && <ul className="mt-3 list-inside list-disc">{fields.map((path) => <li key={path}><a href={`#${reviewFieldInputId(path)}`} className="inline-flex min-h-11 items-center" onClick={(e) => { e.preventDefault(); document.getElementById(reviewFieldInputId(path))?.focus(); }}>{reviewLabel(path, locale)}</a></li>)}</ul>}
           {conflict && <button type="button" className={`${TERTIARY_BUTTON} mt-3`} onClick={() => {
             const fresh = newSubmission(record);
             const saved = saveDraft(fresh, undefined, record.client_submission_id, { transition: "payload-conflict", requireExisting: everSaved.current });
