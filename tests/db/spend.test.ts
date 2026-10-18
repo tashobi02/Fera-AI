@@ -44,7 +44,7 @@ describe.skipIf(!dbTestsEnabled)("paid-call reservations on PostgreSQL 16 as fer
       `INSERT INTO intake_drafts (session_id, kind, created_at, expires_at) VALUES ($1, 'missing', now()-interval '2 days', ${expired ? "now()-interval '1 day'" : "now()+interval '1 day'"}) RETURNING id`, [session.id]);
     return { id: d.id, principal: testParent(session.id) };
   };
-  const input = (id: string, expectedRevision = 1, upperUsd = "0.010000"): ReservationRequest => ({ apiId: "API-002", draftId: id, expectedRevision, upperUsd: mockEstimate(upperUsd) });
+  const input = (id: string, expectedRevision = 1, upperUsd = "0.010000"): ReservationRequest => ({ apiId: "API-002", draftId: id, expectedRevision, upperUsd: mockEstimate(upperUsd), kind: "missing" });
   const budget = () => one<{ cap: string; committed: string; reserved: string }>(appClient, "SELECT cap_usd::text AS cap, committed_usd::text AS committed, reserved_usd::text AS reserved FROM ai_budget");
   const used = (id: string) => one<{ calls: number; revision: number; reservations: number }>(appClient,
     "SELECT ai_calls_used AS calls, revision, (SELECT count(*)::int FROM ai_reservations WHERE draft_id=$1) AS reservations FROM intake_drafts WHERE id=$1", [id]);
@@ -171,14 +171,14 @@ describe.skipIf(!dbTestsEnabled)("paid-call reservations on PostgreSQL 16 as fer
       "INSERT INTO intake_drafts (session_id, user_id, kind) VALUES ($1,$2,$3) RETURNING id",
       scenario === "parent-found" ? [sessionId, null, "found"] : [null, actors.staff, "missing"]);
     const actor = scenario === "parent-found" ? parent.principal : testUser(actors.staff, "staff");
-    await expect(reservePaidCall(actor, input(wrong.id), ctx())).rejects.toMatchObject({ id: "E-023" });
+    await expect(reservePaidCall(actor, input(wrong.id), ctx())).rejects.toMatchObject({ id: scenario === "user-missing" ? "E-003" : "E-023" });
     expect(await used(wrong.id)).toEqual({ calls: 0, revision: 1, reservations: 0 });
     expect((await budget()).reserved).toBe("0.000000");
   });
 
   it("allows API-007 only for the staff member's own found draft", async () => {
     const d = await one<{ id: string }>(appClient, "INSERT INTO intake_drafts (user_id, kind) VALUES ($1, 'found') RETURNING id", [actors.staff]);
-    await expect(reservePaidCall(testUser(actors.staff, "staff"), { ...input(d.id), apiId: "API-007" }, ctx())).resolves.toMatchObject({ draftId: d.id, revision: 2 });
+    await expect(reservePaidCall(testUser(actors.staff, "staff"), { ...input(d.id), kind: "found", apiId: "API-007" }, ctx())).resolves.toMatchObject({ draftId: d.id, revision: 2 });
   });
 
   it.each(["0.020000", "[MOCK] malformed actual"])("keeps paid output and reserved budget for unusable actualUsd %s", async (actualUsd) => {

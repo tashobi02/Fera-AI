@@ -15,7 +15,7 @@ import type { UpperUsdEstimate } from "./price-sheet";
 
 export type SpendContext = Pick<TxOptions, "pool" | "logger">;
 export type PaidApiId = Extract<ApiId, "API-001" | "API-002" | "API-007">;
-export type ReservationRequest = { apiId: PaidApiId; draftId: string; expectedRevision: number; upperUsd: UpperUsdEstimate };
+export type ReservationRequest = { apiId: PaidApiId; draftId: string; expectedRevision: number; upperUsd: UpperUsdEstimate; kind: "missing" | "found" };
 export type PaidReservation = Readonly<{ id: string; apiId: PaidApiId; draftId: string; revision: number; upperUsd: string }>;
 
 const reservationSchema = z.strictObject({
@@ -23,6 +23,7 @@ const reservationSchema = z.strictObject({
   draftId: uuidSchema,
   expectedRevision: z.number().int().min(1).max(2_147_483_646),
   upperUsd: usdSchema.pipe(z.string().refine((value) => usdMicros(value) > 0n).transform((value) => formatUsd(usdMicros(value)))),
+  kind: z.enum(["missing", "found"]),
 });
 const settlementSchema = z.strictObject({ id: uuidSchema, actualUsd: usdSchema.transform((value) => formatUsd(usdMicros(value))) });
 
@@ -99,8 +100,12 @@ export async function reservePaidCall(
   if (!parsed.success) return badInput(logger, parsed.error.issues);
   const request = parsed.data;
   if (!canCall(request.apiId, principal)) throw new ApiError("E-003");
-  const kind = (["missing", "found"] as const).find((candidate) => canIntake(principal, candidate));
-  if (!kind) throw new ApiError("E-003");
+  // Use the actual draft kind from the request, not the first principal
+  // matching kind; a verified officer's "found" draft and a parent's
+  // "missing" draft have a single authoritative kind. canIntake keeps the
+  // role-check on the principal.
+  const kind = request.kind;
+  if (!canIntake(principal, kind)) throw new ApiError("E-003");
   const owner = [request.draftId, principal.kind === "parent" ? principal.sessionId : null,
     principal.kind === "user" ? principal.userId : null, kind];
   const scope = `id=$1 AND session_id IS NOT DISTINCT FROM $2::uuid

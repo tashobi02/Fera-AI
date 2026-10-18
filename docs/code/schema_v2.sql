@@ -82,6 +82,7 @@ CREATE TABLE intake_drafts (
   payload_hash text CHECK (payload_hash ~ '^[0-9a-f]{64}$'),
   ai_calls_used smallint NOT NULL DEFAULT 0 CHECK (ai_calls_used BETWEEN 0 AND 6),
   revision integer NOT NULL DEFAULT 1 CHECK (revision >= 1),
+  follow_up_round smallint NOT NULL DEFAULT 0 CHECK (follow_up_round BETWEEN 0 AND 4),
   CHECK ((session_id IS NOT NULL) <> (user_id IS NOT NULL)),
   CHECK (expires_at > created_at)
 );
@@ -611,9 +612,49 @@ BEGIN
     VALUES('admin',p_admin,'case.payload_redacted',p_case,'{"mode":"pseudonymisation","external_copies_removed":false}');
 END $$;
 
+-- Issue the next follow-up question. Atomic: increments follow_up_round and
+-- revision only while the row's revision matches `expected_revision`, the row
+-- has not expired, and the round cap has not been reached. Returns the new
+-- revision on success or NULL when any guard refuses the move; no counter
+-- is changed on the refused path. The function runs as fera_owner so callers
+-- hold EXECUTE instead of an UPDATE grant on intake_drafts.
+CREATE FUNCTION issue_intake_question(p_draft uuid, p_expected_revision int) RETURNS int LANGUAGE plpgsql AS $$
+DECLARE new_rev int;
+BEGIN
+  UPDATE intake_drafts
+     SET follow_up_round = follow_up_round + 1,
+         revision = revision + 1
+   WHERE id = p_draft
+     AND revision = p_expected_revision
+     AND expires_at > now()
+     AND follow_up_round < 4
+   RETURNING revision INTO new_rev;
+  RETURN new_rev;
+END $$;
+
+-- Set the canonical 64-hex payload hash and advance the revision under the
+-- same expected/expiry guard. Refusal leaves both columns unchanged. Metadata
+-- only: the function never touches payload, text or token columns.
+CREATE FUNCTION set_intake_payload_hash(p_draft uuid, p_expected_revision int, p_hash text) RETURNS int LANGUAGE plpgsql AS $$
+DECLARE new_rev int;
+BEGIN
+  IF p_hash IS NULL OR p_hash !~ '^[0-9a-f]{64}$' THEN
+    RAISE EXCEPTION 'payload hash must be 64 lowercase hex characters' USING ERRCODE = 'check_violation';
+  END IF;
+  UPDATE intake_drafts
+     SET payload_hash = p_hash,
+         revision = revision + 1
+   WHERE id = p_draft
+     AND revision = p_expected_revision
+     AND expires_at > now()
+   RETURNING revision INTO new_rev;
+  RETURN new_rev;
+END $$;
+
 REVOKE UPDATE,DELETE,TRUNCATE ON audit_log FROM PUBLIC;
 REVOKE ALL ON FUNCTION redact_case(uuid,uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION reserve_ai_call(uuid,numeric),settle_ai_call(uuid,numeric) FROM PUBLIC;
+REVOKE ALL ON FUNCTION issue_intake_question(uuid,int), set_intake_payload_hash(uuid,int,text) FROM PUBLIC;
 -- Hosting operator must grant service functions to separate restricted runtime roles.
 -- No application role may own tables, create/alter schema, disable triggers, or truncate.
 COMMIT;
