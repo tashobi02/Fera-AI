@@ -192,15 +192,12 @@ export async function decideDuplicate(
       api,
       duplicate_status: nextStatus,
       duplicate_rule: link.rule,
+      duplicate_link_id: link.id,
       reason_recorded: true,
       ...(aRow.kind === "missing" ? { missing_ref: aRow.ref_code } : { found_ref: aRow.ref_code }),
     };
-    // We do not write audit_log.candidate_id: the FK points at match_candidates and
-    // a duplicate link has no candidate. The link id is recoverable from the audit
-    // row's case_id + duplicate_links.case_a + the duplicate_status in details.
-    // The audit_log case_id is the lower endpoint case_a (schema invariant), so a
-    // future audit reader can rejoin the link to the case without going through
-    // duplicate_links again.
+    // candidate_id is a match-candidate FK, so it stays null. The server-only
+    // duplicate_link_id identifies this decision even when links share case_a.
     const auditId = await appendAudit(client, actorFor(principal), {
       action: auditAction,
       caseId: link.case_a,

@@ -77,6 +77,8 @@ const eslintConfig = defineConfig([
     },
   },
   globalIgnores([
+    // Historical agent lanes are independent checkouts, not this tree's source.
+    ".worktrees/**",
     // Defaults of eslint-config-next
     ".next/**",
     "out/**",

@@ -3,7 +3,7 @@ import type { Client, Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { setOfficerVerified } from "@/server/admin";
 import { decideDuplicate } from "@/server/duplicates/decision";
-import { readCaseAudit } from "@/server/audit";
+import { readCaseAudit } from "@/server/audit/safe-read";
 import { testUser } from "../support/principals";
 import { connect, pool, seedReference, createActors, insertMissing, dbTestsEnabled, type Actors } from "./support/db";
 

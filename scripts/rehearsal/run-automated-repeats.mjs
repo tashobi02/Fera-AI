@@ -234,11 +234,11 @@ export async function runRepeatSuite(opts) {
     return { help: true };
   }
   const RUNS = parseRuns(args.runs, 5);
-  const CONFIG = args.config ?? "playwright.offline.config.ts";
+  const CONFIG = resolve(REPO_ROOT, args.config ?? "playwright.offline.config.ts");
   const PROJECT = args.project ?? "offline-desktop";
   const KEEP_GOING = truthy(args["keep-going"]);
   const NO_CLEANUP = truthy(args["no-cleanup"]);
-  if (!existsSync(join(REPO_ROOT, CONFIG))) {
+  if (!existsSync(CONFIG)) {
     throw new Error(`missing config: ${CONFIG}`);
   }
   await mkdir(EVIDENCE_PATH_DIR, { recursive: true });
