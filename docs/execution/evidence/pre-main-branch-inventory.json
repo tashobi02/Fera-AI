@@ -1,0 +1,991 @@
+{
+  "main": "8499bce9326e1fcad0431ca9748ea1d3b616f5ae",
+  "refs": [
+    {
+      "ref": "refs/heads/main",
+      "sha": "8499bce9326e1fcad0431ca9748ea1d3b616f5ae",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase-2-obidit-handoff",
+      "sha": "82e1c086f98c114f715735089b327a2fd9cb888e",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase-3-obidit",
+      "sha": "a494a740f40ba3a7a9e298f18f930b47e3e08393",
+      "in_main_history": false,
+      "unique_commits": 21
+    },
+    {
+      "ref": "refs/heads/phase-3-obidit--p3-001-mahim-hot-file-split",
+      "sha": "9c2ad8efca55c6a515f7c15b0e70b416e59eabae",
+      "in_main_history": false,
+      "unique_commits": 3
+    },
+    {
+      "ref": "refs/heads/phase-3-obidit--p3-002-obidit-wording",
+      "sha": "42c2d0f76e8d34240362aab6e6feec72f472d3de",
+      "in_main_history": false,
+      "unique_commits": 3
+    },
+    {
+      "ref": "refs/heads/phase-3-obidit--p3-003-mahim-photo-scan",
+      "sha": "13fa187d6971ee0f01a60ddb38a097c42cfd1e92",
+      "in_main_history": false,
+      "unique_commits": 3
+    },
+    {
+      "ref": "refs/heads/phase-3-obidit--p3-004-mahim-draft-secret",
+      "sha": "12317b5b334a6db27af44a5c1b339f86401733e9",
+      "in_main_history": false,
+      "unique_commits": 3
+    },
+    {
+      "ref": "refs/heads/phase-3-obidit--p3-010-masnun-synthetic",
+      "sha": "d5371b6779750cea010b1a05cad0dc84f523df8f",
+      "in_main_history": false,
+      "unique_commits": 12
+    },
+    {
+      "ref": "refs/heads/phase-3-obidit--p3-011-masnun-embedding-spike",
+      "sha": "f9b5822486dbf407abff781c3f1b27e7f1218bf0",
+      "in_main_history": false,
+      "unique_commits": 12
+    },
+    {
+      "ref": "refs/heads/phase-3-obidit--p3-012-masnun-labelled-drafts",
+      "sha": "8dac12dfdae24e6e05ba833732944dc5eb5b0999",
+      "in_main_history": false,
+      "unique_commits": 11
+    },
+    {
+      "ref": "refs/heads/phase-3-obidit--p3-014-mahim-playwright",
+      "sha": "0bdac057b45ee99779500be5efef89fbafc976ed",
+      "in_main_history": false,
+      "unique_commits": 12
+    },
+    {
+      "ref": "refs/heads/phase-3-obidit--p3-015-obidit-district-review",
+      "sha": "624d15b66da2ce7bdbd7ee982676c9b8cac71baa",
+      "in_main_history": false,
+      "unique_commits": 12
+    },
+    {
+      "ref": "refs/heads/phase-3-obidit--p3-016-mahim-case-read",
+      "sha": "45bc63ba2ae93ef52654e9e5040d844d627539c0",
+      "in_main_history": false,
+      "unique_commits": 12
+    },
+    {
+      "ref": "refs/heads/phase-3-obidit--p3-018-mahim-case-close",
+      "sha": "33c901745710f8733556da749589c50086572b48",
+      "in_main_history": false,
+      "unique_commits": 12
+    },
+    {
+      "ref": "refs/heads/phase0",
+      "sha": "1c1ec6cc62f6c53d5cde0b8460f1811903be880c",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase0--lane-a",
+      "sha": "074b5429a68b923bc0754862cf4620337b6f3bbb",
+      "in_main_history": false,
+      "unique_commits": 4
+    },
+    {
+      "ref": "refs/heads/phase0-local-tooling--lane-b",
+      "sha": "d6fad719fc268a94b26df4a471641427434e22d8",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase1-specs--lane-a",
+      "sha": "5a6ab4e6237dc7d03f02e08e57e015239493b339",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase2",
+      "sha": "060e3200834d30bbba96934f69ac1c54685d22f9",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase2--obidit-helpline",
+      "sha": "761c5ff056f77835bdbba7aafe193b24408ea611",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase2--obidit-intake-ui",
+      "sha": "98a60c2c768e10b5e4f6f86a332b6d8e3997c529",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase2--obidit-llm",
+      "sha": "a79e071940fb3b3d21f234f4607237915d7efc62",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase2--obidit-normaliser",
+      "sha": "a1789974558e42951ae0966c47a485def0a0230b",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase2--obidit-orchestrator",
+      "sha": "6a84f8cbd3767046e7742eebea2087a052a701b6",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase2--obidit-p3-013-manual-form",
+      "sha": "457af59e8411ca024e6db4c96396d14541476a3d",
+      "in_main_history": false,
+      "unique_commits": 1
+    },
+    {
+      "ref": "refs/heads/phase2--obidit-p3-018-close-audit",
+      "sha": "be5eda18cb018b71ab3115abb07d8a561c5eb542",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase2--obidit-p3-212-eval-scripts",
+      "sha": "dba3b538d47b40baea9685d487dafdd9ba6402ad",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase2--obidit-p3-213-smoke",
+      "sha": "f5bd6a5ad37767ee7cd7dcce4d806b71cce1be17",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase2--obidit-phase3-close-audit",
+      "sha": "7a9fadb85d7cd056f4f6adaeceb00850de3945a3",
+      "in_main_history": false,
+      "unique_commits": 2
+    },
+    {
+      "ref": "refs/heads/phase2--obidit-phase3-status",
+      "sha": "10ecce68b2c2bea3e0e59538c08d6fd92ec6d9d2",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase2--obidit-phase3-wave0",
+      "sha": "ff50293cfb745a18092cf2dcd2d33a2f27373ca0",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase2--obidit-review-submit",
+      "sha": "e764dae422222fce0811331224f82bc65f6b9a99",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase2--obidit-review-ui",
+      "sha": "5574229fc11e11b62a13568699d3080c922497b5",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase2--obidit-spec002",
+      "sha": "0617b4c73eb51ce7610bb29f642244974e063a21",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase2--obidit-spec003",
+      "sha": "0617b4c73eb51ce7610bb29f642244974e063a21",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase2--obidit-speech",
+      "sha": "a1c4032a36637a441cffeba38b93ff5e0069f945",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase2--obidit-spend",
+      "sha": "028c77bedbd44f9e9d02188dc2f821d44c4c9ff2",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase2--obidit-spend-counters",
+      "sha": "941cceb7efb45b9ebf9724e8374bc5384b635417",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase2--obidit-templates",
+      "sha": "cc8cb95485e4402af5d580ed1c87916fb860a2dc",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase2--obidit-vercel-framework",
+      "sha": "aac3e589cae67eb100906588b1afb81b895f7c9f",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3--p3-012-labelled-drafts",
+      "sha": "c7818752db1df130b2827932272f168ba00d0ba8",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3--p3-019-case-detail-ui",
+      "sha": "37ce5bcfcafdc8f1b451019bd301c1fabe30fb18",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3--p3-022-manifest",
+      "sha": "4c70f5b68e5f166fc74bad7e80de1264d5d24d52",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3--p3-024-embeddings",
+      "sha": "688622c7389bdc56286863f3821b0f3709ec4380",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3--p3-030-matcher-filters",
+      "sha": "dd00448524495a29ddaeb12e4494900d5462ff21",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3--p3-031-matcher-score",
+      "sha": "045ec87699da4ff64199cc732a2f38af704df71f",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3--p3-032-matcher-reasons",
+      "sha": "1b6e594dabb18cbeca4e7e1700bf455199472f35",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3--p3-033-duplicates",
+      "sha": "5d566acb70e9e61f053ee3bc29653e7d6e66e9c3",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3--p3-034-queue-api",
+      "sha": "73225a5eb3ba956b964a522b11aa90f9bf9b77f2",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3--p3-041-dashboard-stats",
+      "sha": "5e38f86e2300cac4e6ad8e3c817d2e6168fef100",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3--p3-101-helpline-test",
+      "sha": "ee359ef2bc5ee5f800f4fb6ea9afec38ad6bb695",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3--p3-108-disaster-mode",
+      "sha": "5c6bb2aa9f7a3bd46834991f701c1aa39052621c",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3--p3-209-e2e-safeguarding",
+      "sha": "22bcd97cbfd6a45c1b360de5539d37ce20174f45",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3--phase4-handoff",
+      "sha": "e9f3729aeb1d8083ef211041cfb961cde2c22ca3",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3-finish--admin-import",
+      "sha": "790c575761bdf69ae4e5b4a2c1a6e67567a4d960",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3-finish--case-ui",
+      "sha": "071f65575cdb58f5a637c5fe958323e4ba2fac16",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3-finish--decisions",
+      "sha": "322f6fe6fa847f5e40467023bbf98988ef6e5920",
+      "in_main_history": false,
+      "unique_commits": 1
+    },
+    {
+      "ref": "refs/heads/phase3-finish--dev-predict",
+      "sha": "37a08afefd99936979d4458c5d0d54abb61d57fa",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3-finish--duplicate-persist",
+      "sha": "970644a6b39989d6775bf4ec8db03750eb55886c",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3-finish--duplicates-review",
+      "sha": "433949666c6ef713e90f5dd1e5c82534c16df6bb",
+      "in_main_history": false,
+      "unique_commits": 1
+    },
+    {
+      "ref": "refs/heads/phase3-finish--evaluation",
+      "sha": "e1259285d3ab789e2ab36aff571ada10b7962159",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3-finish--health",
+      "sha": "1a5cbeaba031ea5ce9f2dbbc57016208b04a5147",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3-finish--intake-backend",
+      "sha": "ea4b6406d4f5e2caa2108c2ab4eb8561a8127ca2",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3-finish--journeys",
+      "sha": "3e9f2cdc9ef4354326329ac2aba968b824e6563a",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3-finish--label-inputs",
+      "sha": "316bb3b6835cc0066c0aa4ebd230cc486e11c5cd",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3-finish--manifest",
+      "sha": "d810e80d7f528bec5fbc901faf9bcadacbee8cab",
+      "in_main_history": false,
+      "unique_commits": 1
+    },
+    {
+      "ref": "refs/heads/phase3-finish--map-list",
+      "sha": "9e734f54cd25f5c5fdedcf76112e9af6313f3cb7",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3-finish--matcher-run",
+      "sha": "1d4ff07569993f1541025561c2112b12ae0e3cc8",
+      "in_main_history": false,
+      "unique_commits": 1
+    },
+    {
+      "ref": "refs/heads/phase3-finish--model-pin",
+      "sha": "f30eae804d5478d43695a45bb52199a05afedad5",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3-finish--parent-client",
+      "sha": "0a146c61ebfabfa1a41ed1e6ec73167e8a524275",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3-finish--parent-form",
+      "sha": "10e4c6c900e965066edd2779450def8afa5e94e3",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3-finish--parent-status",
+      "sha": "e7eea1373acd671ee72a74b17bd10bb7a6177685",
+      "in_main_history": false,
+      "unique_commits": 1
+    },
+    {
+      "ref": "refs/heads/phase3-finish--queue",
+      "sha": "3e2f7369e12752cebbfd036b813e06c98a4def58",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3-finish--review-fixes",
+      "sha": "283abe8aa828c3a09c103e5237dfc075bc370bcc",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3-finish--smoke",
+      "sha": "fbd133b13da3ee31e57fb39d0169afe57992ba2b",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3-finish--test-repair",
+      "sha": "52990f1e8936287f61eb026aa30eaa071120b620",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3-finish--test-stability",
+      "sha": "a7b5e8e806f6bd1d9f6f80d21bd5d69d40e2425a",
+      "in_main_history": false,
+      "unique_commits": 2
+    },
+    {
+      "ref": "refs/heads/phase3-finish--ui-corrections",
+      "sha": "7027618b91b862d72c9a5c8f3c2035d3a96312a4",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase3-integration",
+      "sha": "3f8c7d8ac8bfc2e623739b1e291baf8f8dd60c6e",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase4--audit-code-fixes",
+      "sha": "1642ce49420e48b39b8a1f7dee40021a87fef512",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase4--audit-readiness",
+      "sha": "416b90c5ac63d8c8b16bf362f76e74a33339ad96",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase4--desk-a11y",
+      "sha": "94682012898e175244e1a94d206889b6170b07cb",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase4--duplicate-copy",
+      "sha": "bb75825a53c1b42a3c70617d02b05042ebbe7591",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase4--label-types",
+      "sha": "c5383dad026d7b99c9e5d67ca807d56b034ad510",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase4--landing-record",
+      "sha": "5b43f94c13854b2b5e0100200bce9e1bd07aeea6",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase4--local-demo",
+      "sha": "27bb3c64f933bc9cfc71eb6ca2d0bcc5375dc9fa",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase4--notice-diagnostics",
+      "sha": "2d8c921bf18c60c4ab438df0a40f65eb5958ac45",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase4--parent-dialogs",
+      "sha": "b352cda64a0d269255cd6a22fa1c78ffc6ce8803",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase4--registry-diagnostics",
+      "sha": "63d9b9fabfe6a37161ca4fa3d7407d88ed4cc4fc",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase4--schema-spec-sync",
+      "sha": "29c262e83986951a8e99ea707cee46cfdfd5eedc",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase4--smoke-origin",
+      "sha": "4d8e550a30a51445b89ba38ff92a26086cff1c61",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/phase4--submission-pack",
+      "sha": "ed3bfe6c3c6053af0d2cbeb756c5ab929ba71b3f",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/heads/pre-main",
+      "sha": "8499bce9326e1fcad0431ca9748ea1d3b616f5ae",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/main",
+      "sha": "8499bce9326e1fcad0431ca9748ea1d3b616f5ae",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase-2-masnun",
+      "sha": "5bfdaf610e1a0be7c6fb69acb9d2a2a25708762b",
+      "in_main_history": false,
+      "unique_commits": 2
+    },
+    {
+      "ref": "refs/remotes/origin/phase-2-obidit-handoff",
+      "sha": "82e1c086f98c114f715735089b327a2fd9cb888e",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase0-local-tooling--lane-b",
+      "sha": "d6fad719fc268a94b26df4a471641427434e22d8",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase1",
+      "sha": "2422a0cdf3bb6e6d7e1e717953a4a1a6533ae387",
+      "in_main_history": false,
+      "unique_commits": 5
+    },
+    {
+      "ref": "refs/remotes/origin/phase1--mahim-contracts",
+      "sha": "191cc7c92edc716c9674ed6bdb8435b008f928a5",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase1--mahim-db",
+      "sha": "e4975f9d7ad1468b8c1c923f6ab262720cfda4e4",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase1--mahim-shell",
+      "sha": "704d9a63497eaa5851630b77a95b8d562d7e7868",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase1--mahim-spec007",
+      "sha": "b49316a4589b53ae8f657c988dabec3136f02915",
+      "in_main_history": false,
+      "unique_commits": 1
+    },
+    {
+      "ref": "refs/remotes/origin/phase1--mahim-task001",
+      "sha": "fbd413a097abce697bb90b09ed54195d2e9aa7ec",
+      "in_main_history": false,
+      "unique_commits": 1
+    },
+    {
+      "ref": "refs/remotes/origin/phase1-specs--lane-a",
+      "sha": "5a6ab4e6237dc7d03f02e08e57e015239493b339",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2",
+      "sha": "060e3200834d30bbba96934f69ac1c54685d22f9",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--mahim-admin",
+      "sha": "a21c7de145d901aff7094b30ac0ce4057a08ac1d",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--mahim-api",
+      "sha": "c39b7caeb0c33773955eee96d23e779636be9662",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--mahim-auth",
+      "sha": "f93d251202b0f6df0e20cfe7c57e1b092ba600d5",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--mahim-case",
+      "sha": "cb59c02a746a099d6703580e9c230c374b0f293e",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--mahim-graph",
+      "sha": "578b6748cbc02905c6c94af2a1b52fed14dfe806",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--mahim-handoff",
+      "sha": "d627a08ae38015e3d9c24d8ebfbf59e70c9eade4",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--mahim-integrate",
+      "sha": "604e130441775ff7597fcef275e06a0c12e5696c",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--mahim-integrate2",
+      "sha": "31a779022b3d1cbdd2f81d9ef6f8deeb1815befe",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--mahim-invariants",
+      "sha": "a277307dd64aa68bfcb0fabb0217b728f231d9f3",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--mahim-manual-form",
+      "sha": "2fbb8d00aaec2e3372173c7e9a32fef2f25ce462",
+      "in_main_history": false,
+      "unique_commits": 1
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--mahim-outputs",
+      "sha": "d39a31da99ad01bd117eb7a6cbca7baa8120e21a",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--mahim-parent-session",
+      "sha": "570cd28dad66faaa6f72f287bd981b3bbff5ccb7",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--mahim-signin",
+      "sha": "666239815cc20aa58db17ea65caf99bc831eb382",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--masnun-districts",
+      "sha": "006c9816a2a47da2a9ca7bd9ddf63a85f36c18df",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--masnun-duplicates",
+      "sha": "7ade150f0b4bd11aa38963cfd6491e5190323e76",
+      "in_main_history": false,
+      "unique_commits": 13
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--masnun-embed-spike",
+      "sha": "1a4f9705b0a13e2e333efabde0c22bfb392cfb45",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--masnun-embeddings",
+      "sha": "51db365063cf025bc1f6e8c571562fb2646e56c6",
+      "in_main_history": false,
+      "unique_commits": 6
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--masnun-followups",
+      "sha": "0ff9d9c02f50737ce7ee8a80a01a39cb9abd7ec3",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--masnun-found-log",
+      "sha": "277ea0ac197e7e65405da1b01f81806101385f60",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--masnun-manifest",
+      "sha": "b72aac9ade7dce27a7da17be86c12d5c2425da0d",
+      "in_main_history": false,
+      "unique_commits": 3
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--masnun-match-review",
+      "sha": "e921c3f73250f239717b8c84de20b4891eba7bcf",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--masnun-seed",
+      "sha": "b1dabd6c7d3c9fc21df8109d85104e4be9397019",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--masnun-synthetic",
+      "sha": "dedee07313655e8b055b6bdc452884f0fda610f1",
+      "in_main_history": false,
+      "unique_commits": 3
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--obidit-helpline",
+      "sha": "761c5ff056f77835bdbba7aafe193b24408ea611",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--obidit-intake-ui",
+      "sha": "98a60c2c768e10b5e4f6f86a332b6d8e3997c529",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--obidit-llm",
+      "sha": "a79e071940fb3b3d21f234f4607237915d7efc62",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--obidit-normaliser",
+      "sha": "a1789974558e42951ae0966c47a485def0a0230b",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--obidit-orchestrator",
+      "sha": "6a84f8cbd3767046e7742eebea2087a052a701b6",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--obidit-p3-018-close-audit",
+      "sha": "be5eda18cb018b71ab3115abb07d8a561c5eb542",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--obidit-p3-212-eval-scripts",
+      "sha": "dba3b538d47b40baea9685d487dafdd9ba6402ad",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--obidit-p3-213-smoke",
+      "sha": "f5bd6a5ad37767ee7cd7dcce4d806b71cce1be17",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--obidit-phase3-status",
+      "sha": "10ecce68b2c2bea3e0e59538c08d6fd92ec6d9d2",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--obidit-phase3-wave0",
+      "sha": "ff50293cfb745a18092cf2dcd2d33a2f27373ca0",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--obidit-review-submit",
+      "sha": "e764dae422222fce0811331224f82bc65f6b9a99",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--obidit-review-ui",
+      "sha": "5574229fc11e11b62a13568699d3080c922497b5",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--obidit-speech",
+      "sha": "a1c4032a36637a441cffeba38b93ff5e0069f945",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--obidit-spend",
+      "sha": "028c77bedbd44f9e9d02188dc2f821d44c4c9ff2",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--obidit-spend-counters",
+      "sha": "941cceb7efb45b9ebf9724e8374bc5384b635417",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--obidit-templates",
+      "sha": "cc8cb95485e4402af5d580ed1c87916fb860a2dc",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase2--obidit-vercel-framework",
+      "sha": "aac3e589cae67eb100906588b1afb81b895f7c9f",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase3--p3-012-labelled-drafts",
+      "sha": "c7818752db1df130b2827932272f168ba00d0ba8",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase3--p3-019-case-detail-ui",
+      "sha": "37ce5bcfcafdc8f1b451019bd301c1fabe30fb18",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase3--p3-022-manifest",
+      "sha": "4c70f5b68e5f166fc74bad7e80de1264d5d24d52",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase3--p3-024-embeddings",
+      "sha": "688622c7389bdc56286863f3821b0f3709ec4380",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase3--p3-030-matcher-filters",
+      "sha": "dd00448524495a29ddaeb12e4494900d5462ff21",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase3--p3-031-matcher-score",
+      "sha": "045ec87699da4ff64199cc732a2f38af704df71f",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase3--p3-032-matcher-reasons",
+      "sha": "1b6e594dabb18cbeca4e7e1700bf455199472f35",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase3--p3-033-duplicates",
+      "sha": "5d566acb70e9e61f053ee3bc29653e7d6e66e9c3",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase3--p3-034-queue-api",
+      "sha": "73225a5eb3ba956b964a522b11aa90f9bf9b77f2",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase3--p3-041-dashboard-stats",
+      "sha": "5e38f86e2300cac4e6ad8e3c817d2e6168fef100",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase3--p3-101-helpline-test",
+      "sha": "ee359ef2bc5ee5f800f4fb6ea9afec38ad6bb695",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase3--p3-108-disaster-mode",
+      "sha": "5c6bb2aa9f7a3bd46834991f701c1aa39052621c",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase3--p3-209-e2e-safeguarding",
+      "sha": "22bcd97cbfd6a45c1b360de5539d37ce20174f45",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase3--phase4-handoff",
+      "sha": "e9f3729aeb1d8083ef211041cfb961cde2c22ca3",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase3-integration",
+      "sha": "3f8c7d8ac8bfc2e623739b1e291baf8f8dd60c6e",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase4--landing-record",
+      "sha": "5b43f94c13854b2b5e0100200bce9e1bd07aeea6",
+      "in_main_history": true,
+      "unique_commits": 0
+    },
+    {
+      "ref": "refs/remotes/origin/phase4--schema-spec-sync",
+      "sha": "29c262e83986951a8e99ea707cee46cfdfd5eedc",
+      "in_main_history": true,
+      "unique_commits": 0
+    }
+  ],
+  "dirty_worktrees": [
+    {
+      "path": "/home/obidit/secondBrain/coding/fera-lanes/obidit-spec002",
+      "changes": [
+        "?? specs/002-intake-ai/tasks.md"
+      ]
+    },
+    {
+      "path": "/home/obidit/secondBrain/coding/fera-lanes/obidit-spec003",
+      "changes": [
+        "?? specs/003-parent-outputs/"
+      ]
+    }
+  ]
+}

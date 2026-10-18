@@ -1,0 +1,51 @@
+{
+  "base": "8499bce9326e1fcad0431ca9748ea1d3b616f5ae",
+  "staging_branch": "pre-main",
+  "merge_condition": "All applicable staging checks PASS; formal external/human requirements never fabricated. No merge to main if unresolved required software failures.",
+  "lanes": [
+    {
+      "id": "branch-audit",
+      "branch": "pre-main--branch-audit",
+      "state": "running",
+      "harness": "puku-cli opus-4-8",
+      "worktree": "/home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main-branch-audit"
+    },
+    {
+      "id": "spec-intake-platform",
+      "branch": "pre-main--spec-intake-platform",
+      "state": "running",
+      "harness": "puku-cli opus-4-8",
+      "worktree": "/home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main-spec-intake-platform"
+    },
+    {
+      "id": "spec-desk-data",
+      "branch": "pre-main--spec-desk-data",
+      "state": "running",
+      "harness": "puku-cli opus-4-8",
+      "worktree": "/home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main-spec-desk-data"
+    },
+    {
+      "id": "offline-stack",
+      "branch": "pre-main--offline-stack",
+      "state": "running",
+      "harness": "puku-cli opus-4-8",
+      "worktree": "/home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main-offline-stack"
+    },
+    {
+      "id": "test-journeys",
+      "branch": "pre-main--test-journeys",
+      "state": "running",
+      "harness": "puku-cli opus-4-8",
+      "worktree": "/home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main-test-journeys"
+    },
+    {
+      "id": "phase4-release",
+      "branch": "pre-main--phase4-release",
+      "state": "running",
+      "harness": "puku-cli opus-4-8",
+      "worktree": "/home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main-phase4-release"
+    }
+  ],
+  "started_at": "2026-10-18T16:50:09.057748+06:00",
+  "merge_gate_clarification": "User asked whether to require software/offline checks alone or also external/human release evidence; response pending. Main stays unchanged during work."
+}
