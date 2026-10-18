@@ -13,6 +13,8 @@ models/
 *.tsbuildinfo
 next-env.d.ts
 .vercel
+# e2e log capture: per-run, never committed (scripts/e2e-server.mjs).
+.e2e-logs/
 
 # graphify: commit the graph outputs only, not the local cache or interpreter paths
 graphify-out/cache/
