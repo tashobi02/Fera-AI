@@ -13,6 +13,74 @@ not ground truth.
   `eval/extract.mjs` once a person has filled `labels` and the file has been
   reviewed.
 
+> **Note on the `L001..L050` keys.** `eval/extract.mjs` requires label `id`s
+> to match canonical manifest `record_id`s (D2B §17, AMD-3-3). The legacy
+> `L001..L050` draft is preserved **as historical input only**; it is **not**
+> the file `extract.mjs` is fed today.
+
+## Canonical draft for human review (`labelled.canonical.draft.jsonl`)
+
+A new draft is produced deterministically by `eval/prepare-label-drafts.mjs`:
+
+- The script reads `data/synthetic/records.jsonl` and the canonical
+  `eval/manifest.json`. It **only keeps records whose `split === "dev"`** —
+  held-out test records are explicitly never surfaced, in line with
+  `eval/FREEZE.md` (which is currently `FREEZE_FLAG: NOT SET`).
+- Selection **never** uses `role`, `true_partner_ids`, `no_match`,
+  `decoy_type`, predictions, thresholds, or any held-out model
+  output. Only the manifest `record_id` is consulted, then sorted
+  lexicographically; the first 50 records with non-empty
+  `draft.source_text` are emitted.
+- Every emitted row is `{id, text, labels}` where `text` is
+  `record.draft.source_text` verbatim and `labels` is `{}` (always blank).
+- The script **never** overwrites `labelled.draft.jsonl` and **never** edits
+  `labelled.jsonl`. The default `--out` is a brand-new file:
+  `eval/data/labelled.canonical.draft.jsonl`. Pass `--replace` to overwrite
+  that file, but only when every existing row still has empty labels.
+- The script refuses to write anywhere outside `eval/data/`.
+
+To (re)generate the canonical draft from the committed data:
+
+```bash
+node eval/prepare-label-drafts.mjs
+# or explicitly:
+node eval/prepare-label-drafts.mjs --out eval/data/labelled.canonical.draft.jsonl
+```
+
+The script is a thin wrapper around the pure helpers `loadDevRecordIds`,
+`buildLabelDrafts`, `validateDraftRows`, `guardProtectedFiles`,
+`guardSafeOutputPath`, and `checkOverwriteGuard`. Those helpers are
+unit-tested in `tests/eval/label-drafts.test.ts` (pure in-memory tests;
+no fixture files, no model calls, no held-out data). The test cases
+include a "no test record selected" assertion that proves the dev filter
+is honoured, plus a "respects 50-row cap" assertion. The test file is
+located at the standard vitest discovery path so it is automatically
+picked up by `npm test`.
+
+### Human workflow (canonical draft → `labelled.jsonl`)
+
+1. Run `node eval/prepare-label-drafts.mjs` to (re)produce
+   `eval/data/labelled.canonical.draft.jsonl` with 50 unlabelled rows keyed
+   by canonical `record_id`s.
+2. **A named person** (not a model) reads each `text` and fills `labels`
+   per the field set in `src/contracts/draft.ts` (see "How a person fills
+   labels" below). The old `L001..L050` draft stays in
+   `labelled.draft.jsonl` as a historical reference; **the human reviews
+   `labelled.canonical.draft.jsonl`**, not the legacy one.
+3. The labeller saves the filled file as `eval/data/labelled.jsonl` (one
+   line per record, same `id` keys). `labelled.canonical.draft.jsonl` is
+   left in place; it is the unlabelled working copy.
+4. **Obidit** reviews every label against `text`, fixes any disagreement,
+   and adds a second signed line in the labelled file's README.
+5. **No label may be produced by a model.** If a label cannot be produced
+   with confidence, it is left absent — "Unknown stays unknown" (AGENTS.md).
+6. Quality measurement is **not** done in this lane. The script does not
+   call any model, does not load the test split, and does not change the
+   freeze flag. `eval/extract.mjs` will refuse to score until
+   `eval/data/labelled.jsonl` is human-filled, a prediction file is
+   supplied, and (for test-split scoring) `FREEZE_FLAG: SET` is in
+   `eval/FREEZE.md`.
+
 ## How a person fills `labels`
 
 The labels describe which fields a parent report carries, in the exact shape
@@ -88,3 +156,22 @@ etc.); no real people are named. No exact addresses, no photos, no IDs.
 - `L049` and `L050` carry `"category": "adversarial"` (prompt-injection tests). Score them separately from the normal lines.
 - Every text includes a phone number, so there is no "phone missing" coverage yet. Several texts omit age or place on purpose. Add phone-omission cases before scoring unknown-field behaviour.
 - District aliases and misspellings are sparse (Chittagong/চিটাগাং, বরিসাল, বগড়া, ডাক্কার). The labeller should note which aliases the normaliser is expected to accept.
+
+## Status of the canonical-draft helpers
+
+`eval/prepare-label-drafts.mjs` is the production script; it is a thin
+wrapper around the pure helpers exported for tests:
+`loadDevRecordIds`, `buildLabelDrafts`, `validateDraftRows`,
+`guardProtectedFiles`, `guardSafeOutputPath`, `checkOverwriteGuard`, and
+`readJsonl`.
+
+`tests/eval/label-drafts.test.ts` is the unit-test file. It is pure and
+in-memory (no fixture files, no model calls, no held-out data, no
+network, no env). The test cases include a "no test record selected"
+assertion that proves the dev filter is honoured.
+
+The test suite was executed via `npx vitest run tests/eval/` and all
+131 tests across 10 test files in `tests/eval/` passed in this branch
+on 2026-10-18, including the 37 tests in `label-drafts.test.ts`. The
+test file lives at the standard vitest discovery path
+(`tests/**/*.test.ts`) so it is automatically picked up by `npm test`.
