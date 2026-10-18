@@ -1,0 +1,138 @@
+{
+  "as_of": "2026-10-18 Asia/Dhaka",
+  "application_source_commit": "9155963d677d987a9aaa64bc00b74b1ec0a7292e",
+  "checks": {
+    "unit": {
+      "check": "unit",
+      "command": [
+        "npm",
+        "test"
+      ],
+      "exit_code": 0,
+      "seconds": 7.1
+    },
+    "lint": {
+      "check": "lint",
+      "command": [
+        "npm",
+        "run",
+        "lint"
+      ],
+      "exit_code": 0,
+      "seconds": 11.6
+    },
+    "build": {
+      "check": "build",
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "exit_code": 0,
+      "seconds": 5.1
+    },
+    "typecheck": {
+      "check": "typecheck",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "exit_code": 0,
+      "seconds": 2.8
+    },
+    "e2e": {
+      "check": "e2e",
+      "command": [
+        "npm",
+        "run",
+        "test:e2e"
+      ],
+      "exit_code": 0,
+      "seconds": 37.9
+    },
+    "db": {
+      "check": "db",
+      "command": [
+        "npm",
+        "run",
+        "test:db"
+      ],
+      "exit_code": 0,
+      "seconds": 67.8
+    }
+  },
+  "counts": {
+    "unit_passed": 3693,
+    "unit_skipped": 308,
+    "unit_files_passed": 172,
+    "unit_files_skipped": 28,
+    "db_passed": 320,
+    "db_files": 30,
+    "browser_passed": 78,
+    "browser_skipped": 0,
+    "lint_errors": 0,
+    "lint_warnings": 51,
+    "build_warnings": 5
+  },
+  "database_evidence_note": "SQL and DB service code unchanged after the 320-test run.",
+  "remote_ci": {
+    "url": "https://github.com/tashobi02/Fera-AI/actions/runs/39114757484",
+    "source_commit": "9155963d677d987a9aaa64bc00b74b1ec0a7292e",
+    "check": "PASS",
+    "db": "PASS",
+    "e2e": "PASS"
+  },
+  "reviews": {
+    "all_eleven_routed_roles": "Completed; original findings corrected or source-grounded withdrawals recorded.",
+    "final_a11y_bengali_typescript_failure_safeguarding_recheck": "PASS",
+    "submission_wording": "PASS",
+    "local_video_javascript_security_safeguarding": "PASS",
+    "review_evidence_note": "Reviewers did static inspection; fresh command transcripts, not reviewer test-count claims, determine verification.",
+    "draft_archive_and_unsent_reply_security_safeguarding": "PASS; deterministic archive and self-test verified by coordinator"
+  },
+  "artifacts": {
+    "deck": "submission/round2/fera-round2-deck.pptx",
+    "slides": 7,
+    "pdf": "submission/round2/fera-round2-deck.pdf",
+    "actual_video": "submission/demo/final.mp4",
+    "video_seconds": 105,
+    "video_width": 1280,
+    "video_height": 720,
+    "video_sha256": "1403d679c454712016cec949047c22a0e3bc118752e0f64bc0fa190faf4aaae6",
+    "video_proof_images": 8,
+    "video_provenance": "submission/demo/provenance.json",
+    "storyboard": "submission/round2/fera-round2-storyboard-preview.mp4",
+    "claims_check": {
+      "pass": 64,
+      "fail": 0
+    },
+    "draft_zip": "submission/round2/fera-round2-draft.zip",
+    "draft_zip_sha256": "b47ed22727800e5d29993075c38f78dcece0b6d424e8ee05c7f68370c4bf201a",
+    "draft_zip_entries": 9,
+    "unsent_reply": "submission/round2/selection-email-draft.md"
+  },
+  "release_gates": {
+    "G3": "FAIL / missing required human evidence",
+    "G4": "FAIL / production, frozen evaluation and spend evidence missing",
+    "G5": "FAIL / not submitted, organiser instructions and sharing unresolved"
+  },
+  "human_evidence": {
+    "provider_setup": "NOT COMPLETED, user-confirmed 18 Oct",
+    "human_labels": "NOT COMPLETED, user-confirmed 18 Oct; 50 dev-only blank inputs prepared",
+    "audio_clips_60": "NOT COMPLETED, user-confirmed 18 Oct",
+    "physical_android_2": "NOT COMPLETED, user-confirmed 18 Oct",
+    "timing_participants_5": "NOT COMPLETED, user-confirmed 18 Oct",
+    "production_access": "UNAVAILABLE, user-confirmed 18 Oct",
+    "mentor_findings": "UNKNOWN",
+    "human_bangla_review": "UNVERIFIED"
+  },
+  "submission": {
+    "round2_submitted": false,
+    "organiser_cutoff_channel_formats": "UNKNOWN",
+    "drive": "No connected upload tool; available browser showed unsigned Google Drive landing page. No folder or upload created.",
+    "repo_visibility": "PRIVATE; organiser access unresolved; no logged-out access PASS",
+    "email_sent": false
+  },
+  "phase5": "Handoff prepared; phase not started; formal gates remain unmet."
+}

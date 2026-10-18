@@ -1,6 +1,8 @@
 # Fera — Execution Plan (12–24 Oct 2026)
 
 Team: **Mahim** (lead; platform, integration, release; "Sadman" in AGENTS.md and the spec pack, D6 owner code S) · **Obidit** (intake, AI, outputs) · **Masnun** (data, matching, officer workflow, dashboard, evaluation). The lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`. Each phase tracker lists every person's tasks in their own table.
+
+> **18 Oct 2026 audit pointer.** This execution plan stays the schedule. Per the 18 Oct audit at [`PHASE_3_AUDIT_2026-10-18.md`](PHASE_3_AUDIT_2026-10-18.md): integration HEAD `f25de23` builds / typechecks / lints / passes 3,642 unit + 322 DB + 38 desktop e2e on a fresh local DB; W0.0 gate PASS; **G2′, G3, G4, G5 are FAIL / UNVERIFIED**. The dev eval report is at [`../../eval/reports/phase3-dev-2026-10-18.md`](../../eval/reports/phase3-dev-2026-10-18.md) with denominators and explicit "not measured" items; it is **not** a frozen release figure. The Phase 5 handoff is at [`handoff/PHASE_5_HANDOFF.md`](handoff/PHASE_5_HANDOFF.md) and contains the agent-ready and HUMAN-ready queue.
 Scope: **everything** — all 64 tasks in D6 (Must, Should, Could), ≈222 estimated hours. Times are Asia/Dhaka.
 
 ## The dates that matter

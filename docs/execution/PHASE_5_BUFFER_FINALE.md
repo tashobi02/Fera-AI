@@ -1,10 +1,14 @@
 # Phases 5–6 — Buffer, finale baseline and finale prep · Gate G6
 
+> Final snapshot — 18 Oct 2026: application source `9155963`; build/typecheck/lint PASS (51 lint warnings, five build warnings); 3,693 unit pass/308 skip; 320 DB pass; 78 browser pass/zero skip. Full remote CI passed. The seven-slide deck (`ed3bfe6`) and actual 105-second local video (`27bb3c6`) are prepared and reviewed. Audit documents are committed separately. Round 2 is not submitted. Human evidence, production acceptance, frozen quality, organiser instructions, Drive and private-repository sharing remain unresolved. Phase 5 handoff is prepared, not started.
+
 **Window:** Phase 5 Thu 15 Oct 2026 (G6 at 20:00) · Phase 6 Fri 16 → Sat 24 Oct (finale at AIUB, 5–10 min + live demo) · Asia/Dhaka
 **Plan:** [Phase 5](EXECUTION_PLAN.md#phase-5--buffer-and-finale-baseline-thu-15-oct--gate-g6) · [Phase 6](EXECUTION_PLAN.md#phase-6--finale-prep-16--24-oct) · **Prev:** [Phase 4](PHASE_4_SUBMISSION.md)
-**Phase status:** `todo`
-**Last updated:** 2026-10-13 · tasks distributed among Obidit, Masnun and Mahim; lead = Mahim
+**Phase status:** `todo / prepared` (user said "be ready to start"; Phase 5 is **not** started. Readiness is blocked by open Phase 3 / Phase 4 requirements; the rebaseline finale is 24 Oct, the kit is due 23 Oct, the organiser cutoff is UNKNOWN.)
+**Last updated:** 2026-10-18 · tasks distributed among Obidit, Masnun and Mahim; lead = Mahim · audit: [PHASE_3_AUDIT_2026-10-18.md](PHASE_3_AUDIT_2026-10-18.md); final review disposition: [phase3-finish-review.md](evidence/phase3-finish-review.md); handoff: [PHASE_5_HANDOFF.md](handoff/PHASE_5_HANDOFF.md)
 **Team:** **Obidit** — intake, AI, outputs · **Masnun** — data, matching, officer workflow, dashboard, evaluation · **Mahim** — lead; platform, integration, release (named "Sadman" in AGENTS.md and the spec pack; D6 owner code S). Tasks follow [EXECUTION_PLAN.md](EXECUTION_PLAN.md). The lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`.
+
+> **Reading the headline.** Phase 5 is `todo / prepared`. The user said "be ready to start, not actually start it" on 18 Oct. The lead is Mahim. **Readiness is blocked** by open Phase 3 / Phase 4 requirements. Dates in the rebaseline: kit 23 Oct; AIUB finale 24 Oct; organiser cutoff **UNKNOWN**. The legacy 14 Oct 22:00 baseline is stale and is not treated as current.
 
 The plan's Phases 5 and 6 share this file because both run after the Round 2 submission. Nothing here changes the submitted Round 2 build.
 
@@ -46,6 +50,36 @@ This is a living tracker. Every agent working on a task in this phase updates it
 - Triage the carried-over list at the start of 15 Oct: every open item gets its original owner and a date before 20 Oct (AMD-5-1: links only, no ownership transfer).
 - Schedule the five rehearsals and run `fera-gate G6` at 20:00.
 - Ask mentors/faculty about OQ-019 and record the answer before TASK-057 can start.
+
+### Phase 5 readiness queue (18 Oct 2026)
+
+User on 18 Oct: "be ready to start, not actually start it." Phase 5 is `todo / prepared`. The status of every software-side readiness item is now **CLOSED** with durable review / evidence references — the temporary raw-review JSONs are not committed; durable evidence is the audit, the gate reports, and the durable evidence JSON. Items still in the queue (READY-12 … READY-21) are the original-owner human blocks (HUMAN artefacts, organiser evidence, deployment access, etc.) and are not under any agent's power. **Human artefacts are not a prerequisite to START every Phase 5 task**: the original-owner blocks live in this prepared queue; authorised local offline preparation may start when the user asks, with the human blocks remaining on the queue under their original owner. Deployment is **blocked by missing access**, not by a new permission ritual.
+
+| ID | Status | Durable review / evidence reference |
+|---|---|---|
+| READY-1 | **CLOSED** | `docs/execution/PHASE_3_AUDIT_2026-10-18.md` §3.5a (REV-SAFE withdrawal); `docs/execution/evidence/phase3-finish-review.md` §1 (REV-SAFE PASS, false-finding withdrawn per D2A mandates own / staff field); narrow 5-scope code-only re-review at `/tmp/fera-disposition-final-code.json` returns PASS. |
+| READY-2 | **CLOSED** | `docs/execution/PHASE_3_AUDIT_2026-10-18.md` §3.5a (REV-IMP PASS — parent-5 native confirms replace localized dialogs at `b352cda`); `docs/execution/evidence/phase3-finish-review.md` §1 (REV-IMP PASS). |
+| READY-3 | **CLOSED** | `docs/execution/PHASE_3_AUDIT_2026-10-18.md` §3.5a (REV-TS PASS — batch + price-cause fix verified); `docs/execution/evidence/phase3-finish-review.md` §1 (REV-TS PASS); matcher N+1 closed by `readFoundRowsForScoring` batch; orchestrator `spend.no_price` log path; current unit run 3,693 / 308 skipped at `9155963` (preserved in current `27bb3c6`). |
+| READY-4 | **CLOSED** | `docs/execution/PHASE_3_AUDIT_2026-10-18.md` §3.5a (REV-DB PASS — SQLSTATE + typed tests fix verified); `docs/execution/evidence/phase3-finish-review.md` §1 (REV-DB PASS); current DB suite 320 tests / 30 files at `9155963` (preserved in `27bb3c6`). |
+| READY-5 | **CLOSED** | `docs/execution/PHASE_3_AUDIT_2026-10-18.md` §3.5a (REV-IMP focus / outline-none — `e9708fc` root fix; officer focus / descriptions `9468201`); `docs/execution/evidence/phase3-finish-review.md` §1. |
+| READY-6 | **CLOSED** | `docs/execution/PHASE_3_AUDIT_2026-10-18.md` §3.5a (REV-SFH narrow notice-log fix verified at `2d8c921`/`9155963` — `safeLogNoticeRejection` wraps `log.error` in try/catch with empty body; allowlisted fields only); `docs/execution/evidence/phase3-finish-review.md` §1 (REV-SFH PASS, narrow); narrow 5-scope code-only re-review scope 4 PASS. **Not "in progress"** — closed at the final-review rerun. |
+| READY-7 | **CLOSED** | `docs/execution/PHASE_3_AUDIT_2026-10-18.md` §3.5a (REV-A11Y PASS — W3C / MDN false findings withdrawn per <https://www.w3.org/WAI/tutorials/tables/two-headers/> and <https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overflow>); `docs/execution/evidence/phase3-finish-review.md` §1.1 (withdrawn false findings). |
+| READY-8 | **CLOSED** | `docs/execution/PHASE_3_AUDIT_2026-10-18.md` §3.5a (REV-MLE PASS — rerun replaced EMPTY_RUN); `docs/execution/evidence/phase3-finish-review.md` §1. |
+| READY-9 | **CLOSED** | `docs/execution/PHASE_3_AUDIT_2026-10-18.md` §3.5a (focus `outline-none` `e9708fc`; officer focus / descriptions `9468201`; localized dialogs `b352cda`); `docs/execution/evidence/phase3-finish-review.md` §1. **Not "in progress"** — closed at the final-review rerun. |
+| READY-10 | **CLOSED (merged)** | `docs/execution/PHASE_3_AUDIT_2026-10-18.md` §3 (final integration e2e total = 78 passed browser checks, no skips on a fresh local synthetic DB; journey specs integrated into the root tree at `9155963` lineage; current `27bb3c6` carries the same root tree). |
+| READY-11 | **CLOSED (merged)** | The 50 DEV-only blank `{}` rows in `eval/data/labelled.canonical.draft.jsonl` are integrated; 37 tests on the canonical blank inputs run; **no human labels** are supplied; held-out inference and tuning remain forbidden; `eval/extract.mjs` still prints "not measured" until a canonical mapping is supplied (H-15). |
+| READY-12 | **OPEN (HUMAN)** | H-8 — Obidit's explicit production-deploy go-ahead + managed DB access + freeze tag name. Deployment is blocked by missing access, not by a new permission ritual. |
+| READY-13 | **OPEN (HUMAN)** | H-9 — organiser cutoff / channel / formats / extension / prior submission status. Round 2 was **NOT submitted** as of 18 Oct (user-confirmed). |
+| READY-14 | **OPEN (HUMAN)** | H-1 — TASK-003 provider setup (account, terms, prices, keys out of Git, spend controls). Spend cap default USD 25; team may raise to at most USD 30. |
+| READY-15 | **OPEN (HUMAN)** | H-2 — TASK-011 50 labelled reports. The 50 DEV-only blank rows carry **no human labels**. |
+| READY-16 | **OPEN (HUMAN)** | H-3 — TASK-036 two Android phones. Browser emulation is not a physical-device pass. |
+| READY-17 | **OPEN (HUMAN)** | H-4 — TASK-040 60 consented clips. WER is not measured. |
+| READY-18 | **OPEN (HUMAN)** | H-5 — TASK-041 ≥5 tester timing. Workflow speed is not measured. |
+| READY-19 | **OPEN (HUMAN)** | H-6 — human Bangla review of strings marked "needs human Bangla review". |
+| READY-20 | **OPEN (HUMAN)** | H-7 — TASK-056 mentor fixes. Mentor list empty. |
+| READY-21 | **LOCAL CAPTURE CLOSED; DRIVE PENDING** | H-10 — TASK-045 final demo capture. The **local** actual recorded demo is committed at `submission/demo/final.mp4` (105.000 s, 1280×720, H.264, eight proof PNGs, captions/provenance validated in `/tmp/fera-demo-verified.log`; commit `27bb3c6`; typed flow + explicit seeded officer scenario, **no real voice**). **Drive copy pending** until Drive access / folder is granted; logged-out check on a private window is also pending (H-9 + ACCESS). |
+
+Phase 5 is `prepared`. The software-side items (READY-1 … READY-11) are CLOSED; the human-side items (READY-12 … READY-21) carry the original owners. **Authorised local offline preparation may start when the user asks**; the prepared queue is the gate for the human-side items, not a blanket block on every Phase 5 task. No Phase 5 lane work that depends solely on a CLOSED software item may be claimed blocked by that item.
 
 
 ### Carried over from Phases 2–3
