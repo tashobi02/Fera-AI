@@ -239,9 +239,11 @@ describe("TC-060 pre-submit server metadata holds no payload", () => {
     .filter((c) => !c.startsWith("CHECK"))
     .map((c) => c.split(" ")[0]);
 
-  it("metadata schema keys are exactly the intake_drafts columns", () => {
+  it("intake_drafts contains only frozen public metadata and the approved internal round counter", () => {
     expect(columns.length).toBeGreaterThan(5);
-    expect(new Set(Object.keys(intakeDraftMetadataSchema.shape))).toEqual(new Set(columns));
+    // OD-020-3 adds an internal atomic counter; the public metadata DTO stays frozen.
+    expect(new Set([...Object.keys(intakeDraftMetadataSchema.shape), "follow_up_round"])).toEqual(new Set(columns));
+    expect(sql).toMatch(/follow_up_round smallint NOT NULL DEFAULT 0 CHECK \(follow_up_round BETWEEN 0 AND 4\)/);
   });
 
   it("contains no transcript, reviewed field or child payload", () => {
