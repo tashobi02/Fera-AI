@@ -50,7 +50,7 @@ import { randomBytes } from "node:crypto";
 import { spawn, execFileSync } from "node:child_process";
 import { readFile, writeFile, mkdir, copyFile } from "node:fs/promises";
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
-import { resolve, dirname, join } from "node:path";
+import { resolve, dirname, join, isAbsolute } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   parseArgs,
@@ -238,7 +238,7 @@ export async function runRepeatSuite(opts) {
   const PROJECT = args.project ?? "offline-desktop";
   const KEEP_GOING = truthy(args["keep-going"]);
   const NO_CLEANUP = truthy(args["no-cleanup"]);
-  if (!existsSync(join(REPO_ROOT, CONFIG))) {
+  if (!existsSync(isAbsolute(CONFIG) ? CONFIG : join(REPO_ROOT, CONFIG))) {
     throw new Error(`missing config: ${CONFIG}`);
   }
   await mkdir(EVIDENCE_PATH_DIR, { recursive: true });

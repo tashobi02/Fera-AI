@@ -14,7 +14,7 @@
 //       "found upper time" half of the rule.
 //   (5) both endpoints in a live queue status (open or matched_pending_review)
 //   (6) neither endpoint redacted, confirmed or closed
-//   (7) never a pair already rejected at the same report versions     — BR-019
+//   (7) never a pair already rejected, at any report versions         — BR-019
 //   (8) no duplicate candidate row at the same endpoint pair & versions
 //       (pending/confirmed/voided/superseded are kept in the eligible set
 //       so a rerun can re-rank them; the matcher glue upserts with
@@ -105,18 +105,18 @@ const ELIGIBLE_FOUND_SQL = `
     -- entirely AFTER the missing interval and the symmetric "found lower
     -- time <= missing upper time" half would wrongly drop it.
     AND f.event_at_upper >= m.event_at_lower
-    -- (7) BR-017 + BR-019: a rejected pair at the same versions is never
-    -- re-suggested. (8) Pending/confirmed/voided/superseded rows at the
-    -- same versions are NOT excluded: confirmed/voided pairs are already
-    -- ineligible through case status, and pending pairs must stay in the
-    -- eligible set so a rerun can re-rank them. The matcher glue upserts
-    -- with ON CONFLICT and never produces a true duplicate.
+    -- (7) BR-017 + BR-019: a rejected pair is never re-suggested. The
+    -- exclusion covers ALL versions, not just the current ones, so an
+    -- endpoint edit cannot resurrect a previously dismissed pair
+    -- (SYS-BUG-06). Confirmed/voided/superseded rows are NOT excluded:
+    -- confirmed/voided pairs are already ineligible through case status,
+    -- and pending/voided/superseded rows must stay in the eligible set so
+    -- a rerun can re-rank or finalise them. The matcher glue upserts with
+    -- ON CONFLICT and never produces a true duplicate.
     AND NOT EXISTS (
       SELECT 1 FROM match_candidates mc
       WHERE mc.missing_case_id = m.id
         AND mc.found_case_id   = f.id
-        AND mc.missing_version = m.version
-        AND mc.found_version   = f.version
         AND mc.status = 'rejected'
     )
   ORDER BY f.id`;

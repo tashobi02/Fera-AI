@@ -200,7 +200,7 @@ export async function addCandidate(app: Pick<ClientBase, "query">, missingId: st
       `INSERT INTO match_candidates (missing_case_id, found_case_id, missing_version, found_version,
          score, rank, reason_bn, reason_en, components)
        SELECT m.id, f.id, m.version, f.version, 72.5, $3, '[MOCK] কারণ', '[MOCK] similar clothing and district',
-         '{"text": 0.7, "age": 1}'
+         '{"cosine": 0.7, "age": 1, "name": 0.5, "clothing": null, "district": 0.9}'
        FROM cases m, cases f WHERE m.id = $1 AND f.id = $2 RETURNING id`,
       [missingId, foundId, rank],
     );

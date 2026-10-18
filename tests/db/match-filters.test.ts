@@ -173,7 +173,7 @@ async function insertCandidate(opts: {
     `INSERT INTO match_candidates (missing_case_id, found_case_id, missing_version, found_version,
        score, rank, reason_bn, reason_en, components, status, decided_at)
      VALUES ($1, $2, $3, $4, 50.0, 1, '[MOCK] কারণ', '[MOCK] reason',
-             '{"text":0.5,"age":0.5}'::jsonb, $5::candidate_status, CASE WHEN $5::candidate_status = 'pending' THEN NULL ELSE now() END)
+             '{"cosine":0.5,"age":0.5,"name":0.5,"clothing":null,"district":0.5}'::jsonb, $5::candidate_status, CASE WHEN $5::candidate_status = 'pending' THEN NULL ELSE now() END)
      RETURNING id`,
     [opts.missingId, opts.foundId, opts.missingVersion, opts.foundVersion, opts.status],
   );
@@ -373,8 +373,8 @@ describe.skipIf(!dbTestsEnabled)("matcher hard filters DB (P3-030, BR-017, TC-00
     expect(rows.map((r) => r.found_case_id)).not.toContain(foundId);
   });
 
-  it("a pair already listed as pending at the same versions IS still returned so a rerun can re-rank (BR-017)", async () => {
-    // BR-017 only excludes a `rejected` candidate row at the same versions.
+  it("a pair already listed as pending IS still returned so a rerun can re-rank (BR-017)", async () => {
+    // BR-017 only excludes a `rejected` candidate row (BR-019, any versions).
     // A pending pair must stay in the eligible set so a rerun can re-rank
     // it (the matcher glue upserts with ON CONFLICT and never produces a
     // true duplicate).
@@ -414,7 +414,11 @@ describe.skipIf(!dbTestsEnabled)("matcher hard filters DB (P3-030, BR-017, TC-00
     expect(ids).toContain(near);
   });
 
-  it("the same pair at a different version is still eligible (rejection only blocks same versions)", async () => {
+  it("a rejection at any version blocks the pair even after an endpoint edit (BR-019; SYS-BUG-06)", async () => {
+    // BR-019: a rejected pair is never re-suggested, regardless of version.
+    // The old clause compared versions too, so an endpoint edit could
+    // resurrect a previously dismissed pair. The fix is endpoint-identity
+    // only; the regression below proves the pair is excluded.
     const missingId = await insertMissingAndOpen({
       client: admin, sex: "male", age_min: 6, age_max: 8,
       event_at_lower: hours(20), event_at_upper: hours(10),
@@ -423,15 +427,15 @@ describe.skipIf(!dbTestsEnabled)("matcher hard filters DB (P3-030, BR-017, TC-00
       client: admin, staffId: actors.staff, sex: "male", age_min: 6, age_max: 8,
       event_at_lower: hours(19), event_at_upper: hours(11),
     });
-    // A rejection recorded at the missing report's version 1, then the parent edits the report
-    // (version 2): the matcher compares live versions, so the old rejection no longer blocks the pair.
     const fv = await foundVersion(admin, foundId);
+    // Record a rejection at the missing report's version 1; the missing
+    // case is then bumped to version 2 to mimic a parent edit.
     await insertCandidate({
       client: admin, missingId, foundId, missingVersion: 1, foundVersion: fv, status: "rejected",
     });
     await asReplica(admin, () => admin.query("UPDATE cases SET version = 2 WHERE id = $1", [missingId]));
     const rows = await eligibleFoundCandidates(app, missingId);
-    expect(rows.map((r) => r.found_case_id)).toContain(foundId);
+    expect(rows.map((r) => r.found_case_id)).not.toContain(foundId);
   });
 
   it("TC-009: assertNoIneligible returns zero rows when no candidate violates the rules", async () => {
