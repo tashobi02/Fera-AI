@@ -70,7 +70,7 @@ const PER_RUN_RECORDS = (n) =>
   join(EVIDENCE_PATH_DIR, `pre-main-test-journeys-records.run${n}.json`);
 const PER_RUN_LOGS_DIR = join(EVIDENCE_PATH_DIR, "pre-main-test-journeys-logs");
 
-async function runOnce(runIndex, args) {
+export async function runOnce(runIndex, args) {
   // Each Playwright run mints its own DB name and log path; the
   // config handles the prefix. We do NOT pass --reuse-existing-server;
   // each repeat is a fresh webServer lifecycle so the offline proof
@@ -128,22 +128,9 @@ async function runOnce(runIndex, args) {
       // Async spawn error (e.g. EACCES). Capture as a run failure.
       stdout += `\n[runner] child error event: ${err.message}\n`;
       stderr += `[runner] child error event: ${err.message}\n`;
-      // Do NOT resolve here; let `exit` fire if it does, otherwise
-      // resolve on a short timer so the runner never hangs.
-      setTimeout(() => {
-        resolveRun({
-          runIndex,
-          code: 1,
-          stdout,
-          stderr,
-          spawnError: true,
-          dbName: null,
-          logPath: null,
-          childPid: child.pid ?? null,
-        });
-      }, 200).unref?.();
+      resolveRun({ runIndex, code: 1, stdout, stderr, spawnError: true, dbName: null, logPath: null, childPid: child.pid ?? null });
     });
-    child.on("exit", (code, signal) => {
+    child.on("close", (code, signal) => {
       // Extract the per-run DB name and log path from the manifest
       // the test process wrote. The runner cannot read
       // FERA_REHEARSAL_DB_NAME or FERA_REHEARSAL_LOG_PATH directly

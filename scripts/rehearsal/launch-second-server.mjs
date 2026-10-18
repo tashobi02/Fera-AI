@@ -119,31 +119,18 @@ const child = spawn(
 );
 
 let exiting = false;
-function shutdown(code = 0) {
+async function shutdown(code = 0) {
   if (exiting) return;
   exiting = true;
-  try {
+  if (child.exitCode === null && child.signalCode === null) {
+    const closed = new Promise(resolve => child.once("close", resolve));
     child.kill("SIGTERM");
-  } catch {
-    /* already gone */
+    const timer = setTimeout(() => child.kill("SIGKILL"), 3000);
+    await closed;
+    clearTimeout(timer);
   }
-  const killTimer = setTimeout(() => {
-    try {
-      child.kill("SIGKILL");
-    } catch {
-      /* already gone */
-    }
-  }, 3_000);
-  killTimer.unref?.();
-  let exited = false;
-  const finish = () => {
-    if (exited) return;
-    exited = true;
-    clearTimeout(fallback);
-    out.end(() => process.exit(code));
-  };
-  const fallback = setTimeout(finish, 5_000);
-  fallback.unref?.();
+  await new Promise(resolve => out.end(resolve));
+  process.exit(code);
 }
 
 child.stdout.on("data", (chunk) => {
