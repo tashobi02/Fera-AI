@@ -1,47 +1,49 @@
 {
   "automated": true,
   "humanRehearsal": false,
+  "dirtyTree": true,
+  "gitStatusPorcelain": "?? docs/execution/evidence/pre-main-clean-checkout.json\n",
   "results": [
     {
       "run": 1,
       "code": 0,
-      "dbName": "fera_e2e_premainjourney_2316671_0_c64e93",
-      "networkRecords": 184,
+      "dbName": "fera_e2e_premainjourney_2571999_0_b13b5f",
+      "networkRecords": 189,
       "externalAttempts": 0,
-      "sourceCommit": "b21c4bb932b14918220177301cd1402a03c8c74a"
+      "sourceCommit": "2ce4cae037f94c6b1a1c3bdd49a9f7e9cfe8fcd9"
     },
     {
       "run": 2,
       "code": 0,
-      "dbName": "fera_e2e_premainjourney_2316671_1_0e909f",
-      "networkRecords": 184,
+      "dbName": "fera_e2e_premainjourney_2571999_1_d8bed8",
+      "networkRecords": 189,
       "externalAttempts": 0,
-      "sourceCommit": "b21c4bb932b14918220177301cd1402a03c8c74a"
+      "sourceCommit": "2ce4cae037f94c6b1a1c3bdd49a9f7e9cfe8fcd9"
     },
     {
       "run": 3,
       "code": 0,
-      "dbName": "fera_e2e_premainjourney_2316671_2_d24d0f",
-      "networkRecords": 184,
+      "dbName": "fera_e2e_premainjourney_2571999_2_00e6b4",
+      "networkRecords": 189,
       "externalAttempts": 0,
-      "sourceCommit": "b21c4bb932b14918220177301cd1402a03c8c74a"
+      "sourceCommit": "2ce4cae037f94c6b1a1c3bdd49a9f7e9cfe8fcd9"
     },
     {
       "run": 4,
       "code": 0,
-      "dbName": "fera_e2e_premainjourney_2316671_3_480602",
-      "networkRecords": 184,
+      "dbName": "fera_e2e_premainjourney_2571999_3_010505",
+      "networkRecords": 189,
       "externalAttempts": 0,
-      "sourceCommit": "b21c4bb932b14918220177301cd1402a03c8c74a"
+      "sourceCommit": "2ce4cae037f94c6b1a1c3bdd49a9f7e9cfe8fcd9"
     },
     {
       "run": 5,
       "code": 0,
-      "dbName": "fera_e2e_premainjourney_2316671_4_bb78e3",
-      "networkRecords": 184,
+      "dbName": "fera_e2e_premainjourney_2571999_4_b495cf",
+      "networkRecords": 189,
       "externalAttempts": 0,
-      "sourceCommit": "b21c4bb932b14918220177301cd1402a03c8c74a"
+      "sourceCommit": "2ce4cae037f94c6b1a1c3bdd49a9f7e9cfe8fcd9"
     }
   ],
-  "recordedAt": "2026-10-18T14:58:17.386Z"
+  "recordedAt": "2026-10-18T19:09:59.997Z"
 }

@@ -1,6 +1,9 @@
 # Phase 4 — Round 2 submission · Gate G5
 
-> **Current integration status — 18 Oct 2026.** Phase 4–5 software and local preparation are implemented on `pre-main` and pass local verification. Remote CI is being run before review. The user will verify and explicitly approve before any merge into `main`. No Round 2 submission, production deployment or human acceptance is claimed. Formal G5/G6 remain UNVERIFIED for the original external/human requirements. Current evidence: [final verification](evidence/pre-main-final-verification.json), [closure](pre-main-phase4-phase5-closure.md), [TC matrix](evidence/pre-main-tc-coverage.md).
+> **19 Oct final integration update:** Source `2ce4cae` includes the newly fetched PR52 review fixes. Another account merged PR51 into main; the coordinator did not merge main. Local verification:3,981 unit tests,321 database tests,5×13 stricter offline checks and real demo lifecycle PASS. Full remote CI passes all three jobs. Team-reported submission is recorded in `submission/round2/platform-submission.md`; receipt remains unverified. Current [durable verification](evidence/pre-main-final-verification.json) supersedes the older snapshots below.
+
+
+> **Current integration status — 18 Oct 2026.** Phase 4–5 software and local preparation are implemented on `pre-main` and pass local verification. Full remote CI passes at a8e9590 (same source tree as 2ce4cae). The user will verify and explicitly approve before any merge into `main`. No Round 2 submission, production deployment or human acceptance is claimed. Formal G5/G6 remain UNVERIFIED for the original external/human requirements. Current evidence: [final verification](evidence/pre-main-final-verification.json), [closure](pre-main-phase4-phase5-closure.md), [TC matrix](evidence/pre-main-tc-coverage.md).
 
 > The older dated entries below are historical snapshots; the current integration status and linked final verification supersede their software counts and branch pointers.
 
@@ -117,3 +120,5 @@ G5 exit requires TASK-044/045 deliverables and TC-025/037/066 wording review, TA
 
 ### AMD-4-3 — Principle reference
 **Gap:** “C7” is not the constitution's honest-copy principle ID. **Change:** old heading “(C7, BR-011)” now cites Constitution VI (Honest by construction). **Source:** `.specify/memory/constitution.md` Principle VI.
+
+Full remote CI: [39157185543](https://github.com/tashobi02/Fera-AI/actions/runs/39157185543) — check, DB and e2e PASS; includes 78 browser checks, 13 stricter offline checks and 6 native embedding checks.

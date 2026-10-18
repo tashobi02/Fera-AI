@@ -1,7 +1,7 @@
 # Round 2 release readiness — Obidit offline release-check
 
-Generated: 2026-10-18T15:03:27.772Z
-Repo root: <repo>/.worktrees/pre-main
+Generated: 2026-10-18T19:10:42.509Z
+Repo root: /home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main
 Exit code from runChecks: 2
 
 Honest-readiness policy:
@@ -18,11 +18,11 @@ Honest-readiness policy:
 | `fera-round2-deck.pdf` | PASS | 155220 bytes, sha256=5af0e993e530… |
 | `final.mp4` | PASS | 864854 bytes, sha256=1403d679c454… |
 | `captions.srt` | PASS | 1399 bytes, sha256=bd70f03e6d3b… |
-| `links.txt` | PASS | 7435 bytes, sha256=e885449c01f9… |
+| `links.txt` | PASS | 7475 bytes, sha256=90cdc216e536… |
 | `selection-email-draft.md` | PASS | 1375 bytes, sha256=b9296111c5b6… |
-| `README.md` | PASS | 11102 bytes, sha256=20fc9a9bcf05… |
+| `README.md` | PASS | 11233 bytes, sha256=a69e3d3a47eb… |
 | `metrics.md` | PASS | 5592 bytes, sha256=866c0b2dff32… |
-| `allowlist-size` | PASS | 8/8 entries prepared |
+| `allowlist-size` | PASS | 8/8 entries present (no cross-check with build-submission-zip.py) |
 
 ## Link check
 
@@ -53,11 +53,11 @@ Honest-readiness policy:
 
 ## Open human / external blockers (UNCHANGED from PHASE_4_SUBMISSION.md)
 
-- H-9: organiser cutoff, channel, formats, recipient, subject (UNKNOWN).
+- H-9: organiser instructions are recorded in submission/round2/platform-submission.md; this script does not verify them.
 - Drive folder: UNKNOWN; no signed-in or logged-out readback available in this offline worker.
-- Repository visibility: PRIVATE; logged-out public readback is owner-decision territory, not an agent's.
+- Repository visibility: UNKNOWN to this script (check GitHub); logged-out readback is owner-decision territory, not an agent's.
 - Production / deployment / managed DB access: UNKNOWN (READY-12).
 - Frozen held-out manifest, WER, latency, spend, dedupe precision: not measured.
-- Round 2 submission status: NOT submitted (user-confirmed 18 Oct 2026).
+- Round 2 submission status: UNKNOWN to this script; see the submission record in submission/round2/platform-submission.md.
 
 This file is the offline worker's readiness artefact. The lead (Mahim) records the formal G5 decision in `docs/gates/G5-*.md`; the script never marks G5 PASS.
