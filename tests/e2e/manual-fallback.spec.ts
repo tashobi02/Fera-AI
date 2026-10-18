@@ -1,6 +1,6 @@
 // SYS-BUG-01 / TC-017/036/060: a manual handoff does not require an AI response.
 import { test, expect } from "@playwright/test";
-import { errorEnvelope } from "../../src/contracts";
+import { errorEnvelope, httpStatusFor } from "../../src/contracts";
 
 const acknowledge = /বুঝেছি, চালিয়ে যান|I understand, continue/;
 const openForm = /^ফর্ম খুলুন$|^Open the form$/;
@@ -27,7 +27,7 @@ for (const error of ["E-013", "E-023"] as const) {
       dispatches++;
       // Exercise the real HTTP-client/fallback seam with a canonical error;
       // provider dispatch and budget exhaustion themselves are DB/unit-tested.
-      await route.fulfill({ status: 429, contentType: "application/json", body: JSON.stringify(errorEnvelope(error)) });
+      await route.fulfill({ status: httpStatusFor(error), contentType: "application/json", body: JSON.stringify(errorEnvelope(error)) });
     });
     await page.goto("/intake");
     await expect(page.getByRole("button", { name: acknowledge })).toBeVisible();

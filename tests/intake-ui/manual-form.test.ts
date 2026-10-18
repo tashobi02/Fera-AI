@@ -112,6 +112,16 @@ describe("SCREEN-005 manual form lifecycle (P3-013 / TASK-025 / FR-026 / TC-017)
     expect(fetcher).not.toHaveBeenCalled();
   });
 
+  it("shows the retained original text even when every structured field is unknown", () => {
+    const sourceText = "[MOCK] first extraction failed, keep these words visible";
+    handOff({ ...handoff(), to: "manual", response: null, sourceText });
+    const h = mount();
+    const props = node(h.tree, ReviewFields).props;
+    const fields = mountHooks(() => ReviewFields(props));
+    expect(content(fields.tree)).toContain(sourceText);
+    expect(content(fields.tree)).toContain(locales.bn.reviewSource);
+  });
+
   it("keeps the full text-only handoff locally when source history exceeds the submission text limit", () => {
     const sourceText = "[MOCK] " + "ক".repeat(5000);
     handOff({ ...handoff(), to: "manual", response: null, sourceText });
