@@ -25,7 +25,6 @@ import { describe, expect, it } from "vitest";
 import { mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-// @ts-expect-error -- plain ESM module without type declarations
 import {
   buildLabelDrafts,
   validateDraftRows,
@@ -175,7 +174,6 @@ describe("buildLabelDrafts", () => {
   });
 
   it("rejects non-array records and non-Set manifestIds", () => {
-    // @ts-expect-error -- intentionally wrong type
     expect(() => buildLabelDrafts(null, new Set())).toThrow(/array/);
     // @ts-expect-error -- intentionally wrong type
     expect(() => buildLabelDrafts([], "not-a-set")).toThrow(/Set/);
