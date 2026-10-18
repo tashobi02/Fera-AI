@@ -1,0 +1,61 @@
+# docker-compose.demo.yml — Fera offline-stack dedicated database (TASK-053, revised).
+#
+# This is the SECOND PostgreSQL container the offline stack owns. It is
+# never the human / dev / CI / Playwright / e2e / test lane DB. Its
+# only purpose is to host the dedicated `fera_demo_premain_…` database
+# that the offline stack CLI creates and tears down.
+#
+# IMPORTANT (revised): the original compose file used a fixed container
+# name `fera-demo-pg16-pgvector` and a fixed volume name
+# `fera-demo-pg16-pgvector-data`. Two worktrees on the same host that
+# both invoked `start` would collide on the container name and the
+# volume. The fix is to derive BOTH the container name and the volume
+# name from a per-worktree hash.
+#
+# IMPORTANT (revised v2): docker compose v2 needs `name:` as a TOP-LEVEL
+# key to anchor the project; otherwise the `${VAR}` interpolation breaks
+# and `docker compose config` rejects the file. The CLI's own
+# `scripts/demo/*.mjs` use `docker run` directly (no compose), so this
+# file is a documented fallback for operators who prefer
+# `docker compose`. It MUST be valid against a stock `docker compose`
+# install: required envs (`FERA_DEMO_OWNER`, `FERA_DEMO_CONTAINER_NAME`,
+# `FERA_DEMO_VOLUME_NAME`) have no defaults that the previous version
+# shipped (`unknown`, `fera-demo-pg16-pgvector`, etc.) — those were
+# "vague fallbacks" that masked ownership confusion. Operators must
+# set all three explicitly; otherwise `docker compose config` rejects
+# the file with a clear `required value not set` error.
+#
+# Image: built from db/docker/Dockerfile (TASK-002). The tag is pinned
+# so a future re-push of the image cannot silently change the runtime.
+#
+# The CLI never invokes this file; it uses `docker run` directly so
+# the offline stack is testable on a host without docker-compose. See
+# scripts/demo/lib/docker.mjs `startContainer` for the runtime path.
+name: fera-offline-stack-${FERA_DEMO_OWNER:?FERA_DEMO_OWNER is required; set it to the 16-char hex owner label from node scripts/demo/cli.mjs status}
+services:
+  pg:
+    image: fera-pg16-pgvector:0.8.1
+    container_name: ${FERA_DEMO_CONTAINER_NAME:?FERA_DEMO_CONTAINER_NAME is required; the offline stack derives this from the worktree path via scripts/demo/lib/guard.mjs `containerNameFor`}
+    restart: unless-stopped
+    labels:
+      fera.offline-stack.owner: "${FERA_DEMO_OWNER}"
+      fera.offline-stack.schema: "2"
+      fera.offline-stack.kind: "offline-stack"
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "127.0.0.1:3215:5432"
+    volumes:
+      - demo-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -p 5432"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+volumes:
+  demo-data:
+    name: ${FERA_DEMO_VOLUME_NAME:?FERA_DEMO_VOLUME_NAME is required}
+    labels:
+      fera.offline-stack.owner: "${FERA_DEMO_OWNER}"
+      fera.offline-stack.schema: "2"
+      fera.offline-stack.kind: "offline-stack"
