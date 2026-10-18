@@ -55,6 +55,20 @@ export const parentIntakeBn = {
   replaceBody: "আগের খসড়া মুছে নতুন তথ্য দিয়ে শুরু হবে।",
   replaceYes: "নতুন দিয়ে শুরু করুন",
   replaceNo: "আগেরটি রাখুন",
+  // Cached draft clock notice (S-002 / S-003 / S-005, BR-026, COMP-048). The
+  // three prepared cached drafts (Mitu, Rafi, Mim) use fixed `event.at`
+  // values while the source text contains relative words like "গতকাল" /
+  // "আজ সকালে". The dates are NOT recalculated from today, so a parent
+  // reviewing a cached draft must check or correct the date before
+  // submitting. The D4 cached badge ("ক্যাশ · পূর্বপ্রস্তুত সিনথেটিক
+  // উদাহরণ") is shown unchanged; this notice sits next to it on the same
+  // surface and only renders when the draft was retained from the cache.
+  // Pending human Bangla review (OD-021-3) — the wording below is the
+  // responsible-disclosure copy the safeguarding pass asked for.
+  cachedClockTitle: "ক্যাশ খসড়ার সময় স্থির আছে", // new; needs human Bangla review
+  cachedClockBody: "এই খসড়াটি ক্যাশ থেকে এসেছে। কথায় \"গতকাল\" বা \"আজ সকালে\" থাকলেও তারিখ ও সময় আজকের হিসেবে বদলায়নি — স্ক্রিপ্টেড ডেমোর জন্য নির্দিষ্ট রাখা আছে।", // new; needs human Bangla review
+  cachedClockReviewPrompt: "জমা দেওয়ার আগে তারিখ ও সময় যাচাই করে ঠিক করে দিন।", // new; needs human Bangla review
+  cachedClockPendingReview: "এই লেখাটির বাংলা মানব যাচাই এখনো বাকি।", // new; needs human Bangla review
 } as const;
 
 export const parentIntakeEn = {
@@ -96,4 +110,15 @@ export const parentIntakeEn = {
   replaceBody: "The earlier draft will be replaced by the new details.",
   replaceYes: "Start with new",
   replaceNo: "Keep earlier draft",
+  // Cached draft clock notice (S-002 / S-003 / S-005, BR-026, COMP-048). The
+  // three prepared cached drafts (Mitu, Rafi, Mim) use fixed `event.at`
+  // values while the source text contains relative words like "yesterday"
+  // and "this morning". The dates are NOT recalculated from today, so the
+  // reporter must check or correct the date before submitting. The D4
+  // cached badge is shown unchanged; this notice sits next to it and only
+  // renders when the draft was retained from the cache.
+  cachedClockTitle: "Cached draft keeps a fixed date",
+  cachedClockBody: "This draft came from the cache. Even when the words say \"yesterday\" or \"this morning\", the date and time were not recalculated from today — they are fixed for the scripted demo scenario.",
+  cachedClockReviewPrompt: "Review and correct the date and time before you submit.",
+  cachedClockPendingReview: "Human Bangla review of this copy is still pending.",
 } as const;

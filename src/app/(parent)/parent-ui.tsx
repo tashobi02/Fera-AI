@@ -4,6 +4,8 @@
 // ponytail: these icons copy the src/app/components/icons.tsx wrapper; move them there
 // when the shell owner (TASK-008) takes the change.
 import type { ReactNode } from "react";
+import { locales, type Locale } from "@/locales";
+import { InfoIcon } from "@/app/components/icons";
 
 function Icon({ children, className = "size-4" }: { children: ReactNode; className?: string }) {
   return (
@@ -137,5 +139,32 @@ export function HonestLabel({ children, lang }: { children: ReactNode; lang?: st
     >
       {children}
     </span>
+  );
+}
+
+// Cached draft clock notice (S-002 / S-003 / S-005, BR-026, COMP-048). The
+// three prepared cached drafts (Mitu, Rafi, Mim) use fixed `event.at`
+// values while the source text contains relative words like "গতকাল" /
+// "আজ সকালে". The dates are NOT recalculated from today, so the reporter
+// must check or correct the date before submitting. This notice sits next
+// to the D4 cached badge on the same surface; the badge label itself
+// stays unchanged. Renders nothing when `cached` is false so live drafts
+// are not affected.
+export function CachedClockNotice({ locale, cached }: { locale: Locale; cached: boolean }) {
+  if (!cached) return null;
+  const t = locales[locale];
+  return (
+    <aside
+      role="note"
+      aria-label={t.cachedClockTitle}
+      className="flex flex-col gap-2 rounded-md border border-hairline bg-card px-3 py-2.5 text-body-md text-body"
+    >
+      <p className="flex items-start gap-2 font-medium text-ink">
+        <InfoIcon className="mt-[0.3em] size-4 text-info" />
+        <span>{t.cachedClockTitle}</span>
+      </p>
+      <p>{t.cachedClockBody}</p>
+      <p>{t.cachedClockReviewPrompt}</p>
+    </aside>
   );
 }
