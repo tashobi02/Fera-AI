@@ -117,6 +117,28 @@ function errorFromThrown(error: unknown): ErrorEnvelope {
   return errorEnvelope(error instanceof ApiError ? error.id : "E-013");
 }
 
+// Best-effort diagnostic for a missing or unsupported provider-notice
+// acknowledgment. The orchestrator's catch on `assertProviderNotice` still
+// fails closed at E-021 (no dispatch, no reservation); this helper emits a
+// safe allowlisted `ai.input_rejected` event with the cause class only so an
+// operator can distinguish a missing header from a malformed value without
+// ever seeing header value/text/audio/body. Logger throws are swallowed:
+// the route's response must never be affected by a logging failure, and the
+// injected request-scoped `deps.logger` is optional.
+function safeLogNoticeRejection(deps: OrchestratorDeps, cause: unknown): void {
+  const log = deps.logger ?? createLogger();
+  try {
+    log.error({
+      event: "ai.input_rejected",
+      error_id: "E-021",
+      stage: "input",
+      err_name: describeError(cause).err_name,
+    });
+  } catch {
+    // diagnostics never break the response
+  }
+}
+
 type LlmPriceSlot = "primary" | "fallback" | "repair";
 type SttPriceSlot = "primary" | "fallback";
 
@@ -288,7 +310,10 @@ export async function orchestrateTranscribe(
   if (input.fixtureId !== null) return { ok: false, error: errorEnvelope("E-023") };
 
   try { assertProviderNotice(input.headers); }
-  catch { return { ok: false, error: errorEnvelope("E-021") }; }
+  catch (noticeErr) {
+    safeLogNoticeRejection(deps, noticeErr);
+    return { ok: false, error: errorEnvelope("E-021") };
+  }
 
   const verifiedAudio = (deps.audioMetadataVerifier ?? verifyAudioMetadata)(
     input.audio.bytes,
@@ -421,7 +446,10 @@ export async function orchestrateExtract(
   if (!canIntake(principal, kind)) return { ok: false, error: errorEnvelope("E-003") };
 
   try { assertProviderNotice(input.headers); }
-  catch { return { ok: false, error: errorEnvelope("E-021") }; }
+  catch (noticeErr) {
+    safeLogNoticeRejection(deps, noticeErr);
+    return { ok: false, error: errorEnvelope("E-021") };
+  }
 
   let row: DraftRow;
   let token: string;

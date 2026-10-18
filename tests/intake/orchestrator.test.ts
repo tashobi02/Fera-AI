@@ -284,6 +284,71 @@ describe("intake extract orchestrator safeguards (mock runPaidCall)", () => {
       expect(JSON.stringify(line)).not.toMatch(/01[0-9]{9}/);
     }
   });
+
+  it("emits a safe ai.input_rejected log on a missing provider notice and still fails closed at E-021", async () => {
+    // Regression: orchestrator's catch on `assertProviderNotice` used to
+    // return E-021 silently. The diagnostic surfaces a safe allowlisted
+    // `ai.input_rejected` event (cause class only) so an operator can tell
+    // a missing header from a malformed one without seeing the value.
+    vi.stubEnv("DEMO_MODE", "0");
+    const { deps, principal } = await makeSetup();
+    const lines: string[] = [];
+    const captureLogger: Logger = {
+      info: (e) => lines.push(JSON.stringify({ level: 30, ...(e as Record<string, unknown>) })),
+      warn: (e) => lines.push(JSON.stringify({ level: 40, ...(e as Record<string, unknown>) })),
+      error: (e) => lines.push(JSON.stringify({ level: 50, ...(e as Record<string, unknown>) })),
+    };
+    const deps2: OrchestratorDeps = { ...deps, logger: captureLogger };
+    const result = await orchestrateExtract(deps2, {
+      body: extractRequestSchema.parse({ kind: "missing", text: EXTRACT_FIXTURE_SOURCE }),
+      headers: new Headers(), // no x-fera-provider-notice
+      principal,
+      requestId: "req-test",
+      now: () => FIXED_NOW,
+    });
+    // Fail-closed E-021 must be preserved exactly, and no paid call is dispatched.
+    expect(result).toMatchObject({ ok: false, error: { error: { id: "E-021" } } });
+    expect(runPaidCall).not.toHaveBeenCalled();
+    // Safe allowlisted metadata event was emitted; no header value/text/audio/body.
+    const rejected = lines
+      .map((l) => JSON.parse(l))
+      .filter((l) => l.event === "ai.input_rejected");
+    expect(rejected.length).toBe(1);
+    const line = rejected[0];
+    expect(line.error_id).toBe("E-021");
+    expect(line.stage).toBe("input");
+    expect(typeof line.err_name).toBe("string");
+    // Defence in depth: nothing on the line may carry header value/text/audio/body.
+    expect(line.value).toBeUndefined();
+    expect(line.text).toBeUndefined();
+    expect(line.audio).toBeUndefined();
+    expect(line.body).toBeUndefined();
+    expect(line.message).toBeUndefined();
+    expect(line.headers).toBeUndefined();
+    expect(JSON.stringify(line)).not.toMatch(/01[0-9]{9}/);
+  });
+
+  it("still refuses at E-021 (no dispatch, no reservation) when the injected logger throws", async () => {
+    // A misbehaving request-scoped logger must never break the route's
+    // fail-closed E-021 response or reach the spend layer.
+    vi.stubEnv("DEMO_MODE", "0");
+    const { deps, principal } = await makeSetup();
+    const throwingLogger: Logger = {
+      info: () => { throw new Error("logger boom"); },
+      warn: () => { throw new Error("logger boom"); },
+      error: () => { throw new Error("logger boom"); },
+    };
+    const deps2: OrchestratorDeps = { ...deps, logger: throwingLogger };
+    const result = await orchestrateExtract(deps2, {
+      body: extractRequestSchema.parse({ kind: "missing", text: EXTRACT_FIXTURE_SOURCE }),
+      headers: new Headers(),
+      principal,
+      requestId: "req-test",
+      now: () => FIXED_NOW,
+    });
+    expect(result).toMatchObject({ ok: false, error: { error: { id: "E-021" } } });
+    expect(runPaidCall).not.toHaveBeenCalled();
+  });
 });
 
 function makeOk<T>(value: T): PaidCallResult<T> {
