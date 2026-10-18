@@ -5,7 +5,8 @@
 // unit-tested means:
 //   * --runs validation: positive integer only, bounded by MAX_RUNS.
 //   * Unknown CLI args are refused (no silent typo "fallback").
-//   * replaceSection is idempotent and preserves surrounding H2s.
+//   * replaceSection is idempotent, preserves surrounding H2s and
+//     throws when the heading is missing.
 //   * dropRehearsalDb refuses to drop anything outside the
 //     `fera_e2e_premainjourney_` prefix, and refuses a non-loopback
 //     admin host.
@@ -14,7 +15,7 @@
 // tests (it spawns `npx`); the helper module is pure and side-effect
 // free, so the unit tests can assert the contract directly.
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   parseArgs,
   parseRuns,
@@ -24,6 +25,7 @@ import {
   MAX_RUNS,
   KNOWN_FLAGS,
   DEFAULT_DATABASE_URL,
+  LOOPBACK_ADMIN_URL,
   // @ts-expect-error -- the untyped .mjs helper is re-typed locally
 } from "../../scripts/rehearsal/runner-helpers.mjs";
 
@@ -137,10 +139,16 @@ describe("replaceSection", () => {
     expect(next).toContain("old network");
   });
 
-  it("is a no-op when the heading is not present", () => {
+  it("throws when the heading is not present (stale evidence must not be stamped)", () => {
     const text = "## Other section\n\nbody\n";
-    const next = replaceSection(text, /^## Run-by-run results.*$/m, "anything");
-    expect(next).toBe(text);
+    expect(() => replaceSection(text, /^## Run-by-run results.*$/m, "anything")).toThrow(
+      /evidence section heading not found/,
+    );
+  });
+
+  it("replaces a heading that is the last line with no trailing newline", () => {
+    const next = replaceSection("intro\n\n## A", /^## A.*$/m, "new A");
+    expect(next).toContain("## A\n\nnew A");
   });
 
   it("preserves a trailing H2 when it is the last section", () => {
@@ -208,11 +216,23 @@ describe("constants", () => {
   it("MAX_RUNS is 50 (a documented cap, not arbitrary)", () => {
     expect(MAX_RUNS).toBe(50);
   });
-  it("DEFAULT_DATABASE_URL targets the loopback postgres at 54322", () => {
-    // The default only applies when env is unset; assert the
-    // shape so a future contributor cannot ship a non-loopback
-    // default by accident. The port matches the project's local
-    // pg (see scripts/db/guard.mjs).
-    expect(DEFAULT_DATABASE_URL).toMatch(/^postgresql:\/\/[^@]+@127\.0\.0\.1:54322\/postgres$/);
+  it("LOOPBACK_ADMIN_URL targets the loopback postgres at 54322", () => {
+    // Assert the shape so a future contributor cannot ship a
+    // non-loopback default by accident. The port matches the
+    // project's local pg (see scripts/db/guard.mjs).
+    expect(LOOPBACK_ADMIN_URL).toMatch(/^postgresql:\/\/[^@]+@127\.0\.0\.1:54322\/postgres$/);
+  });
+  it("DEFAULT_DATABASE_URL is FERA_DB_ADMIN_URL or the loopback default, never DATABASE_URL", async () => {
+    expect(DEFAULT_DATABASE_URL).toBe(process.env.FERA_DB_ADMIN_URL ?? LOOPBACK_ADMIN_URL);
+    // Re-import with only DATABASE_URL set: the admin default must ignore it.
+    vi.stubEnv("FERA_DB_ADMIN_URL", undefined);
+    vi.stubEnv("DATABASE_URL", "postgresql://fera_app:x@127.0.0.1:54322/fera_app_db");
+    try {
+      // @ts-expect-error -- the untyped .mjs helper is re-typed locally
+      const fresh = await import("../../scripts/rehearsal/runner-helpers.mjs?admin-default");
+      expect(fresh.DEFAULT_DATABASE_URL).toBe(LOOPBACK_ADMIN_URL);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

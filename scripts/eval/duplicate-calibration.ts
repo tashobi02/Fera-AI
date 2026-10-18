@@ -2,52 +2,76 @@
 // detector calibration grid (BR-018, BR-021, D2B §17).
 //
 // Lane: pre-main-dev-quality-audit. Owner of this file: lane. Status:
-// DEV-ONLY / NOT FROZEN. The held-out test split is never loaded, never
-// inferred, never tuned (FREEZE_FLAG = NOT SET in eval/FREEZE.md; the
+// DEV-ONLY / NOT FROZEN. FREEZE_FLAG = NOT SET in eval/FREEZE.md; the
 // canonical loadSplit refuses test/heldout until that flag is reviewed and
-// flipped by a recorded team decision). All numbers in this file are
-// measured on the 86 dev records / 30 connected groups. The manifest,
-// ground truth, embedding model, embedder revision and embedding space are
-// pinned and never modified by this lane.
+// flipped by a recorded team decision. No test-split label is ever scored
+// or tuned on here.
+//
+// Split handling (stated exactly): data/synthetic/records.jsonl and
+// data/synthetic/ground_truth.json each hold BOTH splits. This script reads
+// both files, then filters to the manifest's dev record IDs before any
+// profile or label is used (records.jsonl lines are filtered by record_id
+// before JSON.parse; ground_truth.json is parsed whole and filtered). Test
+// rows are therefore loaded from disk, then discarded; test labels are never
+// scored. The grid JSON reports `dev_records`, `scored_record_ids` and
+// `heldout_ids_scored` computed from the data actually used.
+// All numbers are measured on the dev split (86 records / 30 connected
+// groups / 12 true pairs at the time of writing). The manifest, ground
+// truth, embedding model, embedder revision and embedding space are pinned
+// and never modified by this lane.
 //
 // What this script does
 // ---------------------
 // 1. Reads eval/fixtures/duplicate-calibration-baseline.dev.jsonl (the existing dev prediction
-//    rows from the pre-main Phase 3 run: 86 source rows, 580 ordered
-//    (a,b,score) flag rows; score = round(similarity*100) and the
+//    rows from the pre-main Phase 3 run: 86 source rows, 604 ordered link
+//    rows = 302 unordered (a,b) pairs; score = round(similarity*100) and the
 //    contradiction gate + MIN_AGREEING_PROFILE_FIELDS=2 + SIMILARITY_THRESHOLD=0.5
 //    were the documented defaults at the time).
-// 2. Reads data/synthetic/records.jsonl and eval/manifest.json to obtain
-//    per-record profile (name, age_min/max, sex, district_code,
-//    event_at_lower, event_at_upper) and the dev split truth pairs.
-// 3. For every (sim_thr, min_agree) cell in the bounded grid, re-applies
-//    the same `decideDuplicateRule` predicate (imported from
-//    src/server/duplicates/detect.ts so the threshold and field logic are
-//    not duplicated here) to the same 580 pairs and re-scores against the
-//    truth set using eval/dedupe.mjs `scoreDedupe`.
+// 2. Reads data/synthetic/records.jsonl, data/synthetic/ground_truth.json and
+//    eval/manifest.json to obtain per-record profile (name, age_min/max, sex,
+//    district_code, event_at_lower, event_at_upper) and the dev truth pairs.
+// 3. For every (sim_thr, min_agree) cell in the bounded grid, applies an
+//    inline copy of the `decideDuplicateRule` predicate (similarity floor,
+//    contradiction gate, agreeing-field count). The shared predicate is not
+//    called because it reads the fixed DUPLICATE_CONFIG constants and cannot
+//    take a per-cell threshold; the field helpers (`namesAgree`, `agesAgree`,
+//    `sexesAgree`, `districtsAgree`, `timesAgree`, `profilesContradict`,
+//    `countAgreeingProfileFields`) ARE imported from
+//    src/server/duplicates/detect.ts so field logic is not duplicated. Each
+//    cell is re-scored against the truth set with eval/dedupe.mjs `scoreDedupe`.
 //
 // Caveats documented honestly in the evidence file
 // -------------------------------------------------
 // * The grid only sweeps thresholds that are *at least as strict* as the
-//   baseline (sim_thr >= 0.5, min_agree >= 2). Sweeping *down* would
-//   require the embedding pool that the original detector considered
+//   baseline (sim_thr >= 0.5, min_agree >= 2) and *at most* 0.95: 0.95 is the
+//   TOP EDGE of the swept grid; nothing above it was searched. Sweeping *down*
+//   would require the embedding pool that the original detector considered
 //   below similarity 0.5; that pool is not in the JSONL (only flagged
 //   links are) so it is not inferred from this fixture. The honest answer is therefore
 //   constrained: we can only evaluate how many FPs we drop by raising
 //   the floors. We document the constraint, not invent a sweep.
+// * Scores are rounded: similarity = round(raw*100)/100. The 0.95 cell
+//   therefore admits raw similarity >= 0.945, while production refuses raw
+//   `similarity < 0.95` exactly. Cells are approximate near thresholds.
 // * Each cell is a pure re-application of the same predicate over the
-//   same 580 pairs; the candidate pool is fixed by the existing JSONL.
-//   The chosen cell is then validated by a fresh end-to-end detector run
-//   against a fresh isolated loopback DB (see `validateDetectorRun` and
-//   docs/execution/evidence/pre-main-dev-calibration.md).
+//   same 302 unordered pairs; the candidate pool is fixed by the existing
+//   JSONL. The chosen cell was then checked by a fresh end-to-end dev
+//   detector run on raw similarities (see
+//   docs/execution/evidence/pre-main-dev-calibration.md and
+//   eval/reports/pre-main-dev-2026-10-18.md).
+// * Selection is in-sample: the same 12 dev positives choose and score the
+//   cell. It is not a held-out or generalisation claim.
 //
-// Outputs
-// -------
-// * JSON grid at eval/data/duplicate-calibration.grid.json
-// * Markdown summary at eval/data/duplicate-calibration.grid.md
-// * A typed return value with the recommended config for callers
-//   (scripts/eval/duplicate-calibration.cli.ts, the unit suite, and
-//   docs/execution/evidence/pre-main-dev-calibration.md).
+// How to run / outputs
+// --------------------
+// There is no npm script. tests/eval/duplicate-calibration.test.ts calls
+// `runCalibration` with outputs in a temp directory. `runCalibration` writes:
+// * JSON grid (default eval/data/duplicate-calibration.grid.json, or --out-json)
+// * Markdown summary (default eval/data/duplicate-calibration.grid.md, or --out-md)
+// and returns a typed result with the recommended config. Direct CLI
+// execution needs a TypeScript runner that resolves the `@/` alias; none is
+// in package.json. Do not commit the grid outputs — they are evidence
+// artefacts, not code.
 
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
@@ -55,9 +79,9 @@ import { execFileSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 // @ts-expect-error -- plain ESM helper without declarations
-import { scoreDedupe, buildPredictedPositives, __test as dedupeTest } from "../../eval/dedupe.mjs";
+import { scoreDedupe, __test as dedupeTest } from "../../eval/dedupe.mjs";
 import {
-  decideDuplicateRule,
+  countAgreeingProfileFields,
   profilesContradict,
   namesAgree,
   agesAgree,
@@ -97,6 +121,10 @@ export type GridCell = {
 
 export type GridSweep = {
   predicted: number; // unordered unique pairs the re-application produced
+  devRecords: number; // dev profiles actually loaded and usable
+  scoredRecordIds: Set<string>; // every record ID in a scored pair (flags, truth, shared-phone)
+  heldoutIdsScored: number; // scored IDs outside the manifest's dev split (must be 0)
+  linksWithoutDevProfile: number; // baseline pairs skipped because an endpoint has no dev profile
   truthSize: number;
   truthSet: Set<string>;
   sharedPhoneNegativePairs: ReadonlyArray<readonly [string, string]>;
@@ -150,14 +178,6 @@ function safeReadJson<T = unknown>(path: string): T {
   return JSON.parse(readFileSync(path, "utf8")) as T;
 }
 
-function gitHeadShort(): string {
-  try {
-    return execFileSync("git", ["rev-parse", "--short", "HEAD"], { cwd: repoRoot, encoding: "utf8" }).trim();
-  } catch {
-    return "UNKNOWN";
-  }
-}
-
 function gitHead(): string {
   try {
     return execFileSync("git", ["rev-parse", "HEAD"], { cwd: repoRoot, encoding: "utf8" }).trim();
@@ -182,9 +202,10 @@ export type RecordProfile = {
 };
 
 /**
- * Load the per-record profile for the canonical dev split. Filters the
- * synthetic records JSONL by the manifest's `by_split.dev.record_ids` set
- * so the held-out test split is never read.
+ * Load the per-record profile for the canonical dev split. The synthetic
+ * records JSONL (both splits) is read as text, and each line is kept only
+ * when its record_id is in the manifest's dev set, before JSON.parse; test
+ * rows are read from disk but never parsed into a profile.
  */
 export function loadDevRecordProfiles(manifestPath: string, recordsPath: string): {
   profiles: Map<string, RecordProfile>;
@@ -310,9 +331,8 @@ export function buildDevTruth(manifestPath: string, groundTruthPath: string): {
 /**
  * Re-derive the field agreement vector and the contradiction flag for an
  * unordered pair (a, b). Both profiles are in the dev split; the
- * detector's `computeAgreement` and `profilesContradict` helpers are
- * imported and used so the same rules are evaluated here as in the real
- * detector. This is the only correct way to sweep `MIN_AGREEING_PROFILE_FIELDS`
+ * detector's per-field helpers and `profilesContradict` are imported and
+ * used so the same rules are evaluated here as in the real detector. This is the only correct way to sweep `MIN_AGREEING_PROFILE_FIELDS`
  * without re-running the embedder.
  */
 export function deriveFlagRow(a: RecordProfile, b: RecordProfile): DedupeFlagRow {
@@ -374,14 +394,17 @@ export const CALIBRATION_GRID = {
   // Sweep UP from the documented baseline. Lowering sim_thr below 0.5 or
   // min_agree below 2 would require the candidate pool below the baseline
   // similarity floor (not in the existing JSONL) and is therefore
-  // explicitly out of scope for this lane.
+  // explicitly out of scope for this lane. 0.95 is the top edge: nothing
+  // above it is searched.
   similarityThresholds: [0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90, 0.92, 0.95] as const,
   minAgreeingProfileFields: [2, 3, 4, 5] as const,
 } as const;
 
 /**
- * Build the calibration grid by re-applying `decideDuplicateRule` to
- * every (a,b,score) flag row in the existing dev JSONL with each
+ * Build the calibration grid by applying an inline copy of the
+ * `decideDuplicateRule` profile predicate (per-cell similarity floor,
+ * contradiction gate, agreeing-field count) to every unordered (a,b,score)
+ * pair in the existing dev JSONL for each
  * (similarityThreshold, minAgreeingProfileFields) cell.
  */
 export function buildCalibrationGrid(opts: {
@@ -448,10 +471,11 @@ export function buildCalibrationGrid(opts: {
   // artefacts we don't have a profile for, and the existing JSONL
   // declares `split: dev` for all sources.
   const flags: DedupeFlagRow[] = [];
+  let linksWithoutDevProfile = 0;
   for (const r of rows) {
     const pa = profiles.get(r.a);
     const pb = profiles.get(r.b);
-    if (!pa || !pb) continue;
+    if (!pa || !pb) { linksWithoutDevProfile++; continue; }
     const row = deriveFlagRow(pa, pb);
     row.similarity = r.similarity;
     // The detector writes only `profile` from this code path; preserve
@@ -471,16 +495,14 @@ export function buildCalibrationGrid(opts: {
       for (const f of flags) {
         if (!Number.isFinite(f.similarity) || f.similarity < simThr) continue;
         if (f.contradicts) continue;
-        if (countAgreeing(f.agreement) < minAgree) continue;
+        if (countAgreeingProfileFields(f.agreement) < minAgree) continue;
         const key = f.sourceId < f.targetId ? `${f.sourceId}|${f.targetId}` : `${f.targetId}|${f.sourceId}`;
         predicted.add(key);
       }
-      // Apply the same rules the detector does: the same_phone path is
-      // not produced by the detector at all (opt-in only), so it does
-      // not appear in our grid. We re-derive `decideDuplicateRule` for
-      // parity, which would also catch the same_phone case if anyone
-      // ever called the detector with phoneOnly:true. We exclude that
-      // path here because the baseline JSONL never contained it.
+      // The inline predicate above mirrors decideDuplicateRule's `profile`
+      // path only. The same_phone path is opt-in and never produced by the
+      // detector, and the baseline JSONL never contained it, so it is not
+      // part of the grid.
       const result = scoreDedupe({
         truePairs: truthPairs,
         predicted,
@@ -506,10 +528,19 @@ export function buildCalibrationGrid(opts: {
       void spSet;
     }
   }
+  // Every record ID that enters scoring, computed from the data used.
+  const scoredRecordIds = new Set<string>();
+  for (const f of flags) { scoredRecordIds.add(f.sourceId); scoredRecordIds.add(f.targetId); }
+  for (const [a, b] of [...truthPairs, ...sharedPhoneDistinct, ...sharedPhoneCrossKind]) { scoredRecordIds.add(a); scoredRecordIds.add(b); }
+  const heldoutIdsScored = [...scoredRecordIds].filter((id) => !devRecordIds.has(id)).length;
   return {
     flags,
     grid: {
       predicted: new Set(flags.map((f) => f.sourceId < f.targetId ? `${f.sourceId}|${f.targetId}` : `${f.targetId}|${f.sourceId}`)).size,
+      devRecords: profiles.size,
+      scoredRecordIds,
+      heldoutIdsScored,
+      linksWithoutDevProfile,
       truthSize: truthSet.size,
       truthSet,
       sharedPhoneNegativePairs: sharedPhoneDistinct,
@@ -526,10 +557,6 @@ export function buildCalibrationGrid(opts: {
       recordsSha256: recordsSha,
     },
   };
-}
-
-function countAgreeing(a: FieldAgreement): number {
-  return (a.name ? 1 : 0) + (a.age ? 1 : 0) + (a.sex ? 1 : 0) + (a.district ? 1 : 0) + (a.time ? 1 : 0);
 }
 
 /* ---------- chosen-config selector (precision/recall/F1 trade-off) ---------- */
@@ -591,7 +618,7 @@ export function runCalibration(opts: {
   writeFileSync(opts.outputGridJson, JSON.stringify({
     lane: "pre-main-dev-quality-audit",
     freeze_flag: "NOT SET",
-    dev_records: grid.truthSize > 0 ? 86 : 0, // matches manifest.by_split.dev.records
+    dev_records: grid.devRecords, // dev profiles actually loaded
     manifest_sha256: evidence.manifestSha256,
     records_sha256: evidence.recordsSha256,
     prediction_sha256: evidence.predictionSha256,
@@ -599,7 +626,13 @@ export function runCalibration(opts: {
     embedder_space: opts.embedderSpace,
     metrics_are_dev_only: true,
     metrics_are_not_frozen: true,
-    no_heldout_loaded: true,
+    // Test rows are read from disk then filtered out (see header); these
+    // fields state what was actually scored.
+    scored_record_ids: grid.scoredRecordIds.size,
+    heldout_ids_scored: grid.heldoutIdsScored,
+    links_without_dev_profile: grid.linksWithoutDevProfile,
+    score_rounding: "similarity = round(raw*100)/100; the 0.95 cell admits raw >= 0.945, production refuses raw < 0.95",
+    grid_top_edge: Math.max(...CALIBRATION_GRID.similarityThresholds),
     baseline: { ...baseline },
     recommended: result.recommendedConfig,
     cells: grid.cells,
@@ -613,7 +646,8 @@ function renderGridMarkdown(result: CalibrationResult): string {
     `# Duplicate detector calibration grid (DEV / NOT FROZEN)`,
     ``,
     `Lane: pre-main-dev-quality-audit. Status: DEV-ONLY. FREEZE_FLAG = NOT SET in eval/FREEZE.md.`,
-    `Test split is not loaded, not inferred, not tuned. All numbers are measured on the 86 dev records / 30 connected groups.`,
+    `Records and ground truth are read in full, then filtered to dev IDs; test labels are never scored (held-out IDs scored: ${result.grid.heldoutIdsScored}).`,
+    `All numbers are measured on ${result.grid.devRecords} dev records / ${result.grid.truthSize} true pairs, in-sample.`,
     ``,
     `## Provenance`,
     ``,
@@ -631,7 +665,8 @@ function renderGridMarkdown(result: CalibrationResult): string {
     `to the committed baseline flag rows from ${result.evidence.predictionFile}.`,
     `The rounded score/100 approximates raw cosine similarity near thresholds.`,
     `A fresh real E5 detector run is the deciding production evidence.`,
-    `Only floors at or above the historical 0.5/2 baseline are searched.`,
+    `Only floors at or above the historical 0.5/2 baseline are searched; ${Math.max(...CALIBRATION_GRID.similarityThresholds).toFixed(2)} is the top edge of the grid (nothing above it was searched).`,
+    `Scores are rounded to 2 dp, so the 0.95 cell admits raw similarity >= 0.945 while production refuses raw < 0.95.`,
     `Prediction hashes, manifest, model space and dev split are checked against the sidecar.`,
     ``,
     `| sim_thr | min_agree | TP | FP | FN | precision | recall | F1 | shared-phone rejected |`,
@@ -660,8 +695,8 @@ function renderGridMarkdown(result: CalibrationResult): string {
     `* Selection maximises dev pairwise F1, then recall, precision and lower floors.`,
     `* Missed duplicate flags remain searchable reports; flags do not suppress cases.`,
     `* A missing finite F1 result fails selection. The target is never fabricated.`,
-    `* No held-out evaluation is performed. The test split is not`,
-    `  loaded, and FREEZE_FLAG remains NOT SET.`,
+    `* No held-out evaluation is performed. Test rows are read from disk and`,
+    `  discarded before scoring; FREEZE_FLAG remains NOT SET.`,
   ];
   return head.concat(rows, tail).join("\n") + "\n";
 }

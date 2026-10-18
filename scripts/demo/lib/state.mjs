@@ -31,7 +31,7 @@ import {
   maskUrl,
 } from "./guard.mjs";
 
-export function createState({ pid, port, container, volume, database, cache, appUrl }) {
+export function createState({ pid, port, container, volume, database, cache, appUrl, worktreeRoot }) {
   if (typeof pid !== "number" || !Number.isInteger(pid) || pid <= 0) {
     throw new Error("offline-stack: state.pid must be a positive integer");
   }
@@ -55,7 +55,7 @@ export function createState({ pid, port, container, volume, database, cache, app
     appPort: DEMO_APP_PORT,
     container,
     volume,
-    owner: ownerLabel(process.cwd()),
+    owner: ownerLabel(worktreeRoot ?? process.cwd()),
     database,
     startedAt: new Date().toISOString(),
     cache,
@@ -69,7 +69,7 @@ export function saveState(state, { statePath, worktreeRoot } = {}) {
   if (state.schemaVersion !== PROVENANCE_SCHEMA_VERSION) {
     throw new Error(`offline-stack: state schemaVersion mismatch (got ${state.schemaVersion}, expected ${PROVENANCE_SCHEMA_VERSION})`);
   }
-  mkdirSync(dirname(path), { recursive: true });
+  mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
   const fd = openSync(path, constants.O_WRONLY | constants.O_CREAT | constants.O_TRUNC | constants.O_NOFOLLOW, 0o600);
   try { writeFileSync(fd, JSON.stringify(state, null, 2) + "\n", "utf8"); } finally { closeSync(fd); }
   return path;
@@ -106,7 +106,10 @@ export function loadState({ statePath, worktreeRoot } = {}) {
 }
 
 export function removeState({ statePath, worktreeRoot } = {}) {
-  const path = statePath ?? assertStatePath(join(process.cwd(), ".demo", "state.json"), worktreeRoot ?? process.cwd());
+  // Guard the path even when the caller passed one explicitly: unlink
+  // must never reach a file outside the worktree-owned .demo/.
+  const path = statePath ?? join(worktreeRoot ?? process.cwd(), ".demo", "state.json");
+  assertStatePath(path, worktreeRoot ?? process.cwd());
   if (existsSync(path)) unlinkSync(path);
   return path;
 }
@@ -118,7 +121,7 @@ export function removeState({ statePath, worktreeRoot } = {}) {
 export function writeProvenance(state, { dir, worktreeRoot } = {}) {
   const out = dir ?? join(process.cwd(), ".demo");
   const mdPath = assertProvenancePath(join(out, "provenance.md"), worktreeRoot ?? process.cwd());
-  mkdirSync(out, { recursive: true });
+  mkdirSync(out, { recursive: true, mode: 0o700 });
   const maskedApp = state.appUrl ? maskUrl(state.appUrl) : "n/a";
   const lines = [
     `# Fera offline-stack provenance (${PROVENANCE_SCHEMA_VERSION})`,

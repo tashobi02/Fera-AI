@@ -9,12 +9,14 @@
 // step so a CI / rehearsal harness can detect a bad run.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { createHash } from "node:crypto";
 import { sanitizeError, DEMO_PORT, DEMO_APP_PORT, containerNameFor, withDemoDatabase, assertLoopbackUrl } from "./lib/guard.mjs";
 import { auditCache, defaultCacheDir } from "./lib/cache.mjs";
 import { inspectContainer, waitForReady } from "./lib/docker.mjs";
 import { loadState } from "./lib/state.mjs";
 import { PINS } from "./lib/pins.mjs";
+import { SEED_COMPLETE_MARKER } from "./lib/guard.mjs";
 import { spawnSync } from "node:child_process";
 
 function resolveWorktree() {
@@ -51,19 +53,28 @@ async function checkDbScripts() {
 
 async function probeDbReadiness(database) {
   const target = withDemoDatabase(assertLoopbackUrl("postgresql://postgres:postgres@127.0.0.1:3215/postgres"), database);
-  const r = spawnSync("psql", [target.href, "-X", "-q", "-At", "-c", "SELECT 1"], {
+  // Ready means the seed finished (marker stamped last by start).
+  const r = spawnSync("psql", [target.href, "-X", "-q", "-At", "-c", "SELECT coalesce(shobj_description(oid, 'pg_database'), '') FROM pg_database WHERE datname = current_database()"], {
     encoding: "utf8",
     env: { ...process.env, PGCONNECT_TIMEOUT: "3" },
     timeout: 5000,
   });
-  return { ok: r.status === 0 && /1/.test(r.stdout), stderr: r.status === 0 ? null : r.stderr };
+  if (r.status !== 0) return { ok: false, stderr: r.stderr };
+  return r.stdout.trim() === SEED_COMPLETE_MARKER ? { ok: true, stderr: null } : { ok: false, stderr: null, reason: "seed-incomplete" };
 }
 
 export async function verify() {
   const worktree = resolveWorktree();
   const cache = await auditCache(defaultCacheDir());
   const state = loadState({ worktreeRoot: worktree });
-  const container = await inspectContainer(worktree);
+  // Docker unreachable must not discard the cache and script results.
+  let container = null;
+  let dockerError = null;
+  try {
+    container = await inspectContainer(worktree);
+  } catch (err) {
+    dockerError = sanitizeError(err);
+  }
   const dbScripts = await checkDbScripts();
   const ready = state && container && !container.foreign && container.status === "running" ? await waitForReady(worktree, 5_000) : { ok: false, reason: "container not running" };
   const dbReady = ready.ok ? await probeDbReadiness(state.database) : { ok: false, reason: ready.reason };
@@ -75,7 +86,8 @@ export async function verify() {
     worktree,
     port: DEMO_PORT,
     appPort: DEMO_APP_PORT,
-    container: { name: container?.name ?? containerNameFor(worktree), status: container?.status ?? "missing", foreign: container?.foreign === true },
+    docker: dockerError ? { ok: false, reason: dockerError } : { ok: true },
+    container: { name: container?.name ?? containerNameFor(worktree), status: dockerError ? "unknown" : container?.status ?? "missing", foreign: container?.foreign === true },
     db: ready,
     dbQuery: dbReady,
     cache,
@@ -83,7 +95,7 @@ export async function verify() {
   };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
   verify()
     .then((r) => {
       console.log(JSON.stringify(r, null, 2));

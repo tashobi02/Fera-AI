@@ -3,8 +3,9 @@ import { mkdtempSync, rmSync, statSync, writeFileSync, readFileSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer } from "node:http";
+import { spawn } from "node:child_process";
 // @ts-expect-error -- demo helper is plain ESM.
-import { loadOrCreateKeys, waitForAppUp, assertPortAvailable } from "../../scripts/demo/app.mjs";
+import { loadOrCreateKeys, waitForAppUp, assertPortAvailable, waitForChild, childExitCode } from "../../scripts/demo/app.mjs";
 const dirs: string[] = [];
 afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }); });
 describe("real launcher helpers", () => {
@@ -34,5 +35,26 @@ describe("real launcher helpers", () => {
       healthy = true; expect((await waitForAppUp(address.port, 1000)).ok).toBe(true);
       expect((await waitForAppUp(address.port, 1000, { exitCode: 1, signalCode: null })).ok).toBe(false);
     } finally { await new Promise<void>(resolve => server.close(() => resolve())); }
+  });
+  it("never turns a signal-killed child into exit 0 unless we forwarded that signal", async () => {
+    expect(childExitCode(3, null)).toBe(3);
+    expect(childExitCode(0, null)).toBe(0);
+    expect(childExitCode(null, "SIGKILL")).toBe(137);
+    expect(childExitCode(null, "SIGTERM")).toBe(143);
+    expect(childExitCode(null, "SIGTERM", "SIGINT")).toBe(143);
+    expect(childExitCode(null, "SIGINT", "SIGINT")).toBe(0);
+    expect(childExitCode(null, "SIGTERM", "SIGTERM")).toBe(0);
+    expect(childExitCode(null, null)).toBe(1);
+    const killed = spawn(process.execPath, ["-e", "process.kill(process.pid, 'SIGKILL')"], { stdio: "ignore" });
+    expect(await waitForChild({ child: killed })).toBe(137);
+    const failed = spawn(process.execPath, ["-e", "process.exit(4)"], { stdio: "ignore" });
+    expect(await waitForChild({ child: failed })).toBe(4);
+  });
+  it("waits for close so the child's output tail is drained", async () => {
+    const child = spawn(process.execPath, ["-e", "process.stdout.write('x'.repeat(200000))"], { stdio: ["ignore", "pipe", "ignore"] });
+    let bytes = 0;
+    child.stdout.on("data", (b: Buffer) => { bytes += b.length; });
+    expect(await waitForChild({ child })).toBe(0);
+    expect(bytes).toBe(200000);
   });
 });

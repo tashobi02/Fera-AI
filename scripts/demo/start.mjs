@@ -13,10 +13,11 @@
 //      `start` fails closed with `ok:false` and no resources are
 //      created.
 //   2. **No destructive start.** `start` only runs db:reset when
-//      there is no usable DB on the dedicated volume yet. Once a
-//      synthetic dataset is loaded, subsequent `start` (and
-//      `start --reuse`) merely re-checks that the DB is reachable.
-//      The operator must run `reset --yes` explicitly to drop data.
+//      the dedicated DB is absent. Once a synthetic dataset is fully
+//      loaded (seed-complete marker stamped last), subsequent `start`
+//      (and `start --reuse`) merely re-checks the marker. A
+//      half-seeded DB is refused, never reused. The operator must
+//      run `reset --yes` explicitly to drop data.
 //   3. **Per-worktree ownership.** Container, volume, network, and
 //      state file all derive from the worktree's owner label. A
 //      foreign resource with the same name is refused outright.
@@ -34,6 +35,7 @@
 // exercised in unit tests without a 100 MiB Next.js boot.
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { spawn } from "node:child_process";
 import {
   assertLoopbackUrl,
@@ -151,32 +153,50 @@ async function dbExists(dbName) {
   return r.stdout.trim() === "1" ? { kind: "exists" } : { kind: "absent" };
 }
 
-// `dbIsUsable` probes the schema on a DB that `dbExists` already
-// confirmed exists. Returns one of:
+// Written as the database comment ONLY after db:reset AND both seed
+// steps succeed. A DB without it is a half-seeded leftover (e.g. a
+// seed that threw after the schema reset) and is never "usable".
+import { SEED_COMPLETE_MARKER } from "./lib/guard.mjs";
+export { SEED_COMPLETE_MARKER };
+
+// `dbIsUsable` checks seed completeness on a DB that `dbExists`
+// already confirmed exists. It reads the seed-complete marker through
+// the maintenance connection (never the candidate DB). Returns one of:
 //
-//   * `{ kind: "usable" }`                  — schema looks loaded
-//   * `{ kind: "exists-but-no-users" }`     — DB exists, no users table
-//   * `{ kind: "exists-but-inconsistent" }` — DB exists, schema looks broken
-//   * `{ kind: "probe-error", stderr }`     — server unreachable on candidate
+//   * `{ kind: "usable" }`               — marker present; seed finished
+//   * `{ kind: "seed-incomplete" }`      — DB exists, marker missing
+//   * `{ kind: "probe-error", stderr }`  — server unreachable / probe failed
 //
-// The `start` flow on `exists-but-no-users` / `exists-but-inconsistent`
-// MUST fail closed: the operator must run `reset --yes` to drop the
-// inconsistent DB. `start` is never allowed to silently nuke a DB
-// that exists. Only `reset --yes` is destructive.
+// The `start` flow on `seed-incomplete` MUST fail closed: the operator
+// must run `reset --yes` to drop the inconsistent DB. `start` is never
+// allowed to silently nuke a DB that exists. Only `reset --yes` is
+// destructive.
 async function dbIsUsable(dbName) {
-  const targetUrl = withDemoDatabase(withPath(assertLoopbackUrl(ADMIN_URL), "postgres"), dbName);
-  const r = await spawnCaptured("psql", [
-    targetUrl.href, "-X", "-q", "-At",
-    "-c", "SELECT to_regclass('public.users') IS NOT NULL",
-  ], { ...process.env, PGCONNECT_TIMEOUT: "5" });
+  const server = withPath(assertLoopbackUrl(ADMIN_URL), "postgres");
+  const name = assertDemoDatabaseName(dbName);
+  const sql = `SELECT coalesce(shobj_description(oid, 'pg_database'), '') FROM pg_database WHERE datname = '${name}'`;
+  const r = await spawnCaptured("psql", [server.href, "-X", "-q", "-At", "-c", sql], {
+    ...process.env,
+    PGCONNECT_TIMEOUT: "5",
+  });
   if (r.code !== 0) {
     return { kind: "probe-error", stderr: r.stderr };
   }
-  const hasUsersTable = /t/.test(r.stdout);
-  if (!hasUsersTable) {
-    return { kind: "exists-but-no-users" };
+  return r.stdout.trim() === SEED_COMPLETE_MARKER ? { kind: "usable" } : { kind: "seed-incomplete" };
+}
+
+// LAST seeding step: stamp the marker so a later `start` can tell a
+// complete seed from a partial one.
+async function markSeedComplete(dbName) {
+  const server = withPath(assertLoopbackUrl(ADMIN_URL), "postgres");
+  const name = assertDemoDatabaseName(dbName);
+  const r = await spawnCaptured("psql", [
+    server.href, "-X", "-q", "-v", "ON_ERROR_STOP=1",
+    "-c", `COMMENT ON DATABASE "${name}" IS '${SEED_COMPLETE_MARKER}'`,
+  ], { ...process.env, PGCONNECT_TIMEOUT: "5" });
+  if (r.code !== 0) {
+    throw new Error(`offline-stack: could not record seed completion: ${sanitizeError(new Error(r.stderr || "exit " + r.code))}`);
   }
-  return { kind: "usable" };
 }
 
 // `ensureFreshDb` runs the regular `db:reset` script. We call this
@@ -204,10 +224,64 @@ async function seedDataset(env) {
   }
 }
 
+const DEFAULT_DB_STEPS = Object.freeze({ dbExists, dbIsUsable, ensureFreshDb, seedDataset, markSeedComplete });
+
+// `prepareDatabase` is the decisive test: does the dedicated DB exist
+// and did its seed finish? Returns the state kind ("fresh", "reused"
+// or "recovered") or throws. `steps` is injectable so the decision
+// can be unit-tested without a real DB.
+//
+//   1. `dbExists` proves the server has the database (catalog
+//      probe via the maintenance connection). A probe error here
+//      means we cannot prove the DB is absent; we refuse rather
+//      than drop a DB we cannot see.
+//   2. If the DB is absent, we call `db:reset` + seed, then stamp
+//      the seed-complete marker as the LAST step. This is the ONLY
+//      case in which `start` mutates a database.
+//   3. If the DB exists, we require the marker. A DB without it (a
+//      seed that failed part-way) is NEVER silently fixed or
+//      "recovered" by `start`; the operator must run `reset --yes`.
+export async function prepareDatabase({ dbName, env, existingDatabase }, steps = DEFAULT_DB_STEPS) {
+  const exists = await steps.dbExists(dbName);
+  if (exists.kind === "probe-error") {
+    throw new Error(`offline-stack: DB existence probe failed; refusing to start (run 'reset --yes' to recover): ${exists.stderr?.split("\n").slice(-2).join(" | ") || "unknown error"}`);
+  }
+  if (exists.kind === "absent") {
+    // db:reset itself drops+recreates the DB; since the DB is
+    // absent, the DROP is a no-op.
+    await steps.ensureFreshDb(env);
+    await steps.seedDataset(env);
+    await steps.markSeedComplete(dbName);
+    return "fresh";
+  }
+  if (exists.kind !== "exists") {
+    throw new Error(`offline-stack: unexpected DB existence probe result ${String(exists.kind)}; refusing to start`);
+  }
+  const usable = await steps.dbIsUsable(dbName);
+  if (usable.kind === "probe-error") {
+    throw new Error(`offline-stack: DB seed probe failed; refusing to start (run 'reset --yes' to recover): ${usable.stderr?.split("\n").slice(-2).join(" | ") || "unknown error"}`);
+  }
+  if (usable.kind !== "usable") {
+    throw new Error(
+      `offline-stack: dedicated DB ${dbName} exists but its seed did not complete (no seed-complete marker); refusing to reuse or drop it silently. ` +
+      `Run 'node scripts/demo/cli.mjs reset --yes' to drop the inconsistent DB, then start again to re-seed.`,
+    );
+  }
+  // DB exists and the seed finished. A missing/different state file
+  // is a recovered state; do not re-seed.
+  return existingDatabase === dbName ? "reused" : "recovered";
+}
+
 export async function start({ reuseDb = false, fresh = false } = {}) {
+  // `--fresh` is rejected BEFORE any docker build/run or DB probe.
+  // `reset --yes` is the only way to drop the data, so the flag would
+  // be a no-op; rejecting it keeps the contract honest.
+  if (fresh) {
+    throw new Error("offline-stack: --fresh is not accepted by start; the destructive path is gated to 'reset --yes'");
+  }
   const worktree = resolveWorktree();
   const demoDir = join(worktree, ".demo");
-  mkdirSync(demoDir, { recursive: true });
+  mkdirSync(demoDir, { recursive: true, mode: 0o700 });
 
   // 0. Cache pin check BEFORE any docker / db mutation. The previous
   //    lifecycle audited the cache AFTER the DB writes; a missing
@@ -238,18 +312,6 @@ export async function start({ reuseDb = false, fresh = false } = {}) {
     ? assertDemoDatabaseName(existing.database)
     : assertDemoDatabaseName(uniqueDemoDbName(worktree));
 
-  // 3. Decide whether to run db:reset + seed. The rule:
-  //    - If the dedicated volume is fresh (no data), seed it.
-  //    - If a usable DB already exists on the volume AND the
-  //      operator did NOT pass --fresh, skip db:reset entirely.
-  //    - If the operator passed --fresh, drop the data and reseed.
-  //    `reset --yes` is still the only way to drop the data; the
-  //    `--fresh` flag is therefore a no-op for the offline stack and
-  //    explicitly rejected to keep the contract honest.
-  if (fresh) {
-    throw new Error("offline-stack: --fresh is not accepted by start; the destructive path is gated to 'reset --yes'");
-  }
-
   const adminUrl = assertLoopbackUrl(ADMIN_URL);
   const targetUrl = withDemoDatabase(adminUrl, dbName);
   const appUrl = withDemoDatabase(assertLoopbackUrl(APP_URL_TEMPLATE.replace("{db}", dbName)), dbName);
@@ -264,54 +326,8 @@ export async function start({ reuseDb = false, fresh = false } = {}) {
     SEED_USER_PASSWORD: process.env.SEED_USER_PASSWORD || "fera-demo-desk-pass-12345",
   };
 
-  let stateKind = "reused";
-  // The decisive test: does the dedicated DB exist and have a
-  // usable schema?
-  //
-  // The previous lifecycle conflated "DB exists on the server" with
-  // "schema is loaded", and conflated "schema not loaded" with "drop
-  // the DB and re-create it". The fix is a three-step decision:
-  //
-  //   1. `dbExists` proves the server has the database (catalog
-  //      probe via the maintenance connection). A probe error here
-  //      means we cannot prove the DB is absent; we refuse rather
-  //      than drop a DB we cannot see.
-  //   2. If the DB is absent, we call `db:reset` + seed. This is
-  //      the ONLY case in which `start` mutates a database.
-  //   3. If the DB exists, we probe the schema. A broken or missing
-  //      schema is NEVER silently fixed by `start`; the operator
-  //      must run `reset --yes` to drop the inconsistent DB.
-  const exists = await dbExists(dbName);
-  if (exists.kind === "probe-error") {
-    throw new Error(`offline-stack: DB existence probe failed; refusing to start (run 'reset --yes' to recover): ${exists.stderr?.split("\n").slice(-2).join(" | ") || "unknown error"}`);
-  }
-  if (exists.kind === "exists") {
-    const usable = await dbIsUsable(dbName);
-    if (usable.kind === "probe-error") {
-      throw new Error(`offline-stack: DB schema probe failed; refusing to start (run 'reset --yes' to recover): ${usable.stderr?.split("\n").slice(-2).join(" | ") || "unknown error"}`);
-    }
-    if (usable.kind === "exists-but-no-users" || usable.kind === "exists-but-inconsistent") {
-      throw new Error(
-        `offline-stack: dedicated DB ${dbName} exists but the schema is missing or broken; refusing to drop it silently. ` +
-        `Run 'node scripts/demo/cli.mjs reset --yes' to drop the inconsistent DB and re-seed.`,
-      );
-    }
-    // usable.kind === "usable"
-    if (existing?.database === dbName) {
-      // Volume + DB are populated; nothing to do.
-    } else {
-      // DB exists with a usable schema but state was missing —
-      // treat as a recovered state, do not re-seed.
-      stateKind = "recovered";
-    }
-  } else {
-    // exists.kind === "absent" — DB does not exist. We may safely
-    // call db:reset + seed. db:reset itself drops+recreates the DB;
-    // since the DB is absent, the DROP is a no-op.
-    await ensureFreshDb(env);
-    await seedDataset(env);
-    stateKind = "fresh";
-  }
+  // 3. Decide whether to run db:reset + seed (see `prepareDatabase`).
+  const stateKind = await prepareDatabase({ dbName, env, existingDatabase: existing?.database });
 
   // 4. Re-audit the cache AFTER the DB is ready so the state file
   //    captures the final byte state. This audit cannot fail
@@ -328,6 +344,7 @@ export async function start({ reuseDb = false, fresh = false } = {}) {
     database: dbName,
     cache: cacheReport,
     appUrl: appUrl.href,
+    worktreeRoot: worktree,
   });
   saveState(state, { worktreeRoot: worktree });
   writeProvenance(state, { dir: demoDir });
@@ -350,7 +367,7 @@ export async function start({ reuseDb = false, fresh = false } = {}) {
   };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
   start({ reuseDb: process.argv.includes("--reuse"), fresh: process.argv.includes("--fresh") })
     .then((r) => {
       console.log(JSON.stringify(r, null, 2));

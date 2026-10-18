@@ -20,16 +20,15 @@
 //     regular seed path uses.
 //   * Schema/role pins — sha256 of db/schema_v2.sql and db/roles.sql
 //     so a fresh schema load is reproducible across offline runs.
-//   * DB script pins — sha256 of every helper the offline stack
-//     shells out to (db:reset, seed, model audit, reembed, spend),
-//     so a future drift in those scripts is detected before a
-//     rehearsal.
+//   * DB script entries — the helpers the offline stack shells out to
+//     (db:reset, seed, model fetch, reembed). These carry an EMPTY
+//     sha256 on purpose: no digest is recorded for them, so `verify`
+//     only checks that each file is present and readable (and reports
+//     its current hash). They are NOT drift-checked, and
+//     `expectedPin` / `allPinnedFiles` skip them.
 //
-// A test (tests/demo/pins-drift.test.ts) asserts that the model
-// pins here match MODEL_FILES in model.ts and that the on-disk
-// schema/roles/script files still hash to the values recorded here.
-// If model.ts changes, that test fails and the offline stack refuses
-// to start until this file is updated.
+// No automated test currently cross-checks the model pins against
+// MODEL_FILES in model.ts; keep the two in sync by hand.
 
 export const PINS = Object.freeze({
   model: Object.freeze([
@@ -57,11 +56,9 @@ export const PINS = Object.freeze({
   ]),
 });
 
-// `dbScripts` are populated at startup (see `fillDynamicPins`) so the
-// pin list tracks the actual on-disk bytes; the literal hashes above
-// would drift with every edit. We deliberately expose the
-// already-populated list via `EXPECTED_FILES` and `PINS` at module
-// load so tests can call into it without touching the filesystem.
+// `EXPECTED_FILES` is the sorted list of model files the cache audit
+// requires. It is derived at module load so tests can use it without
+// touching the filesystem.
 
 export const EXPECTED_FILES = Object.freeze(
   [...PINS.model.map((p) => p.path)].sort(),
@@ -84,9 +81,9 @@ export function allPinnedFiles() {
 }
 
 // Read the SHA-256 of a file using a streaming hash so very large
-// pinned model files do not load fully into memory. Returns null
-// when the file is not present; the caller decides whether missing
-// is fatal.
+// pinned model files do not load fully into memory. Rejects on any
+// read error, including ENOENT: a missing file must never hash as the
+// digest of empty input. Callers check presence first.
 import { createReadStream } from "node:fs";
 import { createHash } from "node:crypto";
 
@@ -96,10 +93,7 @@ export async function sha256File(filePath) {
     const stream = createReadStream(filePath);
     stream.on("data", (chunk) => h.update(chunk));
     stream.on("end", resolve);
-    stream.on("error", (err) => {
-      if (err && err.code === "ENOENT") resolve();
-      else reject(err);
-    });
+    stream.on("error", reject);
   });
   return h.digest("hex");
 }

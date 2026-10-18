@@ -5,7 +5,7 @@
 
 This is a static source audit, not a product acceptance or runtime safeguarding PASS. Only this audit file was edited. PR #26: UNKNOWN; no network was used to inspect it. The worker log is untrusted historical evidence, not proof of PR status or code content.
 
-Source aliases resolve under `/home/obidit/secondBrain/coding/fera-lanes`: `I/` = `obidit-intake-ui/`; `R/` = `obidit-review-ui/`. `D3:n` = `I/docs/spec/D3_App_Flow_V2.md:n`; `D4:n` = `I/docs/spec/D4_Design_Brief_V2.md:n`. R is a concurrently edited reference, not the reviewed lane. Source hashes and local inventories are recorded below so this audit does not imply a stable R revision.
+Source aliases resolve under `<lanes>`: `I/` = `obidit-intake-ui/`; `R/` = `obidit-review-ui/`. `D3:n` = `I/docs/spec/D3_App_Flow_V2.md:n`; `D4:n` = `I/docs/spec/D4_Design_Brief_V2.md:n`. R is a concurrently edited reference, not the reviewed lane. Source hashes and local inventories are recorded below so this audit does not imply a stable R revision.
 
 Owners: Obidit owns S-001/S-002/S-003/S-006; Mahim (Sadman) owns S-004/S-005 (`I/AGENTS.md:44`; task brief `A2.md:11–13`). TASK-035 requires bilingual states (`I/docs/spec/D6_Implementation_Plan_V2.md:134`); S-006 is TASK-049 (`I/docs/spec/D6_Implementation_Plan_V2.md:148`).
 

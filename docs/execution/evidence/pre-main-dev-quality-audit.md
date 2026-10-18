@@ -51,6 +51,8 @@ Each item was checked against the source. ✅ = verified, ⚠ = verified with a 
 
 ## Where the dedupe FPs actually come from (model-quality decomposition, not a code bug)
 
+> **Correction (PR #51 review, 18 Oct 2026).** This section audits the **baseline 0.5/2 detector**, not the shipped 0.95/3 one (see [pre-main-dev-calibration.md](pre-main-dev-calibration.md)). The prediction fixture holds 604 ordered link rows (302 unordered pairs: 12 true, 290 false); the 580-row table below counts the false-positive rows only. The "0–2 fields" row should read "0–1 fields": under min_agree = 2 every flagged pair agrees on at least 2 fields, and the calibration grid shows 277 of the 290 false positives agree on exactly 2. OD-QA-2 below was resolved by the dev calibration (min_agree = 3).
+
 Direct re-derivation of `decideDuplicateRule` on the dev predictions, with each FP pair's per-field agreement re-computed from `data/synthetic/records.jsonl`:
 
 | FP profile breakdown | Count (with row multiplicity) |

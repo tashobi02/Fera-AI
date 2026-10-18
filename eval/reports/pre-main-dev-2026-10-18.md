@@ -62,7 +62,7 @@ eval:match summary
 
 ```
 
-Result summary: measured=true, reason=n/a, recall@5=100% (0 true-pair miss), P@5=32.000000000000014% (denom=25 truth-pair queries; abstentions never excluded), top-1=92% (23/25 covered), coverage=100%, abstention=0%, false-positive suggestion rate=71.42857142857143% (5 no-match FP)
+Result summary: measured=true, reason=n/a, recall@5=100% (0 true-pair miss), P@5=32% (per-query precision summed to 8 over denom=25 truth-pair queries; abstentions never excluded), top-1=92% (23/25 covered), coverage=100%, abstention=0%, false-positive suggestion rate=71.42857142857143% (5 no-match FP)
 
 ## eval:dedupe
 
@@ -121,7 +121,18 @@ eval:audit: not measured (0 decisions)
 | --- | --- |
 | extract | none observed |
 | match | 5 failure(s); first 5: 72c32e9c-3fc1-409f-9191-add9d0273f9c, 31d8609d-e771-4347-9d9c-099ad1ca0562, 36b898d2-36e4-4ff8-ac6e-4c34aa4ab1d9, fc0ab369-0dac-4203-94bb-a2bb730979a0, 15ce6262-fa38-4348-9f27-0dd9f23c6eaf |
-| dedupe | none observed |
+| dedupe | FP=1, FN=2 (denominator: 12 declared dev pairs). FP pair: 56aa3e31-628f-4eac-8a29-d5d478ceb1c7 / 78c913c7-f858-4c68-915f-c8eb1884e33b (score 96). FN pairs: b33aa7aa-c563-49cf-adce-a2009f2dad46 / c82f2b41-ec18-46c7-87ac-4ebedeb252b8; 01489f44-7276-45bd-b2c3-ec8e960f7dc6 / 4de66a6e-18ba-4d67-b47e-2d6f5dfb09da. Pair IDs derived after generation from eval/data/pre-main-final-dedupe.dev.jsonl against the dev ground truth; eval:dedupe prints counts only. |
+
+Note: P@5 float noise (32.000000000000014) was rounded to 32 by hand in this file and in the JSON, and the dedupe row above was corrected by hand from "none observed"; the generator was not re-run.
+
+## Known weaknesses (dev)
+
+All figures are dev split, in-sample, synthetic, not held-out.
+
+- Match precision is low: P@5 is 32% (mean per-query shortlist precision, summing to 8 over 25 truth-pair queries). Recall@5 is 100% (25/25), so the low P@5 comes from non-partner candidates in the shortlists, not from missed partners.
+- Match top-1 is 92% (23/25): 2 of 25 truth-pair queries do not rank the true partner first.
+- No-match false-positive suggestion rate is 71.43% (5/7). The denominator is only 7 no-match queries, so this rate is very uncertain, but 5 of 7 children with no partner still received a suggested candidate.
+- Duplicate detection at the chosen 0.95/3 floor misses 2 of 12 dev duplicate pairs (recall 83.33%, 10/12) and makes 1 false flag (precision 90.91%, 10/11). The 0.95 floor is the top edge of the swept grid and was chosen on the same 12 positives it is scored on.
 
 ## Missing evidence
 

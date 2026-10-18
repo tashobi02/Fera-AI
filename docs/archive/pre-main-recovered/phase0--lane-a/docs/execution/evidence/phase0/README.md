@@ -1,6 +1,6 @@
 # Phase 0 bootstrap evidence
 
-Lane: phase0--lane-a at /home/obidit/Coding/fera-lanes/lane-a, based on local main 1c1ec6c. One writer holds all three roles; tracker owners remain Mahim, Obidit and Masnun.
+Lane: phase0--lane-a at <lanes>/lane-a, based on local main 1c1ec6c. One writer holds all three roles; tracker owners remain Mahim, Obidit and Masnun.
 
 ## TASK-001 dependencies
 

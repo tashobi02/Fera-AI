@@ -515,15 +515,23 @@ def check_no_invented_interviews(report: list[str],
 
 def check_submission_status(report: list[str],
                              text: dict[str, str]) -> None:
-    """Round 2 NOT submitted, recipient/channel/cutoff UNKNOWN."""
+    """Round 2 status recorded honestly, recipient/channel/cutoff UNKNOWN.
+
+    Since 18 Oct 2026 the pack records "reported submitted ... UNKNOWN"
+    (time, submitter and platform status unverified); before that it
+    recorded "Round 2 has not been submitted". Either is honest; a bare
+    "submitted" claim without the UNKNOWN qualifier is not.
+    """
     all_text = "\n".join(text.values()).lower()
-    if re.search(r"round[ ]+2[ ]+(has )?(not|hasn['']t)[ ]+"
-                 r"(been[ ]+)?submitted",
-                 all_text):
-        ok(report, "round 2 not-submitted status recorded")
+    not_submitted = re.search(r"round[ ]+2[ ]+(has )?(not|hasn['']t)[ ]+"
+                              r"(been[ ]+)?submitted", all_text)
+    reported = re.search(r"reported submitted[^\n]{0,200}unknown", all_text)
+    if not_submitted or reported:
+        ok(report, "round 2 submission status recorded honestly")
     else:
-        fail(report, "round 2 not-submitted status recorded",
-             "expected explicit 'Round 2 has not been submitted' line")
+        fail(report, "round 2 submission status recorded honestly",
+             "expected 'Round 2 has not been submitted' or "
+             "'reported submitted ... UNKNOWN'")
     if re.search(r"recipient.*unknown|recipient[: ]+unknown|"
                  r"recipient.{0,30}\bunknown\b",
                  all_text):
@@ -628,7 +636,7 @@ def rewrap_paragraphs(body: str) -> list[str]:
 def main() -> int:
     report: list[str] = []
     report.append("claims-check-report -- Round 2 submission pack")
-    report.append(f"root: {ROOT}")
+    report.append("root: submission/round2")  # repo-relative; never print a local absolute path
     report.append("")
 
     check_assets(report)

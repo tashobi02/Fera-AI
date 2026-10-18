@@ -14,7 +14,7 @@ Synthetic only. Uncommitted; no commit, push, PR, deployment, provider or databa
 
 ## Done-when status
 
-- TASK-033 "Demo-safe cache + fixtures for 3 cases + cached badge": the fixtures now cover Mitu (backwards compatible), Rafi (TC-002 exact text), and Mim (TC-013 missing girl). Each fixture parses against `caseDraftSchema`, every evidence span points into its source, and `findExtractFixture` matches by SHA-256 only in `DEMO_MODE=1`.
+- TASK-033 "Demo-safe cache + fixtures for 3 cases + cached badge": the fixtures now cover Mitu (backwards compatible), Rafi (TC-002 exact text), and Mim (TC-013 scenario; the source sentence is agent-authored synthetic text, not from the spec pack, and its phone uses the synthetic 017000000NN range). Each fixture parses against `caseDraftSchema`, every evidence span points into its source, and `findExtractFixture` matches by SHA-256 only in `DEMO_MODE=1`.
 - TC-021 "laptop offline, local stack reachable": the intake chat no longer pre-empts the call when `navigator.onLine === false`. A loopback/local 2xx is honoured; a real `Failed to fetch` is still mapped to E-024 with the retry button and manual form link visible.
 - TC-056 "Evaluation fixture contamination": the fixtures continue to refuse any non-exact source. DEMO_MODE=0 returns null for every source. No paid-slot is reserved on a cache hit (orchestrator path unchanged).
 - Live voice / physical device / phone mic: UNVERIFIED (no device, no provider).
@@ -36,7 +36,7 @@ Synthetic only. Uncommitted; no commit, push, PR, deployment, provider or databa
 |---|---|---|---|---|
 | মিতু (Mitu) | `আমার মেয়ে মিতু, বয়স ৭ বছর। গতকাল বিকেলে বাস টার্মিনালের কাছে হারিয়ে গেছে। লাল জামা পরা ছিল। আমার নম্বর ০১৭০০০০০০০১।` | name, age, sex, clothing, time interval, place, phone | district, height, marks, thana, circumstances, relation | Backwards compatible; identical to the previous fixture. |
 | রাফি (Rafi) | `আমার ছেলে রাফি, বয়স ১৩, গতকাল বিকেলে মাদ্রাসা থেকে ফেরেনি। নম্বর ০১৭১১২২৩৩৪৪` | name, age, sex, time interval, place, phone | district, clothing, height, marks, thana, circumstances, relation | TC-002 exact text. The "blue shirt" in D6 §9.2 belongs to the matching found-child row, not the parent report — clothing stays `null` per BR-008. |
-| মীম (Mim) | `আমার মেয়ে মীম, বয়স ১১, আজ সকালে টঙ্গী বাজারে হারিয়ে গেছে। নম্বর ০১৯৯৮৮৭৭৬৬৫` | name, age, sex, time interval, place, phone | district, clothing, height, marks, thana, circumstances, relation | TC-013 scripted note. Shows the duplicate banner in D7 demo path. |
+| মীম (Mim) | `আমার মেয়ে মীম, বয়স ১১, আজ সকালে টঙ্গী বাজারে হারিয়ে গেছে। নম্বর ০১৭০০০০০০৭৬` | name, age, sex, time interval, place, phone | district, clothing, height, marks, thana, circumstances, relation | TC-013 scripted note. Shows the duplicate banner in D7 demo path. |
 
 Every existing fixed cached time remains labelled. No invented current time, no invented source fields, no audio fixtures.
 

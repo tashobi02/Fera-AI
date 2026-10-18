@@ -28,3 +28,4 @@ export function assertKeysPath(path: string, root?: string): string;
 export function ok(value: unknown): boolean;
 export function parseCli(argv: string[]): { cmd: string | null; help: boolean; flags: Record<string, boolean>; errors: string[] };
 export function nextSteps(options: { adminUrl: URL; dbName: string; appUrl: URL; appPort: number; cacheDir: string; withStart?: boolean }): string[];
+export declare const SEED_COMPLETE_MARKER: "fera-offline-stack:seed-complete:v1";

@@ -22,9 +22,10 @@
 //     produce text from the existing outputs templates; never invents
 //     personal data.
 //   * Voice recorder (TC-021, FR-027/032, BR-026): synthetic
-//     MediaRecorder bytes are uploaded; if no matching audio fixture
-//     exists, the spec reports "missing live voice" and never invents
-//     a transcript.
+//     MediaRecorder bytes are uploaded through the real recorder; with
+//     no matching audio fixture the spec asserts the route refuses,
+//     the page shows the catalogue error, and no cached label or
+//     transcript appears (live voice stays UNVERIFIED).
 //
 // Acceptance checks (v3 additions; brief §2):
 //   * **Real poster download** (Journey 8): drive the share UI end to
@@ -65,10 +66,15 @@
 //     confirms the case/audit state persists. Spawn the Next CLI
 //     directly with Node so no `npx` grandchild is left running.
 //
-// Network offline guarantee: every browser request passes through
-// `tests/rehearsal/network-watchdog.ts`. The same instance is reused
-// across journeys via the shared `PER_JOURNEY_NETWORK` array so
-// Playwright's per-context isolation cannot break the offline proof.
+// Network scope, stated exactly: every BROWSER-originated HTTP(S)
+// request routed by Playwright passes through
+// `tests/rehearsal/network-watchdog.ts`, and each test asserts zero
+// non-loopback attempts for its own context in `afterEach`. The
+// watchdog does NOT observe server-side egress from the Next.js
+// process, the Playwright `request` fixture / `context.request` calls
+// this spec makes, Node `fetch` (the restart test), or WebSockets
+// beyond routing. The log scan below is a weaker, separate check on
+// what the server printed; neither is proof of server-side isolation.
 //
 // Synthetic only / no provider calls: the wrapper sets DEMO_MODE=1
 // (cache-only) and points FERA_MODEL_CACHE at the shared
@@ -80,13 +86,16 @@ import { test, expect, type Page } from "@playwright/test";
 import {
   EXTRACT_FIXTURE_SOURCE,
 } from "../../src/server/cache/fixtures";
+import { ERROR_CATALOGUE } from "../../src/contracts";
+import { locales, type MessageKey } from "../../src/locales";
 import {
   installNetworkWatchdog,
   assertNoExternalAttempts,
   summarize,
+  LOOPBACK_HOSTS,
   type RequestRecord,
 } from "./network-watchdog";
-import { readRehearsalLog, findRehearsalLogLines } from "./offline-log";
+import { readRehearsalLog } from "./offline-log";
 import { rehearsalOwnerClient, rehearsalDbName } from "./rehearsal-db";
 import {
   startOwnedServer,
@@ -139,8 +148,18 @@ type Actors = {
   candidateId: string;
 };
 
+// The journeys share one database and build on each other's rows
+// (journey 4's closed case is re-read by the restart test), so they
+// run in file order and a failure stops the rest instead of letting
+// later tests run against half-built state.
+test.describe.configure({ mode: "serial" });
+
 let ACTORS: Actors;
 const PER_JOURNEY_NETWORK: RequestRecord[] = [];
+// Records for the current test's context only; asserted in afterEach
+// so the zero-external-attempt check never depends on suite-level
+// in-memory state surviving a worker restart.
+let TEST_NETWORK: RequestRecord[] = [];
 
 test.beforeAll(async () => {
   // Seed the actor set once. The `seedActors()` helper inserts:
@@ -202,7 +221,12 @@ test.beforeEach(async ({ context }) => {
   // a new context per test by default; without the shared tee the
   // suite-level offline assertion would only see the LAST test's
   // records).
-  installNetworkWatchdog(context, PER_JOURNEY_NETWORK);
+  TEST_NETWORK = await installNetworkWatchdog(context, PER_JOURNEY_NETWORK);
+});
+
+// Playwright requires a destructured fixtures argument, even when empty.
+test.afterEach(async ({}, testInfo) => {
+  assertNoExternalAttempts(TEST_NETWORK, testInfo.title);
 });
 
 /* ----------------------------------------------------------------- *
@@ -386,14 +410,18 @@ test("journey 3 — officer queue reject + fresh candidate confirm (TC-010/011, 
   // from the candidate row (the route accepts them as optimistic
   // locks).
   const ownerForCandidate = await rehearsalOwnerClient();
-  const candidateRow = await ownerForCandidate.query<{
-    missing_version: number;
-    found_version: number;
-  }>(
-    "SELECT missing_version, found_version FROM match_candidates WHERE id = $1",
-    [targetCandidateId],
-  );
-  await ownerForCandidate.end();
+  let candidateRow: { rows: Array<{ missing_version: number; found_version: number }> };
+  try {
+    candidateRow = await ownerForCandidate.query<{
+      missing_version: number;
+      found_version: number;
+    }>(
+      "SELECT missing_version, found_version FROM match_candidates WHERE id = $1",
+      [targetCandidateId],
+    );
+  } finally {
+    await ownerForCandidate.end();
+  }
   const reject = await page.context().request.post(`/api/candidates/${targetCandidateId}/decision`, {
     headers: { origin: baseURL! },
     data: {
@@ -422,9 +450,13 @@ test("journey 3 — officer queue reject + fresh candidate confirm (TC-010/011, 
   // fresh missing/found/candidate triple.
   const FRESH = await seedActors();
   const freshOwner = await rehearsalOwnerClient();
-  const freshVersions = await freshOwner.query<{ missing_version: number; found_version: number }>(
-    "SELECT missing_version, found_version FROM match_candidates WHERE id = $1", [FRESH.candidateId]);
-  await freshOwner.end();
+  let freshVersions: { rows: Array<{ missing_version: number; found_version: number }> };
+  try {
+    freshVersions = await freshOwner.query<{ missing_version: number; found_version: number }>(
+      "SELECT missing_version, found_version FROM match_candidates WHERE id = $1", [FRESH.candidateId]);
+  } finally {
+    await freshOwner.end();
+  }
   const confirm = await page.context().request.post(`/api/candidates/${FRESH.candidateId}/decision`, {
     headers: { origin: baseURL! },
     data: {
@@ -788,42 +820,33 @@ test("journey 7 — cache positive extraction: exact source → cached: true, ze
     await owner.end();
   }
 
-  // (e) The page surfaces the [MOCK] / synthetic label. We visit
-  // the parent intake form and confirm the cache status badge
-  // (or the honest "synthetic" copy) renders. The voice
-  // recorder's offline badge is the visible evidence that the
-  // cache path is real and the navigator offline override is
-  // effective (the brief ties the two together).
+  // (e) The same exact text through the real UI: acknowledge the
+  // provider notice, type the fixture text, send it, and wait for
+  // the browser's own API-002 response. The page must then show the
+  // cached badge and the cached-clock notice (BR-026, D4 §15.1), and
+  // no transcript (this is the text path; nothing was heard).
   await page.goto("/intake");
-  // The intake page renders a "I understand" gate on first
-  // visit (the "শুরু করার আগে জেনে নিন" notice). We click the
-  // gate so the form is reachable; this is the same gate the
-  // existing parent-journey spec walks through.
-  const continueBtn = page.getByRole("button", { name: /বুঝেছি|continue|got it/i }).first();
-  if ((await continueBtn.count()) > 0) {
-    await continueBtn.click().catch(() => undefined);
-  }
-  // The brief's red line: "Add real UI exact Mitu text while
-  // onLine=false → cached badge → review → submit". We drive
-  // that journey: type the exact fixture text into the visible
-  // input and look for any positive cache indicator on the
-  // page. The textarea/label may be on the /intake voice page
-  // or on the form page; we look for the form-level control.
-  const Mitu = page.getByText(/মিতু/).first();
-  // The form pre-fills nothing; we type the exact source text
-  // and look for any positive cache indicator on the page.
-  const textarea = page.locator("textarea").first();
-  if (await textarea.count() > 0) {
-    await textarea.fill(EXTRACT_FIXTURE_SOURCE);
-    await expect(textarea).toHaveValue(EXTRACT_FIXTURE_SOURCE);
-  } else {
-    // Fall back: the page may render the Bangla child name in
-    // a status region when the cached draft is hydrated. The
-    // assertion is permissive — we only require the page to
-    // surface the fixture child name, which is the visible
-    // proof the cache payload was read.
-    await expect(Mitu).toBeVisible({ timeout: 5_000 });
-  }
+  const ack = page.getByRole("button", { name: bilingual("noticeAckAction") });
+  await expect(ack).toBeVisible();
+  await ack.click();
+  const textarea = page.locator('textarea[name="text"]');
+  await expect(textarea).toBeVisible();
+  await textarea.fill(EXTRACT_FIXTURE_SOURCE);
+  await expect(textarea).toHaveValue(EXTRACT_FIXTURE_SOURCE);
+  const uiExtract = page.waitForResponse(
+    (r) => r.url().endsWith("/api/intake/extract") && r.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: bilingual("sendAction") }).click();
+  const uiResp = await uiExtract;
+  expect(uiResp.status(), "UI extract of the exact fixture text must succeed").toBe(200);
+  const uiBody = await uiResp.json() as { cached?: boolean; ai_calls_used?: number };
+  expect(uiBody.cached, "UI extract must be the cached path").toBe(true);
+  expect(uiBody.ai_calls_used, "UI extract must consume zero paid slots").toBe(0);
+  await expect(page.getByText(bilingual("cachedBadge", true))).toBeVisible();
+  await expect(page.getByRole("note", { name: bilingual("cachedClockTitle", true) })).toBeVisible();
+  await expect(page.getByText(bilingual("syntheticBadge", true)).first()).toBeVisible();
+  // BR-026: a cached text draft never comes with an invented transcript.
+  await expect(page.getByText(bilingual("transcriptLabel", true))).toHaveCount(0);
 });
 
 /* ----------------------------------------------------------------- *
@@ -1002,85 +1025,18 @@ test("journey 9 — voice recorder: synthetic MediaRecorder bytes path or honest
   expect(baseURL).toMatch(/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/);
 
   // (1) Install a fake MediaRecorder in the page context BEFORE
-  // any app script runs. The fake emits a clearly-synthetic
-  // byte stream; the byte length is small (a few KiB) so a human
-  // reviewer can tell it from a real audio clip. The fake does
-  // not claim a real codec or a real MIME type — it is
-  // explicitly labelled `[MOCK]` so a transcript produced from
-  // it can never be confused with a real recording.
-  await page.addInitScript(() => {
-    const w = window as unknown as { __syntheticAudio: boolean };
-    w.__syntheticAudio = true;
-    // Minimal MediaRecorder stand-in. The real API returns
-    // `ondataavailable` events; we mimic that and produce a Blob
-    // on `stop()`. The bytes are NOT a real codec — they are a
-    // typed array of zeroes plus a clearly-synthetic header.
-    type FakeDataEvent = { data: Blob };
-    class FakeMediaRecorder {
-      public ondataavailable: ((ev: FakeDataEvent) => void) | null = null;
-      public onstop: (() => void) | null = null;
-      public onerror: ((ev: unknown) => void) | null = null;
-      public state: "inactive" | "recording" | "stopped" = "inactive";
-      public stream: MediaStream;
-      constructor(stream: MediaStream) {
-        this.stream = stream;
-      }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      static isTypeSupported(_mimeType: string): boolean {
-        return true;
-      }
-      start(): void {
-        this.state = "recording";
-        // Emit one chunk after 50ms (a few KiB of zeroes). The
-        // bytes are clearly synthetic — a real audio clip would
-        // be tens to hundreds of KiB.
-        setTimeout(() => {
-          if (this.ondataavailable) {
-            const header = new Uint8Array([0x4d, 0x4f, 0x43, 0x4b]); // "MOCK"
-            const payload = new Uint8Array(4096);
-            const buf = new Uint8Array(header.length + payload.length);
-            buf.set(header, 0);
-            buf.set(payload, header.length);
-            this.ondataavailable({ data: new Blob([buf], { type: "audio/webm" }) });
-          }
-        }, 50);
-      }
-      stop(): void {
-        this.state = "stopped";
-        if (this.onstop) this.onstop();
-      }
-      pause(): void {}
-      resume(): void {}
-      requestData(): void {}
-    }
-    // Attach to the page's window so the app can pick it up.
-    (window as unknown as { MediaRecorder: unknown }).MediaRecorder = FakeMediaRecorder;
-    // getUserMedia is a no-op in the test browser; if the app
-    // calls it, return an empty stream.
-    if (!navigator.mediaDevices) {
-      Object.defineProperty(navigator, "mediaDevices", {
-        value: {
-          getUserMedia: async () => new MediaStream(),
-        },
-        configurable: true,
-      });
-    }
-  });
+  // any app script runs. It emits a clearly-synthetic byte stream
+  // ("MOCK" + zeroes) that is not a real codec, so a transcript
+  // produced from it could never be confused with a real recording.
+  await installSyntheticRecorder(page);
 
   await page.goto("/intake");
-  // The voice recorder is the only consumer of getUserMedia in the
-  // parent flow. The fake is now installed; we look for the
-  // recorder control to confirm the page rendered.
-  const recorderText = page.getByText(/voice|ভয়েস|কথা|টেপ/i).first();
-  await expect(recorderText, "voice recorder control must be visible on /intake").toBeVisible();
-
   // Detect the cache: `TRANSCRIPT_FIXTURES` in
   // `src/server/cache/fixtures.ts` is a frozen empty array in this
   // build. We import the actual constant to be exact (the brief:
   // "label real 60 clips/provider human pending"). The unit test
   // is honest about what is and is not cached.
   const { TRANSCRIPT_FIXTURES } = await import("../../src/server/cache/fixtures");
-  const cachedHasRows = TRANSCRIPT_FIXTURES.length > 0;
 
   // (2) Probe the transcribe route directly with a synthetic
   // audio byte stream. The hash of the bytes does not match any
@@ -1103,67 +1059,25 @@ test("journey 9 — voice recorder: synthetic MediaRecorder bytes path or honest
   // rows in this build; the assertion is a guard for the
   // future when a row is added).
   const matchingFixture = TRANSCRIPT_FIXTURES.find((f) => f.audioHash === synthBlob.sha);
-  if (cachedHasRows) {
-    expect(matchingFixture, "synthetic bytes must not match any cached fixture").toBeUndefined();
-  } else {
-    expect(TRANSCRIPT_FIXTURES.length, "TRANSCRIPT_FIXTURES is empty in this build").toBe(0);
-  }
+  expect(matchingFixture, "synthetic bytes must not match any cached fixture").toBeUndefined();
 
-  // (3) Drive the app's recorder start/stop control. The fake
-  // recorder is installed; the page may render a "start" button
-  // and a "stop" button. We click them in order; the fake
-  // produces one data chunk and a "stop" event. We do NOT
-  // assert the API call result (the API may legitimately 4xx
-  // because the fixture cache is empty); we assert that no fake
-  // "cached: true" is returned and the page does not display a
-  // fabricated transcript.
-  const startBtn = page.getByRole("button", { name: /start|শুরু|record|রেকর্ড/i }).first();
-  if ((await startBtn.count()) > 0) {
-    await startBtn.click().catch(() => undefined);
-    // Wait for the fake recorder to emit and the app to handle it.
-    await page.waitForTimeout(200);
-    const stopBtn = page.getByRole("button", { name: /stop|থামুন|থামানো/i }).first();
-    if ((await stopBtn.count()) > 0) {
-      await stopBtn.click().catch(() => undefined);
-    }
-    // After stop, the page may show an error (no fixture, no
-    // provider in DEMO_MODE=1) OR a "uploading" state that never
-    // resolves. Either is fine; what is NOT acceptable is a
-    // "cached" success badge that the fake recorder would
-    // produce (BR-026: never invent a transcript).
-    const cachedSuccess = page.getByText(/cached|ক্যাশ/i).first();
-    // The page may legitimately show "cached" for the EXTRACT
-    // (text) path; we are testing the audio path, so we look
-    // for a SUCCESS label specifically tied to the recorder
-    // (e.g. "transcript ready" or "সফলভাবে ট্রান্সক্রিপ্ট").
-    const transcriptSuccess = page.getByText(/transcript ready|সফলভাবে ট্রান্সক্রিপ্ট|সফল/i).first();
-    // The negative assertion: no fabricated transcript.
-    if ((await transcriptSuccess.count()) > 0 && (await cachedSuccess.count()) > 0) {
-      // If the page surfaces a transcript AND a cached label
-      // AND no matching fixture exists, that is a fake
-      // success. The spec records this as a guard failure so
-      // a human reviewer can audit the page.
-      test.info().annotations.push({
-        type: "guard",
-        description:
-          "Recorder surfaced a 'cached' / 'transcript ready' label with no matching fixture — investigate.",
-      });
-    } else {
-      test.info().annotations.push({
-        type: "missing-live-voice",
-        description:
-          "Synthetic MediaRecorder bytes produced no fake cached success (TRANSCRIPT_FIXTURES is empty; real 60 clips/provider pending).",
-      });
-    }
-  } else {
-    // The page may not have a start button (the recorder is a
-    // single widget that toggles). The probe + annotation is
-    // the visible evidence.
-    test.info().annotations.push({
-      type: "missing-live-voice",
-      description: "No start button found; recorder probe + fixture cache scan is the visible evidence.",
-    });
-  }
+  // (3) Drive the app's real recorder: acknowledge the notice, tap
+  // record, let the visible timer pass the 5 s minimum, tap stop and
+  // wait for the browser's own API-001 upload. With no matching
+  // fixture the route must refuse, the page must show that refusal
+  // in the catalogue's honest words, and it must show neither a
+  // cached label nor a transcript (BR-026: never invent one).
+  const upload = await recordSyntheticClip(page);
+  expect(upload.status, "synthetic bytes must not be transcribed").not.toBe(200);
+  expect(upload.body.cached, "no fake cached success for synthetic bytes").not.toBe(true);
+  const errorId = upload.body.error?.id;
+  expect(errorId, "the refusal must carry a catalogue error id").toMatch(/^E-\d{3}$/);
+  await expect(page.getByRole("alert").filter({ hasText: catalogueText(errorId!) })).toBeVisible();
+  await expect(page.getByText(bilingual("cachedBadge", true))).toHaveCount(0);
+  await expect(page.getByRole("note", { name: bilingual("cachedClockTitle", true) })).toHaveCount(0);
+  await expect(page.getByText(bilingual("transcriptLabel", true))).toHaveCount(0);
+  // The scripted [MOCK] STT text in src/app/api/intake/deps.ts must never surface.
+  await expect(page.getByText(/রাফি/)).toHaveCount(0);
 });
 
 /* ----------------------------------------------------------------- *
@@ -1217,95 +1131,25 @@ test("journey 10 — X-Frame-Options DENY + CSP frame-ancestors 'none' on real H
 test("journey 11 — voice rejection leaves usable typed/manual fallback (BR-026, TC-021)", async ({ page, baseURL }) => {
   expect(baseURL).toMatch(/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/);
 
-  // Install the same synthetic recorder as Journey 9. We use the
-  // same 4-byte MOCK header and a 4 KiB payload so reviewers can
-  // recognise the bytes as obviously non-audio.
-  await page.addInitScript(() => {
-    type FakeDataEvent = { data: Blob };
-    class FakeMediaRecorder {
-      public ondataavailable: ((ev: FakeDataEvent) => void) | null = null;
-      public onstop: (() => void) | null = null;
-      public state: "inactive" | "recording" | "stopped" = "inactive";
-      public stream: MediaStream;
-      constructor(stream: MediaStream) { this.stream = stream; }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      static isTypeSupported(_mimeType: string): boolean { return true; }
-      start(): void {
-        this.state = "recording";
-        setTimeout(() => {
-          if (this.ondataavailable) {
-            const header = new Uint8Array([0x4d, 0x4f, 0x43, 0x4b]); // "MOCK"
-            const payload = new Uint8Array(4096);
-            const buf = new Uint8Array(header.length + payload.length);
-            buf.set(header, 0);
-            buf.set(payload, header.length);
-            this.ondataavailable({ data: new Blob([buf], { type: "audio/webm" }) });
-          }
-        }, 50);
-      }
-      stop(): void {
-        this.state = "stopped";
-        if (this.onstop) this.onstop();
-      }
-      pause(): void {}
-      resume(): void {}
-      requestData(): void {}
-    }
-    (window as unknown as { MediaRecorder: unknown }).MediaRecorder = FakeMediaRecorder;
-    if (!navigator.mediaDevices) {
-      Object.defineProperty(navigator, "mediaDevices", {
-        value: { getUserMedia: async () => new MediaStream() },
-        configurable: true,
-      });
-    }
-  });
-
+  // Same synthetic recorder and the same real upload as Journey 9.
+  await installSyntheticRecorder(page);
   await page.goto("/intake");
-  const continueBtn = page.getByRole("button", { name: /বুঝেছি|continue|got it/i }).first();
-  if ((await continueBtn.count()) > 0) {
-    await continueBtn.click().catch(() => undefined);
-  }
+  const upload = await recordSyntheticClip(page);
+  expect(upload.status, "synthetic bytes must be refused").not.toBe(200);
+  const errorId = upload.body.error?.id;
+  expect(errorId, "the refusal must carry a catalogue error id").toMatch(/^E-\d{3}$/);
+  // The honest refusal is on screen (role=alert, catalogue copy).
+  await expect(page.getByRole("alert").filter({ hasText: catalogueText(errorId!) })).toBeVisible();
 
-  // Drive start then stop. The synthetic recorder emits one chunk
-  // and the app's `transcribe` handler refuses it because the
-  // bytes are not a real RIFF/WAVE header (the route asserts
-  // bytes 0..3 == "RIFF" and bytes 8..11 == "WAVE", per
-  // src/server/intake/audio-metadata.ts).
-  const startBtn = page.getByRole("button", { name: /start|শুরু|record|রেকর্ড/i }).first();
-  if ((await startBtn.count()) > 0) {
-    await startBtn.click().catch(() => undefined);
-    await page.waitForTimeout(300);
-    const stopBtn = page.getByRole("button", { name: /stop|থামুন|থামানো/i }).first();
-    if ((await stopBtn.count()) > 0) {
-      await stopBtn.click().catch(() => undefined);
-    }
-  }
-
-  // Honest label for the rejection: the page should surface an
-  // alert ("role=alert") or a status region explaining the
-  // failure. We require the typed textarea is STILL visible AND
-  // accepts a typed draft — the manual fallback. The label is
-  // documented as "typeHere" / "এখানে লিখুন".
-  const typed = page.locator("textarea").first();
-  await expect(typed, "typed textarea must be visible as manual fallback").toBeVisible({ timeout: 10_000 });
+  // The typed textarea is still there and accepts a manual draft.
+  const typed = page.locator('textarea[name="text"]');
+  await expect(typed, "typed textarea must be visible as manual fallback").toBeVisible();
   const manualDraft = "[MOCK] synthetic voice rejected — typed manual fallback used for rehearsal";
   await typed.fill(manualDraft);
   await expect(typed).toHaveValue(manualDraft);
 
-  // The "use the form" / "ফর্ম" link is the documented manual
-  // fallback entry point on the slow/error state
-  // (intake-chat.tsx:MANUAL_FORM_PATH). Assert one of the
-  // fallback paths is reachable.
-  const manualLink = page.getByRole("link", { name: /ফর্ম|manual|form/i }).first();
-  if ((await manualLink.count()) > 0) {
-    await expect(manualLink).toBeVisible();
-  }
-
-  test.info().annotations.push({
-    type: "voice-fallback-usable",
-    description:
-      "Rejected transcription leaves a typed/manual fallback. The textarea accepts a typed draft; the manual link is present.",
-  });
+  // The manual form (S-005, intake-chat.tsx:MANUAL_FORM_PATH) stays reachable.
+  await expect(page.getByRole("link", { name: bilingual("openFormAction") }).first()).toBeVisible();
 });
 
 /* ----------------------------------------------------------------- *
@@ -1316,14 +1160,16 @@ test("suite — offline: zero non-loopback attempts; cache + log present", async
   expect(baseURL).toMatch(/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/);
 
   // 1) The network watchdog has been running across every test.
-  //    No browser request left loopback; this is the offline proof.
+  //    No browser-originated request left loopback (each test also
+  //    asserts this for itself in afterEach). This covers browser
+  //    HTTP(S) only, not server-side egress.
   assertNoExternalAttempts(PER_JOURNEY_NETWORK, "offline-journey");
 
   // 2) The summary is the evidence the runner script writes into
   //    the evidence markdown.
   const summary = summarize(PER_JOURNEY_NETWORK);
   expect(summary.totals.allow, "loopback allow must be > 0").toBeGreaterThan(0);
-  expect(summary.totals.deny, "deny must be 0 for an offline run").toBe(0);
+  expect(summary.totals.deny, "browser deny must be 0 for an offline run").toBe(0);
   expect(summary.totals.pass, "data:/blob: pass-through may be 0").toBeGreaterThanOrEqual(0);
 
   // 3) Model cache: the absolute path under phase3-finish is
@@ -1343,26 +1189,22 @@ test("suite — offline: zero non-loopback attempts; cache + log present", async
   //    wrote to it across every test).
   const log = readRehearsalLog();
   expect(log.length, "rehearsal log must be non-empty after the suite").toBeGreaterThan(0);
-  // The wrapper tees the child's stdout verbatim; the only thing
-  // we assert is the absence of an external URL in the log.
-  // (Loopback URLs are allowed.)
-  const externalInLog = findRehearsalLogLines(/https?:\/\/(?!(?:127\.0\.0\.1|localhost|::1))[^\s"']+/);
-  // A log line may carry a synthetic marker URL (e.g.
-  // "https://fixture.example.invalid/...") which is in the import
-  // payload but never reached; the spec only asserts that the
-  // server did not log a non-loopback http(s) URL it actually
-  // contacted. The fixture URLs match the example.invalid domain
-  // and are therefore not "external" by the watchdog's loopback
-  // rule. To be defensive, we allow the documented example.invalid
-  // fixture, the localhost loopback, and the Next.js startup banner
-  // that prints the bound network address ("- Network:  http://...").
-  // That banner is a self-reported line, not a request the server
-  // made; the watchdog has its own proof of zero external attempts.
-  const offHosts = externalInLog.filter(
-    (l) =>
-      !/example\.invalid/.test(l) &&
-      !/Next\.js|Network:|Local:\s/.test(l),
-  );
+  // The wrapper tees the child's stdout verbatim. Every http(s) URL
+  // in the log is checked on its own: only loopback hosts (this
+  // covers the Next.js "Local:"/"Network:" banner, which is bound to
+  // 127.0.0.1) and the documented synthetic import fixture host
+  // `fixture.example.invalid` (in the API-015 payload, never fetched)
+  // are exempt. No whole line is exempted for its banner text.
+  const offHosts = (log.match(/https?:\/\/[^\s"'<>`]+/g) ?? [])
+    .map((u) => u.replace(/[),.;]+$/, ""))
+    .filter((u) => {
+      try {
+        const host = new URL(u).hostname.toLowerCase();
+        return !LOOPBACK_HOSTS.has(host) && host !== "fixture.example.invalid";
+      } catch {
+        return true; // an unparseable URL is never exempt
+      }
+    });
   expect(offHosts, "no non-loopback hosts in rehearsal log").toEqual([]);
 });
 
@@ -1444,6 +1286,7 @@ test("suite — restart: real owned restart on the same port preserves DB state 
   } finally {
     await owner.end();
   }
+  expect(preClosedCaseId, "journey 4 must have left a closed case to re-read after restart").not.toBeNull();
   expect(preCases, "pre-restart cases count must be > 0 (suite produced rows)").toBeGreaterThan(0);
   expect(preAudit, "pre-restart audit count must be > 0 (suite wrote audit rows)").toBeGreaterThan(0);
 
@@ -1456,6 +1299,7 @@ test("suite — restart: real owned restart on the same port preserves DB state 
   const log1 = ownedLogPath("restart1");
   let child1: Awaited<ReturnType<typeof startOwnedServer>>["child"] | null = null;
   let child2: Awaited<ReturnType<typeof startOwnedServer>>["child"] | null = null;
+  let bodyPassed = false;
   try {
     const started1 = await startOwnedServer({
       port: PORT_2,
@@ -1469,7 +1313,7 @@ test("suite — restart: real owned restart on the same port preserves DB state 
       },
     });
     child1 = started1.child;
-    await waitForOwnedHealth(baseURL_2);
+    await waitForOwnedHealth(baseURL_2, { child: child1 });
 
     // 3) Sign in through the CHILD server's real HTTP endpoint
     // using a seeded desk account. We capture the Set-Cookie
@@ -1528,7 +1372,7 @@ test("suite — restart: real owned restart on the same port preserves DB state 
     const child2Pid = child2.pid;
     expect(child2Pid, "child #2 must have a pid").toBeTruthy();
 
-    await waitForOwnedHealth(baseURL_2);
+    await waitForOwnedHealth(baseURL_2, { child: child2 });
 
     // 7) Replay the SAME cookie on child #2. The auth cookie
     // is HMAC'd with AUTH_SECRET; since both children share
@@ -1556,23 +1400,19 @@ test("suite — restart: real owned restart on the same port preserves DB state 
       postCases = Number(a.rows[0].n);
       const b = await owner2.query<{ n: string }>("SELECT count(*)::text AS n FROM audit_log");
       postAudit = Number(b.rows[0].n);
-      if (preClosedCaseId) {
-        const c = await owner2.query<{ id: string; status: string; closed_at: string | null }>(
-          "SELECT id, status, closed_at FROM cases WHERE id = $1",
-          [preClosedCaseId],
-        );
-        postClosedCase = c.rows[0] ?? null;
-      }
+      const c = await owner2.query<{ id: string; status: string; closed_at: string | null }>(
+        "SELECT id, status, closed_at FROM cases WHERE id = $1",
+        [preClosedCaseId],
+      );
+      postClosedCase = c.rows[0] ?? null;
     } finally {
       await owner2.end();
     }
     expect(postCases, "post-restart cases count must match the start-of-restart count").toBe(preRestartsCases);
     expect(postAudit, "post-restart audit count must match the start-of-restart count").toBe(preRestartsAudit);
-    if (preClosedCaseId) {
-      expect(postClosedCase, "the closed case from Journey 4 must still exist after restart").not.toBeNull();
-      expect(postClosedCase!.status, "the closed case must still be 'closed' after restart").toBe("closed");
-      expect(postClosedCase!.closed_at, "the closed case's closed_at must still be set").not.toBeNull();
-    }
+    expect(postClosedCase, "the closed case from Journey 4 must still exist after restart").not.toBeNull();
+    expect(postClosedCase!.status, "the closed case must still be 'closed' after restart").toBe("closed");
+    expect(postClosedCase!.closed_at, "the closed case's closed_at must still be set").not.toBeNull();
 
     // 9) Stop child #2 and confirm the port is closed. This is
     // the final teardown; the Playwright-owned first webServer
@@ -1580,14 +1420,116 @@ test("suite — restart: real owned restart on the same port preserves DB state 
     await stopOwnedServer(child2);
     child2 = null;
     await assertPortClosed(PORT_2);
+    bodyPassed = true;
   } finally {
-    try { if (child1) await stopOwnedServer(child1); }
-    finally {
-      if (child2) await stopOwnedServer(child2);
+    // stopOwnedServer never throws. The port check can; when the body
+    // already failed, its error is logged so it cannot replace the
+    // original failure, and it is thrown only after a passing body.
+    if (child1) await stopOwnedServer(child1);
+    if (child2) await stopOwnedServer(child2);
+    try {
       await assertPortClosed(PORT_2);
+    } catch (cleanupErr) {
+      if (bodyPassed) throw cleanupErr;
+      process.stderr.write(`[restart] cleanup port check also failed: ${(cleanupErr as Error).message}\n`);
     }
   }
 });
+
+/* ----------------------------------------------------------------- *
+ * UI helpers (locale copy, synthetic recorder).                     *
+ * ----------------------------------------------------------------- */
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** The Bangla or English copy for `key`, as a regex (the page
+ *  defaults to Bangla; English is the toggle). `exact` anchors it. */
+function bilingual(key: MessageKey, exact = false): RegExp {
+  const alt = `(?:${escapeRegExp(locales.bn[key])}|${escapeRegExp(locales.en[key])})`;
+  return new RegExp(exact ? `^${alt}$` : alt);
+}
+
+/** The catalogue copy for an error id, in either language. */
+function catalogueText(id: string): RegExp {
+  const entry = ERROR_CATALOGUE[id as keyof typeof ERROR_CATALOGUE];
+  expect(entry, `${id} must be a catalogue error id`).toBeDefined();
+  return new RegExp(`${escapeRegExp(entry.bn)}|${escapeRegExp(entry.en)}`);
+}
+
+/** Replace MediaRecorder and getUserMedia before any app script runs.
+ *  The bytes are "MOCK" + 4 KiB of zeroes, not a real codec. Like the
+ *  real API, `stop()` delivers the data chunk before `onstop`, so the
+ *  recording is deterministic. No real microphone is used. */
+async function installSyntheticRecorder(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    type FakeDataEvent = { data: Blob };
+    class FakeMediaRecorder {
+      public ondataavailable: ((ev: FakeDataEvent) => void) | null = null;
+      public onstop: (() => void) | null = null;
+      public onerror: ((ev: unknown) => void) | null = null;
+      public state: "inactive" | "recording" = "inactive";
+      public readonly mimeType = "audio/webm";
+      public stream: MediaStream;
+      constructor(stream: MediaStream) {
+        this.stream = stream;
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      static isTypeSupported(_mimeType: string): boolean {
+        return true;
+      }
+      start(): void {
+        this.state = "recording";
+      }
+      stop(): void {
+        this.state = "inactive";
+        const header = new Uint8Array([0x4d, 0x4f, 0x43, 0x4b]); // "MOCK"
+        const buf = new Uint8Array(header.length + 4096);
+        buf.set(header, 0);
+        this.ondataavailable?.({ data: new Blob([buf], { type: "audio/webm" }) });
+        this.onstop?.();
+      }
+      pause(): void {}
+      resume(): void {}
+      requestData(): void {}
+    }
+    (window as unknown as { MediaRecorder: unknown }).MediaRecorder = FakeMediaRecorder;
+    // Always replace getUserMedia: the result must not depend on
+    // whether the headless browser has (or prompts for) a microphone.
+    Object.defineProperty(navigator, "mediaDevices", {
+      value: { getUserMedia: async () => new MediaStream() },
+      configurable: true,
+    });
+  });
+}
+
+/** Acknowledge the notice, record past the 5 s minimum (waiting on
+ *  the visible timer, not a sleep), stop, and return the browser's
+ *  own API-001 response. */
+async function recordSyntheticClip(page: Page): Promise<{
+  status: number;
+  body: { cached?: boolean; error?: { id?: string } };
+}> {
+  const ack = page.getByRole("button", { name: bilingual("noticeAckAction") });
+  await expect(ack).toBeVisible();
+  await ack.click();
+  const record = page.getByRole("button", { name: bilingual("recordAction", true) });
+  await expect(record).toBeVisible();
+  await record.click();
+  // LIMITS.audioSeconds.min is 5; the timer reads "m:ss / 2:00" in
+  // Latin or Bangla digits.
+  await expect(page.getByRole("timer")).toHaveText(
+    /^(?:[0০]:(?:[0০][5-9৫-৯]|[1-5১-৫][0-9০-৯])|[1১]:)/,
+    { timeout: 20_000 },
+  );
+  const transcribe = page.waitForResponse(
+    (r) => r.url().endsWith("/api/intake/transcribe") && r.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: bilingual("stopAction", true) }).click();
+  const resp = await transcribe;
+  return { status: resp.status(), body: await resp.json() as { cached?: boolean; error?: { id?: string } } };
+}
 
 /* ----------------------------------------------------------------- *
  * Fixtures (OWNER role writes; never a test-API bypass).            *

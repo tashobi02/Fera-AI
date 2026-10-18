@@ -8,42 +8,42 @@
       "branch": "pre-main--branch-audit",
       "state": "integrated and locally verified",
       "harness": "puku-cli opus-4-8",
-      "worktree": "/home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main-branch-audit"
+      "worktree": "<repo>/.worktrees/pre-main-branch-audit"
     },
     {
       "id": "spec-intake-platform",
       "branch": "pre-main--spec-intake-platform",
       "state": "integrated and locally verified",
       "harness": "puku-cli opus-4-8",
-      "worktree": "/home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main-spec-intake-platform"
+      "worktree": "<repo>/.worktrees/pre-main-spec-intake-platform"
     },
     {
       "id": "spec-desk-data",
       "branch": "pre-main--spec-desk-data",
       "state": "integrated and locally verified",
       "harness": "puku-cli opus-4-8",
-      "worktree": "/home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main-spec-desk-data"
+      "worktree": "<repo>/.worktrees/pre-main-spec-desk-data"
     },
     {
       "id": "offline-stack",
       "branch": "pre-main--offline-stack",
       "state": "integrated and locally verified",
       "harness": "puku-cli opus-4-8",
-      "worktree": "/home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main-offline-stack"
+      "worktree": "<repo>/.worktrees/pre-main-offline-stack"
     },
     {
       "id": "test-journeys",
       "branch": "pre-main--test-journeys",
       "state": "integrated and locally verified",
       "harness": "puku-cli opus-4-8",
-      "worktree": "/home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main-test-journeys"
+      "worktree": "<repo>/.worktrees/pre-main-test-journeys"
     },
     {
       "id": "phase4-release",
       "branch": "pre-main--phase4-release",
       "state": "integrated and locally verified",
       "harness": "puku-cli opus-4-8",
-      "worktree": "/home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main-phase4-release"
+      "worktree": "<repo>/.worktrees/pre-main-phase4-release"
     }
   ],
   "started_at": "2026-10-18T16:50:09.057748+06:00",

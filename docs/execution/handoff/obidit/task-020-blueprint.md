@@ -5,7 +5,7 @@
 
 Revised 2026-10-16 after verifier V4
 
-Planning only. Paths in citations are relative to /home/obidit/secondBrain/coding/fera-lanes unless prefixed _orchestration. No implementation or test result is claimed.
+Planning only. Paths in citations are relative to <lanes> unless prefixed _orchestration. No implementation or test result is claimed.
 
 ## 1. Files
 

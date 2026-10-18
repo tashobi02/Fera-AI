@@ -704,13 +704,13 @@
   },
   "uncommitted_dirty_worktrees": {
     "specs_002_intake_ai_tasks": {
-      "worktree_path": "/home/obidit/secondBrain/coding/fera-lanes/obidit-spec002",
+      "worktree_path": "<lanes>/obidit-spec002",
       "uncommitted": "?? specs/002-intake-ai/tasks.md",
       "current_main_state": "specs/002-intake-ai/tasks.md EXISTS in main (25,870 bytes) and contains a hand-off note that pre-dates the merging. The dirty worktree is a stale write — the uncommitted version is NOT recoverable as new content unless it differs from main.",
       "recommendation": "Diff the uncommitted tasks.md against main's tasks.md; only commit if it has new content (e.g., TASK IDs not in main's version). User did not authorize reading the untracked file; UNVERIFIED."
     },
     "specs_003_parent_outputs_dir": {
-      "worktree_path": "/home/obidit/secondBrain/coding/fera-lanes/obidit-spec003",
+      "worktree_path": "<lanes>/obidit-spec003",
       "uncommitted": "?? specs/003-parent-outputs/",
       "current_main_state": "specs/003-parent-outputs/ EXISTS in main with spec.md (31,606 bytes) and checklists/. The dirty worktree's dir is either a fresh write or superset.",
       "recommendation": "Diff the uncommitted dir against main's specs/003-parent-outputs/; commit if it adds plan.md / tasks.md / data-model.md / quickstart.md / research.md / contracts/ (which main lacks). UNVERIFIED."
@@ -812,7 +812,7 @@
       },
       {
         "path": "submission/round2/claims-check-report.txt",
-        "change": "Root path stamp rewritten phase3-finish -> /home/user/Fera-AI",
+        "change": "Root path stamp rewritten phase3-finish -> <repo>",
         "disposition": "DISCARD_OR_REGENERATE",
         "risk": "LOW",
         "notes": "Hand-edited path stamp carried over from a previous run. Re-run claims_check.py post-merge to refresh the entire report (counts/summaries are recomputed, not hand-edited)."

@@ -26,13 +26,17 @@
 //
 // In addition this test:
 //   1. calls the production evidence function (checkOutput) on every
-//      fixture to confirm the span/value pair survives the same validator
-//      the orchestrator runs against AI outputs;
+//      fixture, each under its OWN labelled intake clock, and pins the exact
+//      outcome (valid + the exact dropped set). Cached fixtures bypass
+//      checkOutput in production (orchestrator.ts returns `fixture.draft`
+//      directly), so the dropped set documents which cached values the live
+//      AI path would NOT accept for the same source text;
 //   2. asserts the cached time is a fixed, labelled clock — not `new Date()`.
 import { describe, expect, it, vi } from "vitest";
 import { checkOutput } from "@/server/ai/evidence";
 import { extractInputSchema } from "@/server/ai/contract";
-import { toDhakaIso, toAsciiDigits, type CaseDraft, type EvidenceSpan, SEXES } from "@/contracts";
+import type { AiDropped } from "@/server/ai/types";
+import { toAsciiDigits, type CaseDraft, type EvidenceSpan, SEXES } from "@/contracts";
 import { normaliseText } from "@/server/normalise";
 import {
   EXTRACT_FIXTURE_DRAFT,
@@ -42,20 +46,26 @@ import {
   EXTRACT_FIXTURE_MIM_SOURCE,
 } from "@/server/cache";
 
-// Fixture clocks are labelled and consistent across the three scripted cases.
-// Mitu: 12 Oct 2026 16:00 (display) / 15:00–18:00 (window) — "গতকাল বিকেলে"
-// on 13 Oct. Rafi:  8 Oct 2026 16:00 / 15:00–18:00 — fixture intake clock
-// 9 Oct near madrasa. Mim: 12 Oct 2026 08:00 / 06:00–10:00 — "আজ সকালে" on
-// 12 Oct. The cached at, at_lower, at_upper are static — never `new Date()`.
+// Cached event.at values (the fixture's own labels, see fixtures.ts):
+// Mitu 12 Oct 16:00, Rafi 8 Oct 16:00, Mim 12 Oct 08:00. The cached at,
+// at_lower, at_upper are static — never `new Date()`.
 const FIXTURE_CLOCK = {
   mitu: "2026-10-12T16:00:00+06:00",
   rafi: "2026-10-08T16:00:00+06:00",
   mim:  "2026-10-12T08:00:00+06:00",
 } as const;
-const NOW_ISO = toDhakaIso(Date.parse("2026-10-13T10:00:00+06:00"));
 
-// The known fixture-clock is a static label, not a runtime expression.
-expect(typeof FIXTURE_CLOCK.mitu).toBe("string");
+// Intake clock each fixture is labelled with. The DATES come from the fixture
+// labels: Mitu "গতকাল বিকেলে" on 13 Oct; Rafi "fixture intake clock 9 Oct";
+// Mim "আজ সকালে" on 12 Oct. The labels give no time of day, so 10:00 is a
+// test choice; normaliseTime uses only the Dhaka date of the clock for the
+// relative "গতকাল <part of day>" grammar, so the hour does not change any
+// outcome below.
+const INTAKE_CLOCK = {
+  mitu: "2026-10-13T10:00:00+06:00",
+  rafi: "2026-10-09T10:00:00+06:00",
+  mim:  "2026-10-12T10:00:00+06:00",
+} as const;
 
 const SEX_QUOTE_TO_ENUM: Record<string, typeof SEXES[number]> = {
   male: "male", boy: "male", ছেলে: "male", female: "female", girl: "female", মেয়ে: "female", other: "other",
@@ -77,14 +87,14 @@ function fixtureAsOutput(draft: CaseDraft) {
   return output;
 }
 
-function checkDraft(draft: CaseDraft, source: string) {
+function checkDraft(draft: CaseDraft, source: string, nowIso: string) {
   const norm = normaliseText(source);
   if (norm.status !== "known") throw new Error("normalise failed for " + source);
   const input = extractInputSchema.parse({
     kind: "missing",
     sourceText: source,
     normalisedText: norm.value.normalisedText,
-    nowIso: NOW_ISO,
+    nowIso,
   });
   return checkOutput(JSON.stringify(fixtureAsOutput(draft)), input, norm.value);
 }
@@ -150,34 +160,67 @@ describe("cache fixtures survive the production evidence function", () => {
     assertValueMatchesQuote(EXTRACT_FIXTURE_MIM_DRAFT, EXTRACT_FIXTURE_MIM_SOURCE);
   });
 
-  it("production checkOutput: Mitu fixture round-trips through the orchestrator's evidence pass", () => {
+  // The exact dropped sets below were observed by running checkOutput and
+  // traced to the rule in src/server/ai/evidence.ts that fires:
+  //   - LABEL rule (checkedSpan → hasLabelContext): child.name, child.clothing
+  //     and event.place_text are accepted only when their clause is exactly
+  //     "<label>[:=] value" (name|নাম, clothing|পোশাক|পরনে, place|স্থান). The
+  //     scripted sources state these in narrative ("আমার মেয়ে মিতু", "লাল জামা
+  //     পরা ছিল", "বাস টার্মিনালের কাছে হারিয়ে গেছে") with no label, so the
+  //     spans match the source but fail the label-context rule.
+  //   - PHONE LABEL rule: the same anchor for reporter.phone. Rafi/Mim say
+  //     "। নম্বর ০১…" (clause prefix is exactly the label → kept); Mitu says
+  //     "আমার নম্বর ০১…", whose clause prefix "আমার নম্বর" is not exactly a
+  //     label → dropped.
+  //   - TIME GRAMMAR: normaliseTime (COMP-008) supports only ISO datetimes and
+  //     "গতকাল <part of day>". Mim's "আজ সকালে" is "unsupported", so its event.at
+  //     drops under any clock.
+  // Fields not listed survive with exactly the fixture's value.
+  function expectExactOutcome(draft: CaseDraft, nowIso: string, expectedDropped: AiDropped[]) {
+    const result = checkDraft(draft, draft.source_text, nowIso);
+    expect(result.valid).toBe(true);
+    expect(result.invalidReason).toBeUndefined();
+    const byField = (a: AiDropped, b: AiDropped) => a.field.localeCompare(b.field);
+    expect([...result.dropped].sort(byField)).toEqual([...expectedDropped].sort(byField));
+    const droppedFields = new Set(expectedDropped.map((d) => d.field));
+    for (const field of Object.keys(draft.evidence)) {
+      if (droppedFields.has(field as AiDropped["field"])) continue;
+      const [group, key] = field.split(".") as ["child" | "event" | "reporter", string];
+      expect((result.draft[group] as Record<string, unknown>)[key], `${field} kept`).toBe((draft[group] as Record<string, unknown>)[key]);
+    }
+  }
+
+  it("production checkOutput: Mitu fixture under its 13 Oct clock drops exactly name, clothing, place (label rule) and phone ('আমার নম্বর')", () => {
     vi.stubEnv("DEMO_MODE", "1");
-    // Even though fixtures bypass the AI, the production checkOutput is the
-    // canonical evidence function. It must at least not throw and it must
-    // recognise the source-span for the place_text quote.
-    const result = checkDraft(EXTRACT_FIXTURE_DRAFT, EXTRACT_FIXTURE_DRAFT.source_text);
-    expect(result.valid).toBeDefined();
-    // The fixture bypasses the label-context rule (no "place|স্থান" prefix
-    // in the scripted Mitu source); we only assert the source-span mapping
-    // for the provenanced quote is the substring the cache advertises.
+    expectExactOutcome(EXTRACT_FIXTURE_DRAFT, INTAKE_CLOCK.mitu, [
+      { field: "child.name", reason: "span_mismatch" },
+      { field: "child.clothing", reason: "span_mismatch" },
+      { field: "event.place_text", reason: "span_mismatch" },
+      { field: "reporter.phone", reason: "span_mismatch" },
+    ]);
     const source = EXTRACT_FIXTURE_DRAFT.source_text;
     const placeSpan = EXTRACT_FIXTURE_DRAFT.evidence["event.place_text"];
     expect(source.slice(placeSpan.start_utf16, placeSpan.end_utf16)).toBe(placeSpan.quote);
   });
 
-  it("production checkOutput: Rafi fixture survives the evidence function (place_text now agrees with quote)", () => {
+  it("production checkOutput: Rafi fixture under its 9 Oct clock keeps event.at and phone, drops exactly name and place (label rule)", () => {
     vi.stubEnv("DEMO_MODE", "1");
-    const result = checkDraft(EXTRACT_FIXTURE_RAFI_DRAFT, EXTRACT_FIXTURE_RAFI_SOURCE);
-    expect(result.valid).toBeDefined();
+    expectExactOutcome(EXTRACT_FIXTURE_RAFI_DRAFT, INTAKE_CLOCK.rafi, [
+      { field: "child.name", reason: "span_mismatch" },
+      { field: "event.place_text", reason: "span_mismatch" },
+    ]);
     const span = EXTRACT_FIXTURE_RAFI_DRAFT.evidence["event.place_text"];
     expect(EXTRACT_FIXTURE_RAFI_SOURCE.slice(span.start_utf16, span.end_utf16)).toBe(span.quote);
     expect(EXTRACT_FIXTURE_RAFI_DRAFT.event.place_text).toBe(span.quote);
   });
 
-  it("production checkOutput: Mim fixture survives the evidence function", () => {
+  it("production checkOutput: Mim fixture under its 12 Oct clock drops exactly name, place (label rule) and event.at ('আজ সকালে' unsupported)", () => {
     vi.stubEnv("DEMO_MODE", "1");
-    const result = checkDraft(EXTRACT_FIXTURE_MIM_DRAFT, EXTRACT_FIXTURE_MIM_SOURCE);
-    expect(result.valid).toBeDefined();
+    expectExactOutcome(EXTRACT_FIXTURE_MIM_DRAFT, INTAKE_CLOCK.mim, [
+      { field: "child.name", reason: "span_mismatch" },
+      { field: "event.at", reason: "span_mismatch" },
+      { field: "event.place_text", reason: "span_mismatch" },
+    ]);
   });
 
   it("cached event.at times are static, labelled clocks (no `new Date()`)", () => {

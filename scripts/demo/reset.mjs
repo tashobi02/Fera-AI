@@ -1,40 +1,37 @@
 // Offline stack `reset` (TASK-053, revised).
 //
-// Destructive: drops the dedicated demo database, removes the volume,
-// removes the container, removes the state file. Refuses to run
-// without --yes so a typo cannot wipe a rehearsal's synthetic data.
+// Destructive: removes the dedicated container, the dedicated volume
+// (and with it every database on it), and the state file. Refuses to
+// run without --yes so a typo cannot wipe a rehearsal's synthetic data.
+// It sends NO SQL: there is no DROP DATABASE, because a host port may
+// by now belong to another stack. Removing the labelled volume is what
+// drops the data.
 //
-// Order of operations (this rewrite):
+// Order of operations:
 //
-//   0. PRE-FLIGHT: inspect BOTH the container and the volume. If
-//      either is foreign-owned (carries a different owner label, or
-//      no owner label at all), refuse the whole operation. This is
-//      done BEFORE any mutation so a foreign volume with our name
-//      cannot be deleted by mistake. (The previous version checked
-//      only the container; a foreign volume with the same name
-//      would be removed by `docker volume rm -f` before the foreign
-//      check ran.)
-//   1. Drop the dedicated database via the maintenance connection
-//      (postgres DB, never the target DB). Done while the server is
-//      still up so the container holds the volume busy.
-//   2. Remove the dedicated container (now safe; the DB is gone).
-//   3. Remove the dedicated volume (now safe; the container is gone).
-//   4. State file last. The state file is NEVER deleted on
-//      pre-flight failure: the operator gets to see why the run
-//      refused.
+//   0. PRE-FLIGHT: load the state file, inspect BOTH the container
+//      and the volume. If either is foreign-owned (a different owner
+//      label, or no owner label at all), or the state file is
+//      corrupt, refuse the whole operation BEFORE any mutation. If
+//      docker itself is unreachable the inspect throws and nothing
+//      is mutated either.
+//   1. Remove the dedicated container (`docker rm -f`), only if the
+//      pre-flight found it with our owner label.
+//   2. Remove the dedicated volume (`docker volume rm -f`), only if
+//      the pre-flight found it with our owner label.
+//   3. State file last, and only when every removal above succeeded;
+//      on any failure it is preserved so the operator can see why.
 //
 // IMPORTANT: reset only ever operates on the offline stack's own
-// dedicated container, volume, and DB. The human / dev / CI / e2e
+// dedicated container and volume. The human / dev / CI / e2e
 // containers (`fera-db`, `fera_e2e_*` DBs) are not visible to this
 // script because every helper refuses foreign-owned resources.
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import {
-  assertDemoDatabaseName,
-  assertLoopbackUrl,
   containerNameFor,
   volumeNameFor,
   sanitizeError,
-  withPath,
 } from "./lib/guard.mjs";
 import { inspectContainer, inspectVolume, stopContainer, run } from "./lib/docker.mjs";
 import { loadState, removeState } from "./lib/state.mjs";
@@ -126,7 +123,7 @@ export async function reset({ yes = false } = {}) {
 
   // Reset uses only exact labelled Docker resources. Never send destructive
   // SQL through a host port which another stack may now occupy.
-  // 2. Container. Remove after the DB is dropped.
+  // 1. Container (owned, per pre-flight).
   if (inspected) {
     const r = await stopContainer(worktree);
     steps.push({ step: "remove-container", ok: r.ok, code: r.code, stderr: r.ok ? null : r.stderr });
@@ -134,14 +131,18 @@ export async function reset({ yes = false } = {}) {
     steps.push({ step: "remove-container", skipped: true, reason: "no container" });
   }
 
-  // 3. Volume. Now unheld, drop it.
-  const volR = await run(["volume", "rm", "-f", volName], { ignoreExitCode: true });
-  if (volR.code === 0) {
-    steps.push({ step: "remove-volume", ok: true, code: volR.code });
-  } else if ((volR.stderr || "").toLowerCase().includes("no such volume")) {
-    steps.push({ step: "remove-volume", skipped: true, reason: "no volume", code: volR.code, stderr: volR.stderr });
+  // 2. Volume (owned, per pre-flight). Now unheld, drop it.
+  if (!inspectedVol) {
+    steps.push({ step: "remove-volume", skipped: true, reason: "no volume" });
   } else {
-    steps.push({ step: "remove-volume", ok: false, code: volR.code, stderr: volR.stderr });
+    const volR = await run(["volume", "rm", "-f", volName], { ignoreExitCode: true });
+    if (volR.code === 0) {
+      steps.push({ step: "remove-volume", ok: true, code: volR.code });
+    } else if ((volR.stderr || "").toLowerCase().includes("no such volume")) {
+      steps.push({ step: "remove-volume", skipped: true, reason: "no volume", code: volR.code, stderr: volR.stderr });
+    } else {
+      steps.push({ step: "remove-volume", ok: false, code: volR.code, stderr: volR.stderr });
+    }
   }
 
   // Preserve recovery state if any required cleanup failed.
@@ -163,7 +164,7 @@ export async function reset({ yes = false } = {}) {
   };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
   reset({ yes: process.argv.includes("--yes") })
     .then((r) => {
       console.log(JSON.stringify(r, null, 2));

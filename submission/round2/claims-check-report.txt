@@ -1,5 +1,5 @@
 claims-check-report -- Round 2 submission pack
-root: /home/obidit/secondBrain/coding/Fera-AI/.worktrees/pre-main/submission/round2
+root: submission/round2
 
 OK    asset present  -- fera-round2-deck.pptx
 OK    asset present  -- fera-round2-deck.pdf
@@ -48,7 +48,7 @@ OK    video-script.md 'not measured' label
 OK    WER reason mentions 60-clip set
 OK    total spend cap framed as limit not actuals
 OK    duplicate precision manifest not frozen
-OK    round 2 not-submitted status recorded
+OK    round 2 submission status recorded honestly
 OK    recipient recorded UNKNOWN
 OK    channel recorded UNKNOWN
 OK    production access and human labels recorded NO

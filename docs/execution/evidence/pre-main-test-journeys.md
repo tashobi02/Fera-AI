@@ -12,7 +12,7 @@ Scope: tests/e2e/** (existing; inspection only), playwright.offline.config.ts (n
    * Port: `3225` (existing `playwright.config.ts` keeps port `3100`)
    * Dedicated loopback DB prefix: `fera_e2e_premainjourney_<pid>_<hex>`
    * Single Next.js instance per run (`workers: 1`, `reuseExistingServer: false`)
-   * `DEMO_MODE=1`; `FERA_MODEL_CACHE` pinned to `/home/obidit/secondBrain/coding/Fera-AI/.worktrees/phase3-finish/.cache/models`
+   * `DEMO_MODE=1`; `FERA_MODEL_CACHE` pinned to `<repo>/.worktrees/phase3-finish/.cache/models`
    * Loopback guard reused from `scripts/db/guard.mjs`; existing `playwright.config.ts` is **not modified**
 
 2. **New offline log wrapper** — `scripts/rehearsal/launch-offline-server.mjs`
@@ -22,9 +22,10 @@ Scope: tests/e2e/** (existing; inspection only), playwright.offline.config.ts (n
 
 3. **Network watchdog** — `tests/rehearsal/network-watchdog.ts`
    * Installs `context.addInitScript` that pins `navigator.onLine` to `false` and swallows any `online` event the app or a library tries to dispatch — the app's own client-side offline guards run their offline branch even though the test webServer is actually serving on loopback (the brief: "initScript overriding navigator.onLine=false")
-   * Installs `context.route` handler that ABORTS every non-loopback request
-   * Loopback allowlist: `127.0.0.1`, `localhost`, `::1`; non-http schemes `data:`, `blob:`, `about:`, `chrome*` are passed through
-   * Records every URL the browser attempts: host, scheme, method, resource type, port, decision (allow/deny/pass), outcome, time
+   * Installs `context.route` handler that ABORTS every non-loopback request the browser makes
+   * Loopback allowlist: `127.0.0.1`, `localhost`, `::1` / `[::1]`; non-http schemes `data:`, `blob:`, `about:`, `chrome*` are passed through
+   * Records every URL the browser attempts: host, scheme, method, resource type, port, decision (allow/deny/pass/error), outcome, time. Every deny counts as an external attempt, whatever its outcome
+   * Scope: browser-originated HTTP(S) routed by Playwright only (service workers are blocked so they cannot bypass routing). It does not observe server-side egress from the Next.js process, the Playwright `request` fixture, Node `fetch`, or WebSockets beyond routing
    * Exposes `assertNoExternalAttempts` and `summarize` for the spec
 
 4. **Full single-DB offline journey** — `tests/rehearsal/full-journey-offline.spec.ts`
@@ -196,8 +197,10 @@ and 10 tests in 1 file. This iteration resolves both:
 
 ## Offline network proof
 
+Scope: browser-originated HTTP(S) requests seen by Playwright `context.route` only. Server-side egress from the Next.js process, the Playwright `request` fixture, Node `fetch` and WebSockets beyond routing are NOT observed by this count. The figures below are from the earlier recorded run and predate the current spec and watchdog changes.
+
 - Total loopback allow: 184
-- Total non-loopback deny (external attempts): 0
+- Total non-loopback deny (external browser attempts): 0
 - Total data:/blob: pass-through: 0
 
 Per-host (only hosts the browser attempted):
@@ -208,7 +211,7 @@ Per-host (only hosts the browser attempted):
 
 ## Offline cache + log
 
-- Model cache: `/home/obidit/secondBrain/coding/Fera-AI/.worktrees/phase3-finish/.cache/models` (pinned by Playwright config).
+- Model cache: `<repo>/.worktrees/phase3-finish/.cache/models` (pinned by Playwright config).
   - Files asserted present: `Xenova/multilingual-e5-small/config.json`, `tokenizer.json`, `onnx/model_quantized.onnx`.
 - Rehearsal log path: `.e2e-logs/fera_rehearsal_<pid>_<hex>.log` (per-run, gitignored).
 - Voice fixture: see Journey 8 — `TRANSCRIPT_FIXTURES` is empty in this build; live voice is UNVERIFIED, no transcript is invented.
@@ -226,7 +229,7 @@ The second server's `/api/health` is probed (real liveness, JSON-shaped). The DB
 
 ## Voice / cached fixture honesty
 
-Per the brief: if a cached voice fixture exists, the spec uses it; otherwise the spec reports missing live voice and never invents a transcript. The current build has `TRANSCRIPT_FIXTURES = Object.freeze([])` in `src/server/cache/fixtures.ts`; the spec reads the source and labels the test path as `missing-live-voice` accordingly.
+Per the brief: the spec never invents a transcript. The current build has `TRANSCRIPT_FIXTURES = Object.freeze([])` in `src/server/cache/fixtures.ts`; Journeys 9 and 11 upload synthetic recorder bytes through the real UI and assert the route refuses them, the page shows the catalogue error, and no cached label or transcript appears. Live voice remains UNVERIFIED.
 
 ## Honest labels (BR-022, FR-010, BR-026)
 

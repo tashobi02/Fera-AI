@@ -51,7 +51,7 @@ import { spawn, execFileSync } from "node:child_process";
 import { readFile, writeFile, mkdir, copyFile } from "node:fs/promises";
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   parseArgs,
   parseRuns,
@@ -184,24 +184,44 @@ async function readJsonIfPresent(path) {
 async function snapshotPerRunArtifacts(runIndex, result) {
   // Per-run network records. The Playwright spec writes a single
   // `pre-main-test-journeys-records.json` on afterAll; we COPY it to
-  // a per-run path before the next run overwrites it.
+  // a per-run path before the next run overwrites it. A failed copy
+  // fails the run: evidence that cannot be preserved is not evidence.
+  const fail = (what, err) => {
+    result.code = 1;
+    result.snapshotError = `${what}: ${err.message ?? err}`;
+    process.stdout.write(`[automated-repeats] run ${runIndex + 1} snapshot failed (${result.snapshotError})\n`);
+  };
   if (existsSync(RECORDS_PATH)) {
     try {
       await copyFile(RECORDS_PATH, PER_RUN_RECORDS(runIndex + 1));
-    } catch {
-      /* non-fatal: copy may fail if the source is being written */
+    } catch (err) {
+      fail("records copy", err);
     }
   }
   // Per-run raw log. The wrapper writes the live log; we copy it to
   // the evidence dir so a reviewer without shell access to .e2e-logs
   // can still read it.
-  if (result.logPath && existsSync(result.logPath)) {
+  if (result.logPath) {
     try {
+      if (!existsSync(result.logPath)) throw new Error(`log not found at ${result.logPath}`);
       await mkdir(PER_RUN_LOGS_DIR, { recursive: true });
       await copyFile(result.logPath, join(PER_RUN_LOGS_DIR, `run${runIndex + 1}.log`));
-    } catch {
-      /* non-fatal */
+    } catch (err) {
+      fail("log copy", err);
     }
+  }
+}
+
+/** `git status --porcelain` for the tree under test. Non-empty output
+ *  means the runs exercised uncommitted changes, so the evidence is
+ *  marked dirty instead of being attributed to `sourceCommit` alone. */
+function gitTreeStatus() {
+  try {
+    const porcelain = execFileSync("git", ["status", "--porcelain"], { cwd: REPO_ROOT, encoding: "utf8" });
+    return { porcelain, dirty: porcelain.trim() !== "" };
+  } catch (err) {
+    // Unknown tree state is treated as dirty, never as clean.
+    return { porcelain: `git status failed: ${err.message}`, dirty: true };
   }
 }
 
@@ -222,65 +242,74 @@ export async function runRepeatSuite(opts) {
     throw new Error(`missing config: ${CONFIG}`);
   }
   await mkdir(EVIDENCE_PATH_DIR, { recursive: true });
+  // Captured before any run writes evidence files into the tree.
+  const tree = gitTreeStatus();
   const results = [];
-  for (let i = 0; i < RUNS; i += 1) {
-    process.stdout.write(`[automated-repeats] run ${i + 1}/${RUNS} (AUTOMATED)\n`);
-    if (existsSync(RECORDS_PATH)) unlinkSync(RECORDS_PATH);
-    const staleManifest = join(EVIDENCE_PATH_DIR, `pre-main-test-journeys-managed-dbs.${process.pid}.txt`);
-    if (existsSync(staleManifest)) unlinkSync(staleManifest);
-    const r = await runOnce(i, { config: CONFIG, project: PROJECT });
-    const network = await readJsonIfPresent(RECORDS_PATH);
-    r.networkRecords = network?.perJourney?.length ?? 0;
-    r.externalAttempts = (network?.perJourney ?? []).filter(row => row.decision === "deny").length;
-    r.sourceCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: REPO_ROOT, encoding: "utf8" }).trim();
-    if (!r.networkRecords || r.externalAttempts) r.code = 1;
-    results.push(r);
-    await snapshotPerRunArtifacts(i, r);
-    if (r.code !== 0 && !KEEP_GOING) {
-      process.stdout.write(
-        `[automated-repeats] run ${i + 1} failed (exit ${r.code}); stopping (use --keep-going to continue)\n`,
-      );
-      break;
+  try {
+    for (let i = 0; i < RUNS; i += 1) {
+      process.stdout.write(`[automated-repeats] run ${i + 1}/${RUNS} (AUTOMATED)\n`);
+      if (existsSync(RECORDS_PATH)) unlinkSync(RECORDS_PATH);
+      const staleManifest = join(EVIDENCE_PATH_DIR, `pre-main-test-journeys-managed-dbs.${process.pid}.txt`);
+      if (existsSync(staleManifest)) unlinkSync(staleManifest);
+      const r = await runOnce(i, { config: CONFIG, project: PROJECT });
+      results.push(r);
+      const network = await readJsonIfPresent(RECORDS_PATH);
+      r.networkRecords = network?.perJourney?.length ?? 0;
+      // Every deny row is an external attempt, whatever its outcome.
+      r.externalAttempts = (network?.perJourney ?? []).filter(row => row.decision === "deny").length;
+      r.sourceCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: REPO_ROOT, encoding: "utf8" }).trim();
+      if (!r.networkRecords || r.externalAttempts) r.code = 1;
+      await snapshotPerRunArtifacts(i, r);
+      if (r.code !== 0 && !KEEP_GOING) {
+        process.stdout.write(
+          `[automated-repeats] run ${i + 1} failed (exit ${r.code}); stopping (use --keep-going to continue)\n`,
+        );
+        break;
+      }
     }
-  }
-  if (!NO_CLEANUP) {
-    // The manifest is namespaced by the runner's pid (forwarded
-    // to the test process as FERA_REHEARSAL_RUNNER_CHILD_PID), so
-    // one unlink covers all runs in this invocation.
-    const manifestPath = join(
-      EVIDENCE_PATH_DIR,
-      `pre-main-test-journeys-managed-dbs.${process.pid}.txt`,
-    );
-    for (const r of results) {
-      if (r.dbName) {
-        try {
-          await dropRehearsalDb(r.dbName, process.env.FERA_DB_ADMIN_URL ?? DEFAULT_DATABASE_URL);
-          process.stdout.write(`[automated-repeats] dropped fresh owned DB: ${r.dbName}\n`);
-        } catch (err) {
-          r.code = 1;
-          process.stdout.write(`[automated-repeats] could not drop ${r.dbName}: ${err.message}\n`);
+  } finally {
+    // Cleanup runs even when a run, a read or a snapshot throws, so an
+    // owned rehearsal DB is never left behind by a runner crash.
+    if (!NO_CLEANUP) {
+      // The manifest is namespaced by the runner's pid (forwarded
+      // to the test process as FERA_REHEARSAL_RUNNER_CHILD_PID), so
+      // one unlink covers all runs in this invocation.
+      const manifestPath = join(
+        EVIDENCE_PATH_DIR,
+        `pre-main-test-journeys-managed-dbs.${process.pid}.txt`,
+      );
+      for (const r of results) {
+        if (r.dbName) {
+          try {
+            await dropRehearsalDb(r.dbName, DEFAULT_DATABASE_URL);
+            process.stdout.write(`[automated-repeats] dropped fresh owned DB: ${r.dbName}\n`);
+          } catch (err) {
+            r.code = 1;
+            process.stdout.write(`[automated-repeats] could not drop ${r.dbName}: ${err.message}\n`);
+          }
         }
       }
-    }
-    if (existsSync(manifestPath)) {
-      try {
-        unlinkSync(manifestPath);
-      } catch {
-        /* non-fatal */
+      if (existsSync(manifestPath)) {
+        try {
+          unlinkSync(manifestPath);
+        } catch {
+          /* non-fatal */
+        }
       }
+    } else {
+      process.stdout.write(`[automated-repeats] --no-cleanup: leaving per-run DBs on disk\n`);
     }
-  } else {
-    process.stdout.write(`[automated-repeats] --no-cleanup: leaving per-run DBs on disk\n`);
   }
   await writeFile(join(EVIDENCE_PATH_DIR, "pre-main-automated-repeat-summary.json"), JSON.stringify({ automated: true, humanRehearsal: false,
-    results: results.map(({ runIndex, code, dbName, networkRecords, externalAttempts, sourceCommit }) => ({ run: runIndex + 1, code, dbName, networkRecords, externalAttempts, sourceCommit })), recordedAt: new Date().toISOString() }, null, 2) + "\n");
+    dirtyTree: tree.dirty, gitStatusPorcelain: tree.porcelain,
+    results: results.map(({ runIndex, code, dbName, networkRecords, externalAttempts, sourceCommit, snapshotError }) => ({ run: runIndex + 1, code, dbName, networkRecords, externalAttempts, sourceCommit, ...(snapshotError ? { snapshotError } : {}) })), recordedAt: new Date().toISOString() }, null, 2) + "\n");
   const records = await readJsonIfPresent(RECORDS_PATH);
-  await mergeEvidence(results, records);
+  await mergeEvidence(results, records, tree);
   const allGreen = results.every((r) => r.code === 0);
-  return { allGreen, results, records };
+  return { allGreen, results, records, dirty: tree.dirty };
 }
 
-export async function mergeEvidence(results, records) {
+export async function mergeEvidence(results, records, tree = { dirty: true, porcelain: "" }) {
   await mkdir(EVIDENCE_PATH_DIR, { recursive: true });
   const ts = new Date().toISOString();
   const rows = results
@@ -288,22 +317,29 @@ export async function mergeEvidence(results, records) {
       (r) =>
         `| ${r.runIndex + 1} | ${r.code} | ${r.code === 0 ? "✅" : "❌"} | AUTOMATED |${
           r.spawnError ? " spawn-error" : ""
-        }${r.signal ? ` signal=${r.signal}` : ""}${r.dbName ? ` ${r.dbName}` : ""}`,
+        }${r.signal ? ` signal=${r.signal}` : ""}${r.snapshotError ? " snapshot-error" : ""}${r.dbName ? ` ${r.dbName}` : ""}`,
     )
     .join("\n");
   const runTable = `| Run | Exit | Pass? | Notes |\n|----:|-----:|:----:|-------|`;
   const runRowsBlock = `${runTable}\n${rows || "_(none)_"}\n`;
 
+  // Scope, stated exactly: these counts come from the browser-side
+  // watchdog (Playwright `context.route`). They cover browser-originated
+  // HTTP(S) only, not server-side egress, the Playwright `request`
+  // fixture, Node fetch, or WebSockets beyond routing.
+  const scopeLine =
+    "Scope: browser-originated HTTP(S) requests seen by Playwright `context.route` only. Server-side egress from the Next.js process, the Playwright `request` fixture, Node `fetch` and WebSockets beyond routing are NOT observed by this count.";
   let netBlock =
-    "_records.json not found; this run did not produce a network summary (test may have failed before completion)._\n";
+    `${scopeLine}\n\n_records.json not found; this run did not produce a network summary (test may have failed before completion)._\n`;
   if (records && records.perJourney && Array.isArray(records.perJourney)) {
-    const totals = { allow: 0, deny: 0, pass: 0 };
+    const totals = { allow: 0, deny: 0, pass: 0, error: 0 };
     const byHost = new Map();
     for (const r of records.perJourney) {
       const key = r.host || "(non-http)";
-      const entry = byHost.get(key) ?? { allow: 0, deny: 0, pass: 0 };
+      const entry = byHost.get(key) ?? { allow: 0, deny: 0, pass: 0, error: 0 };
       if (r.decision === "allow") entry.allow += 1;
       else if (r.decision === "deny") entry.deny += 1;
+      else if (r.decision === "error") entry.error += 1;
       else entry.pass += 1;
       byHost.set(key, entry);
     }
@@ -311,25 +347,30 @@ export async function mergeEvidence(results, records) {
       totals.allow += v.allow;
       totals.deny += v.deny;
       totals.pass += v.pass;
+      totals.error += v.error;
     }
     const hostRows = Array.from(byHost.entries())
-      .map(([host, v]) => `| ${host} | ${v.allow} | ${v.deny} | ${v.pass} |`)
+      .map(([host, v]) => `| ${host} | ${v.allow} | ${v.deny} | ${v.pass} | ${v.error} |`)
       .join("\n");
     netBlock = [
+      scopeLine,
+      "",
       `- Total loopback allow: ${totals.allow}`,
-      `- Total non-loopback deny (external attempts): ${totals.deny}`,
+      `- Total non-loopback deny (external browser attempts): ${totals.deny}`,
       `- Total data:/blob: pass-through: ${totals.pass}`,
+      `- Total loopback route errors (not external): ${totals.error}`,
       "",
       "Per-host (only hosts the browser attempted):",
       "",
-      "| Host | Allow | Deny | Pass |",
-      "|------|------:|-----:|-----:|",
+      "| Host | Allow | Deny | Pass | Error |",
+      "|------|------:|-----:|-----:|------:|",
       hostRows,
     ].join("\n");
   }
 
   const allGreen = results.every((r) => r.code === 0);
-  const summaryLine = `Last run: ${ts} — ${results.length} run(s) (AUTOMATED) — ${allGreen ? "all green" : "see Run-by-run table"}`;
+  const verdict = !allGreen ? "see Run-by-run table" : tree.dirty ? "all green on a DIRTY tree (uncommitted changes; see pre-main-automated-repeat-summary.json gitStatusPorcelain)" : "all green";
+  const summaryLine = `Last run: ${ts} — ${results.length} run(s) (AUTOMATED) — ${verdict}`;
 
   if (!existsSync(EVIDENCE_PATH)) {
     const lines = [
@@ -340,6 +381,11 @@ export async function mergeEvidence(results, records) {
       "## Run-by-run results",
       "",
       runRowsBlock,
+      "",
+      "## Offline network proof",
+      "",
+      netBlock,
+      "",
     ];
     await writeFile(EVIDENCE_PATH, lines.join("\n"), "utf8");
     process.stdout.write(`[automated-repeats] evidence created: ${EVIDENCE_PATH}\n`);
@@ -355,9 +401,7 @@ export async function mergeEvidence(results, records) {
   process.stdout.write(`[automated-repeats] evidence merged: ${EVIDENCE_PATH}\n`);
 }
 
-const isMain =
-  import.meta.url === `file://${process.argv[1]}` ||
-  import.meta.url.endsWith(process.argv[1] ?? "");
+const isMain = process.argv[1] !== undefined && pathToFileURL(process.argv[1]).href === import.meta.url;
 
 if (isMain) {
   if (!existsSync(SPEC_PATH)) {

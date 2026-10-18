@@ -41,11 +41,12 @@ export const EXTRACT_FIXTURE_SOURCE =
 export const EXTRACT_FIXTURE_RAFI_SOURCE =
   "আমার ছেলে রাফি, বয়স ১৩, গতকাল বিকেলে মাদ্রাসা থেকে ফেরেনি। নম্বর ০১৭১১২২৩৩৪৪";
 
-// TC-013 scripted note: "আমার মেয়ে মীম, বয়স ১১, আজ সকালে টঙ্গী বাজারে হারিয়ে গেছে। নম্বর ০১৯৯৮৮৭৭৬৬৫"
+// Agent-authored synthetic note (source text is not in the spec pack; TC-013
+// names the Mim scenario only). Phone uses the synthetic 017000000NN range: "আমার মেয়ে মীম, বয়স ১১, আজ সকালে টঙ্গী বাজারে হারিয়ে গেছে। নম্বর ০১৭০০০০০০৭৬"
 // Demo data row per D6 §9.2: missing girl, 11, Tongi, Gazipur (public-post
 // duplicate shown by the duplicate banner; district stays unknown until typed).
 export const EXTRACT_FIXTURE_MIM_SOURCE =
-  "আমার মেয়ে মীম, বয়স ১১, আজ সকালে টঙ্গী বাজারে হারিয়ে গেছে। নম্বর ০১৯৯৮৮৭৭৬৬৫";
+  "আমার মেয়ে মীম, বয়স ১১, আজ সকালে টঙ্গী বাজারে হারিয়ে গেছে। নম্বর ০১৭০০০০০০৭৬";
 
 // Build a span only when the quote is present in `source`. Unknown fields stay
 // out of `evidence` rather than carry a fabricated span.
@@ -167,14 +168,14 @@ export const EXTRACT_FIXTURE_MIM_DRAFT = {
     thana: null,
     circumstances: null,
   },
-  reporter: { relation: null, phone: "01998877665" },
+  reporter: { relation: null, phone: "01700000076" },
   evidence: {
     "child.name": spanFrom(EXTRACT_FIXTURE_MIM_SOURCE, "মীম", "direct"),
     "child.age_years": spanFrom(EXTRACT_FIXTURE_MIM_SOURCE, "১১", "digits"),
     "child.sex": spanFrom(EXTRACT_FIXTURE_MIM_SOURCE, "মেয়ে", "direct"),
     "event.at": spanFrom(EXTRACT_FIXTURE_MIM_SOURCE, "আজ সকালে", "time_interval"),
     "event.place_text": spanFrom(EXTRACT_FIXTURE_MIM_SOURCE, "টঙ্গী বাজারে", "direct"),
-    "reporter.phone": spanFrom(EXTRACT_FIXTURE_MIM_SOURCE, "০১৯৯৮৮৭৭৬৬৫", "digits"),
+    "reporter.phone": spanFrom(EXTRACT_FIXTURE_MIM_SOURCE, "০১৭০০০০০০৭৬", "digits"),
   },
 } satisfies CaseDraft;
 

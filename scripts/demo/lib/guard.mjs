@@ -401,3 +401,8 @@ export function nextSteps({ adminUrl, dbName, appUrl, appPort, cacheDir, withSta
   if (withStart) out.push("# app launch requested; the launcher is the source of truth, see 'started: true' in the JSON above");
   return out;
 }
+
+// Stamped as the demo database comment by `start` as its LAST seeding
+// step; `start`, `status` and `verify` treat a DB without it as
+// seed-incomplete.
+export const SEED_COMPLETE_MARKER = "fera-offline-stack:seed-complete:v1";

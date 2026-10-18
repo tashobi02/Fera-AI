@@ -33,6 +33,8 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, openSync, closeSync
 import { join, resolve as pathResolve } from "node:path";
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
+import { constants as osConstants } from "node:os";
+import { pathToFileURL } from "node:url";
 import {
   assertLoopbackUrl,
   assertDemoDatabaseName,
@@ -351,6 +353,10 @@ export async function startApp({ port = DEMO_APP_PORT, build = false } = {}) {
   });
   let exited = false;
   let spawnFailed = false;
+  // `closed` resolves after the child exited AND its stdio drained, so
+  // the tail of its output is never cut off by our own exit.
+  const closed = new Promise((resolve) => child.once("close", (code, signal) => resolve({ code, signal })));
+  const signals = { forwarded: null };
   child.on("exit", (code, signal) => {
     exited = true;
     // `code` and `signal` are surfaced through child.exitCode and
@@ -365,7 +371,10 @@ export async function startApp({ port = DEMO_APP_PORT, build = false } = {}) {
 
   // 9. Forward SIGINT / SIGTERM so Ctrl-C cleanly stops the child.
   const forward = (sig) => () => {
-    if (!exited) child.kill(sig);
+    if (!exited) {
+      signals.forwarded = sig;
+      child.kill(sig);
+    }
   };
   const onInt = forward("SIGINT");
   const onTerm = forward("SIGTERM");
@@ -413,6 +422,8 @@ export async function startApp({ port = DEMO_APP_PORT, build = false } = {}) {
       DRAFT_SIGNING_KEY: "<redacted; see .demo/keys.json>",
     },
     childPid: child.pid,
+    closed,
+    signals,
     next: ready.ok
       ? [
           `open http://127.0.0.1:${port}/ in your browser`,
@@ -427,19 +438,34 @@ export async function startApp({ port = DEMO_APP_PORT, build = false } = {}) {
   };
 }
 
-// Promise-based wait for the spawned child to exit. The CLI uses
-// this so `node scripts/demo/app.mjs` blocks until the operator
-// presses Ctrl-C.
-export function waitForChild(handle) {
-  return new Promise((resolve) => {
-    if (!handle || !handle.child) return resolve(0);
-    const child = handle.child;
-    if (child.exitCode !== null || child.signalCode !== null) return resolve(child.exitCode ?? 0);
-    child.on("exit", (code) => resolve(code ?? 0));
-  });
+// Map a child's (code, signal) to our exit code. A signal death is a
+// failure (128 + signal number, or 1 if unknown) unless it is the
+// SIGINT / SIGTERM we forwarded ourselves.
+export function childExitCode(code, signal, forwardedSignal = null) {
+  if (typeof code === "number") return code;
+  if (!signal) return 1;
+  if (signal === forwardedSignal) return 0;
+  const n = osConstants.signals[signal];
+  return typeof n === "number" ? 128 + n : 1;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Promise-based wait for the spawned child to close (exit + stdio
+// drained). The CLI uses this so `node scripts/demo/app.mjs` blocks
+// until the operator presses Ctrl-C.
+export async function waitForChild(handle) {
+  if (!handle || !handle.child) return 0;
+  const child = handle.child;
+  // Handles from `startApp` carry `closed`; for a bare child that has
+  // already exited, fall back to its recorded code / signal.
+  const { code, signal } = handle.closed
+    ? await handle.closed
+    : child.exitCode !== null || child.signalCode !== null
+      ? { code: child.exitCode, signal: child.signalCode }
+      : await new Promise((resolve) => child.once("close", (c, s) => resolve({ code: c, signal: s })));
+  return childExitCode(code, signal, handle.signals?.forwarded ?? null);
+}
+
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
   const args = parseArgs(process.argv);
   if (args.help) {
     printHelp();

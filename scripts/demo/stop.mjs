@@ -13,6 +13,7 @@
 // the run as "no state"; that lost audit-grade evidence when a
 // prior run crashed mid-write.
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { sanitizeError } from "./lib/guard.mjs";
 import { inspectContainer, inspectVolume, stopContainerKeepVolume } from "./lib/docker.mjs";
 import { loadState, saveState, writeProvenance } from "./lib/state.mjs";
@@ -34,8 +35,6 @@ export async function stop() {
     stateLoadError = sanitizeError(err);
   }
 
-  const inspected = await inspectContainer(worktree);
-  let containerResult;
   if (stateLoadError) {
     return {
       ok: false,
@@ -52,6 +51,26 @@ export async function stop() {
       ],
     };
   }
+  // An unreachable docker (daemon down, binary missing, permission
+  // denied) is a hard failure, never "missing": nothing is persisted
+  // so the state file keeps its last known-good status.
+  let inspected;
+  try {
+    inspected = await inspectContainer(worktree);
+  } catch (err) {
+    return {
+      ok: false,
+      worktree,
+      stateRetained: Boolean(state),
+      stateFile: state ? join(worktree, ".demo", "state.json") : null,
+      container: { ok: false, status: "unknown", reason: "docker unreachable", stderr: sanitizeError(err) },
+      volume: null,
+      previous: state ? { database: state.database, startedAt: state.startedAt } : null,
+      steps: [{ step: "inspect-container", ok: false, reason: sanitizeError(err) }],
+      next: ["docker is unreachable; start the Docker daemon (or fix permissions) and retry stop"],
+    };
+  }
+  let containerResult;
   if (inspected && inspected.foreign === true) {
     containerResult = { ok: false, status: "foreign", stderr: "offline-stack: foreign-owned container with the same name exists; refusing to operate on it" };
   } else if (!inspected) {
@@ -62,26 +81,33 @@ export async function stop() {
   }
 
   // Inspect the volume to confirm the data is intact for next start.
-  const volume = await inspectVolume(worktree);
+  let volume = null;
+  let volumeError = null;
+  try {
+    volume = await inspectVolume(worktree);
+  } catch (err) {
+    volumeError = sanitizeError(err);
+  }
 
   // Persist (or update) state. The state file is intentionally kept
   // so `start --reuse` reattaches the same DB.
   let savedStatePath = null;
   if (state) {
     // Refresh the `startedAt` and update container/volume status.
-    const updated = { ...state, containerStatus: containerResult.status, volume: volume?.name ?? state.volume, stoppedAt: new Date().toISOString() };
+    // Only record stoppedAt when the container was actually removed.
+    const updated = { ...state, containerStatus: containerResult.status, volume: volume?.name ?? state.volume, ...(containerResult.ok ? { stoppedAt: new Date().toISOString() } : {}) };
     savedStatePath = saveState(updated, { worktreeRoot: worktree });
     writeProvenance(updated, { dir: join(worktree, ".demo") });
   }
 
   return {
-    ok: containerResult.ok,
+    ok: containerResult.ok && volumeError === null,
     worktree,
     stateRetained: Boolean(state),
     stateFile: state ? join(worktree, ".demo", "state.json") : null,
     savedStatePath,
     container: containerResult,
-    volume: volume ?? null,
+    volume: volumeError ? { ok: false, status: "unknown", reason: volumeError } : volume ?? null,
     previous: state ? { database: state.database, startedAt: state.startedAt } : null,
     next: [
       "data persisted; bring the dedicated DB back with `start --reuse`",
@@ -90,7 +116,7 @@ export async function stop() {
   };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
   stop()
     .then((r) => {
       console.log(JSON.stringify(r, null, 2));

@@ -7,9 +7,8 @@
 > stays **UNKNOWN** and is escalated to Mahim (lead), Masnun
 > (data/matching) or Obidit (intake/AI) on the day.
 >
-> **Round 2 status as of 18 Oct 2026:** not submitted; recipient,
-> channel, cutoff and Drive folder are **UNKNOWN** until the lead
-> records organiser evidence in `docs/gates/G5-*.md`. This file
+> **Round 2 status as of 18 Oct 2026:** Round 2 was reported submitted on the organiser platform by a team member (per Mahim, 18 Oct 2026); time, submitter and platform status are UNKNOWN to the repository. Organiser
+> instructions are in `submission/round2/platform-submission.md`. This file
 > does not claim G5 PASS or that Round 2 was sent.
 
 ## 1. What is Fera?
@@ -26,7 +25,7 @@
 - **No real child data.** No photos, faces, ID documents or exact coordinates (Constitution VII, BR-006). The only "actors" are seeded MOCK records in `submission/demo/capture.mjs` and the synthetic seed set under `data/`; provenance is at `submission/demo/provenance.json`.
 - **Officer verification is `[MOCK]`.** The recording shows a seeded officer scenario with explicit human reject and confirm. Officer verification in production would be done by a verified officer, not by an AI; the case service writes `referral recorded (simulation)` and never claims delivery (Constitution II, VI).
 - **Release metrics are not measured.** The frozen held-out run (TASK-043), WER (TASK-040, 60 consented clips), end-to-end latency on a labelled set (TASK-041, ≥5 testers), total spend (no live paid call this cycle) and duplicate precision are all **not measured** this cycle. Each metric says "not measured" with its reason in `submission/round2/metrics.md`. The final dev diagnostic uses 86 records / 30 groups: duplicate precision 10/11, recall10/12 and F1 86.96%; it is not a frozen release metric. Matching recall@5 is25/25, top1 is23/25, with false suggestions for5/7 no-match queries.
-- **Timing is edited.** The recording is 105.000 s; the live journey takes longer. Time compression is labelled on screen (`[MOCK]`) and in narration.
+- **Timing is edited.** The recording is 105.000 s; the live journey takes longer. Time compression is labelled on screen ("Timing edited" in the persistent label); the video is silent, with no narration.
 - **Provider / model / spend.** Default provider cap is USD 25; team may raise to at most USD 30. No live paid call has been issued in this cycle, so actual spend is **not measured** (D2B §12/§15; AGENTS.md AMD-AGENTS-5).
 - **Repository visibility.** Repo URL: `https://github.com/tashobi02/Fera-AI`. The repo is PRIVATE; logged-out public access and organiser reviewer access are owner-decision territory, not an agent's. Don't claim the link is publicly open in the Q&A.
 - **The storyboard MP4 in `submission/round2/` is not the actual demo.** It is a synthetic on-screen-caption storyboard that illustrates the journey; the actual recorded demo is `submission/demo/final.mp4`. This is recorded in `submission/round2/links.txt` and must not be confused on stage.
@@ -42,10 +41,10 @@
 
 ### B. Data and evaluation
 
-- **What is the dataset?** A synthetic Bangla seed set, frozen before any tuning would be allowed. There is no real child data anywhere; that is the prototype's contract.
+- **What is the dataset?** A synthetic Bangla seed set with an identity-grouped dev/test manifest; it is not yet frozen (FREEZE_FLAG NOT SET), and tuning uses the dev split only. There is no real child data anywhere; that is the prototype's contract.
 - **Why is the held-out metric "not measured"?** The frozen held-out run is TASK-043. The provisional independent split exists in dev but is not the released frozen manifest for this cycle. The script `eval/match.mjs` still prints "not measured" until a canonical mapping is supplied. (See `submission/round2/metrics.md` §5; `docs/execution/PHASE_3_AUDIT_2026-10-18.md` §3.5a READY-11.)
 - **What about WER?** Whisper STT is used; voice path is PCM WAV only, WebM is not supported. WER is not measured because there is no labelled 60-clip Bangla set. (D6 TASK-040; `submission/round2/metrics.md` §2; READY-17.)
-- **What about duplicate precision?** 12/302 was a dev diagnostic only; the released duplicate precision is **not measured** this cycle. (READY-11; `submission/round2/metrics.md` §5.)
+- **What about duplicate precision?** On the dev split (86 records, 30 groups, 12 true pairs), the old 0.5/2 rule flagged 12 correct of 302 (3.97%). The calibrated 0.95/3 rule flags 10 correct of 11 (90.91%) and catches 10 of 12 true pairs (83.33%). These are in-sample dev figures; 0.95 is the top edge of the swept grid. Released duplicate precision is **not measured** this cycle. (READY-11; `submission/round2/metrics.md` §5.)
 
 ### C. Safeguarding and role boundaries
 
@@ -56,10 +55,10 @@
 
 ### D. Submission status (for the AIUB finale, where judges ask "is the submission in?")
 
-- **Was Round 2 submitted?** Not as of 18 Oct 2026 (user-confirmed). Recipient, channel, cutoff, Drive folder, repository reviewer access and selection-email reply are **UNKNOWN** until Mahim (lead) records organiser evidence. (PHASE_4 §G5; `docs/gates/G5-2026-10-18.md`.)
+- **Was Round 2 submitted?** Yes, on the organiser platform (h4hbd.ezassist.me), by a team member, per Mahim (18 Oct 2026). The exact time, submitter and platform status are not recorded in the repository. (PHASE_4 §G5; `docs/gates/G5-2026-10-18.md`.)
 - **What is the cutoff?** Working baseline was 14 Oct 2026 22:00 Asia/Dhaka. The user reported an organiser extension; the new cutoff/date is **UNKNOWN** (TEAM_HANDOVER_V2 §10; AMD-4-1).
 - **Is the deck public?** The deck is in the source checkout. Public visibility depends on Drive access and reviewer access, both of which are owner-decision territory.
-- **What about the 5–8 slides / 1–2 min video / Drive folder / `r2-freeze` tag?** The seven-slide deck (`ed3bfe6`), the 105-second local video (`27bb3c6`) and the local draft zip are prepared. The `r2-freeze` tag is **not** applied; no frozen release build is on the `r2-freeze` (or rebaselined) tag because frozen evaluation, production acceptance and human evidence are missing. (PHASE_4 §G5; AMD-4-1.)
+- **What about the 5–8 slides / 1–2 min video / Drive folder / `r2-freeze` tag?** The eight-slide deck (merged in #50), the 105-second local video (`27bb3c6`) and the local draft zip are prepared. The `r2-freeze` tag is **not** applied; no frozen release build is on the `r2-freeze` (or rebaselined) tag because frozen evaluation, production acceptance and human evidence are missing. (PHASE_4 §G5; AMD-4-1.)
 
 ### E. What is honest-construction in this prototype?
 
@@ -113,9 +112,9 @@ If a judge asks any of these on the day, the honest answer is
       app footage. Don't mix them up.
 - [ ] All release metrics are "not measured" with a reason. No
       frozen number is presented as a result anywhere in the pack.
-- [ ] The 12/302 duplicate precision figure is a dev diagnostic
-      on a different split, not a released metric. Do not present
-      it as a held-out result.
+- [ ] Duplicate figures (12/302 before, 10/11 after calibration)
+      are in-sample dev diagnostics on the same 86-record dev split,
+      not released metrics. Do not present them as held-out results.
 - [ ] No alert, runaway, rescue, CID/police integration or
       legal-compliance claim. No interview count, no human-label
       count, no measured WER, no measured latency, no measured
