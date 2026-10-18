@@ -7,9 +7,9 @@ PDF slides (text-extracted), the storyboard frames, the source
 markdown, the metrics file and the links file. It then enforces:
 
   ASSET CHECKS (presence + dimensions)
-  - 7 editable slides in the deck (PPTX).
+  - 8 editable slides in the deck (PPTX); organiser rule (18 Oct): at most 8.
   - 9 sampled frames in frames/shot-0[1-9].png.
-  - 7 slide images in build/slide-imgs/slide-[1-7].png.
+  - 8 slide images in build/slide-imgs/slide-[1-8].png.
   - MP4: 1280x720, 30 fps, h264, ~105 s duration.
   - All 9 frames carry the STORYBOARD PREVIEW banner.
 
@@ -189,7 +189,7 @@ REQUIRED_ASSETS = [
     DECK, PDF, MP4, VIDEO_SCRIPT, METRICS, LINKS, README,
 ]
 REQUIRED_FRAMES = [FRAMES / f"shot-0{i}.png" for i in range(1, 10)]
-REQUIRED_SLIDE_IMGS = [SLIDE_IMGS / f"slide-{i}.png" for i in range(1, 8)]
+REQUIRED_SLIDE_IMGS = [SLIDE_IMGS / f"slide-{i}.png" for i in range(1, 9)]
 
 REQUIRED_TEXT_PATTERNS = [
     (r"SYNTHETIC STORYBOARD PREVIEW", "STORYBOARD banner"),

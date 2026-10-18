@@ -1,0 +1,60 @@
+{
+  "generated_at": "2026-10-18T14:00:42.000Z",
+  "variant_of": "submission/demo/final.mp4",
+  "origin_final_mp4_sha256": "1403d679c454712016cec949047c22a0e3bc118752e0f64bc0fa190faf4aaae6",
+  "source_git_sha": "96903610be0a49ad95f9ef5cd079adc22259209c",
+  "commit_message": "docs(submission): 8-slide deck, submission video end card and platform form text [TASK-044 TASK-045 TASK-046]",
+  "processing_description": "Per the commit message at 9690361, the closing card (t >= 97 s, last 8 s) was re-rendered with judge-facing copy. The 0:00-1:37 portion of final.mp4 is visually the same content; the variant is a 105.000 s MP4 with a re-encoded end card. The variant no longer carries the literal 'Round 2 NOT submitted' line in its closing card; that honest-copy text remains in the source final.mp4 and in submission/round2/claims-check-report.txt. No audio is added; the source has no audio. The exact processing path used to produce the committed variant was not retained in the source checkout.",
+  "processing_path_for_committed_variant": "UNKNOWN (processing source from 9690361 not preserved; the committed file is a pristine 1,037,598-byte MP4 with no script alongside it). The committed file is preserved unmodified and is the only file referenced by this variant provenance.",
+  "deterministic_regeneration_recipe": "bash submission/demo/derive_final_submission.sh",
+  "regeneration_target": {
+    "codec": "h264",
+    "width": 1280,
+    "height": 720,
+    "frame_rate": "30/1",
+    "duration_seconds": 105.0,
+    "audio": "none",
+    "synthetic": true,
+    "labels_required": [
+      "SYNTHETIC LOCAL DEMO",
+      "[MOCK] officer verification",
+      "Regenerated fallback",
+      "Timing edited",
+      "No real child data",
+      "No audio capture"
+    ],
+    "binary_byte_identical_across_runs": false,
+    "binary_byte_identical_across_runs_reason": "Byte identity across ffmpeg/libx264 versions is not guaranteed. Repeated local runs may be identical. The validation recipe checks format and labels; it does not reproduce the committed one-off variant byte-for-byte or copy its end-card design."
+  },
+  "committed_variant": {
+    "path": "submission/demo/final-submission.mp4",
+    "size_bytes": 1037598,
+    "sha256": "beea857e6550337265c59e3920b7d7cb58d5a240eb1f4595c66b6401287e87f8",
+    "ffprobe": {
+      "codec_name": "h264",
+      "width": 1280,
+      "height": 720,
+      "r_frame_rate": "30/1",
+      "duration": 105.0
+    },
+    "preserved_unmodified": true
+  },
+  "deterministic_regeneration": {
+    "note": "Deterministic-by-contract. The regenerated output is NOT byte-identical to the committed variant in general: ffmpeg with libx264 -crf 23 -preset medium is not bit-exact across runs, libx264 versions or host environments. The script proves the spec is reproducible: same 105.000 s, 1280x720, 30 fps, h264, silent, semantically-labelled regenerated end card. The committed variant above is preserved unmodified and is the only file referenced by this variant provenance.",
+    "default_output_path": "submission/demo/build/final-submission-regenerated.mp4",
+    "default_output_overwrites_authoritative": false,
+    "spec_match_verified_by_script_exit_code_0": true
+  },
+  "origin_final_mp4": {
+    "path": "submission/demo/final.mp4",
+    "sha256": "1403d679c454712016cec949047c22a0e3bc118752e0f64bc0fa190faf4aaae6",
+    "provenance_path": "submission/demo/provenance.json"
+  },
+  "synthetic": true,
+  "release_metrics_measured": false,
+  "round2_submitted": false,
+  "human_audio_included": false,
+  "human_labels_included": false,
+  "audio_capture": "none",
+  "claims_check_status": "UNVERIFIED: this script's end-card text is not auto-OCR-inspected by the regenerate step or by verify-submission.mjs. The text is embedded by ffmpeg drawtext and rendered by libx264; honest-copy checks for slide decks and the storyboard are in submission/round2/scripts/claims_check.py."
+}
