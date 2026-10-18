@@ -407,6 +407,11 @@ export function buildCalibrationGrid(opts: {
   const { profiles, manifestSha, recordsSha } = loadDevRecordProfiles(opts.manifestPath, opts.recordsPath);
   const { truthPairs, sharedPhoneDistinct, sharedPhoneCrossKind, devRecordIds } = buildDevTruth(opts.manifestPath, opts.groundTruthPath);
 
+  const metadata = safeReadJson<{ prediction_sha256: string; manifest_sha256: string; embedder_space: string; split: string }>(`${opts.predictionPath}.meta.json`);
+  if (metadata.prediction_sha256 !== fileSha256(opts.predictionPath) || metadata.manifest_sha256 !== manifestSha ||
+      metadata.embedder_space !== opts.embedderSpace || metadata.split !== "dev") {
+    throw new Error("calibration: prediction metadata hash, manifest, model space or dev split mismatch");
+  }
   const predictionsRaw = safeReadJsonl(opts.predictionPath);
   // Mirror the cache/fixture filter from eval/dedupe.mjs (it would be
   // surprising to score cache hits as if they were inference). The
@@ -623,11 +628,11 @@ function renderGridMarkdown(result: CalibrationResult): string {
     `## Grid`,
     ``,
     `Each cell re-applies the documented detector predicate (BR-018, BR-021)`,
-    `to the same 580 baseline (a,b,score) flag rows from`,
-    `\`/tmp/fera-pre-main-dev-dedupe.jsonl\`. The candidate pool is the`,
-    `baseline pool at SIMILARITY_THRESHOLD=0.5; sweeping *below* 0.5 would`,
-    `require the unflagged pool and is out of scope for this lane (the local`,
-    `E5 embedder is not present in this environment).`,
+    `to the committed baseline flag rows from ${result.evidence.predictionFile}.`,
+    `The rounded score/100 approximates raw cosine similarity near thresholds.`,
+    `A fresh real E5 detector run is the deciding production evidence.`,
+    `Only floors at or above the historical 0.5/2 baseline are searched.`,
+    `Prediction hashes, manifest, model space and dev split are checked against the sidecar.`,
     ``,
     `| sim_thr | min_agree | TP | FP | FN | precision | recall | F1 | shared-phone rejected |`,
     `|---|---|---|---|---|---|---|---|---|`,
@@ -651,15 +656,7 @@ function renderGridMarkdown(result: CalibrationResult): string {
     ``,
     `## Constraints and caveats`,
     ``,
-    `* Sweep is bounded upward only (sim_thr >= 0.5, min_agree >= 2). A`,
-    `  downward sweep would require re-running the embedder; that is not`,
-    `  possible in this lane without a fresh end-to-end predict-dev`,
-    `  run against a fresh isolated DB (the local E5 embedder is not`,
-    `  needed for this grid; the committed baseline JSONL is its`,
-    `  evidence we have). The grid therefore reports the effect of`,
-    `  raising the floors only — the most defensible direction per`,
-    `  BR-021's "compatible profiles" wording, which permits stricter`,
-    `  selectivity on dev.`,
+    `* This fixed rounded-score pool only supports raising floors; it cannot estimate lower floors.`,
     `* Selection maximises dev pairwise F1, then recall, precision and lower floors.`,
     `* Missed duplicate flags remain searchable reports; flags do not suppress cases.`,
     `* A missing finite F1 result fails selection. The target is never fabricated.`,

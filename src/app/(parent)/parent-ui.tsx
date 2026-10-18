@@ -157,7 +157,7 @@ export function CachedClockNotice({ locale, cached }: { locale: Locale; cached: 
     <aside
       role="note"
       aria-label={t.cachedClockTitle}
-      className="flex flex-col gap-2 rounded-md border border-hairline bg-card px-3 py-2.5 text-body-md text-body"
+      className="flex flex-col gap-2 rounded-md border border-hairline bg-card px-3 py-2.5 text-body-lg text-body"
     >
       <p className="flex items-start gap-2 font-medium text-ink">
         <InfoIcon className="mt-[0.3em] size-4 text-info" />

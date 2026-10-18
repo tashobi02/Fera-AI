@@ -250,7 +250,7 @@ describe("TASK-018 decideDuplicateRule (pure)", () => {
   // least 3 of {name, age, sex, district, time}, has similarity >=
   // 0.92, and is not contradicted (no known sex mismatch, no
   // disjoint age range). The pre-main baseline JSONL contains
-  // 12 such pairs and the chosen cell keeps all 12 as TPs.
+  // 12 such pairs and the chosen cell keeps 10 of 12 as TPs.
   it("retains a genuine compatible duplicate (3-field agreement at high similarity)", () => {
     const source = makeSource();
     const candidate = makeCandidate({
