@@ -36,14 +36,15 @@ describe("paid reservation and settlement (TASK-063)", () => {
   it("binds a staff call to its own found draft", async () => {
     const f = spendFake();
     const staff = testUser(randomUUID(), "staff");
-    await reservePaidCall(staff, request, f.ctx);
+    await reservePaidCall(staff, { ...request, kind: "found" }, f.ctx);
     expect(f.sent(/FROM intake_drafts/)[0].values).toEqual([draftId, null, staff.kind === "user" ? staff.userId : null, "found"]);
   });
 
   it.each(["API-001", "API-002", "API-007"] as const)("uses the caller's %s permission binding", async (apiId) => {
     const f = spendFake();
     const actor = apiId === "API-007" ? testUser(randomUUID(), "staff") : principal;
-    await expect(reservePaidCall(actor, { ...request, apiId }, f.ctx)).resolves.toMatchObject({ id: reservationId });
+    const found = apiId === "API-007";
+    await expect(reservePaidCall(actor, { ...request, apiId, kind: found ? "found" : "missing" }, f.ctx)).resolves.toMatchObject({ id: reservationId });
   });
 
   it("denies a parent on API-007 before opening a transaction", async () => {

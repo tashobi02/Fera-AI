@@ -9,7 +9,7 @@ export { pgError };
 export const draftId = randomUUID();
 export const reservationId = randomUUID();
 export const principal = testParent(randomUUID());
-export const request: ReservationRequest = { apiId: "API-002", draftId, expectedRevision: 1, upperUsd: mockEstimate() };
+export const request: ReservationRequest = { apiId: "API-002", draftId, expectedRevision: 1, upperUsd: mockEstimate(), kind: "missing" };
 
 export function spendFake(opts: { revision?: number; hidden?: boolean; hiddenAfterReserve?: boolean; reserveError?: Error; settleError?: Error; constraintsError?: Error; commitError?: Error; settleCommitError?: Error } = {}) {
   const logs = captureLogs();

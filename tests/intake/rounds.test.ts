@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import { exampleFoundDraft, exampleMissingDraft } from "@/contracts/examples";
 import { missingFieldsFor, decideNext } from "@/server/intake/rounds";
 import { EXTRACT_FIXTURE_DRAFT } from "@/server/cache";
-import { createDraftRegistry, createDraftSigner, verifyDraftToken } from "@/server/intake/drafts";
+import { createInMemoryDraftRegistry, createDraftSigner, verifyDraftToken } from "@/server/intake/registry";
 import { testParent } from "../support/principals";
 import { randomUUID } from "node:crypto";
+import type { Principal } from "@/contracts/server";
 
 describe("BR-015 intake missing fields and follow-up limits", () => {
   it("does not require a name or treat the allowed unknown sex as missing", () => {
@@ -35,21 +36,21 @@ describe("BR-015 intake missing fields and follow-up limits", () => {
     ]);
   });
 
-  it("caps every issued question at four, regardless of payment", () => {
+  it("caps every issued question at four, regardless of payment", async () => {
     const secret = Buffer.from("0123456789abcdef0123456789abcdef");
     const principal = testParent(randomUUID());
-    const registry = createDraftRegistry({
+    const registry = createInMemoryDraftRegistry({
       signer: createDraftSigner(secret),
-      verify: (token, kind, owner) => verifyDraftToken(secret, token, kind, owner),
+      verify: (token: string, kind: "missing" | "found", owner: Principal) => verifyDraftToken(secret, token, kind, owner),
     });
-    const created = registry.create({ kind: "missing", principal, payloadHash: null });
+    const created = await registry.create({ kind: "missing", principal, payloadHash: null });
     expect(created.ok).toBe(true);
     if (!created.ok) return;
 
     for (let n = 0; n < 4; n++) {
       const decision = decideNext({ draft: EXTRACT_FIXTURE_DRAFT, followUpRound: created.row.follow_up_round });
       expect(decision.kind).toBe("question");
-      const issued = registry.issueQuestion(created.row.id, created.row.revision);
+      const issued = await registry.issueQuestion(created.row.id, created.row.revision);
       expect(issued.ok).toBe(true);
       if (!issued.ok) return;
     }

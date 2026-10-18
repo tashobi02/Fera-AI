@@ -11,14 +11,16 @@
 import { brandSttDispatch, type RawSttDispatch, type SttProvider, type SttDispatch } from "@/server/speech/types";
 import { brandProviderDispatch, type LLMProvider, type ProviderDispatch, type RawDispatch } from "@/server/ai";
 import { UNKNOWN_PRICE_SHEET, type PriceSheet } from "@/server/spend";
-import { createDraftSigner, createDraftRegistry, verifyDraftToken, type DraftRegistry } from "@/server/intake";
+import {
+  createDraftSigner,
+  createDbDraftRegistry,
+  verifyDraftToken,
+  type DraftRegistry,
+} from "@/server/intake/registry";
 import { verifyAudioMetadata } from "@/server/intake/audio-metadata";
 import { loadSecret } from "@/server/auth/secrets";
 import { buildIntakeRoutes } from "./route-helpers";
 
-// Synthetic scripted STT provider used in the default route factory. Returns
-// a single deterministic Bangla transcript so the route handler stays
-// present but is never reached while the default price sheet is UNKNOWN.
 const scriptedStt: SttProvider = {
   name: "[MOCK] intake.default",
   async transcribe() {
@@ -44,10 +46,12 @@ export function getIntakeRouteDeps() {
 
 function getDeps() {
   if (cached) return cached;
-  // Draft tokens fail closed if the server key is missing or malformed.
   const draftSecret = loadSecret("DRAFT_SIGNING_KEY");
   const signer = createDraftSigner(draftSecret);
-  const registry: DraftRegistry = createDraftRegistry({
+  // Production uses the DB-backed registry so runPaidCall's reservations are
+  // reflected authoritatively across processes. Unit tests inject the
+  // in-memory variant through their own getDeps closure.
+  const registry: DraftRegistry = createDbDraftRegistry({
     signer,
     verify: (token, kind, principal) => verifyDraftToken(draftSecret, token, kind, principal),
   });

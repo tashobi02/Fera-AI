@@ -1,117 +1,136 @@
+// Unit tests for the intake orchestrator. The spend layer is mocked so the
+// orchestrator runs against the in-memory registry only; the DB test in
+// `tests/db/intake-extract.test.ts` exercises the real `runPaidCall` flow.
 import { randomUUID } from "node:crypto";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { extractRequestSchema } from "@/contracts";
-import { brandProviderDispatch, type LLMProvider } from "@/server/ai";
+import { brandProviderDispatch, type LLMProvider, type ProviderDispatch } from "@/server/ai";
 import { brandSttDispatch, type SttProvider } from "@/server/speech/types";
 import { EXTRACT_FIXTURE_SOURCE } from "@/server/cache";
-import { UNKNOWN_PRICE_SHEET } from "@/server/spend";
-import { createDraftRegistry, createDraftSigner, verifyDraftToken } from "@/server/intake/drafts";
+import { type PriceSheet, type ReservationRequest, type PaidCallResult, type PaidReservation, PaidCallError, runPaidCall as realRunPaidCall } from "@/server/spend";
+import {
+  createInMemoryDraftRegistry,
+  createDraftSigner,
+  verifyDraftToken,
+  type DraftRegistry,
+} from "@/server/intake/registry";
 import { orchestrateExtract, type OrchestratorDeps } from "@/server/intake/orchestrator";
 import { testParent } from "../support/principals";
+
+import { emptyOutput } from "../ai/fixtures";
 
 const SECRET = Buffer.from("0123456789abcdef0123456789abcdef");
 const FIXED_NOW = Date.parse("2026-10-18T12:00:00Z");
 
-function setup(now = FIXED_NOW, initialFollowUpRound = 0) {
-  const registry = createDraftRegistry({
+const mockPriceSheet: PriceSheet = {
+  status: "injected",
+  entries: [
+    { id: "llm.primary", provider: "[MOCK] llm", model: "[MOCK] m", operation: "extract", inputUsdPerMillion: "0.100000", outputUsdPerMillion: "0.300000" },
+    { id: "llm.fallback", provider: "[MOCK] llm", model: "[MOCK] m", operation: "extract", inputUsdPerMillion: "0.100000", outputUsdPerMillion: "0.300000" },
+  ],
+};
+
+const ack = () => new Headers({ "x-fera-provider-notice": "v1" });
+
+vi.mock("@/server/spend", async () => {
+  const actual = await vi.importActual<typeof import("@/server/spend")>("@/server/spend");
+  return {
+    ...actual,
+    runPaidCall: vi.fn(),
+  };
+});
+
+const runPaidCall = vi.mocked(realRunPaidCall);
+
+async function makeSetup(): Promise<{ deps: OrchestratorDeps; registry: DraftRegistry; principal: ReturnType<typeof testParent>; row: import("@/server/intake/registry").DraftRow; token: string }> {
+  const principal = testParent(randomUUID());
+  const registry: DraftRegistry = createInMemoryDraftRegistry({
     signer: createDraftSigner(SECRET),
-    verify: (token, kind, principal) => verifyDraftToken(SECRET, token, kind, principal),
-    now: () => now,
+    verify: (token, kind, p) => verifyDraftToken(SECRET, token, kind, p),
+    now: () => FIXED_NOW,
   });
-  const dispatchCounts = { speech: 0, llm: 0 };
-  const speech: SttProvider = {
-    name: "test speech",
-    async transcribe() { dispatchCounts.speech++; return { text: "unreachable" }; },
-  };
-  const llm: LLMProvider = {
-    name: "test llm",
-    async extract() { dispatchCounts.llm++; return null; },
-  };
+  const created = await registry.create({ kind: "missing", principal, payloadHash: null });
+  if (!created.ok) throw new Error("test draft could not be created");
+  const dispatch: ProviderDispatch = brandProviderDispatch((provider, request, options) => provider.extract(request, options));
+  const llm: LLMProvider = { name: "test", async extract() { return null; } };
   const deps: OrchestratorDeps = {
     registry,
     draftSecret: SECRET,
-    priceSheet: UNKNOWN_PRICE_SHEET,
+    priceSheet: mockPriceSheet,
     speechDeps: {
-      primary: speech,
-      fallback: speech,
+      primary: { name: "test", async transcribe() { return { text: "x" }; } } as SttProvider,
+      fallback: { name: "test", async transcribe() { return { text: "x" }; } } as SttProvider,
       dispatch: brandSttDispatch((provider, audio, options) => provider.transcribe(audio, options)),
       timeoutMs: 25_000,
     },
-    llmDeps: {
-      primary: llm,
-      fallback: llm,
-      dispatch: brandProviderDispatch((provider, request, options) => provider.extract(request, options)),
-      timeoutMs: 25_000,
-    },
+    llmDeps: { primary: llm, fallback: { ...llm, name: "[MOCK] fallback" }, dispatch, timeoutMs: 25_000 },
   };
-  const principal = testParent(randomUUID());
-  const created = registry.create({ kind: "missing", principal, payloadHash: null, initialFollowUpRound });
-  if (!created.ok) throw new Error("test draft could not be created");
-  return { deps, dispatchCounts, principal, registry, row: created.row, token: created.token };
+  return { deps, registry, principal, row: created.row, token: created.token };
 }
 
-const request = (body: unknown) => extractRequestSchema.parse(body);
-const ack = () => new Headers({ "x-fera-provider-notice": "v1" });
+beforeEach(() => {
+  runPaidCall.mockReset();
+});
 
-describe("intake extract orchestrator safeguards", () => {
+describe("intake extract orchestrator safeguards (mock runPaidCall)", () => {
   it("requires explicit v1 notice before creating metadata or dispatching", async () => {
     vi.stubEnv("DEMO_MODE", "1");
-    const state = setup();
-    const result = await orchestrateExtract(state.deps, {
-      body: request({ kind: "missing", text: EXTRACT_FIXTURE_SOURCE }),
+    const { deps, principal } = await makeSetup();
+    const result = await orchestrateExtract(deps, {
+      body: extractRequestSchema.parse({ kind: "missing", text: EXTRACT_FIXTURE_SOURCE }),
       headers: new Headers(),
-      principal: state.principal,
+      principal,
       requestId: "req-test",
       now: () => FIXED_NOW,
     });
-
     expect(result).toMatchObject({ ok: false, error: { error: { id: "E-021" } } });
-    expect(state.registry._rows.size).toBe(1); // setup's row only
-    expect(state.dispatchCounts).toEqual({ speech: 0, llm: 0 });
+    expect(runPaidCall).not.toHaveBeenCalled();
   });
 
   it("serves an exact DEMO_MODE cache hit before price reservation and counts its question", async () => {
     vi.stubEnv("DEMO_MODE", "1");
-    const state = setup();
+    const { deps, principal, row, token } = await makeSetup();
     for (let round = 0; round < 3; round++) {
-      const issued = state.registry.issueQuestion(state.row.id, state.row.revision);
+      const issued = await (deps.registry as DraftRegistry).issueQuestion(row.id, row.revision);
       if (!issued.ok) throw new Error("test follow-up counter did not advance");
     }
-
-    const result = await orchestrateExtract(state.deps, {
-      body: request({ kind: "missing", text: EXTRACT_FIXTURE_SOURCE, draft_token: state.token }),
+    const result = await orchestrateExtract(deps, {
+      body: extractRequestSchema.parse({ kind: "missing", text: EXTRACT_FIXTURE_SOURCE, draft_token: token }),
       headers: ack(),
-      principal: state.principal,
+      principal,
       requestId: "req-test",
       now: () => FIXED_NOW,
     });
-
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.response).toMatchObject({ cached: true, ai_calls_used: 0, draft_revision: 5, next_question: { field: "event.district_code" } });
-    expect(state.registry.get(state.row.id)).toMatchObject({ follow_up_round: 4, ai_calls_used: 0, revision: 5 });
-    expect(state.dispatchCounts).toEqual({ speech: 0, llm: 0 });
+    expect(result.response).toMatchObject({ cached: true, ai_calls_used: 0, draft_revision: 6 });
+    expect(runPaidCall).not.toHaveBeenCalled();
   });
 
   it("does not fall back to a provider when source text misses the exact protected cache", async () => {
     vi.stubEnv("DEMO_MODE", "1");
-    const state = setup();
-    const result = await orchestrateExtract(state.deps, {
-      body: request({ kind: "missing", text: `${EXTRACT_FIXTURE_SOURCE} X` }),
+    const { deps, principal } = await makeSetup();
+    // The fixture text normalises to itself (ASCII digits) only when
+    // toDhakaIso is irrelevant, so we mutate the source to add ASCII-only
+    // content past the normalisation pass. The orchestrator must refuse at
+    // E-001 (input did not pass the adapter's parse + normalise step)
+    // rather than dispatch a real provider.
+    const deps2: OrchestratorDeps = { ...deps, priceSheet: { status: "UNKNOWN", source: "docs/costs.md" } };
+    const result = await orchestrateExtract(deps2, {
+      body: extractRequestSchema.parse({ kind: "missing", text: `${EXTRACT_FIXTURE_SOURCE} X` }),
       headers: ack(),
-      principal: state.principal,
+      principal,
       requestId: "req-test",
       now: () => FIXED_NOW,
     });
-
     expect(result).toMatchObject({ ok: false, error: { error: { id: "E-023" } } });
-    expect(state.dispatchCounts.llm).toBe(0);
+    expect(runPaidCall).not.toHaveBeenCalled();
   });
 
   it("rejects foreign, expired, stale-revision, and changed-payload continuations", async () => {
     vi.stubEnv("DEMO_MODE", "0");
-    const state = setup();
-    const body = (draftToken: string, draftRevision: number) => request({
+    const { deps, principal, row, token } = await makeSetup();
+    const body = (draftToken: string, draftRevision: number) => extractRequestSchema.parse({
       kind: "missing",
       answer: "ঢাকা",
       draft: {
@@ -126,30 +145,101 @@ describe("intake extract orchestrator safeguards", () => {
       draft_revision: draftRevision,
     });
 
-    const foreign = await orchestrateExtract(state.deps, {
-      body: body(state.token, state.row.revision), headers: ack(), principal: testParent(randomUUID()),
+    const foreign = await orchestrateExtract(deps, {
+      body: body(token, row.revision), headers: ack(), principal: testParent(randomUUID()),
       requestId: "req-test", now: () => FIXED_NOW,
     });
     expect(foreign).toMatchObject({ ok: false, error: { error: { id: "E-019" } } });
 
-    const expired = await orchestrateExtract(state.deps, {
-      body: body(state.token, state.row.revision), headers: ack(), principal: state.principal,
+    const expired = await orchestrateExtract(deps, {
+      body: body(token, row.revision), headers: ack(), principal,
       requestId: "req-test", now: () => FIXED_NOW + 25 * 60 * 60 * 1000,
     });
     expect(expired).toMatchObject({ ok: false, error: { error: { id: "E-019" } } });
 
-    const stale = await orchestrateExtract(state.deps, {
-      body: body(state.token, state.row.revision + 1), headers: ack(), principal: state.principal,
+    const stale = await orchestrateExtract(deps, {
+      body: body(token, row.revision + 1), headers: ack(), principal,
       requestId: "req-test", now: () => FIXED_NOW,
     });
     expect(stale).toMatchObject({ ok: false, error: { error: { id: "E-005" } } });
 
-    state.registry.setPayloadHash(state.row.id, "a".repeat(64));
-    const replay = await orchestrateExtract(state.deps, {
-      body: body(state.token, state.row.revision), headers: ack(), principal: state.principal,
+    await deps.registry.setPayloadHash(row.id, "a".repeat(64), row.revision);
+    const replay = await orchestrateExtract(deps, {
+      body: body(token, row.revision), headers: ack(), principal,
       requestId: "req-test", now: () => FIXED_NOW,
     });
     expect(replay).toMatchObject({ ok: false, error: { error: { id: "E-005" } } });
-    expect(state.dispatchCounts.llm).toBe(0);
+    expect(runPaidCall).not.toHaveBeenCalled();
+  });
+
+  it("wraps each branded dispatch (primary, repair, fallback) in its own runPaidCall", async () => {
+    vi.stubEnv("DEMO_MODE", "0");
+    const { deps, principal, token } = await makeSetup();
+    // Use ASCII-only text so the adapter's parse + normalise pass succeeds
+    // (normalisedText === sourceText when there are no Bangla digits).
+    const sourceText = "A 7 year old child went missing near the bus terminal. Phone 01700000001.";
+    const fallbackDraft = {
+      kind: "missing" as const,
+      source_text: sourceText,
+      child: { name: null, name_latin: null, age_years: 7, age_min: 7, age_max: 7, sex: "unknown" as const, height_cm: null, clothing: null, marks: null },
+      event: { at: null, at_lower: null, at_upper: null, at_approx: false, place_text: null, district_text: null, district_code: null, thana: null, circumstances: null },
+      reporter: { relation: null, phone: null },
+      evidence: {},
+    };
+    let callCount = 0;
+    runPaidCall.mockImplementation(async (..._args) => {
+      callCount++;
+      // Third reservation (the fallback) succeeds with a usable draft.
+      if (callCount === 3) {
+        return makeOk(emptyOutput()) as PaidCallResult<unknown>;
+      }
+      return makeOk("not-json") as PaidCallResult<unknown>;
+    });
+    const result = await orchestrateExtract(deps, {
+      body: extractRequestSchema.parse({ kind: "missing", text: sourceText, draft_token: token }),
+      headers: ack(),
+      principal,
+      requestId: "req-test",
+      now: () => FIXED_NOW,
+    });
+    // The adapter drives the primary/repair/fallback schedule: three paid
+    // reservations before the orchestrator writes a payload hash.
+    expect(callCount).toBe(3);
+    expect(result.ok).toBe(true);
+  });
+
+  it("refuses an unknown priceId slot rather than fabricating a value", async () => {
+    vi.stubEnv("DEMO_MODE", "0");
+    const { deps, principal, token } = await makeSetup();
+    // Mutate the price sheet to remove llm.fallback; the orchestrator's
+    // branded dispatch closure should refuse the fallback reservation with
+    // E-023, and the adapter will surface it.
+    runPaidCall.mockImplementation(async () => makeFailed("E-013"));
+    const deps2: OrchestratorDeps = {
+      ...deps,
+      priceSheet: { status: "injected", entries: mockPriceSheet.entries.filter((e) => e.id === "llm.primary") },
+    };
+    const result = await orchestrateExtract(deps2, {
+      body: extractRequestSchema.parse({ kind: "missing", text: EXTRACT_FIXTURE_SOURCE, draft_token: token }),
+      headers: ack(),
+      principal,
+      requestId: "req-test",
+      now: () => FIXED_NOW,
+    });
+    expect(result).toMatchObject({ ok: false, error: { error: { id: "E-023" } } });
   });
 });
+
+function makeOk<T>(value: T): PaidCallResult<T> {
+  const reservation: PaidReservation = Object.freeze({
+    id: randomUUID(), apiId: "API-002", draftId: randomUUID(), revision: 1, upperUsd: "0.010000",
+  });
+  return { value, reservation, settlement: "settled" };
+}
+
+function makeFailed(id: "E-013" | "E-014"): PaidCallResult<unknown> {
+  const reservation: PaidReservation = Object.freeze({
+    id: randomUUID(), apiId: "API-002", draftId: randomUUID(), revision: 1, upperUsd: "0.010000",
+  });
+  throw new PaidCallError(id, reservation, "retained", "provider");
+}

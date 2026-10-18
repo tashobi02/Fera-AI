@@ -6,6 +6,7 @@ export {
 } from "./adapter";
 
 export {
+  brandSttDispatch,
   DispatchRefused,
   SttFailure,
   SttTimeoutError,
