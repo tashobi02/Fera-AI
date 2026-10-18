@@ -109,6 +109,17 @@ export interface DuplicateFlag {
   candidate_id: string;
   rule: DuplicateRule;
   score: number;
+  /** Internal detector snapshot used to reject flags made stale before persistence. */
+  source_snapshot: DuplicateSnapshot;
+  candidate_snapshot: DuplicateSnapshot;
+}
+
+/** Version and embedding-space identity captured by the detector's SELECTs. */
+export interface DuplicateSnapshot {
+  version: number;
+  embedding_model: string;
+  embedding_revision: string;
+  embedding_space: string;
 }
 
 /** Names match when both are non-empty and equal after trim+lowercase. */
@@ -299,7 +310,7 @@ export async function detectDuplicates(
   if (!isUuid(caseId)) throw new Error("invalid case id");
 
   const sourceRes = await db.query(
-    `SELECT id, kind, child_name, age_years, age_min, age_max, sex,
+    `SELECT id, kind, child_name, age_years, age_min, age_max, sex, version,
             district_code, event_at, event_at_lower, event_at_upper, contact_phone,
             embedding IS NOT NULL AS has_embedding,
             embedding_model, embedding_revision, embedding_space
@@ -308,6 +319,7 @@ export async function detectDuplicates(
   );
   const src = (sourceRes.rows[0] as Record<string, unknown> | undefined) as
     | (SourceCase & {
+        version: number;
         has_embedding: boolean;
         embedding_model: string | null;
         embedding_revision: string | null;
@@ -321,6 +333,14 @@ export async function detectDuplicates(
     // but be explicit so a future drift does not silently mix spaces.
     return { flags: [], skipped: true };
   }
+  const sourceVersion = safeVersion(src.version);
+  if (sourceVersion === null) return { flags: [], skipped: true };
+  const sourceSnapshot: DuplicateSnapshot = {
+    version: sourceVersion,
+    embedding_model: src.embedding_model,
+    embedding_revision: src.embedding_revision,
+    embedding_space: src.embedding_space,
+  };
 
   // contact_phone is intentionally NOT selected: the detection path never uses
   // it (BR-021 forbids phone from being a profile field). Fetching less data
@@ -329,7 +349,8 @@ export async function detectDuplicates(
   // the same_phone path (opt-in, never produced by this detector) compares
   // source vs candidate.
   const poolRes = await db.query(
-    `SELECT id, (embedding <=> (SELECT embedding FROM cases WHERE id = $1)) AS distance,
+    `SELECT id, version, embedding_model, embedding_revision, embedding_space,
+            (embedding <=> (SELECT embedding FROM cases WHERE id = $1)) AS distance,
             child_name, age_years, age_min, age_max, sex, district_code,
             event_at, event_at_lower, event_at_upper
      FROM cases
@@ -368,6 +389,11 @@ export async function detectDuplicates(
 
   const flags: DuplicateFlag[] = [];
   for (const row of poolRes.rows as Array<Record<string, unknown>>) {
+    const candidateVersion = safeVersion(row.version);
+    if (candidateVersion === null ||
+        typeof row.embedding_model !== "string" ||
+        typeof row.embedding_revision !== "string" ||
+        typeof row.embedding_space !== "string") continue;
     const distance = Number(row.distance);
     // pgvector cosine distance is NaN for a zero vector; NaN < threshold is
     // false so without this guard the pair would be flagged with score NaN.
@@ -400,8 +426,20 @@ export async function detectDuplicates(
         candidate_id: candidate.id,
         rule,
         score: Math.round(similarity * 100),
+        source_snapshot: sourceSnapshot,
+        candidate_snapshot: {
+          version: candidateVersion,
+          embedding_model: row.embedding_model,
+          embedding_revision: row.embedding_revision,
+          embedding_space: row.embedding_space,
+        },
       });
     }
   }
   return { flags, skipped: false };
+}
+
+function safeVersion(value: unknown): number | null {
+  const version = typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN;
+  return Number.isSafeInteger(version) && version > 0 ? version : null;
 }
