@@ -296,10 +296,13 @@ export function ReviewFields({ record, locale, errors, onEdit, onApprox, onBatch
   }
 
   const hasExtraSource = record.sourceText !== record.draft.source_text;
+  // A failed first extraction has no sourced values, so no per-field source
+  // panel can show the parent's words. Keep them visible in a single panel.
+  const needsOriginalSource = record.sourceText.trim().length > 0 && Object.keys(record.draft.evidence).length === 0;
   return <div className="flex flex-col gap-4">
     {cards.map((card) => card.kind === "age" ? <div key="age">{renderAge()}</div> : card.kind === "time" ? <div key="time">{renderTime()}</div> : <div key={card.path}>{renderSingle(card.path)}</div>)}
-    {hasExtraSource && <section className="rounded-lg border border-hairline bg-card p-4">
-      <p className="mb-1 text-body-lg font-medium text-body">{t.reviewExtraSource}</p>
+    {(hasExtraSource || needsOriginalSource) && <section className="rounded-lg border border-hairline bg-card p-4">
+      <p className="mb-1 text-body-lg font-medium text-body">{hasExtraSource ? t.reviewExtraSource : t.reviewSource}</p>
       <p lang={textLang(record.sourceText)} className="whitespace-pre-wrap break-words text-body-lg text-body">{record.sourceText}</p>
     </section>}
   </div>;
