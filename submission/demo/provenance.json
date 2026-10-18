@@ -1,0 +1,72 @@
+{
+  "generated_at": "2026-10-18T09:24:32.901Z",
+  "source_git_sha": "9155963d677d987a9aaa64bc00b74b1ec0a7292e",
+  "raw_duration_seconds": 13.64,
+  "target_duration_seconds": 105,
+  "capture_script_sha256": "eb2b295297c076f9c456dac82fe236bd988775e64c4f899d92deffa4c155d1b2",
+  "pts_factor": 7.111437,
+  "output_duration_seconds": 105,
+  "output_size_bytes": 864854,
+  "beat_names": [
+    "seed actors",
+    "browser open",
+    "title screen",
+    "form filled",
+    "review ticked",
+    "status page",
+    "sign-in",
+    "officer review seeded",
+    "reject prompt",
+    "confirm open",
+    "confirm dialog",
+    "confirmed",
+    "closed",
+    "counts"
+  ],
+  "proof_files": [
+    {
+      "name": "01-home.png",
+      "sha256": "adb2c0279d0f22aaf24cd005322196100c0e4c376bd1c6b0520c2c9c458afb76",
+      "bytes": 65858
+    },
+    {
+      "name": "02-form-filled.png",
+      "sha256": "0f23a618c3989c95ad2d6195e1c209eb83bcc9158dea45ba0aff17cc96ada0e4",
+      "bytes": 40103
+    },
+    {
+      "name": "04-status.png",
+      "sha256": "6d46cb411195475880fbb155cc155c5ce7fa3f08bf50d409a96bdc9ce3d228fd",
+      "bytes": 33312
+    },
+    {
+      "name": "06-officer-review.png",
+      "sha256": "81b041614a5f6795c74c524ff2395692190faca6dedd52035ba2cb4f78e1a783",
+      "bytes": 60426
+    },
+    {
+      "name": "09-confirm-dialog.png",
+      "sha256": "a8f55609276bcdb8f319723dfee85c5c04a09ba9cb34298238bcbaae62f016a1",
+      "bytes": 62145
+    },
+    {
+      "name": "10-confirmed.png",
+      "sha256": "6441367608aec39594c0a8b06540aa91ce6a3e2472bde65f916e04ddf64bff12",
+      "bytes": 45489
+    },
+    {
+      "name": "11-closed.png",
+      "sha256": "77c85a2069a8f01b70922adea98df4742978b0788892f0620e6480a0a64a44d9",
+      "bytes": 58719
+    },
+    {
+      "name": "12-counts.png",
+      "sha256": "a6b4a3cafc35c0d6ed244723f23aba29755ea1bab3464b3a75d4c6cf2218f1bb",
+      "bytes": 54348
+    }
+  ],
+  "final_mp4_sha256": "1403d679c454712016cec949047c22a0e3bc118752e0f64bc0fa190faf4aaae6",
+  "synthetic": true,
+  "release_metrics_measured": false,
+  "round2_submitted": false
+}
