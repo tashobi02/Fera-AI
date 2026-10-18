@@ -62,31 +62,31 @@ Cut order if short ([D6 §11](../spec/D6_Implementation_Plan_V2.md#11-recommenda
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | TASK-047 | 13219 summary ≤ 80 words (FR-010) | Codex | TASK-023 | 1 | TC-007 passes | `review` | `phase2--obidit-helpline` (stacked on #15) | TC-007 passes at service level: ≤80 words incl. worst case; tests in tests/outputs/ |
-| TASK-049 | Edit after submit + API-005 + S-006 (FR-029, BR-025) | Claude Code + `impeccable` | TASK-022 | 4 | TC-018 passes | `todo` | | |
-| TASK-050 | Parent status API-018 (FR-030) | Codex | TASK-049 | 1 | TC-019 passes | `todo` | | |
-| TASK-035 | Bangla copy review; every empty/error/loading state | Claude Code + `bengali-reviewer` | TASK-030 | 3 | Every E-xxx shows bn + en text | `todo` | | |
-| TASK-040 | WER run on the 60 clips | Codex | TASK-014 | 3 | WER in report | `todo` | | |
-| VIDEO-PREP | Capture video shots for TASK-045 (D7 §3.1) | human | TASK-042 | — | Raw shots stored | `todo` | | |
+| TASK-049 | Edit after submit + API-005 + S-006 (FR-029, BR-025) | Claude Code + `impeccable` | TASK-022 | 4 | TC-018 passes | `review` | `283abe8` (`phase3-finish--review-fixes`) | Code-complete in integration at `f25de23`; `impeccable-finish-reviewer` re-run records B3a-c BLOCK on `review-screen.tsx:324`, `manual-form.tsx:296`, `edit-mode-screen.tsx:333` (`window.confirm` on Bangla screen) and B8 (focus-grab) — TASK-049 itself is not blocked, but these review findings need a follow-up Puku cycle before integration is claimed done. |
+| TASK-050 | Parent status API-018 (FR-030) | Codex | TASK-049 | 1 | TC-019 passes | `review` | `7027618` (`phase3-finish--ui-corrections`) | Code-complete in integration at `f25de23`; `fera-safeguarding-reviewer` re-run BLOCK records ownerCaseViewSchema still exposes `matching_state` enum (`src/contracts/schemas.ts:106`, `src/contracts/fera_types_v2.ts:431`) — TASK-050 is not blocked on its own scope, but the parent-DTO scope is. |
+| TASK-035 | Bangla copy review; every empty/error/loading state | Claude Code + `bengali-reviewer` | TASK-030 | 3 | Every E-xxx shows bn + en text | `doing` | partial at `f25de23`; `bengali-reviewer` re-run APPROVE with one LOW (missing trailing newline on `locales/areas/parent-status.ts:104` and `staff-disaster.ts:26`); human Bangla review H-6 still UNKNOWN |
+| TASK-040 | WER run on the 60 clips | Codex | TASK-014 | 3 | WER in report | `todo` | | H-4 (60 clips) UNKNOWN; eval:wer prints "not measured" |
+| VIDEO-PREP | Capture video shots for TASK-045 (D7 §3.1) | Puku / coordinator | Local synthetic build | — | Actual local MP4 | `review` | 27bb3c6 | submission/demo/final.mp4; 105.000 s, captions/provenance verified; Drive and production acceptance pending |
 
 ## Tasks — Masnun
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| TASK-048 | Synthetic fixture import + API-015 (FR-024) | Codex + `security-reviewer` | TASK-020 | 3 | TC-014 passes (injection yields schema fields only; no URL fetch) | `todo` | | |
-| TASK-051 | S-014 duplicate review (FR-023) | Claude Code + `impeccable` | TASK-018 | 3 | Mark same/different works | `todo` | | |
-| TASK-052 | S-015 disaster mode, labelled as planned (FR-036) | Claude Code | TASK-026 | 2 | TC-035 passes | `todo` | | |
-| TASK-036 | Test on 2 Android phones: Bangla, mic, 360 px | human | TASK-030 | 2 | Checklist signed in `docs/device-test.md` | `todo` | | |
-| TASK-039 | Eval harness: dev run → held-out run after manifest/model freeze | Codex + `mle-reviewer` | TASK-011, 017, 018, 064 | 5 | TC-020 passes; report committed | `todo` | | |
-| TASK-060 | Performance check vs D2 Part B §12.1 | Codex | TASK-042 | 2 | TC-034 results in report (met or reported as missed) | `todo` | | |
-| TASK-043 | Final frozen evaluation on the prod build — **by 15:45** | Codex + `mle-reviewer` | TASK-042, 039, 040, 041, 060 | 2 | Cache-disabled report: all metrics, denominators, failures, commit/model/manifest hashes | `todo` | | |
+| TASK-048 | Synthetic fixture import + API-015 (FR-024) | Codex + `security-reviewer` | TASK-020 | 3 | TC-014 passes (injection yields schema fields only; no URL fetch) | `review` | `phase3-finish--admin-import` (worktree at `f25de23`, unmerged) | Code-complete; `security-reviewer` re-run PASS confirms the API-015 admin-only synthetic sample texts only and `limit.ts` hasPaidLimits gate. Awaiting coordinator integration. |
+| TASK-051 | S-014 duplicate review (FR-023) | Claude Code + `impeccable` | TASK-018 | 3 | Mark same/different works | `review` | `phase3-finish--duplicates-review` (worktree at `f25de23`, unmerged) | Code-complete; `react-reviewer` re-run W4 lane inherits prior PASS for `duplicate-review.tsx`. Awaiting coordinator integration. |
+| TASK-052 | S-015 disaster mode, labelled as planned (FR-036) | Claude Code | TASK-026 | 2 | TC-035 passes | `review` | code at `f25de23`; `impeccable-finish-reviewer` re-run does not flag this card | Code-complete; no full e2e TC-035 cited in the audit transcripts. |
+| TASK-036 | Test on 2 Android phones: Bangla, mic, 360 px | human | TASK-030 | 2 | Checklist signed in `docs/device-test.md` | `todo` | | H-3 UNKNOWN; browser emulation is not a physical-device pass |
+| TASK-039 | Eval harness: dev run → held-out run after manifest/model freeze | Codex + `mle-reviewer` | TASK-011, 017, 018, 064 | 5 | TC-020 passes; report committed | `review` | `phase3-finish--evaluation` (commit `e125928`, merged into `f25de23`) | Code-complete at `f25de23`; dev report `eval/reports/phase3-dev-2026-10-18.{md,json}` present; `mle-reviewer` re-run file is EMPTY (0 bytes) — do not claim a fresh MLE verdict. Held-out is locked until FREEZE_FLAG SET (H-4, H-5). |
+| TASK-060 | Performance check vs D2 Part B §12.1 | Codex | TASK-042 | 2 | TC-034 results in report (met or reported as missed) | `todo` | | no verified production deployment to measure |
+| TASK-043 | Final frozen evaluation on the prod build — **by 15:45** | Codex + `mle-reviewer` | TASK-042, 039, 040, 041, 060 | 2 | Cache-disabled report: all metrics, denominators, failures, commit/model/manifest hashes | `todo` | | FREEZE_FLAG NOT SET; held-out not run; 50 extraction labels L001–L050 have no canonical manifest mapping |
 
 ## Tasks — Mahim (lead)
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| TASK-034 | A11y: axe + keyboard + 320 px reflow, 200 % text, 400 % zoom | Claude Code + `a11y-architect` | TASK-030 | 3 | TC-033: 0 serious/critical, light and dark | `todo` | | |
-| TASK-037 | Unit tests: normaliser, matcher, state guard, wording guard | Codex + `tdd-guide` | TASK-017 | 4 | ≥ 60 tests, CI green | `todo` | | |
-| TASK-038 | Playwright essential journey + safeguarding TCs (tag `@gate-G2` / `@gate-G4`) | Claude Code + `e2e-runner` | TASK-030, 032, 059 | 5 | TC-001–066 app/service checks where applicable; companion-only results kept separate | `todo` | | |
-| TASK-041 | Timing study, ≥5 testers, assistant vs manual form | human | TASK-025 | 3 | `eval/data/timing.csv`; median in report | `todo` | | |
-| TASK-042 | Production deploy + managed DB seed + smoke — **by 15:00** | Claude Code | TASK-038 | 2 | `npm run smoke` passes on prod; tag `r2-freeze` | `todo` | | |
+| TASK-034 | A11y: axe + keyboard + 320 px reflow, 200 % text, 400 % zoom | Claude Code + `a11y-architect` | TASK-030 | 3 | TC-033: 0 serious/critical, light and dark | `doing` | partial at `f25de23`; full sweep across S-001–S-005, S-007–S-013, S-016 in light + dark not yet run; `a11y-architect` re-run INCOMPLETE_RUN (0.67s, 5 turns, no verdict) — must re-run before TC-033 can be claimed. |
+| TASK-037 | Unit tests: normaliser, matcher, state guard, wording guard | Codex + `tdd-guide` | TASK-017 | 4 | ≥ 60 tests, CI green | `review` | integration at `f25de23`; `npm test` 3,642 pass / 308 skipped across 169 files / 28 skipped; D6 target ≥ 60 met by count; skip-allowed cases should be re-checked before claiming | Code-complete in integration. `typescript-reviewer` re-run BLOCK is on the matcher N+1 hot path, not on the test count; the matcher N+1 must be fixed for D6's "verify matcher runs cleanly" acceptance, which is not yet demonstrated. |
+| TASK-038 | Playwright essential journey + safeguarding TCs (tag `@gate-G2` / `@gate-G4`) | Claude Code + `e2e-runner` | TASK-030, 032, 059 | 5 | TC-001–066 app/service checks where applicable; companion-only results kept separate | `review` | integration at `f25de23`; `npm run test:e2e` 18 pass / 8 file-skip; `p3-finish-journeys` worktree carries additional e2e specs awaiting coordinator integration | Code-complete for current set; the journeys worktree will change the final e2e count once integrated. Baseline = 18 / 8 skip; final = awaitfinal. |
+| TASK-041 | Timing study, ≥5 testers, assistant vs manual form | human | TASK-025 | 3 | `eval/data/timing.csv`; median in report | `todo` | | H-5 UNKNOWN; eval:time prints "not measured" |
+| TASK-042 | Production deploy + managed DB seed + smoke — **by 15:00** | Claude Code | TASK-038 | 2 | `npm run smoke` passes on prod; tag `r2-freeze` | `todo` | | no managed DB applied; no production smoke; no `r2-freeze` tag; needs H-8 go-ahead |
 
 ## Shared
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / commit | Evidence |

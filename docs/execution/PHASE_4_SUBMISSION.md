@@ -1,8 +1,10 @@
 # Phase 4 — Round 2 submission · Gate G5
 
+> Final snapshot — 18 Oct 2026: application source `9155963`; build/typecheck/lint PASS (51 lint warnings, five build warnings); 3,693 unit pass/308 skip; 320 DB pass; 78 browser pass/zero skip. Full remote CI passed. The seven-slide deck (`ed3bfe6`) and actual 105-second local video (`27bb3c6`) are prepared and reviewed. Audit documents are committed separately. Round 2 is not submitted. Human evidence, production acceptance, frozen quality, organiser instructions, Drive and private-repository sharing remain unresolved. Phase 5 handoff is prepared, not started.
+
 **Window:** Wed 14 Oct 2026, 16:00 → 21:00 (Asia/Dhaka). Working cutoff baseline **22:00**; organiser extension date/time UNKNOWN · **Gate:** G5 · **Plan:** [EXECUTION_PLAN.md](EXECUTION_PLAN.md#phase-4--submission-wed-14-oct-1600--2100--gate-g5) · **Prev:** [Phase 3](PHASE_3_FULL_SCOPE_QUALITY.md) · **Next:** [Phase 5–6](PHASE_5_BUFFER_FINALE.md)
-**Phase status:** `todo`
-**Last updated:** 2026-10-13 · tasks distributed among Obidit, Masnun and Mahim; lead = Mahim
+**Phase status:** `doing` (deliverable preparation may finish; release blocked — see audit). Phase 4 deliverables prepared and integrated at `27bb3c6`: 7 editable PPTX + PDF slides, the **actual recorded local demo** at `submission/demo/final.mp4` (105.000 s, 1280×720, H.264, eight proof PNGs, captions/provenance validated; typed flow + explicit seeded officer scenario, **no real voice**; verified in `/tmp/fera-demo-verified.log`), scripts, metrics, and links; an independent SG artifact review returned PASS at `/tmp/fera-disposition-submission.json` (`64 claims PASS, 0 FAIL`). A separate storyboard preview in `submission/round2` is **not** the actual demo. **Round 2 NOT submitted as of 18 Oct (user-confirmed).** G3 / G4 / G5 FAIL / UNVERIFIED because no human / production / official receipt and no `r2-freeze` tag (or rebaselined name) exist.
+**Last updated:** 2026-10-18 · tasks distributed among Obidit, Masnun and Mahim; lead = Mahim · audit: [PHASE_3_AUDIT_2026-10-18.md](PHASE_3_AUDIT_2026-10-18.md); final review disposition: [phase3-finish-review.md](evidence/phase3-finish-review.md); handoff: [PHASE_5_HANDOFF.md](handoff/PHASE_5_HANDOFF.md); gates: [G3-2026-10-18.md](../gates/G3-2026-10-18.md), [G4-2026-10-18.md](../gates/G4-2026-10-18.md), [G5-2026-10-18.md](../gates/G5-2026-10-18.md)
 **Team:** **Obidit** — intake, AI, outputs · **Masnun** — data, matching, officer workflow, dashboard, evaluation · **Mahim** — lead; platform, integration, release (named "Sadman" in AGENTS.md and the spec pack; D6 owner code S). Tasks follow [EXECUTION_PLAN.md](EXECUTION_PLAN.md). The lead approves cuts and reschedules, records organiser and mentor decisions, and runs `fera-gate`.
 
 ---
@@ -50,20 +52,20 @@ This is a living tracker. Every agent working on a task in this phase updates it
 ## Tasks — Obidit
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / link | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| TASK-045 | Round 2 video, 1–2 min, per [D7 §3.1](../spec/D7_Closing_Pack_V2.md#31-round-2-video-proposed-145); English captions over Bangla UI | human | TASK-042 | 4 | Working 1–2 min MP4; compressed/cached timings labelled | `todo` | | |
+| TASK-045 | Round 2 video, 1–2 min, per [D7 §3.1](../spec/D7_Closing_Pack_V2.md#31-round-2-video-proposed-145); English captions over Bangla UI | human | TASK-042 | 4 | Working 1–2 min MP4; compressed/cached timings labelled | `review` | 27bb3c6; submission/demo/final.mp4 | Verified **actual recorded local synthetic film** at `submission/demo/final.mp4`: 105.000 s, 1280×720, H.264, eight proof PNGs, captions/provenance validated; independent JS / security / safeguarding PASS. Timing edited; seeded officer scenario explicit; **no real voice**, typed flow. Production acceptance remains blocked. The separate storyboard preview in `submission/round2` is not the actual demo. |
 
 ## Tasks — Masnun
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / link | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| METRIC-FIGS | Metric figures + failure examples for the deck, from the frozen report | Codex | TASK-043 | — | Figures in deck, each with denominator and source | `todo` | | |
-| README-EVAL | README evaluation section | Claude Code + `doc-updater` | TASK-043 | — | Section merged; numbers match the frozen report | `todo` | | |
-| LINK-CHECK | Repo, deck, video and every link open logged-out, in a private window | human | TASK-046 | — | Checked list with timestamps | `todo` | | |
+| METRIC-FIGS | Metric figures + failure examples for the deck, from the frozen report | Codex | TASK-043 | — | Figures in deck, each with denominator and source | `blocked` | submission/round2/metrics.md | Release metrics say not measured. Original dev diagnostic linked with denominators/failures; reviewed labels/freeze/production measurements remain absent. |
+| README-EVAL | README evaluation section | Claude Code + `doc-updater` | TASK-043 | — | Section merged; numbers match the frozen report | `review` | README.md; eval/reports/phase3-dev-2026-10-18.md | Evaluation status documented with dev-only provenance and poor duplicate precision 12/302; no frozen-release claim. |
+| LINK-CHECK | Repo, deck, video and every link open logged-out, in a private window | human | TASK-046 | — | Checked list with timestamps | `blocked` | GitHub visibility readback; 18 Oct browser check | Repository PRIVATE; organiser access unverified. Drive unsigned in available browser, no upload connector/folder. No logged-out or post-send access PASS. |
 
 ## Tasks — Mahim (lead)
 | ID | Task | Tool | Deps | h | Done when (D6) | Status | PR / link | Evidence |
 |---|---|---|---|---|---|---|---|---|
-| TASK-044 | Round 2 deck, 5–8 slides, incl. metrics slide and [MOCK] items marked | any + `fera-safeguarding-reviewer` | TASK-043 | 4 | Working 5–8-slide deck; honest measured/pending labels | `todo` | | |
-| TASK-046 | README, Drive folder (links TXT, deck, video), **reply to the selection email by 21:00** | human (+ `doc-updater` for README) | TASK-044, 045 | 1 | Email sent with Drive link before 21:00; links accessible | `todo` | | |
+| TASK-044 | Round 2 deck, 5–8 slides, incl. metrics slide and [MOCK] items marked | any + `fera-safeguarding-reviewer` | TASK-043 | 4 | Working 5–8-slide deck; honest measured/pending labels | `review` | ed3bfe6; submission/round2/fera-round2-deck.pptx | Seven editable slides plus PDF; all release metrics not measured; 64 automated claims checks and independent safeguarding wording review PASS. |
+| TASK-046 | README, Drive folder (links TXT, deck, video), **reply to the selection email by 21:00** | human (+ `doc-updater` for README) | TASK-044, 045 | 1 | Email sent with Drive link before 21:00; links accessible | `blocked` | Local reviewed link/deck/video pack prepared | Round2 not submitted. No Drive authentication/folder, confirmed organiser cutoff/channel/recipient, actual email or receipt. Private repository sharing unresolved. |
 
 Order: Masnun's METRIC-FIGS → Mahim's TASK-044 deck; Obidit's TASK-045 video + Mahim's deck → Mahim's TASK-046; Masnun's LINK-CHECK runs once before sending and again after.
 

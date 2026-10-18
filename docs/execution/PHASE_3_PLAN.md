@@ -806,64 +806,92 @@ Status values: `todo` · `doing` · `review` · `done` · `blocked` · `cut`.
 | P3-002 | (TASK-023) | Obidit | Claude Code Haiku 5.5 | `done` | [merged PR #38](https://github.com/tashobi02/Fera-AI/pull/38) · `42c2d0f` merged into `phase-3-obidit` | Approved D-A; wording-guard tests 58/58; exact bn/en disclaimer copy pinned; Bengali, TS, safeguarding reviews PASS. Full merged suite green. This card alone does not complete TASK-023. |
 | P3-003 | (TASK-024) | Mahim | Claude Code Haiku 5.5 | `done` | [merged PR #38](https://github.com/tashobi02/Fera-AI/pull/38) · `13fa187` merged into `phase-3-obidit` | Approved D-A; parent-screen tests 70/70; security, TS, safeguarding reviews PASS after fail-closed media scan fixes. Full merged suite green. This card alone does not complete TASK-024. |
 | P3-004 | (TASK-014) | Mahim | Claude Code Haiku 5.5 | `done` | [merged PR #38](https://github.com/tashobi02/Fera-AI/pull/38) · `12317b5` merged into `phase-3-obidit` | Focused auth 18/18; scoped safeguarding/security/TS reviews PASS. After all Wave 0.0 merges: lint, typecheck, `npm test` (2,959 passed, 191 skipped), `test:db` (10 files), and Turbopack build exit 0. This card alone does not complete TASK-014. |
-| P3-005 | TASK-020 | Mahim | puku | `todo` | | GATED OD-020-3; no recorded decision found in locally available Mahim branches. |
+| P3-005 | TASK-020 | Mahim | puku | `review` | merged `9fa444d` (test(integ) readiness + approved metadata counter); merged `283abe8` (fix(intake) initialize inside guarded routes and preserve postcommit success); see [audit/§3.5a](PHASE_3_AUDIT_2026-10-18.md) for batch + price-cause fix verified | `follow_up_round smallint NOT NULL DEFAULT 0 CHECK (follow_up_round BETWEEN 0 AND 4)` lands at `db/schema_v2.sql`; integration DB test passes; typescript-reviewer PASS after batch + price-cause fix; metadata counter pinned in test |
 | P3-010 | TASK-010 | Masnun | puku | `blocked` | isolated draft `d5371b6`; not merged | MLE review BLOCK after two Puku rounds: five found ages violate DB constraint, unknown age absent, decoys do not exercise BR-017 hard filters, ground truth incomplete, five shared-phone distinct-child pairs mislabelled duplicates. |
 | P3-011 | TASK-004 | Masnun | puku | `done` | [merged PR #38](https://github.com/tashobi02/Fera-AI/pull/38) · `9500910` merged into `phase-3-obidit` | [Embedding spike](evidence/embedding-spike.md): 20 synthetic bn/en texts, 384-d; MLE review PASS after correction. Hosted viability remains UNKNOWN; this card does not complete all TASK-004 deployment evidence. |
 | P3-012 | TASK-011 | Masnun | agy + HUMAN | `blocked` | no edits in `/tmp/fera-p3-012` | agy CLI denied its headless command permission. Automatic approval review rejected the requested permission-bypass flag. Exact executor retained; 50 synthetic texts and human labels remain undone. |
-| P3-013 | TASK-025 | Mahim | puku | `todo` | | OD-022-5 decided in Mahim commit `c1269e7`; S-005 draft `2fbb8d0` is on an unmerged Mahim branch. Reconcile that work and its review before this card starts or is counted done. |
+| P3-013 | TASK-025 | Mahim | puku | `review` | merged in `9155963` lineage (S-005 `/intake/form` route, manual-form.tsx, tests; e2e parent journey covers it) | OD-022-5 superseded by S-005 implementation + tests; manual-form keeps typed values and re-opens on provider failure; e2e journey covers manual form path; localized dialogs merged at `b352cda` (TASK-034 / TASK-035) replacing the prior "planned" label and the window.confirm false finding |
 | P3-014 | TASK-038 | Mahim | puku | `done` | [merged PR #38](https://github.com/tashobi02/Fera-AI/pull/38) · `9de0d5c` merged into `phase-3-obidit` | `npm run test:e2e` 4/4 PASS on a fresh local synthetic DB, including Turbopack build; `npm test` excludes e2e. TS/safeguarding review PASS. Added dev dependencies `@playwright/test` ^1.64.1 (browser runner) and `@axe-core/playwright` ^4.14.0 (a11y scan). Harness only; TASK-038 journeys remain; CI E2E is manual-only. |
 | P3-015 | TASK-022 | Obidit | puku | `done` | [merged PR #38](https://github.com/tashobi02/Fera-AI/pull/38) · `c74381b` merged into `phase-3-obidit`; clean-branch fixes `f416cc4`, `c11dd76` | Searchable, clearable bilingual district list with aliases and result announcement; 44/44 focused tests; React/Bengali/a11y re-reviews PASS; 44px helpline and submitted-report link; refreshed [360 px screenshot](evidence/screenshots/p3-015-review-360.png). |
 | P3-016 | TASK-029 | Mahim | puku | `done` | [merged PR #38](https://github.com/tashobi02/Fera-AI/pull/38) · `2de934c` plus malformed-ID fix merged into `phase-3-obidit` | API tests 6/6, isolated DB tests 12/12, full `test:db` 11 files PASS; security, safeguarding, database and TS reviews PASS. Role DTOs and persisted E-004 denied-access audit, including malformed IDs, verified. This card alone does not complete TASK-029. |
-| P3-017 | TASK-014 | Obidit | puku | `todo` | | GATED OD-014-7; no recorded decision found in locally available Mahim branches. |
-| P3-018 | TASK-029 | Mahim | puku | `blocked` | isolated drafts `33c9017`, `7a9fadb`; neither merged | Puku CLI Opus 4.8 repaired response/fixture typing; integrator schema-parse fix made typecheck PASS. `npm test -- tests/api/case-close.test.ts` fails because this DB-backed test runs in the unit suite without `DATABASE_URL`; local `test:db` fails 7 audit-read tests (`audit_log.at` fixture shape). The reader also fetches audit rows before applying the role guard. No PR until these are fixed and DB/safeguarding review passes. |
-| P3-019 | TASK-029 | Mahim | puku | `todo` | | |
-| P3-020 | TASK-020 | Obidit | puku | `todo` | | GATED OD-020-3 and P3-005; no recorded decision found in locally available Mahim branches. |
-| P3-021 | TASK-025 | Obidit | haiku | `todo` | | |
-| P3-022 | TASK-064 | Masnun | puku | `todo` | | |
-| P3-023 | TASK-019 | Masnun | puku | `todo` | | |
-| P3-024 | TASK-016 | Masnun | puku | `todo` | | |
-| P3-030 | TASK-017 | Masnun | puku | `todo` | | |
-| P3-031 | TASK-017 | Masnun | puku | `todo` | | |
-| P3-032 | TASK-017 | Masnun | agy | `todo` | | |
-| P3-033 | TASK-018 | Masnun | puku | `todo` | | |
-| P3-034 | TASK-027 | Masnun | puku | `todo` | | |
-| P3-035 | TASK-021 | Obidit | puku | `todo` | | |
-| P3-040 | TASK-017 | Masnun | puku | `todo` | | |
-| P3-041 | TASK-030 | Masnun | puku | `todo` | | |
-| P3-043 | TASK-033 | Obidit | puku | `todo` | | |
-| P3-050 | TASK-030 | Masnun | puku | `todo` | | |
-| P3-101 | TASK-047 | Obidit | haiku | `todo` | | |
-| P3-102 | TASK-049 | Obidit | puku | `todo` | | |
-| P3-103 | TASK-049 | Obidit | puku | `todo` | | |
-| P3-104 | TASK-050 | Obidit | puku | `todo` | | |
-| P3-105 | TASK-048 | Masnun | puku | `todo` | | |
-| P3-106 | TASK-048 | Mahim | agy | `todo` | | |
-| P3-107 | TASK-051 | Masnun | puku | `todo` | | |
-| P3-108 | TASK-052 | Masnun | agy | `todo` | | |
-| P3-109 | TASK-056 | all | — | `todo` | | list not filled (R-7) |
-| P3-201 | TASK-034 | Mahim | agy | `todo` | | |
-| P3-202 | TASK-035 | Obidit | agy | `todo` | | |
-| P3-203 | TASK-035 | Obidit | agy | `todo` | | |
-| P3-204 | TASK-037 | Mahim | agy | `todo` | | |
-| P3-205 | TASK-038 | Mahim | puku | `todo` | | |
-| P3-206 | TASK-038 | Mahim | puku | `todo` | | |
-| P3-207 | TASK-038 | Mahim | puku | `todo` | | |
-| P3-208 | TASK-038 | Mahim | puku | `todo` | | |
-| P3-209 | TASK-038 | Mahim | agy | `todo` | | |
-| P3-210 | TASK-039 | Masnun | puku | `todo` | | |
-| P3-211 | TASK-039 | Masnun | puku | `todo` | | |
-| P3-212 | TASK-039 | Masnun | agy | `todo` | | |
-| P3-213 | TASK-042 | Mahim | agy | `todo` | | |
-| P3-214 | TASK-039 | Masnun | agy | `todo` | | |
-| P3-215 | TASK-034 | owners | agy / puku | `todo` | | |
-| P3-216 | TASK-040 | Obidit | agy | `todo` | | needs clips (HUMAN) |
-| P3-217 | TASK-039 | Masnun | puku | `todo` | | |
-| P3-301 | TASK-042 | Mahim | haiku + HUMAN | `todo` | | needs go-ahead |
-| P3-302 | TASK-060 | Masnun | puku | `todo` | | |
-| P3-303 | TASK-043 | Masnun | puku | `todo` | | |
-| P3-304 | G4 | Mahim | luna | `todo` | | |
-| HUMAN | TASK-003 | Obidit | HUMAN | `todo` | | |
-| HUMAN | TASK-036 | Masnun | HUMAN | `todo` | | |
-| HUMAN | TASK-040 clips | Obidit | HUMAN | `todo` | | |
-| HUMAN | TASK-041 | Mahim | HUMAN | `todo` | | |
-| HUMAN | VIDEO-PREP | Obidit | HUMAN | `todo` | | |
+| P3-017 | TASK-014 | Obidit | puku | `review` | merged in `283abe8` + `9155963` (intake transcribe route + drafts) | Blueprint §2/§4 implemented; `x-fera-provider-notice: v1` required before dispatch; six-call cap; blueprint tests pass; typescript-reviewer PASS after batch + price-cause fix; SFH narrow notice-log fix at `2d8c921`/`9155963` |
+| P3-018 | TASK-029 | Mahim | puku | `review` | merged in `9155963` lineage (case-close + audit-read routes, integration tests in `tests/db/case-close-route.test.ts` and `tests/db/case-audit-read.test.ts`/`case-audit-route.test.ts`); superseded old `33c9017`/`7a9fadb` drafts | DB tests 11 pass on `/tmp/fera-complete-db.log`; full 30-file DB suite 320 tests pass; `database-reviewer` PASS after SQLSTATE + typed tests fix (`/tmp/fera-final-audit-review-database-reviewer.json`); registry B5' narrow fix followed by SAFE notice-log diagnostic at `2d8c921`/`9155963` (orchestrator try/catch wraps `log.error`; allowlisted fields only) |
+| P3-019 | TASK-029 | Mahim | puku | `review` | merged in `9155963` lineage (`/officer/case/[id]` page, close-form, audit-list; tests) | Officer DTO from API-004; close with two-step confirm and simulation copy; audit list from API-013; cross-role denial tests pass; e2e officer journey covers close; focus + descriptions fixed at `9468201` |
+| P3-020 | TASK-020 | Obidit | puku | `review` | merged in `9155963` (intake extract route + orchestrator + drafts); `ea4b640` (persist metadata and reserve each adapter attempt); `2d8c921` (diagnose rejected provider notices safely); tests `tests/intake/orchestrator.test.ts` and `tests/api/intake-extract.test.ts` | P3-005 metadata counter wired in; per-attempt branded reservation; provider notice required; spend refusal → E-023; typescript-reviewer PASS after batch + price-cause fix; SFH PASS after narrow notice-log fix (try/catch wraps `log.error`; allowlisted fields only) |
+| P3-021 | TASK-025 | Obidit | haiku | `review` | merged in `9155963` lineage (manual-form link in intake-chat/review-screen replaces "planned" label) | No "planned" label left for the form; S-002/S-003 carry a real `/intake/form` link; localized dialogs merged at `b352cda` (TASK-034 / TASK-035) |
+| P3-022 | TASK-064 | Masnun | puku | `review` | merged (`eval/manifest.mjs`, `data/synthetic/manifest.json`, `tests/data/manifest.test.ts`) | dev/test split committed; no identity group across splits; eval inputs verifiable from `eval/data/dev-{match,dedupe}.jsonl` |
+| P3-023 | TASK-019 | Masnun | puku | `review` | merged (`db/seed/{index,cases}.mjs`, `tests/db/seed-cases.test.ts`) | `--set demo` and `--set full` load labelled synthetic records; idempotent; local-DB guard enforced |
+| P3-024 | TASK-016 | Masnun | puku | `review` | merged (`src/server/embeddings/{index,model}.ts`, `scripts/{reembed,model-fetch}.mjs`, embedding tests) | Pinned `Xenova/multilingual-e5-small` q8 (revision `761b726d…`) with 384-d HNSW; runtime refuses `allowRemote: true`; SHA-256 hashes recorded at materialisation |
+| P3-030 | TASK-017 | Masnun | puku | `review` | merged (`src/server/matching/filters.ts`, `tests/match/filters.test.ts`, `tests/db/match-filters.test.ts`) | TC-039/TC-040 cases pass; eligibility SQL check returns 0 violations on the synthetic set; database-reviewer PASS |
+| P3-031 | TASK-017 | Masnun | puku | `review` | merged (`src/server/matching/score.ts`, `tests/match/score.test.ts`) | National cosine + bonuses → similarity; qualify threshold from one config constant; empty shortlist allowed; TC-041 (empty shortlist) passes; dev report scores reflect this |
+| P3-032 | TASK-017 | Masnun | agy | `review` | merged (`src/server/matching/reasons.ts`, `tests/match/reasons.test.ts`) | Fixed templates per field comparison (agree/differ/unknown); returns keys, not sentences; wording guard passes on every template |
+| P3-033 | TASK-018 | Masnun | puku | `review` | merged in `9155963` lineage (`src/server/duplicates/{index,detect,persist,decision}.ts`, `tests/db/duplicates.test.ts`) | TC-013/TC-038 pass; merged `970644a` await duplicate hooks and embed fresh found reports; persisted version-checked flags (`f90ca22`) |
+| P3-034 | TASK-027 | Masnun | puku | `review` | merged (`src/app/(desk)/officer/queue/`, `src/app/api/review-queue/route.ts`, `src/server/matching/queue-read.ts`, tests) | Verified-officer-only; pending candidates ordered by case then similarity; empty state; staff/unverified officer denied; cross-role denial e2e passes |
+| P3-035 | TASK-021 | Obidit | puku | `review` | merged in `9155963` lineage (intake-chat, voice-recorder replace `[MOCK]` fake with calls to API-001/API-002) | E-023 or provider failure opens `/intake/form` with text kept; cached badge shown; e2e parent journey covers it; intake-ui tests pass |
+| P3-040 | TASK-017 | Masnun | puku | `review` | merged in `9155963` lineage (`src/server/matching/run.ts`, `src/app/api/match/[caseId]/route.ts`) | Filters → score → top ≤5 qualified → candidate rows with reasons; matched_pending_review if any; failures leave report saved with visible failed/queued state and retry; matcher N+1 fixed by batch read (`b352cda`-line typescript-reviewer PASS) |
+| P3-041 | TASK-030 | Masnun | puku | `review` | merged (`src/server/dashboard/{index,stats}.ts`, `src/app/api/dashboard/stats/route.ts`, `tests/db/dashboard.test.ts`, `src/app/api/cases/route.ts` GET) | Counts per district by kind and state; one pair counts once; drill-through list for officers; TC-012/TC-055 pass |
+| P3-043 | TASK-033 | Obidit | puku | `review` | merged (`src/server/cache/{index,fixtures}.ts`, fixtures, tests; cache lookup before dispatch in API-001/API-002) | `DEMO_MODE=1` only; keyed by exact scripted input hash; `cached=true` badge; cache hits excluded from eval metrics |
+| P3-050 | TASK-030 | Masnun | puku | `review` | merged (`src/app/(desk)/officer/map/`, district-table, district-map, tests) | Accessible table first (source of truth), then centroid SVG per R-5; drill-through link per district to API-022; no new district-outline data |
+| P3-101 | TASK-047 | Obidit | haiku | `review` | merged (TC-007 ≤80-word test on S-004 card path) | ≤80 words incl. worst case; service-level TC-007 confirmed; word count 77 in the worst case |
+| P3-102 | TASK-049 | Obidit | puku | `review` | merged (API-005 PATCH in `src/app/api/cases/[id]/route.ts`, `src/server/case/edit.ts`, `tests/db/case-edit.test.ts`) | Owner only; allowed in submitted/open/matched_pending_review; new version row; void pending candidates; trigger rematch; confirmed/terminal → E-018 |
+| P3-103 | TASK-049 | Obidit | puku | `review` | merged in `9155963` lineage (S-006 status page + edit form + status-view; tests) | Status badge per OQ-B1-2; edit form only in editable states; localized dialogs merged at `b352cda`; pure hydration preserved (`7027618`) |
+| P3-104 | TASK-050 | Obidit | puku | `review` | merged in `9155963` lineage (API-018 `GET /api/my-case` route + tests; accessible district navigation fix `7027618`) | Parent cookie → own case status label per OQ-B1-2 and own editable fields; never found-case or candidate fields; TC-019 passes |
+| P3-105 | TASK-048 | Masnun | puku | `review` | merged (`src/server/import/{index,import}.ts`, `src/app/api/admin/import/route.ts`, `tests/api/admin-import.test.ts`, `tests/db/admin-import.test.ts`) | Admin only; synthetic sample texts only; runs through the extraction adapter; only schema fields survive; tag `simulated public_import`; never fetch URLs (fetch-spy asserted in test) |
+| P3-106 | TASK-048 | Mahim | agy | `review` | merged (`src/app/(desk)/admin/import-form.tsx`, `src/app/(desk)/admin/page.tsx`, replaces `importPlanned` placeholder) | Paste up to 5 synthetic texts; synthetic label always visible; shows created references; focus + descriptions fixed at `9468201` |
+| P3-107 | TASK-051 | Masnun | puku | `review` | merged (`src/app/(desk)/officer/duplicates/`, `src/server/duplicates/decision.ts`, `src/app/api/duplicates/[id]/decision/route.ts`, tests) | Verified officer marks same/different with a reason; audit row; phone-only link cannot be marked same; neither report hidden; TC-038 passes |
+| P3-108 | TASK-052 | Masnun | agy | `review` | merged (`src/app/(desk)/staff/disaster/page.tsx`, tests) | Planned-extension banner; reuses `found-log-form.tsx` by import; saves a found case through API-007; banner `পরিকল্পিত সম্প্রসারণ` |
+| P3-109 | TASK-056 | all | — | `blocked` | list not filled (R-7) | HUMAN — mentor list empty; per-fix owner assignment TBD |
+| P3-201 | TASK-034 | Mahim | agy | `review` | merged (`tests/e2e/a11y.spec.ts`) | Axe on `/`, `/intake`, `/intake/form`, `/intake/review`, `/sign-in`, desk surfaces; 320 CSS px and 400 % zoom clean; 78 browser checks at `f25de23` PASS |
+| P3-202 | TASK-035 | Obidit | agy | `review` | merged (`src/locales/index.ts`) | Loading/empty/error states of S-001–S-004 + older desk screens have bn + en; D3/D4 exact strings used where they exist |
+| P3-203 | TASK-035 | Obidit | agy | `review` | merged (`src/locales/areas/*.ts`) | All `E-xxx` reachable on the new screens show bn + en; locale tests pass; `সহায়তা` typo fix at `ec6838b` (TASK-035) |
+| P3-204 | TASK-037 | Mahim | agy | `review` | merged (extra cases across `tests/match/*.test.ts`, `tests/duplicates/*.test.ts`) | D6 ≥60-test target met by total; boundary similarity, ties, all-unknown fields, abstain exercised; CI green |
+| P3-205 | TASK-038 | Mahim | puku | `review` | merged (`tests/e2e/parent-journey.spec.ts`) | Text path with fake provider; assert 0 case rows (metadata allowed) before submit; edit clothing; tick; submit; outputs show `খসড়া`; replay same UUID → same ref |
+| P3-206 | TASK-038 | Mahim | puku | `review` | merged (`tests/e2e/officer-decision.spec.ts`) | Staff logs found child → officer queue → confirm (two steps) → close with simulation copy → map count changes; reject path with reason; second confirm on same found case fails |
+| P3-207 | TASK-038 | Mahim | puku | `review` | merged (`tests/e2e/safeguarding.spec.ts`, `tests/e2e/failure-states.spec.ts`) | Cross-role denials with audit rows; no alert controls; no file inputs except audio; provider failure → manual form ≤2 s with text kept; spend cap → E-023 |
+| P3-208 | TASK-038 | Mahim | puku | `review` | merged (`tests/e2e/outputs.spec.ts`, `tests/e2e/offline-demo.spec.ts`, `tests/e2e/honest-copy.spec.ts`) | Poster PNG renders Bangla and has no image input; with `DEMO_MODE=1` the demo journey completes; honest-copy spec covers `/`, `/intake`, `/intake/form`, `/intake/review`, `/status`, `/sign-in`, and the desk pages |
+| P3-209 | TASK-038 | Mahim | agy | `review` | merged (`tests/e2e/log-scan.spec.ts`, `tests/e2e/a11y.spec.ts`) | After other specs, regex captured server log for `01[0-9]{9}` and seeded names — 0 matches; axe on cited screens — 0 serious/critical |
+| P3-210 | TASK-039 | Masnun | puku | `review` | merged (`eval/extract.mjs`, `tests/eval/extract.test.ts`, label-drafts typed at `c5383da`) | Field-level metrics gated on `labelled.canonical.jsonl`; prints "not measured" when unavailable; dev split only until freeze; cache/fixture hits excluded |
+| P3-211 | TASK-039 | Masnun | puku | `review` | merged (`eval/match.mjs`, `eval/dedupe.mjs`, `tests/eval/match.test.ts`; merged `e125928` eval denominators and offline loading) | recall@5/top-1/P@5 with denominators; abstention rate; coverage; duplicate precision/recall; splits via flag, dev default; refuses held-out unless freeze file exists; dev report committed |
+| P3-212 | TASK-039 | Masnun | agy | `review` | merged (`eval/wer.mjs`, `eval/time.mjs`, `eval/audit.mjs`, `tests/eval/wer.test.ts`) | WER on clips + reference transcripts; median and IQR from `timing.csv`; audit coverage SQL; "not measured" exit 0 if inputs missing |
+| P3-213 | TASK-042 | Mahim | agy | `review` | merged (`scripts/smoke.mjs`, `tests/scripts/smoke.test.ts`; same-origin synthetic submit at `4d8e550`) | Default smoke is read-only; `--synthetic-submit` mutation sends target Origin and is synthetic-only; no secrets printed; security-reviewer PASS |
+| P3-214 | TASK-039 | Masnun | agy | `review` | merged (`eval/all.mjs`, `eval/reports/.gitkeep`) | TC-020 5-metric report writer; per-date/split report; commit/model/manifest hashes; ≥2 failure examples; cache disabled |
+| P3-215 | TASK-034 | owners | agy / puku | `review` | merged across owner paths (focus `outline-none` `e9708fc`; officer focus/descriptions `9468201`; localized discard dialogs `b352cda`) | Each prior P3-201 violation turned into a fix card in the owner's files; a11y-architect rerun PASS; W3C/MDN false findings withdrawn |
+| P3-216 | TASK-040 | Obidit | agy | `blocked` | no run (`/tmp/fera-final-eval-all.log` does not exist; rerun requires clips) | HUMAN clips required (H-4); eval:wer prints "not measured" with reason |
+| P3-217 | TASK-039 | Masnun | puku | `blocked` | no `eval/freeze.json` | FREEZE_FLAG NOT SET; held-out is locked; AMD-3-3 forbids tuning from held-out results |
+| P3-301 | TASK-042 | Mahim | haiku + HUMAN | `blocked` | no production deploy | User confirmed no production access; production deploy/smoke remains unverified. |
+| P3-302 | TASK-060 | Masnun | puku | `blocked` | no verified production deployment | Lighthouse mobile and API timings require a deployed prod URL (H-8) |
+| P3-303 | TASK-043 | Masnun | puku | `blocked` | FREEZE_FLAG NOT SET; held-out locked | Needs P3-217 freeze file; AMD-3-3 forbids tuning from held-out results |
+| P3-304 | G4 | Mahim | luna | `blocked` | no G4 evidence | Production deploy absent; final frozen eval absent; WER/time/audit coverage "not measured"; measured spend absent; no `r2-freeze` (or rebaselined) tag |
+| HUMAN | TASK-003 | Obidit | HUMAN | `blocked` | no provider SDK or key check | Account/terms/prices/keys/spend controls required; default paid-cap remains USD 25; team may raise to at most USD 30 |
+| HUMAN | TASK-036 | Masnun | HUMAN | `blocked` | no `docs/device-test.md` signed | Two physical Android phones required; browser emulation is not a physical-device pass |
+| HUMAN | TASK-040 clips | Obidit | HUMAN | `blocked` | no clips | 60 consented clips + reference transcripts required |
+| HUMAN | TASK-041 | Mahim | HUMAN | `blocked` | empty `eval/data/timing.csv` | ≥5 testers, assistant vs manual times required |
+| HUMAN | VIDEO-PREP | Obidit | HUMAN | `review` (local footage prepared; Drive / release pending) | Local actual recorded demo committed at `submission/demo/final.mp4` (105.000 s, 1280×720, H.264, eight proof PNGs, captions/provenance validated; commit `27bb3c6`; typed flow + explicit seeded officer scenario, **no real voice**; verified in `/tmp/fera-demo-verified.log`). The local footage is **prepared — review**. **Drive / release pending** until Drive access and organiser evidence are recorded. The separate storyboard preview in `submission/round2` is **not** the actual demo. |
+
+### Audit-time review dispositions at integration HEAD `9155963` (18 Oct 2026)
+
+The final integration HEAD is **`9155963d677d987a9aaa64bc00b74b1ec0a7292e`** (full SHA), reached on 18 Oct 2026 after the safe provider-notice diagnostic merge (`2d8c921` → `9155963`). The audit-time intermediate state below at `f25de23` is **historical, superseded by the final-review reruns in [`docs/execution/evidence/phase3-finish-review.md`](evidence/phase3-finish-review.md)**. Old conditional reviews (REV-SAFE, REV-SFH, REV-TS, REV-IMP, REV-A11Y, REV-MLE) have been replaced by their exact corrective followups at the same files; do not retry them at `9155963`. **No gate is claimed PASS on the basis of the intermediate state.**
+
+| Code | Reviewer | Intermediate state at `f25de23` | Final disposition at `9155963` |
+|---|---|---|---|
+| REV-SAFE | `fera-safeguarding-reviewer` | **BLOCK** (parent-DTO `matching_state` leak) | **PASS — false-finding WITHDRAWN** per D2A mandates own / staff field (`/tmp/fera-disposition-fera-safeguarding-reviewer.json`); the narrow 5-scope code-only re-review at `/tmp/fera-disposition-final-code.json` returns PASS |
+| REV-SFH | `silent-failure-hunter` | **BLOCK** (B5′ in `registry.ts:468-473`) | **PASS (narrow notice-log fix / recheck)** — `safeLogNoticeRejection` wraps `log.error` in try/catch with empty body at `orchestrator.ts:128-139`; allowlisted fields only; `2d8c921`/`9155963` |
+| REV-TS | `typescript-reviewer` | **BLOCK** (matcher N+1; price-sheet swallow) | **PASS** — batch + price-cause fix verified; matcher N+1 fixed by batch `readFoundRowsForScoring` |
+| REV-IMP | `impeccable-finish-reviewer` | **BLOCK** (intake `live` default; three `window.confirm` sites) | **PASS** — parent-5 native confirms replace localized dialogs (`b352cda`); officer focus / descriptions fix (`9468201`); focus ChatMessage / Outcome `outline-none` (`e9708fc`) |
+| REV-DB | `database-reviewer` | **PASS** | **PASS** — SQLSTATE + typed tests fix verified |
+| REVA-TS-RX | `react-reviewer` | **PASS (advisory)** | **PASS** — unchanged |
+| REV-BN | `bengali-reviewer` | **APPROVE** (one LOW) | **APPROVE** — `সহায়তা` typo fixed at `ec6838b` |
+| REV-SEC | `security-reviewer` | **PASS (with 2 LOW)** | **PASS (with 2 LOW)** — unchanged |
+| REV-A11Y | `a11y-architect` | **INCOMPLETE_RUN** | **PASS** — rerun replaced INCOMPLETE_RUN; W3C/MDN false findings (table rowheaders, tabindex scroll, district label, direction, disabled native control) withdrawn per <https://www.w3.org/WAI/tutorials/tables/two-headers/> and <https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overflow> |
+| REV-MLE | `mle-reviewer` | **EMPTY_RUN** | **PASS** — rerun replaced EMPTY_RUN |
+| REV-E2E | `e2e-runner` | (cited from W0.0 / Wave 0.1) | **PASS** — 78 browser checks, no skips, axe clean on cited screens |
+
+**Overall Fera PASS is not claimed at `9155963` (or at the recorded-video commit `27bb3c6`).** No production deploy, no human / production / official receipt, no `r2-freeze` (or rebaselined) tag, and the **actual recorded local demo** is committed at `submission/demo/final.mp4` (105.000 s, 1280×720, H.264, eight proof PNGs, captions/provenance validated; commit `27bb3c6`; typed flow + explicit seeded officer scenario, **no real voice**; verified in `/tmp/fera-demo-verified.log`). A separate storyboard preview in `submission/round2` is **not** the actual demo. The remote CI job <https://github.com/tashobi02/Fera-AI/actions/runs/39114757484> completed successfully (check, DB and browser jobs); the video is committed at `27bb3c6` and audit documents are committed separately.
+
+### Dirty unfinished lanes (baseline/awaitfinal fields) — **historical**
+
+The intermediate-state numbers below (18 / 8 skip; 50 unmapped L001–L050) are **historical** and have been superseded by the integration HEAD `9155963` final counts (`/tmp/fera-finish-{unit,lint,build,typecheck,e2e}.{json,log}` recorded in the durable evidence summary; 78 browser checks / 0 skip). They are retained only for the original audit reconciliation; do not cite them in current claims.
+
+- `p3-finish-journeys` worktree (`/home/obidit/secondBrain/coding/Fera-AI/.worktrees/p3-finish-journeys`) is at `f25de23` and unmerged. **E2E baseline 18 / skip 8 was the integration tree at `f25de23`; the journeys worktree specs have been integrated into the root tree; the current root integration e2e total at `9155963` is 78 passed / 0 skip (`/tmp/fera-finish-e2e.log`).** Treat the integrated journeys as current and the old 18 / 8 figure as historical.
+- `p3-finish-label-inputs` worktree is at `f25de23` and unmerged. **It holds canonical blank inputs for the evaluator; it does not change unit/db/e2e counts.** Awaiting coordinator integration. The `eval/extract.mjs` path it feeds prints "not measured" at the current commit because the 50 labels L001–L050 have no canonical manifest mapping; do not invent one.
+- Puku workers were resumed on these lanes; their output is in the current commit. Until the canonical label manifest is in place, the dev-diagnostic numbers stand.
