@@ -20,3 +20,7 @@ Fresh final transcripts: /tmp/fera-finish-{unit,lint,build,typecheck,e2e}.{json,
 The actual video records manual submission, the parent's own status, a separately labelled seeded officer scenario, rejection, four-check confirmation, simulated referral, coordination closure and district counts. Timing is edited; it is not a latency measurement. [Video provenance](../../../submission/demo/provenance.json) records application source and file hashes. Raw footage and throwaway fixture credentials are excluded from Git.
 
 These checks do not pass G3/G4/G5. Provider setup, reviewed labels, 60 audio clips, two physical Android tests, five-participant timing, production deployment/smoke/performance, frozen held-out evaluation, measured spend, mentor findings, human Bangla review, organiser instructions and submission receipt remain missing or unverified. No r2-freeze tag was created. Development diagnostics remain development-only and disclose poor duplicate precision (12/302).
+
+## Small followup after the full baseline
+
+`bb75825` restores D4’s bilingual separate-report visibility sentence in the duplicate queue (two locale entries, four JSX lines). No service/SQL/test inputs changed. Typecheck and lint passed (zero errors, 51 warnings); the existing duplicate UI/detector tests passed 36/36. Independent Puku UI/TS/React/Bengali/a11y and safeguarding reviews passed; Codex verified the exact copy and additive scope. The full CI link above remains evidence for baseline `9155963`, while the integration PR runs checks on the later combined tree.

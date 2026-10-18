@@ -134,5 +134,13 @@
     "repo_visibility": "PRIVATE; organiser access unresolved; no logged-out access PASS",
     "email_sent": false
   },
-  "phase5": "Handoff prepared; phase not started; formal gates remain unmet."
+  "phase5": "Handoff prepared; phase not started; formal gates remain unmet.",
+  "post_baseline_followup": {
+    "commit": "bb75825",
+    "scope": "Two locale strings and four JSX lines: D4 separate-report visibility cue; application services, schema and tests unchanged.",
+    "typecheck": "PASS",
+    "lint": "PASS; zero errors, 51 warnings",
+    "focused_tests": "36 passed across existing duplicate UI/detector files",
+    "reviews": "Independent Puku UI/TypeScript/React/Bengali/a11y and safeguarding scopes PASS; Codex second opinion verified exact D4 copy and isolated presentation scope."
+  }
 }

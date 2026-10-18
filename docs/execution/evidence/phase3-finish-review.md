@@ -69,3 +69,5 @@ The synthetic local run used to seed the artifact is a manual typed flow with a 
 ## Final local archive and reply draft
 
 The deterministic nine-entry `submission/round2/fera-round2-draft.zip` includes the deck/PDF, actual local recording, captions, links, metrics, README, archive note and an unsent reply draft. Independent Puku security/safeguarding review returned PASS (`/tmp/fera-disposition-pack-final.json`). The coordinator rebuilt twice with identical SHA-256 and ZIP self-test PASS, and re-ran the artifact claims check: 64 PASS, zero FAIL. Raw captures, credentials and caches are excluded. This does not create a Drive folder, grant repository access or send a reply.
+
+Final D4 copy delta `bb75825`: independent routed UI/TS/React/Bengali/a11y and Fera safeguarding review PASS (`/tmp/fera-disposition-duplicate-copy-{ui,sg}.json`). Coordinator second opinion: exact D4 strings, unconditional queue placement, locale parity; no lifecycle, permission or data change.
