@@ -1,5 +1,7 @@
 # Phase 4 handoff — 18 October 2026
 
+Git landing: [#47](https://github.com/tashobi02/Fera-AI/pull/47) merged to phase2 (`060e320`), then [#48](https://github.com/tashobi02/Fera-AI/pull/48) merged to main (`5cbd4c8`). The primary checkout pulled main and is clean; original owner branches are retained. Start from fetched `origin/main`, not a parked Phase 3 worktree. Full combined-source [CI passed](https://github.com/tashobi02/Fera-AI/actions/runs/39116451104) at `e9f3729` (check, DB, browser); the merge changes no application content.
+
 Phase 3 software is integrated and verified; Round 2 has NOT been submitted. The earlier handoff draft was uncommitted and referenced missing evidence. This current handoff replaces it and links the completed audit and reports.
 
 Application source: 9155963d677d987a9aaa64bc00b74b1ec0a7292e. [Full audit](../PHASE_3_AUDIT_2026-10-18.md) · [verification](../evidence/phase3-finish-verification.md) · [review disposition](../evidence/phase3-finish-review.md) · [durable evidence](../evidence/phase4-audit-evidence-2026-10-18.json).

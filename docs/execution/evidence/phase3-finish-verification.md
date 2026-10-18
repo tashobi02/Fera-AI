@@ -24,3 +24,9 @@ These checks do not pass G3/G4/G5. Provider setup, reviewed labels, 60 audio cli
 ## Small followup after the full baseline
 
 `bb75825` restores D4’s bilingual separate-report visibility sentence in the duplicate queue (two locale entries, four JSX lines). No service/SQL/test inputs changed. Typecheck and lint passed (zero errors, 51 warnings); the existing duplicate UI/detector tests passed 36/36. Independent Puku UI/TS/React/Bengali/a11y and safeguarding reviews passed; Codex verified the exact copy and additive scope. The full CI link above remains evidence for baseline `9155963`, while the integration PR runs checks on the later combined tree.
+
+## Final locked-install dependency audit
+
+18 October: `npm ci` and native `onnxruntime-node` import passed in the primary checkout; typecheck passed. `npm audit --omit=dev` reported zero known runtime dependency vulnerabilities. The full audit reported five HIGH entries from one development-tool chain: eslint-config-next → @next/eslint-plugin-next → fast-glob → micromatch → braces. [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) reports nested-pattern stack exhaustion and no patched version; registry latest was braces 3.0.3. This is a real lint-tool exposure. npm's proposed major downgrade to eslint-config-next 14.2.35 was not applied to the Next 16 toolchain.
+
+Independent Puku security disposition: PASS with WARN (`/tmp/fera-disposition-dependency.json`). Mahim retains the compatible upstream-fix/re-audit followup before release; this is not a personal risk waiver or a claim of zero security risk. Request input is not passed to lint glob patterns. Source of measured counts: `/tmp/fera-final-dependency-audit.json` and `/tmp/fera-final-runtime-audit.json`.
