@@ -22,7 +22,7 @@ import { clearIntakeMemory, INTAKE_PATH, MANUAL_FORM_PATH, takeHandoff, type Int
 import { buildSubmission, createSubmitter, editField, newSubmission, validateReview } from "@/lib/intake/review";
 import { localizeDigits } from "@/lib/numerals";
 import { locales, type Locale } from "@/locales";
-import { CircleCheckIcon, HonestLabel, PRIMARY_BUTTON, TERTIARY_BUTTON, TrashIcon } from "../../parent-ui";
+import { CachedClockNotice, CircleCheckIcon, HonestLabel, PRIMARY_BUTTON, TERTIARY_BUTTON, TrashIcon } from "../../parent-ui";
 import { ConfirmBar, ReviewFields, reviewFieldInputId, reviewLabel } from "./review-fields";
 import { EditModeScreen } from "./edit-mode-screen";
 
@@ -403,6 +403,7 @@ export function ReviewScreen({ locale }: { locale: Locale }) {
       )}
       <p className="text-body-lg text-body">{t.reviewIntro}</p>
       <p className="flex items-start gap-2 text-body-lg text-body"><InfoIcon className="mt-1 size-5" />{t.reviewLocal}</p>
+      {record.cached && <CachedClockNotice locale={locale} cached={record.cached} />}
       {storageFailed && <p role="status" className="flex items-start gap-2 text-body-lg text-body"><InfoIcon className="mt-1 size-5 text-info" />{t.reviewStorageFailed}</p>}
       <div id="review-required" ref={summary} tabIndex={-1} role="alert" aria-atomic="true" className={error || expired || fields.length > 0 ? "rounded-lg border border-control bg-card p-4 text-body-lg text-body" : "sr-only"}>
         {(error || expired || fields.length > 0) && <>
