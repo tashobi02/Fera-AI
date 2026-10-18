@@ -7,14 +7,14 @@ are drafts only.
 The **actual TASK-045 local-app demo footage is now prepared and
 verified** under `../demo/` (commit `9155963`, CI run `39114757484`):
 
-- submission/demo/final.mp4            105.000 s, 1280x720, H.264,
+- ../demo/final.mp4                   105.000 s, 1280x720, H.264,
                                         silent, captioned; Playwright
                                         Chromium on the real Next app
                                         at 127.0.0.1
-- submission/demo/captions.srt         beat-level SRT from the capture
-- submission/demo/provenance.json       git SHA, beat names, SHA-256
-- submission/demo/proof/               8 curated per-beat PNGs
-- submission/demo/README.md            capture + verify + provenance
+- ../demo/captions.srt                beat-level SRT from the capture
+- ../demo/provenance.json             git SHA, beat names, SHA-256
+- ../demo/proof/                      8 curated per-beat PNGs
+- ../demo/README.md                   capture + verify + provenance
                                         notes
 
 The storyboard MP4 in this folder (`fera-round2-storyboard-preview.mp4`)
@@ -74,26 +74,26 @@ Files in this pack
 
 TASK-045 actual app-footage demo (one level up)
 -----------------------------------------------
-- submission/demo/final.mp4        105.000 s, 1280x720, H.264, silent
-- submission/demo/captions.srt     beat-level SRT
-- submission/demo/provenance.json  git SHA + SHA-256 hashes
-- submission/demo/proof/*.png      8 curated per-beat PNGs
-- submission/demo/README.md        capture + verify + provenance notes
-- submission/demo/run.sh           reproducible build (orchestrate
+- ../demo/final.mp4                105.000 s, 1280x720, H.264, silent
+- ../demo/captions.srt             beat-level SRT
+- ../demo/provenance.json          git SHA + SHA-256 hashes
+- ../demo/proof/*.png              8 curated per-beat PNGs
+- ../demo/README.md                capture + verify + provenance notes
+- ../demo/run.sh                   reproducible build (orchestrate
                                    + capture + postprocess + verify)
 
 Source spec / handover files cited in slides and storyboard
 -----------------------------------------------------------
-- AGENTS.md                        team handbook; Principles I-VII
-- .specify/memory/constitution.md  Fera Constitution
-- docs/spec/D1_PRD_V2.md           FR / BR catalogue
-- docs/spec/D3_App_Flow_V2.md      screens SCREEN-001..016
-- docs/spec/D6_Implementation_Plan_V2.md  tasks TASK-001..064
-- docs/spec/D7_Closing_Pack_V2.md  demo script and release contract
-- docs/execution/PHASE_4_SUBMISSION.md   gate G5, AMD-4-1..3
-- docs/execution/PHASE_3_FULL_SCOPE_QUALITY.md  prev phase
-- docs/execution/EXECUTION_PLAN.md        overall plan
-- DESIGN.md                        visual system (Cockpit & Paper)
+- ../../AGENTS.md                        team handbook; Principles I-VII
+- ../../.specify/memory/constitution.md  Fera Constitution
+- ../../docs/spec/D1_PRD_V2.md           FR / BR catalogue
+- ../../docs/spec/D3_App_Flow_V2.md      screens SCREEN-001..016
+- ../../docs/spec/D6_Implementation_Plan_V2.md  tasks TASK-001..064
+- ../../docs/spec/D7_Closing_Pack_V2.md  demo script and release contract
+- ../../docs/execution/PHASE_4_SUBMISSION.md   gate G5, AMD-4-1..3
+- ../../docs/execution/PHASE_3_FULL_SCOPE_QUALITY.md  prev phase
+- ../../docs/execution/EXECUTION_PLAN.md        overall plan
+- ../../DESIGN.md                        visual system (Cockpit & Paper)
 
 Public-claim rules carried into every artifact
 ----------------------------------------------
@@ -110,7 +110,22 @@ Public-claim rules carried into every artifact
   captioned as a synthetic local demo with [MOCK] officer
   verification and a referral-recorded (simulation) label.
 
+Offline release-check (Obidit lane, local only)
+-----------------------------------------------
+- ../../scripts/release/check.mjs                 offline release-check CLI
+- ../../tests/release/check.test.ts              19 unit tests, local HTTP
+                                            fixture on 127.0.0.1
+- ../../docs/execution/evidence/pre-main-phase4-readiness.md
+                                            produced by the CLI;
+                                            honest readiness report
+                                            (manifest SHA-256, link
+                                            check, EXCLUDED labels).
+                                            External URLs are
+                                            UNVERIFIED; the script
+                                            never opens a TCP
+                                            connection.
+
 Contact for the working build sign-off and organiser evidence
 -------------------------------------------------------------
 - UNKNOWN until Mahim (lead) records the organiser evidence and the
-  working build sign-off in `docs/gates/G5-*.md`.
+  working build sign-off in `../../docs/gates/G5-*.md`.
