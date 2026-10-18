@@ -7,7 +7,7 @@
 // owns its own state, draft store, and submitter.
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { errorEnvelope, type DraftFieldPath, type ErrorEnvelope } from "@/contracts";
 import { CircleAlertIcon, InfoIcon, LoaderCircleIcon } from "@/app/components/icons";
 import { FocusHeading } from "@/app/components/focus-heading";
@@ -31,15 +31,24 @@ import { EditModeScreen } from "./edit-mode-screen";
 // `useState` and `useEffect`. Splitting them into sibling components hides the
 // create-flow state from the test harness and breaks lifecycle regression
 // coverage (NODE-hook tests in tests/intake/review/review-lifecycle.test.ts).
+const subscribeToEntry = () => () => {};
+const readEditEntry = () => readEditMode() !== null;
+const serverEntry = () => null;
+
+// Resolve device storage after hydration before mounting either flow. Their
+// independent hook lifecycles never depend on a conditional early return.
+export function ReviewEntryScreen({ locale }: { locale: Locale }) {
+  const editing = useSyncExternalStore<boolean | null>(subscribeToEntry, readEditEntry, serverEntry);
+  if (editing === null) return <div data-surface="parent" className="mx-auto max-w-[36rem] px-4 py-8"><h1 className="text-heading-2">{locales[locale].reviewTitle}</h1><p role="status">{locales[locale].stillWorking}</p></div>;
+  return editing ? <EditModeScreen locale={locale} /> : <ReviewScreen locale={locale} />;
+}
+
 export function ReviewScreen({ locale }: { locale: Locale }) {
   const t = locales[locale];
   const router = useRouter();
   // ACT017: the "Correct details" click on S-006 records a device-local
   // pointer; the same page here is the only consumer. Read once on first
   // render so a late write to the pointer does not re-enter edit mode.
-  const editMode = useRef<{ value: boolean | "absent" } | null>(null);
-  if (editMode.current === null) editMode.current = { value: readEditMode() !== null };
-  if (editMode.current.value) return <EditModeScreen locale={locale} />;
   // Guard even null: StrictMode/effect replay must not take a later handoff.
   const read = useRef<{ value: IntakeHandoff | null } | null>(null);
   // eslint-disable-next-line react-hooks/refs -- mandated takeHandoff once-per-consumer guard (OD-021-4)

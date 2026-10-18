@@ -35,7 +35,6 @@ import {
   clearEditDraft,
   editDraftFromOwnerView,
   editDraftToDeviceDraft,
-  loadEditDraft,
   refreshEditDraftAfterConflict,
   readEditDraft,
   saveEditDraft,
@@ -69,11 +68,8 @@ export function EditModeScreen({ locale }: { locale: Locale }) {
   const router = useRouter();
   // Read the device-local pointer exactly once on first render. A late write
   // does not re-enter edit mode (StrictMode/effect replay).
-  const editPointer = useRef<{ value: ReturnType<typeof readEditMode> } | null>(null);
-  // eslint-disable-next-line react-hooks/refs -- mandated once-per-consumer guard
-  if (editPointer.current === null) editPointer.current = { value: readEditMode() };
-  const pointer = editPointer.current.value;
-  const [phase, setPhase] = useState<EditPhase>({ kind: "loading" });
+  const [pointer] = useState(() => readEditMode());
+  const [phase, setPhase] = useState<EditPhase>(() => ({ kind: pointer ? "loading" : "empty" }));
   const [fields, setFields] = useState<DraftFieldPath[]>([]);
   const [checked, setChecked] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -100,7 +96,6 @@ export function EditModeScreen({ locale }: { locale: Locale }) {
   // pointer was stale and swept. Render the empty copy and a back link.
   useEffect(() => {
     if (!pointer) {
-      setPhase({ kind: "empty" });
       return;
     }
     const controller = new AbortController();
