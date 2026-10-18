@@ -11,6 +11,7 @@ export const officerDuplicatesBn = {
   duplicateListHeading: "পতাকাযুক্ত সম্ভাব্য একই শিশু",
   duplicateListEmpty: "এখনও কোনো সম্ভাব্য একই শিশু নেই।",
   duplicateListIntro: "প্রতিটি লিঙ্কে দুটি একই ধরনের প্রতিবেদন রয়েছে। পর্যালোচনা করে ‘একই শিশু’ বা ‘আলাদা’ চিহ্নিত করুন।",
+  duplicateSeparateVisible: "আলাদা প্রতিবেদন দৃশ্যমান",
   // Detail page
   duplicateDetailPageTitle: "সম্ভাব্য একই শিশু — পর্যালোচনা",
   duplicateDetailHeading: "এই দুটি প্রতিবেদন কি একই শিশুর?",
@@ -65,6 +66,7 @@ export const officerDuplicatesEn = {
   duplicateListHeading: "Flagged possible duplicates",
   duplicateListEmpty: "No flagged possible duplicates yet.",
   duplicateListIntro: "Each link pairs two same-kind reports. Review and mark them as the same child or different.",
+  duplicateSeparateVisible: "separate reports remain visible",
   // Detail page
   duplicateDetailPageTitle: "Possible duplicate — review",
   duplicateDetailHeading: "Are these two reports the same child?",
