@@ -449,9 +449,14 @@ describe.skipIf(!dbTestsEnabled)("reembedAll on PostgreSQL 16 (P3-024, TASK-016,
     expect(summary.newSpace).toBe(embedder.space);
     // The space tag must mention every component that distinguishes it
     // (defence against a "space = just the model name" regression).
+    // The fake embedder pins its own revision (fake-rev-1) so the
+    // canonical space string must include it, not the production
+    // EMBEDDING.revision. Reading embedder.revision keeps the test in
+    // sync with the actual injected embedder.
     expect(embedder.space).toBe(
       makeEmbeddingSpace({
         model: embedder.model,
+        revision: embedder.revision,
         dtype: "fake",
         pooling: "mean",
         normalize: true,

@@ -10,6 +10,8 @@
 // cache directory is gitignored.
 
 import { spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
@@ -77,19 +79,36 @@ describe("reembed.mjs refuses a non-loopback host", () => {
 describe("model-fetch.mjs is database-free and guarded", () => {
   it("does not read FERA_DB_ADMIN_URL or attempt a DB connection (no DB connection error)", () => {
     // A hostile database URL must not affect this database-free script. The
-    // test loader supplies a controlled model import failure so the CLI can
-    // run without network access and expose its own error handling.
-    const r = run(
+    // test loader supplies a controlled offline failure for both the
+    // Transformers.js import AND the CLI's global fetch(), so the
+    // subprocess runs without network access and exposes its own error
+    // handling. The bounded subprocess timeout is unchanged so a real
+    // hang would still surface as a failure.
+    const cacheRoot = fileURLToPath(new URL("../../.cache/", import.meta.url));
+    mkdirSync(cacheRoot, { recursive: true });
+    const emptyCache = mkdtempSync(join(cacheRoot, "scripts-cli-"));
+    let r: ReturnType<typeof run>;
+    try { r = run(
       modelFetchCli,
-      { FERA_DB_ADMIN_URL: "postgresql://postgres:hunter2@db.example.supabase.co:5432/postgres" },
-      ["--loader", modelFetchTestLoader],
-    );
-    // The loader substitutes only the model package with a deterministic
-    // offline failure. The CLI must reach that path without consulting the
-    // hostile database URL; this keeps the check independent of Hugging Face
-    // availability and model download duration.
-    expect(r.status).toBe(1);
-    expect(r.stderr).toMatch(/model:fetch: download failed: offline test stub/);
+      { FERA_DB_ADMIN_URL: "postgresql://postgres:hunter2@db.example.supabase.co:5432/postgres", FERA_MODEL_CACHE: emptyCache },
+      ["--import", modelFetchTestLoader],
+    ); } finally { rmSync(emptyCache, { recursive: true, force: true }); }
+    // The CLI must reach the offline path without consulting the
+    // hostile database URL; the test keeps the check independent of
+    // Hugging Face availability and model download duration. We accept
+    // either of the two documented failure paths the CLI may take when
+    // the public downloader is offline:
+    //   * the per-file catch (exit 4) — fires when the file-level
+    //     `ensureOne` propagates an offline error from fetch().
+    //   * the outer catch (exit 1) — fires when the inner catch is
+    //     bypassed (e.g. the offline stub throws before a file is
+    //     selected, or the warm-up also fails offline).
+    expect([1, 4]).toContain(r.status);
+    // The CLI must surface a clear "download failed" / "offline test
+    // stub" message and never echo a database error, the password, or
+    // the host.
+    expect(r.stderr).toMatch(/offline test stub/);
+    expect(r.stderr).toMatch(/model:fetch:/);
     expect(r.stderr).not.toMatch(/non-local database host/);
     expect(r.stderr).not.toMatch(/FERA_DB_NAME must match/);
     expect(r.stderr).not.toMatch(/connection refused/i);

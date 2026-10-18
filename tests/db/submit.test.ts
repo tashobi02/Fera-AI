@@ -15,6 +15,7 @@ import { setPoolForTests } from "@/server/db/pool";
 import { jsonPost, noParams } from "../api/fakes";
 import { KEYS, KEY_SOURCE } from "../auth/fakes";
 import { MOCK_DISTRICT, connect, dbTestsEnabled, one, pool, seedReference } from "./support/db";
+import * as postcommit from "@/server/case/postcommit";
 
 describe.skipIf(!dbTestsEnabled)("API-003 on PostgreSQL 16 (TASK-022)", () => {
   let admin: Client;
@@ -22,6 +23,7 @@ describe.skipIf(!dbTestsEnabled)("API-003 on PostgreSQL 16 (TASK-022)", () => {
   let app: Pool;
 
   beforeAll(async () => {
+    vi.spyOn(postcommit, "fireMatcherPostcommit").mockImplementation(async (caseId) => ({ caseId, state: "queued", candidates: [], considered: 0, abstained: false }));
     admin = await connect("admin");
     appClient = await connect("app");
     app = pool("app");
