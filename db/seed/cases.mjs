@@ -162,8 +162,29 @@ export async function seedCases(client, { set, recordIds }) {
       assertSynthetic(rec);
       const record = { ...rec, draft: parsedDraft(rec.draft) };
       const hash = payloadHash(record.draft);
-      const seeded = await client.query("SELECT case_id FROM synthetic_case_seeds WHERE record_id = $1", [rec.record_id]);
+      const seeded = await client.query(
+        `SELECT s.case_id, c.id, c.anonymised_at, c.client_submission_id, c.submission_payload_hash
+           FROM synthetic_case_seeds s LEFT JOIN cases c ON c.id = s.case_id
+          WHERE s.record_id = $1`,
+        [rec.record_id],
+      );
       if (seeded.rows.length > 0) {
+        const mapped = seeded.rows[0];
+        if (!mapped.id) {
+          throw new Error("a synthetic seed mapping does not point to its committed record; reset the database");
+        }
+        // Redaction clears both the identifying client id and payload hash. Keep
+        // the seed mapping as a tombstone so replay never recreates that report.
+        if (mapped.anonymised_at !== null) {
+          skipped++;
+          continue;
+        }
+        if (mapped.client_submission_id !== rec.record_id) {
+          throw new Error("a synthetic seed mapping does not point to its committed record; reset the database");
+        }
+        if (mapped.submission_payload_hash !== hash) {
+          throw new Error("a seeded case differs from the committed record; reset the database");
+        }
         skipped++;
         continue;
       }

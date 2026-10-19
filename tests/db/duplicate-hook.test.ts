@@ -43,7 +43,15 @@ describe.skipIf(!dbTestsEnabled)("awaited duplicate hooks on PostgreSQL", () => 
   });
   it("refuses a redacted found case without embedding or matching it", async () => {
     const { found: a } = await closedPair(app, actors);
-    await owner.query("SELECT redact_case($1,$2)",[a.id, actors.admin]);
+    await owner.query("BEGIN");
+    try {
+      await owner.query("SELECT set_config('fera.redaction_actor_id', $1, true)", [actors.admin]);
+      await owner.query("SELECT redact_case($1,$2)", [a.id, actors.admin]);
+      await owner.query("COMMIT");
+    } catch (err) {
+      await owner.query("ROLLBACK").catch(() => undefined);
+      throw err;
+    }
     expect(await runMatcherForFoundCase(a.id,{embedder,pool:app})).toMatchObject({state:"failed",errorId:"E-018"});
     expect(await one<{absent:boolean}>(app,"SELECT embedding IS NULL AS absent FROM cases WHERE id=$1",[a.id])).toEqual({absent:true});
   });

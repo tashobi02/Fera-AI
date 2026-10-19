@@ -79,7 +79,7 @@ async function insertVerifiedOfficer(): Promise<{ id: string; sessionId: string 
     const u = randomUUID();
     await c.query(
       `INSERT INTO users (id, role, username, display_name, password_hash, verified, is_active)
-       VALUES ($1, 'officer', $2, 'Officer Test', 'x', true, true)`,
+       VALUES ($1, 'officer', $2, 'Officer Test', '$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', true, true)`,
       [u, `officer_${u.slice(0, 8)}`],
     );
     const s = randomUUID();
@@ -135,7 +135,7 @@ describe.skipIf(!dbTestsEnabled)("API-004 cases read (P3-016, TC-022/052)", () =
       const id = randomUUID();
       await c.query(
         `INSERT INTO users (id, role, username, display_name, password_hash, verified, is_active)
-         VALUES ($1, 'admin', $2, 'Admin Test', 'x', false, true)`,
+         VALUES ($1, 'admin', $2, 'Admin Test', '$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', false, true)`,
         [id, `admin_${id.slice(0, 8)}`],
       );
       return id;

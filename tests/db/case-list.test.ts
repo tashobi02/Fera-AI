@@ -152,20 +152,8 @@ describe.skipIf(!dbTestsEnabled)("API-022 case list (P3-041)", () => {
     // Redaction may not rewrite the lifecycle in the same UPDATE: close first, redact afterwards.
     await closeMissing(dbClient, m4.id, "resolved_outside_fera");
     await asFixtureOwner(async (c) => {
-      await c.query(
-        `UPDATE cases SET anonymised_at = now(),
-                           child_name = NULL, child_name_latin = NULL, contact_phone = NULL,
-                           raw_text = NULL, place_text = NULL, embedding = NULL,
-                           height_cm = NULL, clothing = NULL, marks = NULL, circumstances = NULL,
-                           thana = NULL, reporter_relation = NULL, gd_number = NULL,
-                           source_url = NULL, age_years = NULL, outcome_note = NULL,
-                           reporter_session_id = NULL, created_by_user_id = NULL,
-                           input_hash = NULL, submission_payload_hash = NULL,
-                           client_submission_id = NULL, provenance = '{}'::jsonb,
-                           embedding_model = NULL, embedding_revision = NULL, embedding_space = NULL
-         WHERE id = $1`,
-        [m4.id],
-      );
+      await c.query("SELECT set_config('fera.redaction_actor_id', $1, true)", [actors.admin]);
+      await c.query("SELECT redact_case($1, $2)", [m4.id, actors.admin]);
     });
 
     const listed = await listCasesForDistrict(dbClient, { district: "1", limit: 50 });

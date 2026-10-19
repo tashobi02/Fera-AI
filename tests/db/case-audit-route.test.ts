@@ -77,7 +77,7 @@ async function insertVerifiedOfficer(): Promise<{ id: string; displayName: strin
     const displayName = `[MOCK] Officer ${u.slice(0, 8).replace(/\d/g, "x")}`;
     await c.query(
       `INSERT INTO users (id, role, username, display_name, password_hash, verified, is_active)
-       VALUES ($1, 'officer', $2, $3, 'x', true, true)`,
+       VALUES ($1, 'officer', $2, $3, '$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', true, true)`,
       [u, `officer_${u.slice(0, 8)}`, displayName],
     );
     return { id: u, displayName };
@@ -89,7 +89,7 @@ async function insertAdminUser(): Promise<{ id: string }> {
     const id = randomUUID();
     await c.query(
       `INSERT INTO users (id, role, username, display_name, password_hash, verified, is_active)
-       VALUES ($1, 'admin', $2, '[MOCK] Admin', 'x', false, true)`,
+       VALUES ($1, 'admin', $2, '[MOCK] Admin', '$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', false, true)`,
       [id, `admin_${id.slice(0, 8)}`],
     );
     return { id };

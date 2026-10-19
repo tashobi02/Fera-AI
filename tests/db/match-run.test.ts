@@ -173,17 +173,19 @@ describe.skipIf(!dbTestsEnabled)("P3-040 matcher run on PostgreSQL 16", () => {
     expect(await one(appClient, "SELECT matching_state, matched_at FROM cases WHERE id = $1", [redacted.id])).toEqual(redactedBefore);
   });
 
-  it("writes one qualified pair at current versions under the endpoint lock set", async () => {
+  it("writes a qualified pair at current versions under the endpoint lock set", async () => {
+    // The first test leaves two eligible found reports in this per-file database;
+    // this run therefore considers those plus the new pair's found report.
     const { missing, found } = await pair();
     const result = await runMatcherForCase(missing.id, { embedder: constantEmbedder(), api: "API-014", pool: app });
-    expect(result).toMatchObject({ state: "complete", considered: 1, abstained: false });
-    expect(result.candidates).toHaveLength(1);
-    const candidate = await one<{ missing_version: number; found_version: number; status: string; rank: number }>(
+    expect(result).toMatchObject({ state: "complete", considered: 3, abstained: false });
+    const candidate = await one<{ id: string; missing_version: number; found_version: number; status: string; rank: number }>(
       appClient,
-      "SELECT missing_version, found_version, status, rank FROM match_candidates WHERE missing_case_id = $1 AND found_case_id = $2",
+      "SELECT id, missing_version, found_version, status, rank FROM match_candidates WHERE missing_case_id = $1 AND found_case_id = $2",
       [missing.id, found.id],
     );
-    expect(candidate).toEqual({ missing_version: 1, found_version: 1, status: "pending", rank: 1 });
+    expect(result.candidates).toContainEqual(expect.objectContaining({ id: candidate.id, rank: candidate.rank }));
+    expect(candidate).toMatchObject({ missing_version: 1, found_version: 1, status: "pending" });
   });
 
   it("does not resuggest a rejected pair at the same versions", async () => {
