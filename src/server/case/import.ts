@@ -15,6 +15,7 @@
 // - The audit is `case.imported` with details { ref_code, version, to_status, api }.
 //   Text and URL never appear in audit details; the validated example.invalid URL
 //   is stored on the synthetic case row and never fetched.
+import { randomBytes, randomInt } from "node:crypto";
 import { ApiError } from "@/app/api/_shared/envelope";
 import {
   createMissingRequestSchema,
@@ -169,11 +170,14 @@ function cryptoUUID(): string {
   // runtimes (Vitest in jsdom). The shape must be lowercased.
   const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
   if (c && typeof c.randomUUID === "function") return c.randomUUID().toLowerCase();
-  // Fallback: 36-char v4 UUID without external deps.
-  const hex = (n: number) => Math.floor(Math.random() * 16 ** n).toString(16).padStart(n, "0");
+  // Fallback: 36-char v4 UUID without external deps, using Node's crypto
+  // module for cryptographically secure random bytes. BUG-S16: Math.random()
+  // is predictable and was previously used here, allowing attackers observing
+  // successful imports to predict and pre-claim ref_codes.
+  const hex = (n: number) => randomBytes(n).toString("hex").slice(0, n);
   return [
     hex(8), hex(4), "4" + hex(3),
-    ((8 + Math.floor(Math.random() * 4)).toString(16)) + hex(3),
+    ((8 + randomInt(0, 4)).toString(16)) + hex(3),
     hex(12),
   ].join("-");
 }
@@ -183,7 +187,9 @@ const REF_PREFIX = { missing: "M-", found: "F-" } as const;
 function newRefCode(kind: "missing" | "found"): string {
   let suffix = "";
   for (let i = 0; i < 6; i++) {
-    suffix += REF_ALPHABET[Math.floor(Math.random() * REF_ALPHABET.length)];
+    // BUG-S16: use crypto.randomInt instead of Math.random to make ref codes
+    // unguessable to an attacker observing successful imports.
+    suffix += REF_ALPHABET[randomInt(0, REF_ALPHABET.length)];
   }
   return `${REF_PREFIX[kind]}${suffix}`;
 }
