@@ -294,4 +294,27 @@ describe.skipIf(!dbTestsEnabled)("P3-040 matcher run on PostgreSQL 16", () => {
       match_error_id: "E-021",
     });
   });
+
+  it("fails when a trigger suppresses a ranked candidate write", async () => {
+    const { missing } = await pair();
+    await admin.query(`CREATE FUNCTION public.test_suppress_match_candidate() RETURNS trigger
+      LANGUAGE plpgsql AS $$ BEGIN RETURN NULL; END $$`);
+    await admin.query(`CREATE TRIGGER test_suppress_match_candidate BEFORE INSERT ON public.match_candidates
+      FOR EACH ROW WHEN (NEW.missing_case_id = '${missing.id}'::uuid)
+      EXECUTE FUNCTION public.test_suppress_match_candidate()`);
+
+    try {
+      const direct = await runMatcherForCase(missing.id, { embedder: constantEmbedder(), api: "API-014", pool: app });
+      expect(direct).toMatchObject({ state: "failed", errorId: "E-021", candidates: [] });
+      expect(direct.skipped).toContain("E-021");
+      expect(await one<{ status: string; matching_state: string; match_error_id: string | null }>(appClient,
+        "SELECT status, matching_state, match_error_id FROM cases WHERE id = $1", [missing.id]))
+        .toMatchObject({ status: "open", matching_state: "failed", match_error_id: "E-021" });
+      expect(await appClient.query("SELECT id FROM match_candidates WHERE missing_case_id = $1", [missing.id]))
+        .toMatchObject({ rows: [] });
+    } finally {
+      await admin.query("DROP TRIGGER IF EXISTS test_suppress_match_candidate ON public.match_candidates");
+      await admin.query("DROP FUNCTION IF EXISTS public.test_suppress_match_candidate()");
+    }
+  });
 });

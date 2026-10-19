@@ -83,7 +83,7 @@ export type MatcherRunResult = {
   abstained: boolean;
   /** Error code to record on the case row when state === 'failed' (e.g. "E-021"). */
   errorId?: string;
-  /** Recoverable row-local write errors skipped while preserving the rest of the run. */
+  /** Row-local write errors skipped during scoring that caused this run to fail and retry. */
   skipped?: string[];
 };
 
@@ -453,7 +453,26 @@ async function runInsideTransaction(
   // pending). The supersede above already covers different versions.
   await supersedeDropped(client, missingCaseId, missing.version, topFiveIds);
 
-  // 9) Reconcile the missing report's queue state and stamp 'complete'.
+  // 9) Reconcile the queue state. If any ranked write failed, withdraw every
+  // pending candidate so an incomplete shortlist cannot be served as current.
+  if (skipped.length > 0) {
+    await client.query(
+      `UPDATE match_candidates SET status = 'superseded', decided_at = now()
+       WHERE missing_case_id = $1 AND status = 'pending'`,
+      [missingCaseId],
+    );
+    await reconcileQueueState(client, SYSTEM_ACTOR, [missingCaseId], { api: opts.api, requestId: opts.requestId ?? null });
+    await client.query(STAMP_FAILED_SQL, [missingCaseId, "E-021"]);
+    return {
+      caseId: missingCaseId,
+      state: "failed",
+      candidates: [],
+      considered,
+      abstained: false,
+      errorId: "E-021",
+      skipped,
+    };
+  }
   await reconcileQueueState(client, SYSTEM_ACTOR, [missingCaseId], { api: opts.api, requestId: opts.requestId ?? null });
   await client.query(STAMP_COMPLETE_SQL, [missingCaseId]);
 
@@ -531,47 +550,58 @@ async function upsertTopFive(
 ): Promise<{ written: { id: string; rank: number }[]; skipped: string[] }> {
   const written: { id: string; rank: number }[] = [];
   const skipped: string[] = [];
+  const markSkipped = (errCode: string) => {
+    skipped.push("E-021");
+    logger.warn({ event: "match.row_skipped", error_id: "E-021", err_code: errCode });
+  };
   if (ranked.length === 0) {
     return { written, skipped };
   }
   for (let i = 0; i < ranked.length; i++) {
     const r = ranked[i]!;
     const s = scored.find((x) => x.id === r.id);
-    if (!s) continue;
+    if (!s) {
+      markSkipped("MISSING_SCORE");
+      continue;
+    }
     const savepoint = `candidate_write_${i}`;
     await client.query(`SAVEPOINT ${savepoint}`);
     try {
       const foundRow = (await getCaseRow(client, r.id)) ?? null;
-      if (foundRow) {
-        // RankedCandidate carries similarity and components; wrap as ScoredCandidate for the reason builder.
-        const scoredForReasons: ScoredCandidate = {
-          similarity: r.similarity,
-          components: r.components,
-          qualified: true,
-        };
-        const built = buildReasonAndComponents(missing, foundRow, scoredForReasons, s.reasons);
-        const { rows } = await client.query(UPSERT_CANDIDATE_SQL, [
-          missing.id,
-          foundRow.id,
-          missing.version,
-          foundRow.version,
-          r.similarity,
-          i + 1,
-          built.reasonBn,
-          built.reasonEn,
-          JSON.stringify(built.components),
-        ]);
-        const id = rows[0]?.id as string | undefined;
-        if (id) written.push({ id, rank: i + 1 });
+      if (!foundRow) {
+        await client.query(`RELEASE SAVEPOINT ${savepoint}`);
+        markSkipped("MISSING_FOUND_CASE");
+        continue;
       }
+
+      // RankedCandidate carries similarity and components; wrap as ScoredCandidate for the reason builder.
+      const scoredForReasons: ScoredCandidate = {
+        similarity: r.similarity,
+        components: r.components,
+        qualified: true,
+      };
+      const built = buildReasonAndComponents(missing, foundRow, scoredForReasons, s.reasons);
+      const { rows } = await client.query(UPSERT_CANDIDATE_SQL, [
+        missing.id,
+        foundRow.id,
+        missing.version,
+        foundRow.version,
+        r.similarity,
+        i + 1,
+        built.reasonBn,
+        built.reasonEn,
+        JSON.stringify(built.components),
+      ]);
+      const id = rows[0]?.id as string | undefined;
+      if (id) written.push({ id, rank: i + 1 });
+      else markSkipped("NO_RETURNED_CANDIDATE_ID");
       await client.query(`RELEASE SAVEPOINT ${savepoint}`);
     } catch (err) {
       const code = (err as { code?: unknown } | null)?.code;
       if (typeof code !== "string" || !/^(22|23)[0-9A-Z]{3}$/.test(code)) throw err;
       await client.query(`ROLLBACK TO SAVEPOINT ${savepoint}`);
       await client.query(`RELEASE SAVEPOINT ${savepoint}`);
-      skipped.push("E-021");
-      logger.warn({ event: "match.row_skipped", error_id: "E-021", err_code: code });
+      markSkipped(code);
     }
   }
   return { written, skipped };
