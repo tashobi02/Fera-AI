@@ -41,7 +41,12 @@ describe.skipIf(!dbTestsEnabled)("API-003 on PostgreSQL 16 (TASK-022)", () => {
 
   const newParent = async () => {
     const { id } = await one<{ id: string }>(appClient, "INSERT INTO parent_sessions DEFAULT VALUES RETURNING id");
-    return { id, cookie: `${cookieNames(false).parent}=${signParentToken(KEYS.parent, id)}` };
+    // SYS-BUG-11: parent tokens are now bound to a client fingerprint
+    // (IP/24 + User-Agent). The test request has no x-forwarded-for
+    // header and no User-Agent, so clientAddress() returns null and the
+    // resolver sees the fingerprint as "null|" (template-literal of
+    // null is "null"; empty UA). Tests must sign with the same value.
+    return { id, cookie: `${cookieNames(false).parent}=${signParentToken(KEYS.parent, id, "null|")}` };
   };
   const manualRequest = (): CreateMissingRequest => ({
     confirmed: true,
@@ -203,7 +208,7 @@ describe.skipIf(!dbTestsEnabled)("API-003 on PostgreSQL 16 (TASK-022)", () => {
     const { id } = await one<{ id: string }>(appClient, "INSERT INTO parent_sessions (created_at, expires_at) VALUES (now() - interval '31 days', now() - interval '1 minute') RETURNING id");
     const before = await counts();
     const sessionsBefore = await one(appClient, "SELECT count(*)::int AS n FROM parent_sessions");
-    const response = await submit(manualRequest(), `${cookieNames(false).parent}=${signParentToken(KEYS.parent, id)}`);
+    const response = await submit(manualRequest(), `${cookieNames(false).parent}=${signParentToken(KEYS.parent, id, "null|")}`);
     expect(response.status).toBe(401);
     expect(await errorId(response)).toBe("E-002");
     expect(response.headers.get("set-cookie")).toMatch(new RegExp(`^${cookieNames(false).parent}=; .*Max-Age=0`));

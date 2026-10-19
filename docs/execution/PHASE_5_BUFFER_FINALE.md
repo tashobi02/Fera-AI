@@ -198,6 +198,10 @@ The coordinator integrated all necessary worker output, completed quota-interrup
 
 Full remote CI: [39157185543](https://github.com/tashobi02/Fera-AI/actions/runs/39157185543) — check, DB and e2e PASS; includes 78 browser checks, 13 stricter offline checks and 6 native embedding checks.
 
+## System integration regression run — 19 October
+
+At source `8499361`, the plan-driven local run passed 3,981 unit tests (309 skipped), 321 DB tests, 78 standard browser checks, six native embedding checks, 13 direct offline checks and five automated offline repetitions. Exploratory checks exposed **S1 audit-subject omissions** in officer verification (Sadman) and duplicate decisions (Masnun), plus an **S2 manual-form handoff failure** (Obidit). Safeguarding/release verdict is **BLOCK** until fixes and regressions pass. Default lint also fails by scanning nested worktrees; the active-tree diagnostic has zero errors / 73 warnings. No application fix, production acceptance, human rehearsal, submission or formal G6 approval is claimed. Full commands, counts, screenshots, limitations and the two S3 tooling defects are in [the execution report](evidence/system-test-2026-10-19-8499361.md).
+
 
 ## System integration fixes and pre-main inspection — 19 October
 

@@ -83,8 +83,11 @@ export async function setOfficerVerified(
           details: {
             api: "API-017",
             verified: request.verified,
-            target_role: "officer",
+            // BR-010: a target identifier so two audits on the same day by the
+            // same admin do not collapse. The audited account is a synthetic
+            // seeded officer; no name, phone or child payload is recorded.
             target_user_id: id,
+            target_role: "officer",
           },
           requestId: ctx.requestId,
         });

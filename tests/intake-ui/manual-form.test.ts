@@ -156,6 +156,32 @@ describe("SCREEN-005 manual form lifecycle (P3-013 / TASK-025 / FR-026 / TC-017)
     expect(stored?.attempted).toBe(false);
   });
 
+  // SYS-BUG-01 / SYS-BUG-10 regression: a handoff with no extract response
+  // (e.g. extraction failed or was never attempted) used to produce null from
+  // createDeviceDraft(), which left the manual form with no editable record.
+  // The form now retains the source text and an empty, editable draft.
+  it("retains sourceText and an editable draft when the handoff has no extract response (SYS-BUG-01/10)", () => {
+    const text = "আমার মেয়ে হারিয়ে গেছে, কাল সন্ধ্যায়";
+    handOff({
+      to: "manual",
+      sourceText: text,
+      response: null,
+      missing: [],
+      asked: 0,
+      cached: false,
+      mock: false,
+    });
+    const record = createDeviceDraft(takeHandoff()!);
+    expect(record).not.toBeNull();
+    expect(record?.sourceText).toBe(text);
+    expect(record?.draft.source_text).toBe(text);
+    expect(record?.draftToken).toBeUndefined();
+    // Every structured field stays unknown; the parent fills by hand.
+    expect(record?.draft.child.name).toBeNull();
+    expect(record?.draft.event.district_code).toBeNull();
+    expect(record?.mock).toBe(false);
+  });
+
   it("restores a previously edited manual draft from device storage with the same UUID", () => {
     // First mount: edit a field so the UUID is persisted.
     const first = mount();

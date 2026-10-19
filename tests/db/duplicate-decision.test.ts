@@ -131,4 +131,40 @@ describe.skipIf(!dbTestsEnabled)("API-023 duplicate decisions (BR-020/021; TC-03
     const audit = await admin.query("SELECT id FROM audit_log WHERE case_id = $1 AND action = 'duplicate.reviewed'", [link.caseA.id]);
     expect(audit.rows).toHaveLength(0);
   });
+
+  // SYS-BUG-03 regression: two duplicate links sharing the same lower endpoint
+  // (case_a) must produce audit rows with distinguishable subjects. Before the
+  // fix the details only carried the lower endpoint's case_id, which collapsed
+  // the two audits; the duplicate_link_id key in details is the safe subject.
+  it("distinguishes two links sharing the same lower endpoint via duplicate_link_id (SYS-BUG-03)", async () => {
+    const all = await Promise.all([insertMissing(appClient), insertMissing(appClient), insertMissing(appClient)]);
+    const sorted = [...all].sort((a, b) => a.id.localeCompare(b.id));
+    const lower = sorted[0]!; // smallest UUID = caseA for both links
+    const upper1 = sorted[1]!;
+    const upper2 = sorted[2]!;
+    const linkAB = await createLink(lower, upper1, "profile");
+    const linkAC = await createLink(lower, upper2, "profile");
+    // Both links must share the same case_a (the smallest UUID of the three).
+    expect(linkAB.caseA.id).toBe(linkAC.caseA.id);
+    expect(linkAB.caseA.id).toBe(lower.id);
+
+    const officer = testUser(actors.officer, "officer", { verified: true });
+    const reason = "[MOCK] SYS-BUG-03 regression evidence";
+    const r1 = await decideDuplicate(officer, linkAB.id, {
+      status: "dismissed", reason, profile_evidence_reviewed: true,
+    }, { pool: appPool });
+    const r2 = await decideDuplicate(officer, linkAC.id, {
+      status: "dismissed", reason, profile_evidence_reviewed: true,
+    }, { pool: appPool });
+
+    const audits = await admin.query<{ id: string; details: Record<string, unknown> }>(
+      `SELECT id, details FROM audit_log
+         WHERE action = 'duplicate.reviewed' AND id = ANY($1::bigint[]) ORDER BY id`,
+      [[r1.auditId, r2.auditId]],
+    );
+    expect(audits.rows).toHaveLength(2);
+    const linkIds = audits.rows.map((row) => row.details.duplicate_link_id);
+    expect(new Set(linkIds).size).toBe(2);
+    expect(linkIds).toEqual(expect.arrayContaining([linkAB.id, linkAC.id]));
+  });
 });

@@ -98,6 +98,9 @@ describe("setOfficerVerified (API-017 [MOCK])", () => {
     expect(JSON.parse(String(audit[6]))).toEqual({
       api: "API-017",
       verified: true,
+      // BR-010: target_user_id so two audits by the same admin on different
+      // officers are distinguishable.
+      target_user_id: OFFICER_ID,
       target_role: "officer",
       target_user_id: OFFICER_ID,
     });

@@ -194,6 +194,10 @@ export async function decideDuplicate(
       duplicate_rule: link.rule,
       duplicate_link_id: link.id,
       reason_recorded: true,
+      // BR-021: the link UUID is the safe subject identifier. Two flagged
+      // links sharing the lower endpoint (case_a) would otherwise collapse
+      // into the same audit subject; the link id keeps them independently
+      // visible in the audit trail.
       ...(aRow.kind === "missing" ? { missing_ref: aRow.ref_code } : { found_ref: aRow.ref_code }),
     };
     // candidate_id is a match-candidate FK, so it stays null. The server-only

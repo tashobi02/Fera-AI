@@ -52,8 +52,17 @@ describe("TASK-022 device draft store", () => {
     expect(saveDraft(old, storage)).toBe(false);
     expect(loadDraft(storage, now)?.client_submission_id).toBe(next.client_submission_id);
   });
-  it("does not invent a draft for a handoff without extraction", () => {
-    expect(createDeviceDraft({ to: "manual", sourceText: "[MOCK]", response: null, missing: [], asked: 4, mock: true, cached: false }, now)).toBeNull();
+  // SYS-BUG-01 / SYS-BUG-10: the manual form must remain usable when no
+  // extract response exists. The old contract returned null, which left
+  // the parent with no editable record and dropped their typed text. The
+  // form now adopts the source text and an empty, editable draft.
+  it("builds a minimal editable draft from the source text when no extract response exists", () => {
+    const r = createDeviceDraft({ to: "manual", sourceText: "[MOCK]", response: null, missing: [], asked: 4, mock: true, cached: false }, now);
+    expect(r).not.toBeNull();
+    expect(r?.sourceText).toBe("[MOCK]");
+    expect(r?.draft.source_text).toBe("[MOCK]");
+    expect(r?.draft.kind).toBe("missing");
+    expect(r?.draft.child.sex).toBe("unknown");
   });
   it("persists submitted reference without payload and clears it cleanly (W2)", () => {
     const storage = memoryStorage();

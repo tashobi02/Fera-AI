@@ -173,7 +173,7 @@ async function insertCandidate(opts: {
     `INSERT INTO match_candidates (missing_case_id, found_case_id, missing_version, found_version,
        score, rank, reason_bn, reason_en, components, status, decided_at)
      VALUES ($1, $2, $3, $4, 50.0, 1, '[MOCK] কারণ', '[MOCK] reason',
-             '{"text":0.5,"age":0.5}'::jsonb, $5::candidate_status, CASE WHEN $5::candidate_status = 'pending' THEN NULL ELSE now() END)
+             '{"cosine":0.5,"age":0.5,"name":0.5,"clothing":null,"district":0.5}'::jsonb, $5::candidate_status, CASE WHEN $5::candidate_status = 'pending' THEN NULL ELSE now() END)
      RETURNING id`,
     [opts.missingId, opts.foundId, opts.missingVersion, opts.foundVersion, opts.status],
   );
@@ -373,8 +373,8 @@ describe.skipIf(!dbTestsEnabled)("matcher hard filters DB (P3-030, BR-017, TC-00
     expect(rows.map((r) => r.found_case_id)).not.toContain(foundId);
   });
 
-  it("a pair already listed as pending at the same versions IS still returned so a rerun can re-rank (BR-017)", async () => {
-    // BR-017 only excludes a `rejected` candidate row at the same versions.
+  it("a pair already listed as pending IS still returned so a rerun can re-rank (BR-017)", async () => {
+    // BR-017 only excludes a `rejected` candidate row (BR-019, any versions).
     // A pending pair must stay in the eligible set so a rerun can re-rank
     // it (the matcher glue upserts with ON CONFLICT and never produces a
     // true duplicate).

@@ -50,7 +50,7 @@ import { randomBytes } from "node:crypto";
 import { spawn, execFileSync } from "node:child_process";
 import { readFile, writeFile, mkdir, copyFile } from "node:fs/promises";
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
-import { resolve, dirname, join } from "node:path";
+import { resolve, dirname, join, isAbsolute } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   parseArgs,
