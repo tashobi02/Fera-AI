@@ -24,9 +24,9 @@ export const txOptions = (ctx: ServiceContext): TxOptions => ({ pool: ctx.pool, 
 // no system, matcher, parent or staff actor may take it, whatever the caller.
 export const OFFICER_ONLY_TARGETS: readonly CaseStatus[] = ["confirmed", "referred", "closed"];
 
-export class StepAuthorityError extends Error {
+export class StepAuthorityError extends ApiError {
   constructor() {
-    super("only a verified officer's decision or closure may take this step");
+    super("E-003");
     this.name = "StepAuthorityError";
   }
 }
