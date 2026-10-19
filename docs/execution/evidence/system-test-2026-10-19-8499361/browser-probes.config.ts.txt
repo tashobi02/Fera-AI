@@ -1,0 +1,4 @@
+import config from "/home/obidit/secondBrain/coding/Fera-AI/playwright.config.ts";
+const name="fera_e2e_system_extra_a91f";
+if(process.env.FERA_E2E_DB_NAME!==name)throw new Error("dedicated DB required");
+export default {...config,testDir:"/tmp/fera-system-extra-specs",testMatch:"fera-system-extra.spec.ts",projects:config.projects.filter(x=>x.name==="desktop"),outputDir:"/tmp/fera-system-extra-results",reporter:[["list"],["json",{outputFile:"/tmp/fera-system-extra.json"}]],webServer:{...config.webServer,cwd:"/home/obidit/secondBrain/coding/Fera-AI",env:{...config.webServer.env,FERA_DB_NAME:name},command:`FERA_DB_NAME=${name} npm run db:reset && node scripts/e2e-server.mjs`}};

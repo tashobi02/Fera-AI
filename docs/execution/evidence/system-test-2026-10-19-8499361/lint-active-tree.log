@@ -1,0 +1,144 @@
+npm notice run fera-ai@0.1.0 lint
+npm notice run eslint --ignore-pattern .worktrees/**
+
+/home/obidit/secondBrain/coding/Fera-AI/eval/all.mjs
+   27:7   warning  '__dirname' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  144:10  warning  'captureStdout' is defined but never used       @typescript-eslint/no-unused-vars
+  145:7   warning  'buf' is assigned a value but never used        @typescript-eslint/no-unused-vars
+  153:10  warning  'mdList' is defined but never used              @typescript-eslint/no-unused-vars
+  163:10  warning  'summariseModule' is defined but never used     @typescript-eslint/no-unused-vars
+  387:11  warning  'result' is assigned a value but never used     @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/eval/dedupe.mjs
+   12:51  warning  'loadSplitRecords' is defined but never used    @typescript-eslint/no-unused-vars
+   18:7   warning  '__dirname' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  349:11  warning  'result' is assigned a value but never used     @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/eval/extract.mjs
+   14:3   warning  'REPO_ROOT' is defined but never used           @typescript-eslint/no-unused-vars
+   15:18  warning  'safeReadJson' is defined but never used        @typescript-eslint/no-unused-vars
+   15:58  warning  'sampleFailures' is defined but never used      @typescript-eslint/no-unused-vars
+   16:20  warning  'round2' is defined but never used              @typescript-eslint/no-unused-vars
+   21:19  warning  'resolve' is defined but never used             @typescript-eslint/no-unused-vars
+   23:7   warning  '__dirname' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  476:11  warning  'result' is assigned a value but never used     @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/eval/match.mjs
+   16:10  warning  'existsSync' is defined but never used          @typescript-eslint/no-unused-vars
+   20:7   warning  '__dirname' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  341:11  warning  'result' is assigned a value but never used     @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/scripts/demo/app.mjs
+  122:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/scripts/demo/reset.mjs
+  57:5  warning  'state' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/scripts/demo/status.mjs
+  14:3  warning  'volumeNameFor' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/src/app/(desk)/officer/case/[id]/audit-list.tsx
+  107:9  warning  'actors' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/src/app/(desk)/officer/duplicates/[id]/duplicate-review.tsx
+  37:7  warning  'COMPARE_FIELDS' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/src/server/cache/fixtures.ts
+  203:39  warning  '_id' is defined but never used         @typescript-eslint/no-unused-vars
+  203:52  warning  '_audioHash' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/src/server/intake/orchestrator.ts
+   33:37  warning  'OrchestrationDecision' is defined but never used        @typescript-eslint/no-unused-vars
+   33:81  warning  'ERR_E023' is defined but never used                     @typescript-eslint/no-unused-vars
+   40:3   warning  'createInMemoryDraftRegistry' is defined but never used  @typescript-eslint/no-unused-vars
+  116:10  warning  'errorFromThrown' is defined but never used              @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/src/server/intake/rounds.ts
+  17:72  warning  'NextQuestionTagged' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/src/server/intake/runtime.ts
+  9:10  warning  'runPaidCall' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/submission/demo/verify-submission.mjs
+  25:10  warning  'statSync' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/tests/api/dashboard-route.test.ts
+  185:50  warning  'createKeyer' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/tests/api/review-queue.test.ts
+  11:22  warning  'timingSafeEqual' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/tests/db/dashboard.test.ts
+  20:55  warning  'seedReference' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/tests/demo/cache-pin.test.ts
+  18:16  warning  'expectedPin' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/tests/demo/hardening.test.ts
+  33:31  warning  'existsSync' is defined but never used    @typescript-eslint/no-unused-vars
+  33:67  warning  'readFileSync' is defined but never used  @typescript-eslint/no-unused-vars
+  35:27  warning  'pathResolve' is defined but never used   @typescript-eslint/no-unused-vars
+  38:3   warning  'ownerLabel' is defined but never used    @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/tests/demo/keys.test.ts
+  10:31  warning  'existsSync' is defined but never used        @typescript-eslint/no-unused-vars
+  10:43  warning  'writeFileSync' is defined but never used     @typescript-eslint/no-unused-vars
+  10:69  warning  'readFileSync' is defined but never used      @typescript-eslint/no-unused-vars
+  16:3   warning  'ownerLabel' is defined but never used        @typescript-eslint/no-unused-vars
+  17:3   warning  'containerNameFor' is defined but never used  @typescript-eslint/no-unused-vars
+  18:3   warning  'volumeNameFor' is defined but never used     @typescript-eslint/no-unused-vars
+  24:10  warning  'runLauncher' is defined but never used       @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/tests/demo/lifecycle-invariants.test.ts
+  23:32  warning  'beforeAll' is defined but never used               @typescript-eslint/no-unused-vars
+  30:3   warning  'assertDemoDatabaseName' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/tests/duplicates/persist.test.ts
+  14:15  warning  'CaseRow' is defined but never used             @typescript-eslint/no-unused-vars
+  15:10  warning  'CASE_AUDIT_ACTIONS' is defined but never used  @typescript-eslint/no-unused-vars
+  66:13  warning  '_arg' is defined but never used                @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/tests/e2e/log-scan.spec.ts
+  18:24  warning  'readCapturedLog' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/tests/e2e/parent-journey.spec.ts
+  44:5  warning  'ACTORS' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/tests/e2e/safeguarding.spec.ts
+  23:3  warning  'STAFF_DISPLAY' is defined but never used       @typescript-eslint/no-unused-vars
+  24:3  warning  'UNVERIFIED_DISPLAY' is defined but never used  @typescript-eslint/no-unused-vars
+  25:3  warning  'VERIFIED_DISPLAY' is defined but never used    @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/tests/embeddings/embed.test.ts
+  99:21  warning  '_t' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/tests/eval/all.test.ts
+  94:13  warning  'result' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/tests/eval/label-drafts.test.ts
+  25:46  warning  'readFileSync' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/tests/intake-ui/form-links.test.ts
+  7:10  warning  'errorEnvelope' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/tests/intake-ui/manual-form.test.ts
+  10:38  warning  'takeHandoff' is defined but never used  @typescript-eslint/no-unused-vars
+  11:21  warning  'clearDraft' is defined but never used   @typescript-eslint/no-unused-vars
+  99:11  warning  'h' is assigned a value but never used   @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/tests/intake-ui/offline-local.test.ts
+   51:30  warning  '_url' is defined but never used   @typescript-eslint/no-unused-vars
+   51:45  warning  '_init' is defined but never used  @typescript-eslint/no-unused-vars
+  102:30  warning  '_url' is defined but never used   @typescript-eslint/no-unused-vars
+  102:45  warning  '_init' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/tests/intake/orchestrator.test.ts
+   11:32  warning  'ReservationRequest' is defined but never used      @typescript-eslint/no-unused-vars
+  182:11  warning  'fallbackDraft' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  191:46  warning  '_args' is defined but never used                   @typescript-eslint/no-unused-vars
+
+/home/obidit/secondBrain/coding/Fera-AI/tests/ui/officer-case.test.ts
+  44:7  warning  'navigation' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+✖ 73 problems (0 errors, 73 warnings)
+

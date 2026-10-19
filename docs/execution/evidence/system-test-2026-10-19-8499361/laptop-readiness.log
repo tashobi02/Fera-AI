@@ -1,0 +1,90 @@
+npm notice run fera-ai@0.1.0 demo:local
+npm notice run node scripts/demo/cli.mjs verify
+{
+  "ok": false,
+  "overall": false,
+  "verifyOverall": false,
+  "worktree": "/home/obidit/secondBrain/coding/Fera-AI",
+  "port": 3215,
+  "appPort": 3216,
+  "docker": {
+    "ok": true
+  },
+  "container": {
+    "name": "fera-demo-3da5a9ea2e6ede08-pg",
+    "status": "missing",
+    "foreign": false
+  },
+  "db": {
+    "ok": false,
+    "reason": "container not running"
+  },
+  "dbQuery": {
+    "ok": false,
+    "reason": "container not running"
+  },
+  "cache": {
+    "cacheDir": "/home/obidit/secondBrain/coding/Fera-AI/.cache/models",
+    "layoutDir": "/home/obidit/secondBrain/coding/Fera-AI/.cache/models/Xenova/multilingual-e5-small",
+    "modelId": "Xenova/multilingual-e5-small",
+    "expected": [
+      {
+        "path": "config.json",
+        "sha256": "cb99455288675345e1a4f411438d5d0adbba5fbd3a67ea4fb03c015433b996c1"
+      },
+      {
+        "path": "onnx/model_quantized.onnx",
+        "sha256": "f80102d3f2a1229f387d3c81909990d8945513e347b0eab049f7de3c6f98c193"
+      },
+      {
+        "path": "tokenizer.json",
+        "sha256": "0b44a9d7b51c3c62626640cda0e2c2f70fdacdc25bbbd68038369d14ebdf4c39"
+      },
+      {
+        "path": "tokenizer_config.json",
+        "sha256": "a1d6bc8734a6f635dc158508bef000f8e2e5a759c7d92f984b2c86e5ff53425b"
+      }
+    ],
+    "present": 4,
+    "missing": [],
+    "tampered": [],
+    "status": "ok"
+  },
+  "dbScripts": [
+    {
+      "path": "db/schema_v2.sql",
+      "ok": true,
+      "sha256": "08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"
+    },
+    {
+      "path": "db/roles.sql",
+      "ok": true,
+      "sha256": "b0422908d5e646c976ba5f70280aadb103d18817b97b5b321f18d5cd2d574596"
+    },
+    {
+      "path": "scripts/db/reset.mjs",
+      "ok": true,
+      "sha256": "73dec87727723f921cca1885b562690ec24ee7ebfebda052757591ce16c1eabb"
+    },
+    {
+      "path": "scripts/db/seed-users.mjs",
+      "ok": true,
+      "sha256": "56ba4e61f7941c22d184c18e074457c47846ef71f45f4dabec69c6736dcd2571"
+    },
+    {
+      "path": "db/seed/index.mjs",
+      "ok": true,
+      "sha256": "edde8f929f88b91aa5972ae22d4adec659721216948d838e151bbe9deb5e8fb3"
+    },
+    {
+      "path": "scripts/model-fetch.mjs",
+      "ok": true,
+      "sha256": "e42809f66f678c4425f47505195b418ade04e6b5b1bf966bffc0001052066d6d"
+    },
+    {
+      "path": "scripts/reembed.mjs",
+      "ok": true,
+      "sha256": "14d0edb193c8454d6d2f244a414b1a683ee4fb9d67e082fb1cd861d8dc3b2100"
+    }
+  ]
+}

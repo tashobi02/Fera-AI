@@ -1,0 +1,4 @@
+import config from "/home/obidit/secondBrain/coding/Fera-AI/playwright.offline.config.ts";
+const name=process.env.FERA_REHEARSAL_DB_NAME;
+if (!name || !/^fera_e2e_premainjourney_[a-z0-9_]{1,32}$/.test(name)) throw new Error("dedicated rehearsal DB required");
+export default {...config, testDir:"/home/obidit/secondBrain/coding/Fera-AI/tests/rehearsal",outputDir:"/tmp/fera-system-offline-results",reporter:[["list"],["json",{outputFile:"/tmp/fera-system-offline.json"}]],webServer:{...config.webServer,cwd:"/home/obidit/secondBrain/coding/Fera-AI",env:{...config.webServer.env,FERA_DB_NAME:name},command:`FERA_DB_NAME=${name} npm run db:reset && node scripts/rehearsal/launch-offline-server.mjs`}};

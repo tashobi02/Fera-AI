@@ -1,0 +1,72 @@
+npm notice run fera-ai@0.1.0 test:e2e
+npm notice run playwright test --config /tmp/fera-system-extra.config.ts --grep TC-036
+[WebServer] npm notice run fera-ai@0.1.0 db:reset
+[WebServer] npm notice run node scripts/db/reset.mjs
+[WebServer] db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_e2e_system_extra_a91f
+[WebServer] {"database":"fera_e2e_system_extra_a91f","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+[WebServer] (node:2640985) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] npm notice run fera-ai@0.1.0 npx
+[WebServer] npm notice run 'next' start -p 3111
+[WebServer] (node:2641001) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] ▲ Next.js 16.4.0
+[WebServer] - Local:         http://localhost:3111
+[WebServer] - Network:       http://192.168.1.163:3111
+[WebServer] ✓ Ready in 107ms
+[WebServer] ✓ Running next.config.ts took 31ms
+
+Running 1 test using 1 worker
+
+(node:2641032) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop] › ../../../../../tmp/fera-system-extra-specs/fera-system-extra.spec.ts:43:5 › TC-036/060: notice gates dispatch, E-023 offers manual form and keeps typed text (10.8s)
+
+
+  1) [desktop] › ../../../../../tmp/fera-system-extra-specs/fera-system-extra.spec.ts:43:5 › TC-036/060: notice gates dispatch, E-023 offers manual form and keeps typed text 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('body')
+    Expected substring: "[MOCK] synthetic text retained after spend cap"
+    Received string:    "মূল অংশে যানফেরাবাংলা | Englishসিনথেটিক তথ্য · কর্মকর্তা যাচাই সিমুলেশননিজে ফর্মে লিখুনসিনথেটিকএই ডিভাইসে যাচাই করার মতো খসড়া নেই।আপনার কথায় ফিরুনখসড়া মুছে ফেলবেন?খসড়া মুছে ফেলবেন?রাখুনমুছুনখসড়া মুছে ফেলবেন?খসড়া মুছে ফেলবেন?রাখুনমুছুননিজে ফর্মে লিখুন · ফেরা"
+    Timeout: 10000ms
+
+    Call log:
+      - Expect "toContainText" locator('body') with timeout 10000ms
+      - waiting for locator('body')
+        24 × locator resolved to <body>…</body>
+           - unexpected value "মূল অংশে যানফেরাবাংলা | Englishসিনথেটিক তথ্য · কর্মকর্তা যাচাই সিমুলেশননিজে ফর্মে লিখুনসিনথেটিকএই ডিভাইসে যাচাই করার মতো খসড়া নেই।আপনার কথায় ফিরুনখসড়া মুছে ফেলবেন?খসড়া মুছে ফেলবেন?রাখুনমুছুনখসড়া মুছে ফেলবেন?খসড়া মুছে ফেলবেন?রাখুনমুছুননিজে ফর্মে লিখুন · ফেরা"
+
+
+      46 |  await expect(page.locator('textarea[name="text"]')).toHaveCount(0);await page.getByRole("button",{name:/বুঝেছি, চালিয়ে যান|I understand, continue/}).click();
+      47 |  const text="[MOCK] synthetic text retained after spend cap";await page.locator('textarea[name="text"]').fill(text);await page.getByRole("button",{name:/^পাঠান$|^Send$/}).click();
+    > 48 |  await expect(page.getByRole("heading",{name:/বাকি তথ্য ফর্মে দিন|Add the rest in the form/})).toBeVisible();const form=page.getByRole("link",{name:/^ফর্ম খুলুন$|^Open the form$/}).first();await expect(form).toBeVisible();expect(calls).toBe(1);await form.click();await expect(page).toHaveURL(/intake\/form/);await expect(page.locator("body")).toContainText(text);
+         |                                                                                                                                                                                                                                                                                                                                                        ^
+      49 | });
+      50 | test("TC-058 partial: intake/manual pages reflow at 200% text and 400% viewport zoom",async({page})=>{
+      51 |  for(const path of ["/intake","/intake/form","/intake/review"]){for(const mode of ["text200","viewport400"]){await page.setViewportSize({width:mode==="text200"?1280:320,height:800});await page.goto(path);if(mode==="text200")await page.evaluate(()=>document.documentElement.style.fontSize="200%");const size=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth}));expect(size.scroll,`${path} ${mode}`).toBeLessThanOrEqual(size.client+1);}}
+        at /tmp/fera-system-extra-specs/fera-system-extra.spec.ts:48:344
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../tmp/fera-system-extra-results/fera-system-extra-TC-036-0-09c12-l-form-and-keeps-typed-text-desktop/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ../../../../../tmp/fera-system-extra-results/fera-system-extra-TC-036-0-09c12-l-form-and-keeps-typed-text-desktop/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../tmp/fera-system-extra-results/fera-system-extra-TC-036-0-09c12-l-form-and-keeps-typed-text-desktop/error-context.md
+
+    Error Context: ../../../../../tmp/fera-system-extra-results/fera-system-extra-TC-036-0-09c12-l-form-and-keeps-typed-text-desktop/error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../tmp/fera-system-extra-results/fera-system-extra-TC-036-0-09c12-l-form-and-keeps-typed-text-desktop/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../tmp/fera-system-extra-results/fera-system-extra-TC-036-0-09c12-l-form-and-keeps-typed-text-desktop/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [desktop] › ../../../../../tmp/fera-system-extra-specs/fera-system-extra.spec.ts:43:5 › TC-036/060: notice gates dispatch, E-023 offers manual form and keeps typed text 

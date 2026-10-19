@@ -1,0 +1,47 @@
+[
+  {
+    "run": "run1",
+    "lines": 36,
+    "json_events": 29,
+    "phone_hits": 0,
+    "seed_name_hits": 0,
+    "request_events": 26,
+    "request_events_missing_id": 0
+  },
+  {
+    "run": "run2",
+    "lines": 36,
+    "json_events": 29,
+    "phone_hits": 0,
+    "seed_name_hits": 0,
+    "request_events": 26,
+    "request_events_missing_id": 0
+  },
+  {
+    "run": "run3",
+    "lines": 36,
+    "json_events": 29,
+    "phone_hits": 0,
+    "seed_name_hits": 0,
+    "request_events": 26,
+    "request_events_missing_id": 0
+  },
+  {
+    "run": "run4",
+    "lines": 36,
+    "json_events": 29,
+    "phone_hits": 0,
+    "seed_name_hits": 0,
+    "request_events": 26,
+    "request_events_missing_id": 0
+  },
+  {
+    "run": "run5",
+    "lines": 36,
+    "json_events": 29,
+    "phone_hits": 0,
+    "seed_name_hits": 0,
+    "request_events": 26,
+    "request_events_missing_id": 0
+  }
+]

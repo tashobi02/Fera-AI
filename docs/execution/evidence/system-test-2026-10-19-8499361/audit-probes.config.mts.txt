@@ -1,0 +1,1 @@
+export default { resolve:{alias:{"@":"/home/obidit/secondBrain/coding/Fera-AI/src","vitest":"/home/obidit/secondBrain/coding/Fera-AI/node_modules/vitest/dist/index.js"}},test:{environment:"node",include:["/tmp/fera-system-probes.test.ts"]}};

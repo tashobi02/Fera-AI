@@ -1,0 +1,63 @@
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run --config /tmp/fera-system-probes.config.mts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+(node:2645711) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+{"level":50,"time":1792352507390,"event":"db.tx_failed","tx_stage":"callback","err_name":"Error","err_frame":"fera-system-probes.test.ts:34"}
+{"level":50,"time":1792352507432,"event":"db.tx_failed","tx_stage":"callback","err_name":"Error","err_frame":"fera-system-probes.test.ts:34"}
+{"level":50,"time":1792352507471,"event":"db.tx_failed","tx_stage":"callback","err_name":"Error","err_frame":"fera-system-probes.test.ts:34"}
+{"level":50,"time":1792352507529,"event":"db.tx_failed","tx_stage":"callback","err_name":"Error","err_frame":"fera-system-probes.test.ts:34"}
+{"level":50,"time":1792352507596,"event":"db.tx_failed","tx_stage":"callback","err_name":"Error","err_frame":"fera-system-probes.test.ts:34"}
+{"level":50,"time":1792352507646,"event":"db.tx_failed","tx_stage":"callback","err_name":"Error","err_frame":"fera-system-probes.test.ts:34"}
+{"level":50,"time":1792352507708,"event":"db.tx_failed","tx_stage":"callback","err_name":"Error","err_frame":"fera-system-probes.test.ts:34"}
+{"level":50,"time":1792352507772,"event":"db.tx_failed","tx_stage":"callback","err_name":"Error","err_frame":"fera-system-probes.test.ts:34"}
+{"level":50,"time":1792352507839,"event":"db.tx_failed","tx_stage":"callback","err_name":"Error","err_frame":"fera-system-probes.test.ts:34"}
+{"level":50,"time":1792352507894,"event":"db.tx_failed","tx_stage":"callback","err_name":"Error","err_frame":"fera-system-probes.test.ts:34"}
+{"level":50,"time":1792352507964,"event":"db.tx_failed","tx_stage":"callback","err_name":"Error","err_frame":"fera-system-probes.test.ts:34"}
+{"level":50,"time":1792352508046,"event":"db.tx_failed","tx_stage":"callback","err_name":"Error","err_frame":"fera-system-probes.test.ts:34"}
+{"level":50,"time":1792352508146,"event":"db.tx_failed","tx_stage":"callback","err_name":"Error","err_frame":"fera-system-probes.test.ts:34"}
+{"level":50,"time":1792352508263,"event":"db.refusal","err_code":"23514","routine":"exec_stmt_raise","tx_stage":"constraints"}
+ ❯ ../../../../../tmp/fera-system-probes.test.ts (4 tests | 2 failed) 1282ms
+   × BR-010: verifying two different officer accounts keeps distinguishable audit subjects 59ms
+   × BR-010/021: two duplicate links sharing case_a keep distinguishable audit subjects 90ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  ../../../../../tmp/fera-system-probes.test.ts > BR-010: verifying two different officer accounts keeps distinguishable audit subjects
+AssertionError: expected { actor_type: 'admin', …(5) } to not deeply equal { actor_type: 'admin', …(5) }
+
+Compared values have no visual difference.
+
+ ❯ ../../../../../tmp/fera-system-probes.test.ts:14:52
+     12|  for(const id of [actors.unverifiedOfficer,other.unverifiedOfficer]) a…
+     13|  const {rows}=await admin.query(`SELECT ${projection} FROM audit_log W…
+     14|  expect(rows).toHaveLength(2); expect(rows[0]).not.toEqual(rows[1]);
+       |                                                    ^
+     15| });
+     16| it("BR-010/021: two duplicate links sharing case_a keep distinguishabl…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  ../../../../../tmp/fera-system-probes.test.ts > BR-010/021: two duplicate links sharing case_a keep distinguishable audit subjects
+AssertionError: expected { actor_type: 'officer', …(5) } to not deeply equal { actor_type: 'officer', …(5) }
+
+Compared values have no visual difference.
+
+ ❯ ../../../../../tmp/fera-system-probes.test.ts:23:52
+     21|  for(const id of ids) await decideDuplicate(principal,id,{status:"dism…
+     22|  const {rows}=await admin.query(`SELECT ${projection} FROM audit_log W…
+     23|  expect(rows).toHaveLength(2); expect(rows[0]).not.toEqual(rows[1]);
+       |                                                    ^
+     24| });
+     25|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 passed (4)
+   Start at  01:41:46
+   Duration  1.56s (tests 87%, import 7%, transform 5%)
+

@@ -1,0 +1,3 @@
+import config from "/home/obidit/secondBrain/coding/Fera-AI/playwright.config.ts";
+if (process.env.FERA_E2E_DB_NAME !== "fera_e2e_system_20261019_a91f") throw new Error("explicit dedicated test DB required");
+export default {...config, testDir: "/home/obidit/secondBrain/coding/Fera-AI/tests/e2e", outputDir: "/tmp/fera-system-e2e-results", reporter: [["list"],["json",{outputFile:"/tmp/fera-system-e2e.json"}]], webServer: {...config.webServer, cwd: "/home/obidit/secondBrain/coding/Fera-AI", env: {...config.webServer.env, FERA_DB_NAME:"fera_e2e_system_20261019_a91f"}, command: "FERA_DB_NAME=fera_e2e_system_20261019_a91f npm run db:reset && node scripts/e2e-server.mjs"}};

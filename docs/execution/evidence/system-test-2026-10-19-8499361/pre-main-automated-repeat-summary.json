@@ -1,0 +1,49 @@
+{
+  "automated": true,
+  "humanRehearsal": false,
+  "dirtyTree": true,
+  "gitStatusPorcelain": "?? docs/execution/SYSTEM_INTEGRATION_TEST_PLAN.md\n",
+  "results": [
+    {
+      "run": 1,
+      "code": 0,
+      "dbName": "fera_e2e_premainjourney_2631174_0_c37ba6",
+      "networkRecords": 189,
+      "externalAttempts": 0,
+      "sourceCommit": "8499361daa64898de2e938551b9e63e181cb3f32"
+    },
+    {
+      "run": 2,
+      "code": 0,
+      "dbName": "fera_e2e_premainjourney_2631174_1_565029",
+      "networkRecords": 189,
+      "externalAttempts": 0,
+      "sourceCommit": "8499361daa64898de2e938551b9e63e181cb3f32"
+    },
+    {
+      "run": 3,
+      "code": 0,
+      "dbName": "fera_e2e_premainjourney_2631174_2_03503d",
+      "networkRecords": 189,
+      "externalAttempts": 0,
+      "sourceCommit": "8499361daa64898de2e938551b9e63e181cb3f32"
+    },
+    {
+      "run": 4,
+      "code": 0,
+      "dbName": "fera_e2e_premainjourney_2631174_3_abd42f",
+      "networkRecords": 189,
+      "externalAttempts": 0,
+      "sourceCommit": "8499361daa64898de2e938551b9e63e181cb3f32"
+    },
+    {
+      "run": 5,
+      "code": 0,
+      "dbName": "fera_e2e_premainjourney_2631174_4_979e37",
+      "networkRecords": 189,
+      "externalAttempts": 0,
+      "sourceCommit": "8499361daa64898de2e938551b9e63e181cb3f32"
+    }
+  ],
+  "recordedAt": "2026-10-18T19:37:17.521Z"
+}

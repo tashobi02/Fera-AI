@@ -1,0 +1,37 @@
+[
+  {
+    "sample": 1,
+    "extract_cache_ms": 68.56476699999996,
+    "submit_ms": 1632.7861950000001,
+    "found_to_candidates_ms": 130.2042110000002,
+    "confirm_ms": 25.845586999999796
+  },
+  {
+    "sample": 2,
+    "extract_cache_ms": 18.796302000000196,
+    "submit_ms": 39.46775899999966,
+    "found_to_candidates_ms": 60.472256000000016,
+    "confirm_ms": 18.259935999999925
+  },
+  {
+    "sample": 3,
+    "extract_cache_ms": 17.005992999999762,
+    "submit_ms": 39.041859999999815,
+    "found_to_candidates_ms": 65.93646499999977,
+    "confirm_ms": 21.048823000000084
+  },
+  {
+    "sample": 4,
+    "extract_cache_ms": 15.398028999999951,
+    "submit_ms": 39.458454000000074,
+    "found_to_candidates_ms": 63.227112000000034,
+    "confirm_ms": 16.40185100000008
+  },
+  {
+    "sample": 5,
+    "extract_cache_ms": 15.24853499999972,
+    "submit_ms": 39.06907100000035,
+    "found_to_candidates_ms": 64.23371399999996,
+    "confirm_ms": 18.330446999999822
+  }
+]

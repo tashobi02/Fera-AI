@@ -1,0 +1,58 @@
+import {test,expect} from "/home/obidit/secondBrain/coding/Fera-AI/node_modules/@playwright/test/index.mjs";
+import {writeFileSync} from "node:fs";
+import {DESK_PASSWORD,deskContext,ownerClient,seedActors,signInDesk} from "/home/obidit/secondBrain/coding/Fera-AI/tests/e2e/support/fixtures";
+let actors:any;test.beforeAll(async()=>{actors=await seedActors();});
+import {EXTRACT_FIXTURE_SOURCE} from "/home/obidit/secondBrain/coding/Fera-AI/src/server/cache/fixtures";
+const timings:any[]=[];
+test.afterAll(()=>timings.length&&writeFileSync("/tmp/fera-system-performance.json",JSON.stringify(timings,null,2)));
+const draft=(kind:string,i:number)=>({kind,source_text:"[MOCK] synthetic integration lifecycle",child:{name:`[MOCK] Rafi ${i}`,name_latin:`Synthetic Rafi ${i}`,sex:"male",age_years:8,age_min:8,age_max:8,height_cm:130,clothing:"নীল জামা",marks:"বাঁ হাতে দাগ"},event:{at:"2026-10-12T16:00:00+06:00",at_lower:"2026-10-12T15:00:00+06:00",at_upper:"2026-10-12T18:00:00+06:00",at_approx:true,place_text:"কামালাপুর রেলস্টেশন",district_text:"ঢাকা",district_code:1,thana:null,circumstances:"[MOCK] synthetic test report"},reporter:{relation:kind==="missing"?"mother":"witness",phone:kind==="missing"?"01200000001":"01200000002"},evidence:{}});
+test("SYS-01 seam: five unbroken real API lifecycles, outputs, matching, confirm, close and dashboard",async({baseURL})=>{
+ test.setTimeout(120000);const staff=await deskContext(baseURL!,baseURL!);const officer=await deskContext(baseURL!,baseURL!);const db=await ownerClient();
+ try{await signInDesk(staff,actors.staffUsername,DESK_PASSWORD,baseURL!);await signInDesk(officer,actors.verifiedUsername,DESK_PASSWORD,baseURL!);
+ for(let i=0;i<5;i++) {const parent=await deskContext(baseURL!,baseURL!);try{
+ let cacheStart=performance.now();const cached=await parent.post("/api/intake/extract",{headers:{"x-fera-provider-notice":"v1"},data:{kind:"missing",text:EXTRACT_FIXTURE_SOURCE}});const extractMs=performance.now()-cacheStart;expect(cached.status(),await cached.text()).toBe(200);expect((await cached.json()).cached).toBe(true);
+ const id=crypto.randomUUID();const payload={draft:draft("missing",i),confirmed:true,client_submission_id:id};
+ const before=(await db.query("SELECT count(*)::int n FROM cases WHERE client_submission_id=$1",[id])).rows[0].n;expect(before).toBe(0);
+ const denied=await parent.post("/api/cases",{data:{...payload,confirmed:false}});expect(denied.status()).toBe(400);
+ let start=performance.now();const missingRes=await parent.post("/api/cases",{data:payload});const submitMs=performance.now()-start;expect(missingRes.status(),await missingRes.text()).toBe(201);const m=await missingRes.json();expect(m.matching_state).toBe("complete");
+ const output=await parent.post(`/api/cases/${m.id}/outputs`,{data:{type:"helpline"}});expect(output.status(),await output.text()).toBe(200);expect((await output.json()).word_count).toBeLessThanOrEqual(80);
+ start=performance.now();const foundRes=await staff.post("/api/found-cases",{data:{draft:draft("found",i),confirmed:true,client_submission_id:crypto.randomUUID()}});const foundMs=performance.now()-start;expect(foundRes.status(),await foundRes.text()).toBe(201);const f=await foundRes.json();expect(f.matching_state).toBe("complete");
+ const rows=(await db.query("SELECT id FROM match_candidates WHERE missing_case_id=$1 AND found_case_id=$2 AND status='pending'",[m.id,f.id])).rows;expect(rows).toHaveLength(1);const cid=rows[0].id;
+ const queue=await officer.get("/api/review-queue");expect(queue.status()).toBe(200);expect(JSON.stringify(await queue.json())).toContain(cid);
+ const hidden=await parent.get(`/api/candidates/${cid}`);expect(hidden.status()).toBe(404);
+ const checklist={descriptions_reviewed:true,contradictions_reviewed:true,identity_not_proven_by_score:true,referral_is_simulated:true};
+ start=performance.now();const confirm=await officer.post(`/api/candidates/${cid}/decision`,{data:{decision:"confirm",expected_missing_version:1,expected_found_version:1,reviewer_checklist:checklist}});const confirmMs=performance.now()-start;expect(confirm.status(),await confirm.text()).toBe(200);expect((await confirm.json()).referral_is_simulated).toBe(true);
+ const version=(await db.query("SELECT version FROM cases WHERE id=$1",[m.id])).rows[0].version;
+ const close=await officer.post(`/api/cases/${m.id}/close`,{data:{outcome:"coordination_recorded",note:"[MOCK] integration lifecycle",expected_version:version}});expect(close.status(),await close.text()).toBe(200);expect((await close.json()).status).toBe("closed");
+ const statuses=(await db.query("SELECT id,status FROM cases WHERE id=ANY($1::uuid[])",[[m.id,f.id]])).rows;expect(statuses.find(x=>x.id===f.id).status).toBe("referred");
+ const audit=(await db.query("SELECT action FROM audit_log WHERE candidate_id=$1",[cid])).rows.map(x=>x.action);expect(audit).toEqual(expect.arrayContaining(["match.confirm","referral.recorded"]));
+ expect((await db.query("SELECT count(*)::int n FROM referrals WHERE candidate_id=$1",[cid])).rows[0].n).toBe(1);
+ const stats=await officer.get("/api/dashboard/stats");expect(stats.status()).toBe(200);
+ timings.push({sample:i+1,extract_cache_ms:extractMs,submit_ms:submitMs,found_to_candidates_ms:foundMs,confirm_ms:confirmMs});
+ }finally{await parent.dispose();}}
+ }finally{await staff.dispose();await officer.dispose();await db.end();}
+});
+test("SYS-11: disaster page keeps planned-expansion label and saves a real found report",async({page,baseURL})=>{
+ const staff=await deskContext(baseURL!,baseURL!);try{await signInDesk(staff,actors.staffUsername,DESK_PASSWORD,baseURL!);await page.context().addCookies((await staff.storageState()).cookies);
+ await page.goto("/staff/disaster");await expect(page.getByText(/পরিকল্পিত সম্প্রসারণ|Planned expansion/).first()).toBeVisible();
+ await page.locator('[name="circumstances"]').fill("[MOCK] synthetic disaster test");await page.locator('[name="ageMin"]').fill("6");await page.locator('[name="ageMax"]').fill("9");await page.locator('[name="place"]').fill("[MOCK] station");await page.locator('[name="district"]').selectOption("1");await page.locator('[name="foundAt"]').fill("2026-10-12T16:00");await page.locator('[name="phone"]').fill("01200000002");
+ const response=page.waitForResponse(r=>r.url().endsWith("/api/found-cases")&&r.request().method()==="POST");await page.getByRole('button',{name:/সংরক্ষণ করুন|Save/}).click();const res=await response;expect(res.status(),await res.text()).toBe(201);expect((await res.json()).matching_state).toBe("complete");
+ }finally{await staff.dispose();}
+});
+test("security headers apply to JSON as well as HTML",async({request})=>{for(const path of ["/","/api/health"]){const r=await request.get(path);expect(r.headers()["x-frame-options"]).toBe("DENY");expect(r.headers()["content-security-policy"]).toContain("frame-ancestors 'none'");}});
+
+import {errorEnvelope} from "/home/obidit/secondBrain/coding/Fera-AI/src/contracts";
+test("TC-036/060: notice gates dispatch, E-023 offers manual form and keeps typed text",async({page})=>{
+ let calls=0;await page.route("**/api/intake/extract",async route=>{calls++;await route.fulfill({status:429,contentType:"application/json",body:JSON.stringify(errorEnvelope("E-023"))});});
+ await page.goto("/intake");await expect(page.getByRole("button",{name:/বুঝেছি, চালিয়ে যান|I understand, continue/})).toBeVisible();expect(calls).toBe(0);
+ await expect(page.locator('textarea[name="text"]')).toHaveCount(0);await page.getByRole("button",{name:/বুঝেছি, চালিয়ে যান|I understand, continue/}).click();
+ const text="[MOCK] synthetic text retained after spend cap";await page.locator('textarea[name="text"]').fill(text);await page.getByRole("button",{name:/^পাঠান$|^Send$/}).click();
+ await expect(page.getByRole("heading",{name:/বাকি তথ্য ফর্মে দিন|Add the rest in the form/})).toBeVisible();const form=page.getByRole("link",{name:/^ফর্ম খুলুন$|^Open the form$/}).first();await expect(form).toBeVisible();expect(calls).toBe(1);await form.click();await expect(page).toHaveURL(/intake\/form/);await expect(page.locator("body")).toContainText(text);
+});
+test("TC-058 partial: intake/manual pages reflow at 200% text and 400% viewport zoom",async({page})=>{
+ for(const path of ["/intake","/intake/form","/intake/review"]){for(const mode of ["text200","viewport400"]){await page.setViewportSize({width:mode==="text200"?1280:320,height:800});await page.goto(path);if(mode==="text200")await page.evaluate(()=>document.documentElement.style.fontSize="200%");const size=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth}));expect(size.scroll,`${path} ${mode}`).toBeLessThanOrEqual(size.client+1);}}
+});
+test("TC-017: opening manual form before any extraction gives editable fields",async({page})=>{
+ await page.goto("/intake");await page.getByRole("button",{name:/বুঝেছি, চালিয়ে যান|I understand, continue/}).click();
+ await page.getByRole("link",{name:/^ফর্ম খুলুন$|^Open the form$/}).first().click();await expect(page).toHaveURL(/intake\/form/);await expect(page.locator('[id="review-child.name"]')).toBeVisible();
+});

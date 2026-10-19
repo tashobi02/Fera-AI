@@ -1,0 +1,13 @@
+npm notice run fera-ai@0.1.0 rehearsal:automated
+npm notice run node scripts/rehearsal/run-automated-repeats.mjs --runs 5 --config ../../../../../tmp/fera-system-offline.config.ts
+[automated-repeats] run 1/5 (AUTOMATED)
+[automated-repeats] run 2/5 (AUTOMATED)
+[automated-repeats] run 3/5 (AUTOMATED)
+[automated-repeats] run 4/5 (AUTOMATED)
+[automated-repeats] run 5/5 (AUTOMATED)
+[automated-repeats] dropped fresh owned DB: fera_e2e_premainjourney_2631174_0_c37ba6
+[automated-repeats] dropped fresh owned DB: fera_e2e_premainjourney_2631174_1_565029
+[automated-repeats] dropped fresh owned DB: fera_e2e_premainjourney_2631174_2_03503d
+[automated-repeats] dropped fresh owned DB: fera_e2e_premainjourney_2631174_3_abd42f
+[automated-repeats] dropped fresh owned DB: fera_e2e_premainjourney_2631174_4_979e37
+[automated-repeats] evidence merged: /home/obidit/secondBrain/coding/Fera-AI/docs/execution/evidence/pre-main-test-journeys.md
