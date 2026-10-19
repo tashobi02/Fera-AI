@@ -61,9 +61,9 @@ type CandidateRow = {
 };
 
 // A row this transaction just locked and changed is missing: an invariant broke.
-export class DecisionStateError extends Error {
+export class DecisionStateError extends ApiError {
   constructor() {
-    super("decision endpoint vanished inside its transaction");
+    super("E-005");
     this.name = "DecisionStateError";
   }
 }
