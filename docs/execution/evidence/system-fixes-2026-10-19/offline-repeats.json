@@ -1,0 +1,49 @@
+{
+  "automated": true,
+  "humanRehearsal": false,
+  "dirtyTree": true,
+  "gitStatusPorcelain": " M docs/execution/evidence/pre-main-automated-repeat-summary.json\n M docs/execution/evidence/pre-main-test-journeys.md\n M tests/scripts/eslint-worktrees.test.ts\n",
+  "results": [
+    {
+      "run": 1,
+      "code": 0,
+      "dbName": "fera_e2e_premainjourney_3286256_0_dee3a5",
+      "networkRecords": 189,
+      "externalAttempts": 0,
+      "sourceCommit": "77cdfee52333f9c0b656d2a1d0849cac4a078469"
+    },
+    {
+      "run": 2,
+      "code": 0,
+      "dbName": "fera_e2e_premainjourney_3286256_1_c92607",
+      "networkRecords": 189,
+      "externalAttempts": 0,
+      "sourceCommit": "77cdfee52333f9c0b656d2a1d0849cac4a078469"
+    },
+    {
+      "run": 3,
+      "code": 0,
+      "dbName": "fera_e2e_premainjourney_3286256_2_05a8f5",
+      "networkRecords": 189,
+      "externalAttempts": 0,
+      "sourceCommit": "77cdfee52333f9c0b656d2a1d0849cac4a078469"
+    },
+    {
+      "run": 4,
+      "code": 0,
+      "dbName": "fera_e2e_premainjourney_3286256_3_7184cd",
+      "networkRecords": 189,
+      "externalAttempts": 0,
+      "sourceCommit": "77cdfee52333f9c0b656d2a1d0849cac4a078469"
+    },
+    {
+      "run": 5,
+      "code": 0,
+      "dbName": "fera_e2e_premainjourney_3286256_4_9618bf",
+      "networkRecords": 189,
+      "externalAttempts": 0,
+      "sourceCommit": "77cdfee52333f9c0b656d2a1d0849cac4a078469"
+    }
+  ],
+  "recordedAt": "2026-10-19T04:26:50.461Z"
+}

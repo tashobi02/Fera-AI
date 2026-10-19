@@ -1,0 +1,78 @@
+{
+  "browser.log.gz": {
+    "bytes": 6720,
+    "sha256": "8408d554afb4b332a166b121f9fbf0a3607508b551f4db6c871f575fc24d2ce3"
+  },
+  "build.log.gz": {
+    "bytes": 1781,
+    "sha256": "40899fdc4f3d2454ff7725fbe02c688bec2492e4de85329e41144b4937a28474"
+  },
+  "database-full.log.gz": {
+    "bytes": 5330,
+    "sha256": "def124cb4af44008953ea02b6f0aa48855df53f7e8cb6654d6706cdcde752653"
+  },
+  "database-guard.log.gz": {
+    "bytes": 519,
+    "sha256": "4d9b94c41dc5de44b4b30f5a304094c3aeaf15434579d2a24b1cd03d5eb2e164"
+  },
+  "focused-green.log.gz": {
+    "bytes": 335,
+    "sha256": "a4ff03fa398c2e71039a6d1504c7f3b41f1c85234fecfdf1a39cb7fd07cca9b6"
+  },
+  "initial-browser-fixture-failure.log.gz": {
+    "bytes": 7657,
+    "sha256": "d6cc2bb9618cc352771b2fe9d9ac81fd6a14da64c070daecb151c272aa1952f9"
+  },
+  "initial-build-duplicate-property.log.gz": {
+    "bytes": 1511,
+    "sha256": "85fc27ab1b8926f06bc2a6143a03f1096de34f674fdc7d38dc1883b1ad94d6f5"
+  },
+  "initial-db-reset-collision.log.gz": {
+    "bytes": 5437,
+    "sha256": "df9501b6d69714c61346da01ac7f38801ad7bcc530a584913ed259c5c28277a3"
+  },
+  "lint.log.gz": {
+    "bytes": 1607,
+    "sha256": "43c9c231448a7a738263b755986ec6bdda87f9d1a446a57f3304c361489ec436"
+  },
+  "native-embeddings.log.gz": {
+    "bytes": 262,
+    "sha256": "5c3d978cb7ead417d049c5e1b816f0389115362bb11d351f58aa3a42effd41c9"
+  },
+  "offline-journey-records.json": {
+    "bytes": 55227,
+    "sha256": "2f0b620e9bd43c707277b6f7c5fabff896f0ef2fcafe594b16793565b9252937"
+  },
+  "offline.log.gz": {
+    "bytes": 2999,
+    "sha256": "728d3fde3d60ea7b5676fceb12213a60c257a2c98d727f32b2efb45ac004405b"
+  },
+  "red-copy-assertion.log.gz": {
+    "bytes": 2019,
+    "sha256": "54d851d7ea71a542f085801220fd9cc10c05da9c1d399d0be75e1ee1f841cdac"
+  },
+  "red-overlap-unit.log.gz": {
+    "bytes": 1510,
+    "sha256": "c08fe0a1e4f91a6298aaea6825cbd7777744f7209a714388168b4ca4a538a109"
+  },
+  "red-parent-continuity.log.gz": {
+    "bytes": 907,
+    "sha256": "02de35ad5fb02206d476733675a2ed7b485aa68a9b1ff5397f98db987e316221"
+  },
+  "red-versioned-rejection.log.gz": {
+    "bytes": 948,
+    "sha256": "cd6e44bf56e0dbcf0c56d44ea4db3c94f7d0abd8f60945a345d5e5843641fb0c"
+  },
+  "summary.json": {
+    "bytes": 649,
+    "sha256": "006053c85021f2272b62556764295b341bc9495892ee1a8c2a17eb47d29817df"
+  },
+  "typecheck.log.gz": {
+    "bytes": 154,
+    "sha256": "0063d49844406fc870b474dd5e9ac8a688808a3ecb9edb257cf5dd2cc13e7026"
+  },
+  "unit.log.gz": {
+    "bytes": 4053,
+    "sha256": "904dc2dbc9df78bf81cb91e82c30f57ee685dd938470133250a26c8516c9f55f"
+  }
+}

@@ -362,10 +362,3 @@ The BUG_SOLVING1/2 implementation added or extended these automated checks:
 | Matcher runner and logger propagation | `tests/lint/`, `tests/intake/orchestrator.test.ts` |
 | Voice cancellation and partial time input | `tests/intake-ui/voice-lifecycle.test.ts`, `tests/intake/review/review-fields-regressions.test.ts` |
 | Language toggle accessible name | `tests/ui/language-toggle.test.ts` |
-
-On 2026-10-19, `npm run check` passed with 3995 passing tests and 322 skipped;
-lint exited 0 with 72 warnings, typecheck passed, and audit-action drift
-validation passed. L2 remains **not tested**: `127.0.0.1:54322` had no listener,
-Docker had no running daemon, and the available PostgreSQL 18 installation has
-no pgvector extension. The required PG16 + pgvector 0.8.1 integration suite and
-DDL migrations therefore remain unverified in this environment.

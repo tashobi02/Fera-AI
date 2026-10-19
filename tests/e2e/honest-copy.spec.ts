@@ -15,6 +15,7 @@
 // Local-only disposable DB env guard: enforced by the webServer config
 // (playwright.config.ts) and `e2eDatabaseUrl()`.  No secrets are read.
 import { test, expect } from "@playwright/test";
+import { locales } from "../../src/locales";
 import {
   DESK_PASSWORD,
   deskContext,
@@ -97,10 +98,14 @@ test.describe("P3-208 honest copy — no delivery/return/reunification/alert cla
       "/staff",
     ];
     for (const path of deskPaths) {
-      await page.goto(path);
+      const response = await page.goto(path);
+      expect([200, 404], `Unexpected response while checking ${path}`).toContain(response?.status());
       // Wait for the page to render — some paths are notFound; others are
       // full surfaces.  We accept either.
       await page.waitForLoadState("domcontentloaded");
+      if (path === "/officer/queue") {
+        await expect(page.getByRole("heading", { level: 1, name: locales.bn.officerQueueTitle, exact: true })).toBeVisible();
+      }
       await assertNoForbiddenCopy(page, path);
     }
 

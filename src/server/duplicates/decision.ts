@@ -192,19 +192,16 @@ export async function decideDuplicate(
       api,
       duplicate_status: nextStatus,
       duplicate_rule: link.rule,
+      duplicate_link_id: link.id,
       reason_recorded: true,
       // BR-021: the link UUID is the safe subject identifier. Two flagged
       // links sharing the lower endpoint (case_a) would otherwise collapse
       // into the same audit subject; the link id keeps them independently
       // visible in the audit trail.
-      duplicate_link_id: link.id,
       ...(aRow.kind === "missing" ? { missing_ref: aRow.ref_code } : { found_ref: aRow.ref_code }),
     };
-    // We do not write audit_log.candidate_id: the FK points at match_candidates and
-    // a duplicate link has no candidate. The link id is recorded in details
-    // (duplicate_link_id) so an audit reader can rejoin the decision to the
-    // link without relying on case_a + status, which is no longer unique when
-    // multiple links share the same lower endpoint.
+    // candidate_id is a match-candidate FK, so it stays null. The server-only
+    // duplicate_link_id identifies this decision even when links share case_a.
     const auditId = await appendAudit(client, actorFor(principal), {
       action: auditAction,
       caseId: link.case_a,

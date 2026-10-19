@@ -160,11 +160,7 @@ describe("API-003 missing-report submission (TASK-022)", () => {
     vi.mocked(defaultAuth().resolvePrincipal).mockImplementation(auth.resolvePrincipal);
     const db = installDb();
     const session = store.addSession({ expiresInMs: -1 });
-    // SYS-BUG-11: parent cookies are bound to a client fingerprint. In
-    // tests the resolver sees no x-forwarded-for (null IP) and no UA
-    // header (empty UA) → the live fingerprint is "null|". The cookie
-    // is signed with the same value so verification succeeds.
-    const headers: Record<string, string> = { cookie: `${cookieNames(false).parent}=${signParentToken(KEYS.parent, session.id, "null|")}` };
+    const headers: Record<string, string> = { cookie: `${cookieNames(false).parent}=${signParentToken(KEYS.parent, session.id)}` };
     const response = await submit(requestBody(), headers);
     expect(response.status).toBe(401);
     expect(await errorId(response)).toBe("E-002");

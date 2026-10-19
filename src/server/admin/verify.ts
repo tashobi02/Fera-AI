@@ -12,7 +12,7 @@
 //      on audit rows and decisions are not blocked; it still conflicts with FOR SHARE);
 //      an unknown ID or a non-officer target (staff, admin) is E-004, so the route never confirms which accounts exist;
 //   3. when the flag changes: UPDATE users SET verified, and one audit row
-//      `user.verification_changed` (actor admin; details { api, verified, target_role })
+//      `user.verification_changed` (actor admin; details { api, verified, target_role, target_user_id })
 //      in the same transaction, so the change and its audit commit or fail together.
 //      Setting the value it already has writes nothing and returns the current state.
 //

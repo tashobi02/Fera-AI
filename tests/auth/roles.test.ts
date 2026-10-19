@@ -3,8 +3,8 @@
 // parent-ownership parts of TC-022/044/052). The record-level E-004 views and the
 // access.denied audit row itself are TASK-015 (API-004); here the layer's denial hook
 // is checked to receive the server-derived principal. Synthetic accounts, fake store.
-import { randomUUID } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { createHmac, randomUUID } from "node:crypto";
+import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { ERROR_CATALOGUE, errorEnvelopeSchema, type ServerErrorId } from "@/contracts";
 import { API_ACCESS, API_IDS, type ApiId } from "@/contracts/server";
@@ -15,12 +15,6 @@ import { get, jsonPost, noParams, testFactory } from "../api/fakes";
 import { DAY_MS, KEYS, cookieHeaderFrom, fakeAuth } from "./fakes";
 
 const HASH = "$argon2id$v=19$m=19456,t=2,p=1$c3ludGhldGljc2FsdDAwMQ$c3ludGhldGljLWhhc2gtbm90LXJlYWwtMDAwMDAwMDAwMDAw";
-// SYS-BUG-11: parent cookies are bound to a client fingerprint. The test
-// factory uses the request fakes from `tests/api/fakes.ts`, where the
-// live fingerprint resolves to "null|" (no x-forwarded-for → null IP,
-// no User-Agent header → empty UA). Tests must sign with the same
-// fingerprint the resolver will compute when verifying the cookie.
-const FINGERPRINT = "null|";
 const echo = z.strictObject({ role: z.string(), id: z.string() });
 
 function setup(opts: { secure?: boolean; now?: () => number } = {}) {
@@ -40,7 +34,7 @@ function setup(opts: { secure?: boolean; now?: () => number } = {}) {
     });
   const names = cookieNames(opts.secure ?? false);
   const session = (userId: string, passwordHash = HASH) => `${names.session}=${signSessionToken(KEYS.session, userId, passwordHash, Date.now()).token}`;
-  const parent = (sessionId: string) => `${names.parent}=${signParentToken(KEYS.parent, sessionId, FINGERPRINT)}`;
+  const parent = (sessionId: string) => `${names.parent}=${signParentToken(KEYS.parent, sessionId)}`;
   const users = {
     officer: store.addUser("officer.demo", "officer", HASH, { verified: true }),
     pending: store.addUser("officer.pending", "officer", HASH, { verified: false }),
@@ -162,6 +156,31 @@ describe("credential principals are rebuilt from the user row (TC-023, BR-024)",
 });
 
 describe("parent sessions (D2A §9.1, BR-007 ownership)", () => {
+  it("preserves same-device report ownership across ordinary network and browser-header changes (FR-037)", async () => {
+    vi.stubEnv("TRUST_PROXY", "1");
+    try {
+      const t = setup();
+      const minted = await call(t.route("API-003"), undefined, { "x-forwarded-for": "192.0.2.1", "user-agent": "[MOCK] browser v1" });
+      const cookie = cookieHeaderFrom(minted);
+      const original = await minted.json();
+      const returned = await call(t.route("API-004"), cookie, { "x-forwarded-for": "198.51.100.2", "user-agent": "[MOCK] browser v2" });
+      expect(returned.status).toBe(200);
+      expect(await returned.json()).toEqual(original);
+      expect(returned.headers.getSetCookie()).toHaveLength(0);
+      expect(t.store.sessions.size).toBe(1);
+    } finally { vi.unstubAllEnvs(); }
+  });
+
+  it("continues to resolve a previously issued signed parent cookie while its DB session is live", async () => {
+    const t = setup();
+    const row = t.store.addSession();
+    const body = `p1.${row.id}`;
+    const sig = createHmac("sha256", KEYS.parent).update(body).digest("base64url");
+    const returned = await call(t.route("API-004"), `${t.names.parent}=${body}.${sig}`);
+    expect(returned.status).toBe(200);
+    expect(await returned.json()).toEqual({ role: "parent", id: row.id });
+  });
+
   it("a valid parent cookie resolves to exactly that parent_sessions row", async () => {
     const t = setup();
     const mine = t.store.addSession();
@@ -173,7 +192,7 @@ describe("parent sessions (D2A §9.1, BR-007 ownership)", () => {
   it("a forged, unknown, expired or revoked parent session gives no principal", async () => {
     const t = setup();
     const row = t.store.addSession();
-    const forged = `${t.names.parent}=${signParentToken(KEYS.parent, row.id, FINGERPRINT).replace(row.id, randomUUID())}`;
+    const forged = `${t.names.parent}=${signParentToken(KEYS.parent, row.id).replace(row.id, randomUUID())}`;
     await expectError(await call(t.route("API-003"), forged), "E-002");
     await expectError(await call(t.route("API-003"), t.parent(randomUUID())), "E-002");
     await expectError(await call(t.route("API-003"), t.parent(t.store.addSession({ expiresInMs: -DAY_MS }).id)), "E-002");
@@ -286,7 +305,7 @@ describe("parent sessions (D2A §9.1, BR-007 ownership)", () => {
   it("with Secure cookies, API-003 ignores an unprefixed fera_ps and mints a __Host- session", async () => {
     const t = setup({ secure: true });
     const row = t.store.addSession();
-    const res = await call(t.route("API-003"), `fera_ps=${signParentToken(KEYS.parent, row.id, FINGERPRINT)}`);
+    const res = await call(t.route("API-003"), `fera_ps=${signParentToken(KEYS.parent, row.id)}`);
     expect(((await res.json()) as { role: string; id: string }).id).not.toBe(row.id);
     expect(res.headers.getSetCookie()[0]).toMatch(/^__Host-fera_ps=p1\..*; Secure$/);
     expect(t.store.created).toBe(1);
@@ -317,7 +336,7 @@ describe("parent sessions (D2A §9.1, BR-007 ownership)", () => {
     const first = await call(t.route("API-001"));
     expect(first.headers.getSetCookie()[0]).toMatch(/^__Host-fera_ps=p1\..*; Secure$/);
     const row = t.store.addSession();
-    await expectError(await call(t.route("API-004"), `fera_ps=${signParentToken(KEYS.parent, row.id, FINGERPRINT)}`), "E-002");
+    await expectError(await call(t.route("API-004"), `fera_ps=${signParentToken(KEYS.parent, row.id)}`), "E-002");
     expect(await (await call(t.route("API-004"), t.parent(row.id))).json()).toEqual({ role: "parent", id: row.id });
   });
 });

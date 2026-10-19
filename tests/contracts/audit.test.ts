@@ -42,6 +42,13 @@ describe("API-013 safe audit views (D2A §9.2, BR-010/024)", () => {
     expect(adminEntry.details).toEqual({ ref_code: REFS.missing, referral_simulated: true, reason_recorded: false });
   });
 
+  it("keeps internal audit subject UUIDs out of both frozen role DTOs", () => {
+    const rows = exampleAuditRows.map((row) => ({ ...row, details: { ...row.details, target_user_id: IDS.staffUser, duplicate_link_id: IDS.candidate } }));
+    for (const principal of [admin, officer]) {
+      expect(projectAuditFor(principal, rows)).toEqual(projectAuditFor(principal, exampleAuditRows));
+    }
+  });
+
   it("officer view keeps the operational pair detail", () => {
     expect(officerEntry.details).toMatchObject({ candidate_id: IDS.candidate, score: 87, missing_ref: REFS.missing, found_ref: REFS.found });
     expect(officerEntry.actor_id).toBe(IDS.officerUser);

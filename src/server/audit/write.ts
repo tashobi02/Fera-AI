@@ -3,21 +3,24 @@
 // an audit failure throws and aborts that action (D2A §4 COMP-015).
 //
 // - Only the contract and TASK-015 action codes (actions.ts) are accepted.
-// - `details` must pass the strict officer audit-details schema from the contracts
-//   (the widest API-013 allowlist): typed tokens, IDs, versions, statuses and counts.
+// - `details` uses the strict officer allowlist plus server-only subject UUIDs.
+//   These storage keys never expand the frozen API-013 role projections.
 //   There is no free-text key, so names, phones, notes, reasons, places and provider
 //   payloads cannot be written. Unknown keys are refused, not dropped.
 // - The actor comes from a server-derived Principal (actorFor) or SYSTEM_ACTOR, never
 //   from client input. `at` is the database clock (no column grant for it).
 // - Errors carry no values: AuditWriteError names the rule that failed, nothing else.
 import type { z } from "zod";
-import { isUuid, officerAuditEntryViewSchema, type ActorType } from "@/contracts";
+import { isUuid, officerAuditEntryViewSchema, uuidSchema, type ActorType } from "@/contracts";
 import { effectiveRole, type Principal } from "@/contracts/server";
 import { ACTION_ACTORS, isWritableAuditAction, type CaseAuditAction } from "./actions";
 import type { Queryable } from "@/server/db/queryable";
 import { col, firstRow } from "@/server/db/decode";
 
-export const auditDetailsSchema = officerAuditEntryViewSchema.shape.details;
+export const auditDetailsSchema = officerAuditEntryViewSchema.shape.details.extend({
+  target_user_id: uuidSchema.optional(),
+  duplicate_link_id: uuidSchema.optional(),
+});
 export type AuditDetails = z.input<typeof auditDetailsSchema>;
 
 declare const actorBrand: unique symbol;

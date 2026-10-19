@@ -97,41 +97,16 @@ export function verifySessionToken(key: Buffer, token: string, nowMs: number): S
 
 /* ---------- parent session ---------- */
 
-// SYS-BUG-11: the parent cookie is now bound to a stable client fingerprint
-// (User-Agent + IP/24). A token captured by XSS or screenshot replayed from a
-// different browser/network key returns no session. The token format gains a
-// 5th dot-separated part: `p1.<sessionId>.<fp>.<mac>`, where `fp` is the
-// truncated HMAC of the fingerprint material. Existing tokens issued before
-// this change (3-part) keep working when the fingerprint verify is permissive
-// during the deprecation window — see `parentTokenFingerprint` callers and
-// `verifyParentToken` for the reject path.
-export function parentTokenFingerprint(key: Buffer, fingerprint: string): string {
-  return mac(key, `pfp|${fingerprint}`).slice(0, 22);
-}
-
-export function signParentToken(key: Buffer, sessionId: string, fingerprint: string): string {
+export function signParentToken(key: Buffer, sessionId: string): string {
   if (!isUuid(sessionId)) throw new Error("invalid session id");
-  const fp = parentTokenFingerprint(key, fingerprint);
-  const body = `p1.${sessionId.toLowerCase()}.${fp}`;
+  const body = `p1.${sessionId.toLowerCase()}`;
   return `${body}.${mac(key, body)}`;
 }
 
-export function verifyParentToken(
-  key: Buffer,
-  token: string,
-  fingerprint: string,
-): string | null {
+export function verifyParentToken(key: Buffer, token: string): string | null {
   const parts = token.split(".");
-  // New 4-part shape (SYS-BUG-11) is the only accepted form going forward;
-  // old 3-part tokens minted before the upgrade are invalid so they cannot
-  // be replayed from a captured surface without fingerprint binding.
-  if (parts.length !== 4 || parts[0] !== "p1") return null;
-  const [, sessionId, fp, sig] = parts;
-  if (!isUuid(sessionId) || sessionId !== sessionId.toLowerCase()) return null;
-  if (fp.length !== 22 || !B64URL.test(fp) || !B64URL.test(sig)) return null;
-  if (!equalMac(mac(key, `p1.${sessionId}.${fp}`), sig)) return null;
-  // The token's fingerprint must match the live request's. A captured
-  // cookie replayed from a different browser/network fails here.
-  if (!equalMac(parentTokenFingerprint(key, fingerprint), fp)) return null;
-  return sessionId;
+  if (parts.length !== 3 || parts[0] !== "p1") return null;
+  const [, sessionId, sig] = parts;
+  if (!isUuid(sessionId) || sessionId !== sessionId.toLowerCase() || !B64URL.test(sig)) return null;
+  return equalMac(mac(key, `p1.${sessionId}`), sig) ? sessionId : null;
 }

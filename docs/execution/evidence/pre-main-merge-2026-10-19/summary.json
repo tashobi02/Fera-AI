@@ -1,0 +1,32 @@
+{
+  "unit": {
+    "numTotalTests": 4309,
+    "numPassedTests": 3996,
+    "numFailedTests": 0,
+    "numPendingTests": 313,
+    "success": true
+  },
+  "browser": {
+    "startTime": "2026-10-19T05:12:02.513Z",
+    "duration": 39140.68,
+    "expected": 84,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "offline": {
+    "startTime": "2026-10-19T05:13:08.583Z",
+    "duration": 26042.347999999998,
+    "expected": 13,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "database": {
+    "fullPassed": 324,
+    "files": 32,
+    "additionalNewGuardChecks": 1,
+    "focusedMatcherFilePassed": 5
+  },
+  "nativeEmbeddingsPassed": 6
+}

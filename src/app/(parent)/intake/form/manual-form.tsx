@@ -9,7 +9,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { caseDraftSchema, errorEnvelope, type DraftFieldPath, type ErrorEnvelope } from "@/contracts";
+import { FIELD_MAX_CHARS, caseDraftSchema, errorEnvelope, type DraftFieldPath, type ErrorEnvelope } from "@/contracts";
 import { CircleAlertIcon, InfoIcon, LoaderCircleIcon } from "@/app/components/icons";
 import { FocusHeading } from "@/app/components/focus-heading";
 import { clearSubmittedDraft, clearSubmittedReference, createDeviceDraft, readDraft, readSubmittedReference, saveDraft, type DeviceDraft } from "@/lib/intake/draft-store";
@@ -23,11 +23,15 @@ import { ConfirmBar, ReviewFields, reviewFieldInputId, reviewLabel } from "../re
 // A blank structural draft the form mounts on when there is no handoff and no
 // stored record. Everything is unknown; the parent fills what they know. The
 // contract requires `evidence: {}` and `event.at_approx: false` to parse.
-function emptyManualDraft(): DeviceDraft {
+function emptyManualDraft(handoff?: IntakeHandoff): DeviceDraft {
   const now = Date.now();
+  const sourceText = handoff?.sourceText ?? "";
+  // Keep the complete history locally; the reviewed raw-text field has a smaller
+  // contract limit. Do not split a surrogate pair at that boundary.
+  const source = sourceText.slice(0, FIELD_MAX_CHARS.raw_text).replace(/[\uD800-\uDBFF]$/u, "");
   const draft = caseDraftSchema.parse({
     kind: "missing",
-    source_text: "",
+    source_text: source,
     child: {
       name: null, name_latin: null, sex: "unknown",
       age_years: null, age_min: null, age_max: null,
@@ -44,7 +48,7 @@ function emptyManualDraft(): DeviceDraft {
   return {
     version: 1,
     draft,
-    sourceText: "",
+    sourceText,
     // A fresh client submission ID keeps API-003 idempotent on retry. Without it
     // the submitter would re-validate against the previous UUID on every keystroke.
     client_submission_id: crypto.randomUUID(),
@@ -54,8 +58,8 @@ function emptyManualDraft(): DeviceDraft {
     edits: {},
     approximate: false,
     attempted: false,
-    mock: false,
-    cached: false,
+    mock: handoff?.mock ?? false,
+    cached: handoff?.cached ?? false,
   };
 }
 
@@ -129,7 +133,7 @@ export function ManualFormScreen({ locale }: { locale: Locale }) {
           return;
         }
         if (handoff) clearSubmittedReference();
-        if (stored.draft?.attempted && handoff?.response) {
+        if (stored.draft?.attempted && handoff) {
           setPendingHandoff(handoff);
           setRecord(stored.draft);
           everSaved.current = true;
@@ -141,7 +145,7 @@ export function ManualFormScreen({ locale }: { locale: Locale }) {
         // No previous draft and no handoff: an empty manual draft. The
         // submitter writes it to storage on first save so the device-local
         // copy is never silently lost on refresh.
-        const next = stored.draft?.attempted ? stored.draft : handoff ? createDeviceDraft(handoff) : stored.draft ?? emptyManualDraft();
+        const next = stored.draft?.attempted ? stored.draft : handoff ? createDeviceDraft(handoff) ?? emptyManualDraft(handoff) : stored.draft ?? emptyManualDraft();
         everSaved.current = stored.draft !== null;
         setRecord(next);
         setReady(true);
@@ -299,8 +303,7 @@ export function ManualFormScreen({ locale }: { locale: Locale }) {
   }
   function confirmReplace() {
     if (submitting.current || !record || !pendingHandoff) return;
-    const fresh = createDeviceDraft(pendingHandoff);
-    if (!fresh) return;
+    const fresh = createDeviceDraft(pendingHandoff) ?? emptyManualDraft(pendingHandoff);
     setReplaceOpen(false);
     const saved = saveDraft(fresh, undefined, record.client_submission_id, { transition: "discard-replace", requireExisting: true });
     if (!saved) { setStorageFailed(true); return; }

@@ -22,7 +22,6 @@ import { notFound, redirect } from "next/navigation";
 import { effectiveRole, type EffectiveRole, type Principal } from "@/contracts/server";
 import { isProductionEnv, secureCookiesFor } from "@/app/api/_shared/cookies";
 import { createLogger, describeError } from "@/app/api/_shared/log";
-import { clientAddress, trustProxyFromEnv } from "@/app/api/_shared/request";
 import { safeReturnPath, signInPath } from "@/lib/auth-paths";
 import { auditPageDenied } from "@/server/audit/denied";
 import { defaultAuth } from "./default";
@@ -70,15 +69,8 @@ export function setPageAuditDenied(hook: PageAuditDenied | null): void {
 }
 
 export async function currentPrincipal(): Promise<Principal | null> {
-  // SYS-BUG-11: parent tokens are bound to a client fingerprint, so page
-  // guards compute the same one as the route layer. Server components only
-  // expose the request headers (no `Request` object), so we rebuild a stub
-  // Request from them; trustProxy resolves the same way as in routes.
-  const requestHeaders = await headers();
-  const stub = new Request("http://x/", { headers: requestHeaders });
-  const fingerprint = `${clientAddress(stub, trustProxyFromEnv())}|${requestHeaders.get("user-agent") ?? ""}`;
-  const cookieHeader = requestHeaders.get("cookie");
-  return defaultAuth().principalFrom(cookieSourceFromHeader(cookieHeader), secureCookiesFor(isProductionEnv()), fingerprint);
+  const cookieHeader = (await headers()).get("cookie");
+  return defaultAuth().principalFrom(cookieSourceFromHeader(cookieHeader), secureCookiesFor(isProductionEnv()));
 }
 
 export async function requireRole(

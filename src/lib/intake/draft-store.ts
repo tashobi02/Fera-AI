@@ -1,6 +1,6 @@
 // TASK-022 / BR-004: device storage only. Never import this module in a server route.
 import { z } from "zod";
-import { caseDraftSchema, draftFieldPathSchema, draftTokenSchema, uuidSchema } from "@/contracts";
+import { FIELD_MAX_CHARS, caseDraftSchema, draftFieldPathSchema, draftTokenSchema, uuidSchema } from "@/contracts";
 import type { IntakeHandoff } from "./handoff";
 
 export const DRAFT_KEY = "fera.intake.review.v1";
@@ -94,9 +94,11 @@ export function createDeviceDraft(handoff: IntakeHandoff, now = Date.now()): Dev
 // unknown; the parent fills what they know. Submitted-only constraints
 // (e.g. "the child's name is required") are enforced at submit time.
 function deviceDraftFromText(handoff: IntakeHandoff, now: number): DeviceDraft {
+  // Preserve the full source locally while bounding the reviewed submission field.
+  const source = handoff.sourceText.slice(0, FIELD_MAX_CHARS.raw_text).replace(/[\uD800-\uDBFF]$/u, "");
   const draft = caseDraftSchema.parse({
     kind: "missing",
-    source_text: handoff.sourceText,
+    source_text: source,
     child: {
       name: null, name_latin: null, sex: "unknown",
       age_years: null, age_min: null, age_max: null,

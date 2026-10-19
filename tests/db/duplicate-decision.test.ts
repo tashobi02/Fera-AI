@@ -101,14 +101,12 @@ describe.skipIf(!dbTestsEnabled)("API-023 duplicate decisions (BR-020/021; TC-03
     expect(audits.rows[0]).toMatchObject({
       id: String(sameResult.auditId), action: "duplicate.reviewed", actor_type: "officer",
       actor_user_id: actors.officer, case_id: sameLink.caseA.id,
-      // BR-021: duplicate_link_id is the safe subject identifier so two
-      // links sharing the same lower endpoint stay distinguishable.
-      details: { api: "API-023", duplicate_status: "confirmed_same", duplicate_rule: "profile", duplicate_link_id: sameLink.id, missing_ref: sameLink.caseA.ref, reason_recorded: true },
+      details: { api: "API-023", duplicate_link_id: sameLink.id, duplicate_status: "confirmed_same", duplicate_rule: "profile", missing_ref: sameLink.caseA.ref, reason_recorded: true },
     });
     expect(audits.rows[1]).toMatchObject({
       id: String(differentResult.auditId), action: "duplicate.reviewed", actor_type: "officer",
       actor_user_id: actors.officer, case_id: differentLink.caseA.id,
-      details: { api: "API-023", duplicate_status: "dismissed", duplicate_rule: "profile", duplicate_link_id: differentLink.id, missing_ref: differentLink.caseA.ref, reason_recorded: true },
+      details: { api: "API-023", duplicate_link_id: differentLink.id, duplicate_status: "dismissed", duplicate_rule: "profile", missing_ref: differentLink.caseA.ref, reason_recorded: true },
     });
     expect(JSON.stringify(audits.rows)).not.toContain(sameReason);
     expect(JSON.stringify(audits.rows)).not.toContain(differentReason);

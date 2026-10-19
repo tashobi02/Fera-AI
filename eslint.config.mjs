@@ -77,6 +77,8 @@ const eslintConfig = defineConfig([
     },
   },
   globalIgnores([
+    // Historical agent lanes are independent checkouts, not this tree's source.
+    ".worktrees/**",
     // Defaults of eslint-config-next
     ".next/**",
     "out/**",
@@ -93,9 +95,6 @@ const eslintConfig = defineConfig([
     "demo/**",
     "graphify-out/**",
     "coverage/**",
-    // Nested worktrees from prior parallel lanes (AGENTS.md §"Workflow"):
-    // generated and vendored code that should never be linted from the host checkout.
-    ".worktrees/**",
   ]),
 ]);
 
