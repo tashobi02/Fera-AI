@@ -13,6 +13,13 @@ const require = createRequire(import.meta.url);
 const { Client } = require("pg");
 const MIGRATIONS = fileURLToPath(new URL("./migrations", import.meta.url));
 const LOCK_KEY = "741827604219";
+// Migration 006 briefly grants fera_app access to the old caller-cutoff sweep.
+// Keep it in the same transaction as 007 so an interrupted upgrade cannot
+// commit that unsafe intermediate function for new databases.
+const ATOMIC_MIGRATION_GROUPS = [[
+  "006_metadata_sweep.sql",
+  "007_metadata_sweep_database_clock.sql",
+]];
 
 function targetUrl() {
   if (process.env.FERA_DB_MIGRATE_ALLOW !== "1") throw new Error("set FERA_DB_MIGRATE_ALLOW=1 for an intentional migration run");
@@ -43,25 +50,47 @@ async function main() {
     )`);
     const files = readdirSync(MIGRATIONS).filter((name) => /^\d{3}_[a-z0-9_]+\.sql$/.test(name)).sort();
     let applied = 0;
+    const processed = new Set();
     for (const name of files) {
-      const sql = readFileSync(join(MIGRATIONS, name), "utf8");
-      const digest = checksum(sql);
-      const existing = await client.query("SELECT checksum FROM public.db_migrations WHERE name = $1", [name]);
-      if (existing.rows.length > 0) {
-        if (existing.rows[0].checksum !== digest) throw new Error(`checksum changed for applied migration ${name}`);
-        continue;
+      if (processed.has(name)) continue;
+      const group = ATOMIC_MIGRATION_GROUPS.find((members) => members.includes(name));
+      const batch = group ?? [name];
+      if (group && batch.some((member) => !files.includes(member))) {
+        throw new Error(`atomic migration group is incomplete at ${name}`);
       }
-      await client.query("BEGIN");
-      try {
-        await client.query(sql);
-        await client.query("INSERT INTO public.db_migrations (name, checksum) VALUES ($1, $2)", [name, digest]);
-        await client.query("COMMIT");
-      } catch (err) {
-        await client.query("ROLLBACK").catch(() => undefined);
-        throw err;
+
+      const entries = [];
+      for (const member of batch) {
+        const sql = readFileSync(join(MIGRATIONS, member), "utf8");
+        const digest = checksum(sql);
+        const existing = await client.query("SELECT checksum FROM public.db_migrations WHERE name = $1", [member]);
+        const wasApplied = existing.rows.length > 0;
+        if (wasApplied && existing.rows[0].checksum !== digest) throw new Error(`checksum changed for applied migration ${member}`);
+        entries.push({ name: member, sql, digest, wasApplied });
       }
-      applied++;
-      process.stdout.write(`applied ${name}\n`);
+
+      // A database cannot have 007 without 006. Refuse to guess at or bless
+      // that migration history; normal interrupted runs roll both back.
+      if (group && !entries[0].wasApplied && entries[1].wasApplied) {
+        throw new Error(`inconsistent atomic migration history at ${entries[1].name}`);
+      }
+      const pending = entries.filter((entry) => !entry.wasApplied);
+      if (pending.length > 0) {
+        await client.query("BEGIN");
+        try {
+          for (const entry of pending) {
+            await client.query(entry.sql);
+            await client.query("INSERT INTO public.db_migrations (name, checksum) VALUES ($1, $2)", [entry.name, entry.digest]);
+          }
+          await client.query("COMMIT");
+        } catch (err) {
+          await client.query("ROLLBACK").catch(() => undefined);
+          throw err;
+        }
+        applied += pending.length;
+        for (const entry of pending) process.stdout.write(`applied ${entry.name}\n`);
+      }
+      for (const member of batch) processed.add(member);
     }
     process.stdout.write(`db:migrate complete (${applied} applied)\n`);
   } finally {

@@ -30,7 +30,8 @@ export async function officerContext(db: Queryable, caseId: string, districtCode
   const dupes = await db.query(
     `SELECT c.id, c.ref_code, c.status FROM duplicate_links d
      JOIN cases c ON c.id = CASE WHEN d.case_a = $1 THEN d.case_b ELSE d.case_a END
-     WHERE (d.case_a = $1 OR d.case_b = $1) AND d.status <> 'dismissed' ORDER BY c.ref_code`,
+     WHERE (d.case_a = $1 OR d.case_b = $1)
+       AND c.anonymised_at IS NULL AND d.status <> 'dismissed' ORDER BY c.ref_code`,
     [caseId],
   );
   const d = firstRow("districts", district.rows);

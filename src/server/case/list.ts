@@ -149,7 +149,8 @@ export async function listOfficerCases(
        ) AS items
        FROM duplicate_links dl
        JOIN cases other ON other.id = CASE WHEN dl.case_a = c.id THEN dl.case_b ELSE dl.case_a END
-       WHERE (dl.case_a = c.id OR dl.case_b = c.id) AND dl.status <> 'dismissed'
+       WHERE (dl.case_a = c.id OR dl.case_b = c.id)
+         AND other.anonymised_at IS NULL AND dl.status <> 'dismissed'
      ) dupes ON true
      ORDER BY c.id DESC`,
     params,

@@ -23,8 +23,8 @@
     },
     {
       "path": "code/schema_v2.sql",
-      "bytes": 40765,
-      "sha256": "48bcd05a134f57efb975a3a042504381007ecbe02964e0d89d5bda6e25e46038"
+      "bytes": 40968,
+      "sha256": "16a1d2d9815939566d5aa4689a9336182a4db36368c697ec438ec87e1d042630"
     },
     {
       "path": "code/tokens_v2.css",

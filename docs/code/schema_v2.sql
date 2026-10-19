@@ -425,6 +425,7 @@ CREATE TABLE ai_reservations (
   CHECK ((state = 'settled') = (settled_at IS NOT NULL)),
   CHECK ((state = 'settled') = (actual_usd IS NOT NULL))
 );
+CREATE INDEX ai_reservations_draft_state_idx ON ai_reservations (draft_id, state) WHERE draft_id IS NOT NULL;
 
 CREATE TABLE ai_calls (
   id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -445,6 +446,7 @@ CREATE TABLE ai_calls (
   error_id      text CHECK (error_id ~ '^E-[0-9]{3}$')
 );
 CREATE INDEX ai_calls_at_idx ON ai_calls (at);
+CREATE INDEX ai_calls_draft_id_idx ON ai_calls (draft_id) WHERE draft_id IS NOT NULL;
 
 CREATE TABLE rate_limits (
   key          text NOT NULL,
@@ -671,9 +673,11 @@ END $$;
 -- Retain only bounded draft/session metadata. Settled spend rows keep their
 -- totals and status but release expired draft identifiers; active reservations
 -- pin their draft until settlement is resolved.
-CREATE FUNCTION sweep_expired_metadata(p_now timestamptz DEFAULT clock_timestamp())
+CREATE FUNCTION sweep_expired_metadata()
 RETURNS TABLE(deleted_drafts integer, deleted_sessions integer)
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+DECLARE
+  p_now timestamptz := clock_timestamp();
 BEGIN
   UPDATE ai_calls c SET draft_id = NULL
    WHERE c.draft_id IN (

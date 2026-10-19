@@ -1,4 +1,4 @@
-// TASK-062 / T006: the unchanged db/schema_v2.sql plus db/roles.sql on PostgreSQL 16,
+// TASK-062 / T006: db/schema_v2.sql plus db/roles.sql on PostgreSQL 16,
 // exercised as the restricted runtime role (BR-010/012/013/020/026; TC-016/029/032/046/051/053/062).
 // Synthetic data only. Runs under `npm run test:db`; skipped in plain `npm test`.
 import type { Client } from "pg";
