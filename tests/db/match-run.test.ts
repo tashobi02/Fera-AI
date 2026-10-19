@@ -167,6 +167,23 @@ describe.skipIf(!dbTestsEnabled)("P3-040 matcher run on PostgreSQL 16", () => {
       [missingId, found.id]))).toEqual({ missing_version: 2, found_version: 1 });
   });
 
+  it("refuses a persisted running state without embedding or writing candidates and keeps the report", async () => {
+    const missing = await newOpenMissing({ unmatchedByTime: true });
+    await app.query("UPDATE cases SET matching_state = 'running' WHERE id = $1", [missing.id]);
+    let embeds = 0;
+    const base = constantEmbedder();
+    const embedder: Embedder = { ...base, async embed(texts) { embeds += 1; return base.embed(texts); } };
+    const result = await runMatcherForCase(missing.id, { embedder, api: "API-014", pool: app });
+    expect(result).toMatchObject({ state: "failed", errorId: "E-005", candidates: [] });
+    expect(embeds).toBe(0);
+    expect(await one<{ status: string; matching_state: string; match_error_id: string }>(appClient,
+      "SELECT status, matching_state, match_error_id FROM cases WHERE id = $1", [missing.id])).toEqual({
+      status: "open", matching_state: "failed", match_error_id: "E-005",
+    });
+    expect(await one<{ count: number }>(appClient,
+      "SELECT count(*)::int AS count FROM match_candidates WHERE missing_case_id = $1", [missing.id])).toEqual({ count: 0 });
+  });
+
   it("completes an empty shortlist and records model failure without losing the case", async () => {
     // All fixture found reports are dated one day earlier, so this current-time
     // missing report has a genuinely empty eligible shortlist even after earlier
