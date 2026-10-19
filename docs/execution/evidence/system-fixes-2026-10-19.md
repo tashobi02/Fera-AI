@@ -1,5 +1,7 @@
 # System integration fixes — 19 October 2026
 
+Later follow-up: [pre-main merge and regression repairs](pre-main-merge-2026-10-19.md) records the subsequently authorized integration.
+
 The five defects in [the original execution report](system-test-2026-10-19-8499361.md) are fixed and their scoped automated checks pass. This does not establish production acceptance, human rehearsal completion or formal G6 approval.
 
 Base: `8499361daa64898de2e938551b9e63e181cb3f32`. Final application source: `77cdfee52333f9c0b656d2a1d0849cac4a078469`. Commit `c32dedc` subsequently changes only the lint regression test's cold-initialization timeout, from 5 to 30 seconds. The final unit run already included that timeout adjustment. No dependencies, public contracts or database schema changed.
