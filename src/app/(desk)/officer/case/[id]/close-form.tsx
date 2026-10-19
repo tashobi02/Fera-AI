@@ -273,7 +273,10 @@ export function CloseForm({
           <p className="text-caption-md text-mute">
             {locale === "bn"
               ? `রেফারেন্স: ${state.success.ref_code} · ${localizeDigits(
-                  new Date(state.success.closed_at).getTime() / 1000,
+                  Math.max(
+                    0,
+                    Math.floor((Date.now() - new Date(state.success.closed_at).getTime()) / 1000),
+                  ),
                   "bn",
                 )} সেকেন্ড আগে`
               : `Reference: ${state.success.ref_code}`}
