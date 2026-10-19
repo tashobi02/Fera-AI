@@ -97,14 +97,11 @@ export function verifySessionToken(key: Buffer, token: string, nowMs: number): S
 
 /* ---------- parent session ---------- */
 
-// SYS-BUG-11: the parent cookie is now bound to a stable client fingerprint
-// (User-Agent + IP/24). A token captured by XSS or screenshot replayed from a
-// different browser/network key returns no session. The token format gains a
-// 5th dot-separated part: `p1.<sessionId>.<fp>.<mac>`, where `fp` is the
-// truncated HMAC of the fingerprint material. Existing tokens issued before
-// this change (3-part) keep working when the fingerprint verify is permissive
-// during the deprecation window — see `parentTokenFingerprint` callers and
-// `verifyParentToken` for the reject path.
+// Four-part parent cookie: `p1.<sessionId>.<fp>.<mac>`, where fp is a
+// truncated HMAC of the request fingerprint. Legacy three-part cookies are
+// rejected; there is no compatibility window. Fingerprint headers can change
+// or be copied, so this is an additional check, not a replacement for cookie
+// confidentiality, signature validation or the live DB session checks.
 export function parentTokenFingerprint(key: Buffer, fingerprint: string): string {
   return mac(key, `pfp|${fingerprint}`).slice(0, 22);
 }

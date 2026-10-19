@@ -560,10 +560,6 @@ const adminAuditDetailsShape = {
   reason_recorded: z.boolean().optional(), // the reason text itself is never in the audit view
   replayed: z.boolean().optional(),
   verified: z.boolean().optional(),
-  // Subject identifier (BR-010): which synthetic account a privileged action
-  // targeted. Used for user.verification_changed so two audits on the same day
-  // by the same actor do not collapse; never a name, phone or child payload.
-  target_user_id: uuidSchema.optional(),
   target_role: userRoleSchema.optional(),
   fields_changed: z.array(draftFieldPathSchema).max(draftFieldPathSchema.options.length).optional(),
   imported: count.optional(),
@@ -586,10 +582,6 @@ const officerAuditDetailsShape = {
   rank: z.int().min(1).max(LIMITS.candidatesPerQueueItem).optional(),
   duplicate_status: duplicateStatusSchema.optional(),
   duplicate_rule: duplicateRuleSchema.optional(),
-  // Subject identifier (BR-010/021): the duplicate link the decision targets.
-  // Two links sharing the lower endpoint (case_a) would otherwise collapse
-  // into the same audit subject; the link id keeps them independently visible.
-  duplicate_link_id: uuidSchema.optional(),
   contact_viewed: z.boolean().optional(),
 };
 

@@ -64,6 +64,14 @@ describe("TASK-022 device draft store", () => {
     expect(r?.draft.kind).toBe("missing");
     expect(r?.draft.child.sex).toBe("unknown");
   });
+  it("keeps full local source and a valid Unicode boundary in the bounded manual submission field", () => {
+    const sourceText = "[MOCK] " + "ক".repeat(3992) + "😀 retained history";
+    const r = createDeviceDraft({ to: "manual", sourceText, response: null, missing: [], asked: 0, mock: true, cached: false }, now)!;
+    expect(r.sourceText).toBe(sourceText);
+    expect(r.draft.source_text).toBe(sourceText.slice(0, 3999));
+    expect(r.draft.evidence).toEqual({});
+    expect(saveDraft(r, memoryStorage(), null)).toBe(true);
+  });
   it("persists submitted reference without payload and clears it cleanly (W2)", () => {
     const storage = memoryStorage();
     expect(saveSubmittedReference({ id: clientExamples.createMissingResponse.id, ref: "M-TEST12" }, storage, now)).toBe(true);

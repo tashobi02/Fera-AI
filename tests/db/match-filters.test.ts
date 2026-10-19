@@ -374,7 +374,7 @@ describe.skipIf(!dbTestsEnabled)("matcher hard filters DB (P3-030, BR-017, TC-00
   });
 
   it("a pair already listed as pending IS still returned so a rerun can re-rank (BR-017)", async () => {
-    // BR-017 only excludes a `rejected` candidate row (BR-019, any versions).
+    // BR-017 only excludes a `rejected` candidate row at the same versions (BR-019).
     // A pending pair must stay in the eligible set so a rerun can re-rank
     // it (the matcher glue upserts with ON CONFLICT and never produces a
     // true duplicate).

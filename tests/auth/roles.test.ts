@@ -4,13 +4,13 @@
 // access.denied audit row itself are TASK-015 (API-004); here the layer's denial hook
 // is checked to receive the server-derived principal. Synthetic accounts, fake store.
 import { randomUUID } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { ERROR_CATALOGUE, errorEnvelopeSchema, type ServerErrorId } from "@/contracts";
 import { API_ACCESS, API_IDS, type ApiId } from "@/contracts/server";
 import { CookieJar, PUBLIC_APIS } from "@/app/api/_shared";
 import { MINTING_APIS, MINTING_IF_NO_PARENT_COOKIE, cookieNames } from "@/server/auth";
-import { signParentToken, signSessionToken } from "@/server/auth/tokens";
+import { cookieSourceFromHeader, signParentToken, signSessionToken } from "@/server/auth/tokens";
 import { get, jsonPost, noParams, testFactory } from "../api/fakes";
 import { DAY_MS, KEYS, cookieHeaderFrom, fakeAuth } from "./fakes";
 
@@ -162,6 +162,35 @@ describe("credential principals are rebuilt from the user row (TC-023, BR-024)",
 });
 
 describe("parent sessions (D2A §9.1, BR-007 ownership)", () => {
+  it("reuses a minted browser-bound parent in route and read-only resolution and refuses changed User-Agent", async () => {
+    const t = setup();
+    const headers = { "user-agent": "[MOCK] synthetic browser" };
+    const minted = await call(t.route("API-003"), undefined, headers);
+    const cookie = cookieHeaderFrom(minted);
+    const body = await minted.json();
+    expect(minted.status).toBe(200);
+    expect(await (await call(t.route("API-004"), cookie, headers)).json()).toEqual(body);
+    const principal = await t.auth.principalFrom(cookieSourceFromHeader(cookie), false, "null|[MOCK] synthetic browser");
+    expect(principal?.kind === "parent" && principal.sessionId).toBe(body.id);
+    const denied = await call(t.route("API-003"), cookie, { "user-agent": "[MOCK] another browser" });
+    await expectError(denied, "E-002");
+    expect(denied.headers.getSetCookie().some((v) => v.startsWith(`${t.names.parent}=;`))).toBe(true);
+    expect(t.store.sessions.size).toBe(1);
+  });
+
+  it("binds the exact IPv4 address behind a trusted proxy and refuses network changes", async () => {
+    vi.stubEnv("TRUST_PROXY", "1");
+    try {
+      const t = setup();
+      const headers = { "x-forwarded-for": "192.0.2.1", "user-agent": "[MOCK] browser" };
+      const minted = await call(t.route("API-003"), undefined, headers);
+      const cookie = cookieHeaderFrom(minted);
+      expect(minted.status).toBe(200);
+      expect((await call(t.route("API-004"), cookie, headers)).status).toBe(200);
+      await expectError(await call(t.route("API-004"), cookie, { ...headers, "x-forwarded-for": "192.0.2.2" }), "E-002");
+    } finally { vi.unstubAllEnvs(); }
+  });
+
   it("a valid parent cookie resolves to exactly that parent_sessions row", async () => {
     const t = setup();
     const mine = t.store.addSession();

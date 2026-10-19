@@ -57,11 +57,10 @@ export function createAuth(deps: AuthDeps) {
   const now = deps.now ?? Date.now;
   const trustProxy = trustProxyFromEnv();
 
-  // SYS-BUG-11: parent sessions are bound to a stable client fingerprint
-  // (User-Agent + IP/24) so a captured cookie cannot be replayed from a
-  // different browser or network. The fingerprint never leaves the server
-  // and never reaches the database; only the truncated HMAC of it is
-  // recorded in the cookie and verified on every read.
+  // Parent cookies bind to User-Agent and the normalized trusted-proxy address
+  // (exact IPv4; IPv6 /64; null without a trusted proxy). A changed fingerprint
+  // invalidates the cookie. Headers are not proof of identity; this supplements
+  // the signature and DB session checks. Only its keyed hash enters the cookie.
   const parentFingerprintFor = (req: Request | null): string => {
     const ip = clientAddress(req ?? new Request("http://x/"), trustProxy);
     const ua = req?.headers.get("user-agent") ?? "";

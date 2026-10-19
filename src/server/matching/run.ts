@@ -14,8 +14,8 @@ import type { Queryable } from "@/server/db/queryable";
 //      found endpoints' current versions. On a same-version conflict, only the
 //      status/decision timestamp are refreshed: fera_app is intentionally not
 //      granted UPDATE on candidate score/rank/reason/component columns. Pairs
-//      already `rejected` at ANY versions are NEVER re-inserted (BR-019 —
-//      filters.ts excludes them by endpoint identity only).
+//      already `rejected` at the SAME versions are NEVER re-inserted (BR-019 —
+//      filters.ts excludes them).
 //   5. reconcileQueueState() moves the missing report to `matched_pending_review`
 //      when it has at least one qualified pending candidate, otherwise to `open`,
 //      and writes a `case.state_changed` audit row for the same transaction
@@ -326,12 +326,9 @@ async function runInsideTransaction(
   await lockCandidates(client, pending.map((candidate) => candidate.id));
 
   // 2) Stamp 'running' so concurrent runs of the same case see one is in flight.
-  // SYS-BUG-08: when the case lock is taken serially with another run, the
-  // second run finds matching_state='running'; the WHERE clause filters for
-  // IN ('queued','failed') and would silently produce rowCount=0, letting
-  // the second run proceed and supersede the first mid-flight. Detect that
-  // state and throw LockSetChanged; withTransaction's retry loop will
-  // re-try once the in-flight run has finished.
+  // Endpoint locks serialize live runs. An unexpected persisted 'running'
+  // state is refused through the existing bounded lock-set retry path rather
+  // than silently continuing after a zero-row stamp.
   const stampRes = await client.query(STAMP_RUNNING_SQL, [missingCaseId]);
   if (stampRes.rowCount === 0) {
     const cur = await client.query<{ matching_state: string }>(
@@ -341,9 +338,8 @@ async function runInsideTransaction(
     if (cur.rows[0]?.matching_state === "running") {
       throw new LockSetChanged();
     }
-    // Any other state (complete / failed / terminal) means the case is
-    // no longer eligible; let the natural eligibility recheck produce
-    // the right error.
+    // A complete case can be reranked at the same version. Endpoint status
+    // eligibility is checked under the locks before this stamp.
   }
 
   // 3) Embed the missing case row. The embed helper either returns the existing
@@ -502,8 +498,7 @@ async function supersedeDropped(
   if (topFiveIds.size === 0) {
     await client.query(
       `UPDATE match_candidates SET status = 'superseded', decided_at = now()
-       WHERE missing_case_id = $1 AND status = 'pending' AND missing_version = $2
-         AND (found_case_id IN (SELECT id FROM cases WHERE anonymised_at IS NOT NULL))`,
+       WHERE missing_case_id = $1 AND status = 'pending' AND missing_version = $2`,
       [missingCaseId, currentMissingVersion],
     );
     return;
