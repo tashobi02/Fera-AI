@@ -1,0 +1,324 @@
+{
+  "stats": {
+    "startTime": "2026-10-18T19:42:47.421Z",
+    "duration": 30536.003,
+    "expected": 4,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  },
+  "suites": [
+    {
+      "title": "fera-system-extra.spec.ts",
+      "file": "fera-system-extra.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "SYS-01 seam: five unbroken real API lifecycles, outputs, matching, confirm, close and dashboard",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3043,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T19:42:50.919Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a133e32b9068ec276fd7-3d21f8ad121655f5b99c",
+          "file": "fera-system-extra.spec.ts",
+          "line": 9,
+          "column": 5
+        },
+        {
+          "title": "SYS-11: disaster page keeps planned-expansion label and saves a real found report",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 675,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T19:42:54.299Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a133e32b9068ec276fd7-a1973503448fdeb05ff7",
+          "file": "fera-system-extra.spec.ts",
+          "line": 35,
+          "column": 5
+        },
+        {
+          "title": "security headers apply to JSON as well as HTML",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 27,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T19:42:55.017Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a133e32b9068ec276fd7-809b8419929c2d570e2f",
+          "file": "fera-system-extra.spec.ts",
+          "line": 42,
+          "column": 5
+        },
+        {
+          "title": "TC-036/060: notice gates dispatch, E-023 offers manual form and keeps typed text",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 10724,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('body')\nExpected substring: \u001b[32m\"[MOCK] synthetic text retained after spend cap\"\u001b[39m\nReceived string:    \u001b[31m\"\u09ae\u09c2\u09b2 \u0985\u0982\u09b6\u09c7 \u09af\u09be\u09a8\u09ab\u09c7\u09b0\u09be\u09ac\u09be\u0982\u09b2\u09be | English\u09b8\u09bf\u09a8\u09a5\u09c7\u099f\u09bf\u0995 \u09a4\u09a5\u09cd\u09af \u00b7 \u0995\u09b0\u09cd\u09ae\u0995\u09b0\u09cd\u09a4\u09be \u09af\u09be\u099a\u09be\u0987 \u09b8\u09bf\u09ae\u09c1\u09b2\u09c7\u09b6\u09a8\u09a8\u09bf\u099c\u09c7 \u09ab\u09b0\u09cd\u09ae\u09c7 \u09b2\u09bf\u0996\u09c1\u09a8\u09b8\u09bf\u09a8\u09a5\u09c7\u099f\u09bf\u0995\u098f\u0987 \u09a1\u09bf\u09ad\u09be\u0987\u09b8\u09c7 \u09af\u09be\u099a\u09be\u0987 \u0995\u09b0\u09be\u09b0 \u09ae\u09a4\u09cb \u0996\u09b8\u09a1\u09bc\u09be \u09a8\u09c7\u0987\u0964\u0986\u09aa\u09a8\u09be\u09b0 \u0995\u09a5\u09be\u09af\u09bc \u09ab\u09bf\u09b0\u09c1\u09a8\u0996\u09b8\u09a1\u09bc\u09be \u09ae\u09c1\u099b\u09c7 \u09ab\u09c7\u09b2\u09ac\u09c7\u09a8?\u0996\u09b8\u09a1\u09bc\u09be \u09ae\u09c1\u099b\u09c7 \u09ab\u09c7\u09b2\u09ac\u09c7\u09a8?\u09b0\u09be\u0996\u09c1\u09a8\u09ae\u09c1\u099b\u09c1\u09a8\u0996\u09b8\u09a1\u09bc\u09be \u09ae\u09c1\u099b\u09c7 \u09ab\u09c7\u09b2\u09ac\u09c7\u09a8?\u0996\u09b8\u09a1\u09bc\u09be \u09ae\u09c1\u099b\u09c7 \u09ab\u09c7\u09b2\u09ac\u09c7\u09a8?\u09b0\u09be\u0996\u09c1\u09a8\u09ae\u09c1\u099b\u09c1\u09a8\u09a8\u09bf\u099c\u09c7 \u09ab\u09b0\u09cd\u09ae\u09c7 \u09b2\u09bf\u0996\u09c1\u09a8 \u00b7 \u09ab\u09c7\u09b0\u09be\"\u001b[39m\nTimeout: 10000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('body') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('body')\u001b[22m\n\u001b[2m    24 \u00d7 locator resolved to <body>\u2026</body>\u001b[22m\n\u001b[2m       - unexpected value \"\u09ae\u09c2\u09b2 \u0985\u0982\u09b6\u09c7 \u09af\u09be\u09a8\u09ab\u09c7\u09b0\u09be\u09ac\u09be\u0982\u09b2\u09be | English\u09b8\u09bf\u09a8\u09a5\u09c7\u099f\u09bf\u0995 \u09a4\u09a5\u09cd\u09af \u00b7 \u0995\u09b0\u09cd\u09ae\u0995\u09b0\u09cd\u09a4\u09be \u09af\u09be\u099a\u09be\u0987 \u09b8\u09bf\u09ae\u09c1\u09b2\u09c7\u09b6\u09a8\u09a8\u09bf\u099c\u09c7 \u09ab\u09b0\u09cd\u09ae\u09c7 \u09b2\u09bf\u0996\u09c1\u09a8\u09b8\u09bf\u09a8\u09a5\u09c7\u099f\u09bf\u0995\u098f\u0987 \u09a1\u09bf\u09ad\u09be\u0987\u09b8\u09c7 \u09af\u09be\u099a\u09be\u0987 \u0995\u09b0\u09be\u09b0 \u09ae\u09a4\u09cb \u0996\u09b8\u09a1\u09bc\u09be \u09a8\u09c7\u0987\u0964\u0986\u09aa\u09a8\u09be\u09b0 \u0995\u09a5\u09be\u09af\u09bc \u09ab\u09bf\u09b0\u09c1\u09a8\u0996\u09b8\u09a1\u09bc\u09be \u09ae\u09c1\u099b\u09c7 \u09ab\u09c7\u09b2\u09ac\u09c7\u09a8?\u0996\u09b8\u09a1\u09bc\u09be \u09ae\u09c1\u099b\u09c7 \u09ab\u09c7\u09b2\u09ac\u09c7\u09a8?\u09b0\u09be\u0996\u09c1\u09a8\u09ae\u09c1\u099b\u09c1\u09a8\u0996\u09b8\u09a1\u09bc\u09be \u09ae\u09c1\u099b\u09c7 \u09ab\u09c7\u09b2\u09ac\u09c7\u09a8?\u0996\u09b8\u09a1\u09bc\u09be \u09ae\u09c1\u099b\u09c7 \u09ab\u09c7\u09b2\u09ac\u09c7\u09a8?\u09b0\u09be\u0996\u09c1\u09a8\u09ae\u09c1\u099b\u09c1\u09a8\u09a8\u09bf\u099c\u09c7 \u09ab\u09b0\u09cd\u09ae\u09c7 \u09b2\u09bf\u0996\u09c1\u09a8 \u00b7 \u09ab\u09c7\u09b0\u09be\"\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('body')\nExpected substring: \u001b[32m\"[MOCK] synthetic text retained after spend cap\"\u001b[39m\nReceived string:    \u001b[31m\"\u09ae\u09c2\u09b2 \u0985\u0982\u09b6\u09c7 \u09af\u09be\u09a8\u09ab\u09c7\u09b0\u09be\u09ac\u09be\u0982\u09b2\u09be | English\u09b8\u09bf\u09a8\u09a5\u09c7\u099f\u09bf\u0995 \u09a4\u09a5\u09cd\u09af \u00b7 \u0995\u09b0\u09cd\u09ae\u0995\u09b0\u09cd\u09a4\u09be \u09af\u09be\u099a\u09be\u0987 \u09b8\u09bf\u09ae\u09c1\u09b2\u09c7\u09b6\u09a8\u09a8\u09bf\u099c\u09c7 \u09ab\u09b0\u09cd\u09ae\u09c7 \u09b2\u09bf\u0996\u09c1\u09a8\u09b8\u09bf\u09a8\u09a5\u09c7\u099f\u09bf\u0995\u098f\u0987 \u09a1\u09bf\u09ad\u09be\u0987\u09b8\u09c7 \u09af\u09be\u099a\u09be\u0987 \u0995\u09b0\u09be\u09b0 \u09ae\u09a4\u09cb \u0996\u09b8\u09a1\u09bc\u09be \u09a8\u09c7\u0987\u0964\u0986\u09aa\u09a8\u09be\u09b0 \u0995\u09a5\u09be\u09af\u09bc \u09ab\u09bf\u09b0\u09c1\u09a8\u0996\u09b8\u09a1\u09bc\u09be \u09ae\u09c1\u099b\u09c7 \u09ab\u09c7\u09b2\u09ac\u09c7\u09a8?\u0996\u09b8\u09a1\u09bc\u09be \u09ae\u09c1\u099b\u09c7 \u09ab\u09c7\u09b2\u09ac\u09c7\u09a8?\u09b0\u09be\u0996\u09c1\u09a8\u09ae\u09c1\u099b\u09c1\u09a8\u0996\u09b8\u09a1\u09bc\u09be \u09ae\u09c1\u099b\u09c7 \u09ab\u09c7\u09b2\u09ac\u09c7\u09a8?\u0996\u09b8\u09a1\u09bc\u09be \u09ae\u09c1\u099b\u09c7 \u09ab\u09c7\u09b2\u09ac\u09c7\u09a8?\u09b0\u09be\u0996\u09c1\u09a8\u09ae\u09c1\u099b\u09c1\u09a8\u09a8\u09bf\u099c\u09c7 \u09ab\u09b0\u09cd\u09ae\u09c7 \u09b2\u09bf\u0996\u09c1\u09a8 \u00b7 \u09ab\u09c7\u09b0\u09be\"\u001b[39m\nTimeout: 10000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('body') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('body')\u001b[22m\n\u001b[2m    24 \u00d7 locator resolved to <body>\u2026</body>\u001b[22m\n\u001b[2m       - unexpected value \"\u09ae\u09c2\u09b2 \u0985\u0982\u09b6\u09c7 \u09af\u09be\u09a8\u09ab\u09c7\u09b0\u09be\u09ac\u09be\u0982\u09b2\u09be | English\u09b8\u09bf\u09a8\u09a5\u09c7\u099f\u09bf\u0995 \u09a4\u09a5\u09cd\u09af \u00b7 \u0995\u09b0\u09cd\u09ae\u0995\u09b0\u09cd\u09a4\u09be \u09af\u09be\u099a\u09be\u0987 \u09b8\u09bf\u09ae\u09c1\u09b2\u09c7\u09b6\u09a8\u09a8\u09bf\u099c\u09c7 \u09ab\u09b0\u09cd\u09ae\u09c7 \u09b2\u09bf\u0996\u09c1\u09a8\u09b8\u09bf\u09a8\u09a5\u09c7\u099f\u09bf\u0995\u098f\u0987 \u09a1\u09bf\u09ad\u09be\u0987\u09b8\u09c7 \u09af\u09be\u099a\u09be\u0987 \u0995\u09b0\u09be\u09b0 \u09ae\u09a4\u09cb \u0996\u09b8\u09a1\u09bc\u09be \u09a8\u09c7\u0987\u0964\u0986\u09aa\u09a8\u09be\u09b0 \u0995\u09a5\u09be\u09af\u09bc \u09ab\u09bf\u09b0\u09c1\u09a8\u0996\u09b8\u09a1\u09bc\u09be \u09ae\u09c1\u099b\u09c7 \u09ab\u09c7\u09b2\u09ac\u09c7\u09a8?\u0996\u09b8\u09a1\u09bc\u09be \u09ae\u09c1\u099b\u09c7 \u09ab\u09c7\u09b2\u09ac\u09c7\u09a8?\u09b0\u09be\u0996\u09c1\u09a8\u09ae\u09c1\u099b\u09c1\u09a8\u0996\u09b8\u09a1\u09bc\u09be \u09ae\u09c1\u099b\u09c7 \u09ab\u09c7\u09b2\u09ac\u09c7\u09a8?\u0996\u09b8\u09a1\u09bc\u09be \u09ae\u09c1\u099b\u09c7 \u09ab\u09c7\u09b2\u09ac\u09c7\u09a8?\u09b0\u09be\u0996\u09c1\u09a8\u09ae\u09c1\u099b\u09c1\u09a8\u09a8\u09bf\u099c\u09c7 \u09ab\u09b0\u09cd\u09ae\u09c7 \u09b2\u09bf\u0996\u09c1\u09a8 \u00b7 \u09ab\u09c7\u09b0\u09be\"\u001b[22m\n\n    at /tmp/fera-system-extra-specs/fera-system-extra.spec.ts:50:344",
+                    "location": {
+                      "file": "/tmp/fera-system-extra-specs/fera-system-extra.spec.ts",
+                      "column": 344,
+                      "line": 50
+                    },
+                    "snippet": "  48 |  await expect(page.locator('textarea[name=\"text\"]')).toHaveCount(0);await page.getByRole(\"button\",{name:/\u09ac\u09c1\u099d\u09c7\u099b\u09bf, \u099a\u09be\u09b2\u09bf\u09af\u09bc\u09c7 \u09af\u09be\u09a8|I understand, continue/}).click();\n  49 |  const text=\"[MOCK] synthetic text retained after spend cap\";await page.locator('textarea[name=\"text\"]').fill(text);await page.getByRole(\"button\",{name:/^\u09aa\u09be\u09a0\u09be\u09a8$|^Send$/}).click();\n> 50 |  await expect(page.getByRole(\"heading\",{name:/\u09ac\u09be\u0995\u09bf \u09a4\u09a5\u09cd\u09af \u09ab\u09b0\u09cd\u09ae\u09c7 \u09a6\u09bf\u09a8|Add the rest in the form/})).toBeVisible();const form=page.getByRole(\"link\",{name:/^\u09ab\u09b0\u09cd\u09ae \u0996\u09c1\u09b2\u09c1\u09a8$|^Open the form$/}).first();await expect(form).toBeVisible();expect(calls).toBe(1);await form.click();await expect(page).toHaveURL(/intake\\/form/);await expect(page.locator(\"body\")).toContainText(text);\n     |                                                                                                                                                                                                                                                                                                                                                        ^\n  51 | });\n  52 | test(\"TC-058 partial: intake/manual pages reflow at 200% text and 400% viewport zoom\",async({page})=>{\n  53 |  for(const path of [\"/intake\",\"/intake/form\",\"/intake/review\"]){for(const mode of [\"text200\",\"viewport400\"]){await page.setViewportSize({width:mode===\"text200\"?1280:320,height:800});await page.goto(path);if(mode===\"text200\")await page.evaluate(()=>document.documentElement.style.fontSize=\"200%\");const size=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth}));expect(size.scroll,`${path} ${mode}`).toBeLessThanOrEqual(size.client+1);}}"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/fera-system-extra-specs/fera-system-extra.spec.ts",
+                        "column": 344,
+                        "line": 50
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('body')\nExpected substring: \u001b[32m\"[MOCK] synthetic text retained after spend cap\"\u001b[39m\nReceived string:    \u001b[31m\"\u09ae\u09c2\u09b2 \u0985\u0982\u09b6\u09c7 \u09af\u09be\u09a8\u09ab\u09c7\u09b0\u09be\u09ac\u09be\u0982\u09b2\u09be | English\u09b8\u09bf\u09a8\u09a5\u09c7\u099f\u09bf\u0995 \u09a4\u09a5\u09cd\u09af \u00b7 \u0995\u09b0\u09cd\u09ae\u0995\u09b0\u09cd\u09a4\u09be \u09af\u09be\u099a\u09be\u0987 \u09b8\u09bf\u09ae\u09c1\u09b2\u09c7\u09b6\u09a8\u09a8\u09bf\u099c\u09c7 \u09ab\u09b0\u09cd\u09ae\u09c7 \u09b2\u09bf\u0996\u09c1\u09a8\u09b8\u09bf\u09a8\u09a5\u09c7\u099f\u09bf\u0995\u098f\u0987 \u09a1\u09bf\u09ad\u09be\u0987\u09b8\u09c7 \u09af\u09be\u099a\u09be\u0987 \u0995\u09b0\u09be\u09b0 \u09ae\u09a4\u09cb \u0996\u09b8\u09a1\u09bc\u09be \u09a8\u09c7\u0987\u0964\u0986\u09aa\u09a8\u09be\u09b0 \u0995\u09a5\u09be\u09af\u09bc \u09ab\u09bf\u09b0\u09c1\u09a8\u0996\u09b8\u09a1\u09bc\u09be \u09ae\u09c1\u099b\u09c7 \u09ab\u09c7\u09b2\u09ac\u09c7\u09a8?\u0996\u09b8\u09a1\u09bc\u09be \u09ae\u09c1\u099b\u09c7 \u09ab\u09c7\u09b2\u09ac\u09c7\u09a8?\u09b0\u09be\u0996\u09c1\u09a8\u09ae\u09c1\u099b\u09c1\u09a8\u0996\u09b8\u09a1\u09bc\u09be \u09ae\u09c1\u099b\u09c7 \u09ab\u09c7\u09b2\u09ac\u09c7\u09a8?\u0996\u09b8\u09a1\u09bc\u09be \u09ae\u09c1\u099b\u09c7 \u09ab\u09c7\u09b2\u09ac\u09c7\u09a8?\u09b0\u09be\u0996\u09c1\u09a8\u09ae\u09c1\u099b\u09c1\u09a8\u09a8\u09bf\u099c\u09c7 \u09ab\u09b0\u09cd\u09ae\u09c7 \u09b2\u09bf\u0996\u09c1\u09a8 \u00b7 \u09ab\u09c7\u09b0\u09be\"\u001b[39m\nTimeout: 10000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('body') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('body')\u001b[22m\n\u001b[2m    24 \u00d7 locator resolved to <body>\u2026</body>\u001b[22m\n\u001b[2m       - unexpected value \"\u09ae\u09c2\u09b2 \u0985\u0982\u09b6\u09c7 \u09af\u09be\u09a8\u09ab\u09c7\u09b0\u09be\u09ac\u09be\u0982\u09b2\u09be | English\u09b8\u09bf\u09a8\u09a5\u09c7\u099f\u09bf\u0995 \u09a4\u09a5\u09cd\u09af \u00b7 \u0995\u09b0\u09cd\u09ae\u0995\u09b0\u09cd\u09a4\u09be \u09af\u09be\u099a\u09be\u0987 \u09b8\u09bf\u09ae\u09c1\u09b2\u09c7\u09b6\u09a8\u09a8\u09bf\u099c\u09c7 \u09ab\u09b0\u09cd\u09ae\u09c7 \u09b2\u09bf\u0996\u09c1\u09a8\u09b8\u09bf\u09a8\u09a5\u09c7\u099f\u09bf\u0995\u098f\u0987 \u09a1\u09bf\u09ad\u09be\u0987\u09b8\u09c7 \u09af\u09be\u099a\u09be\u0987 \u0995\u09b0\u09be\u09b0 \u09ae\u09a4\u09cb \u0996\u09b8\u09a1\u09bc\u09be \u09a8\u09c7\u0987\u0964\u0986\u09aa\u09a8\u09be\u09b0 \u0995\u09a5\u09be\u09af\u09bc \u09ab\u09bf\u09b0\u09c1\u09a8\u0996\u09b8\u09a1\u09bc\u09be \u09ae\u09c1\u099b\u09c7 \u09ab\u09c7\u09b2\u09ac\u09c7\u09a8?\u0996\u09b8\u09a1\u09bc\u09be \u09ae\u09c1\u099b\u09c7 \u09ab\u09c7\u09b2\u09ac\u09c7\u09a8?\u09b0\u09be\u0996\u09c1\u09a8\u09ae\u09c1\u099b\u09c1\u09a8\u0996\u09b8\u09a1\u09bc\u09be \u09ae\u09c1\u099b\u09c7 \u09ab\u09c7\u09b2\u09ac\u09c7\u09a8?\u0996\u09b8\u09a1\u09bc\u09be \u09ae\u09c1\u099b\u09c7 \u09ab\u09c7\u09b2\u09ac\u09c7\u09a8?\u09b0\u09be\u0996\u09c1\u09a8\u09ae\u09c1\u099b\u09c1\u09a8\u09a8\u09bf\u099c\u09c7 \u09ab\u09b0\u09cd\u09ae\u09c7 \u09b2\u09bf\u0996\u09c1\u09a8 \u00b7 \u09ab\u09c7\u09b0\u09be\"\u001b[22m\n\n\n  48 |  await expect(page.locator('textarea[name=\"text\"]')).toHaveCount(0);await page.getByRole(\"button\",{name:/\u09ac\u09c1\u099d\u09c7\u099b\u09bf, \u099a\u09be\u09b2\u09bf\u09af\u09bc\u09c7 \u09af\u09be\u09a8|I understand, continue/}).click();\n  49 |  const text=\"[MOCK] synthetic text retained after spend cap\";await page.locator('textarea[name=\"text\"]').fill(text);await page.getByRole(\"button\",{name:/^\u09aa\u09be\u09a0\u09be\u09a8$|^Send$/}).click();\n> 50 |  await expect(page.getByRole(\"heading\",{name:/\u09ac\u09be\u0995\u09bf \u09a4\u09a5\u09cd\u09af \u09ab\u09b0\u09cd\u09ae\u09c7 \u09a6\u09bf\u09a8|Add the rest in the form/})).toBeVisible();const form=page.getByRole(\"link\",{name:/^\u09ab\u09b0\u09cd\u09ae \u0996\u09c1\u09b2\u09c1\u09a8$|^Open the form$/}).first();await expect(form).toBeVisible();expect(calls).toBe(1);await form.click();await expect(page).toHaveURL(/intake\\/form/);await expect(page.locator(\"body\")).toContainText(text);\n     |                                                                                                                                                                                                                                                                                                                                                        ^\n  51 | });\n  52 | test(\"TC-058 partial: intake/manual pages reflow at 200% text and 400% viewport zoom\",async({page})=>{\n  53 |  for(const path of [\"/intake\",\"/intake/form\",\"/intake/review\"]){for(const mode of [\"text200\",\"viewport400\"]){await page.setViewportSize({width:mode===\"text200\"?1280:320,height:800});await page.goto(path);if(mode===\"text200\")await page.evaluate(()=>document.documentElement.style.fontSize=\"200%\");const size=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth}));expect(size.scroll,`${path} ${mode}`).toBeLessThanOrEqual(size.client+1);}}\n    at /tmp/fera-system-extra-specs/fera-system-extra.spec.ts:50:344"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T19:42:55.049Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/fera-system-extra-results/fera-system-extra-TC-036-0-09c12-l-form-and-keeps-typed-text-desktop/test-failed-1.png"
+                    },
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "/tmp/fera-system-extra-results/fera-system-extra-TC-036-0-09c12-l-form-and-keeps-typed-text-desktop/video.webm"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/fera-system-extra-results/fera-system-extra-TC-036-0-09c12-l-form-and-keeps-typed-text-desktop/error-context.md"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/fera-system-extra-results/fera-system-extra-TC-036-0-09c12-l-form-and-keeps-typed-text-desktop/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/fera-system-extra-results/fera-system-extra-TC-036-0-09c12-l-form-and-keeps-typed-text-desktop/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/fera-system-extra-specs/fera-system-extra.spec.ts",
+                    "column": 344,
+                    "line": 50
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "a133e32b9068ec276fd7-6770b84570917958ea1e",
+          "file": "fera-system-extra.spec.ts",
+          "line": 45,
+          "column": 5
+        },
+        {
+          "title": "TC-058 partial: intake/manual pages reflow at 200% text and 400% viewport zoom",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 817,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T19:43:06.242Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a133e32b9068ec276fd7-4c03c7e49eb5a1e8824a",
+          "file": "fera-system-extra.spec.ts",
+          "line": 52,
+          "column": 5
+        },
+        {
+          "title": "TC-017: opening manual form before any extraction gives editable fields",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 10585,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('[id=\"review-child.name\"]')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" locator('[id=\"review-child.name\"]') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('[id=\"review-child.name\"]')\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('[id=\"review-child.name\"]')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" locator('[id=\"review-child.name\"]') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('[id=\"review-child.name\"]')\u001b[22m\n\n    at /tmp/fera-system-extra-specs/fera-system-extra.spec.ts:57:185",
+                    "location": {
+                      "file": "/tmp/fera-system-extra-specs/fera-system-extra.spec.ts",
+                      "column": 185,
+                      "line": 57
+                    },
+                    "snippet": "  55 | test(\"TC-017: opening manual form before any extraction gives editable fields\",async({page})=>{\n  56 |  await page.goto(\"/intake\");await page.getByRole(\"button\",{name:/\u09ac\u09c1\u099d\u09c7\u099b\u09bf, \u099a\u09be\u09b2\u09bf\u09af\u09bc\u09c7 \u09af\u09be\u09a8|I understand, continue/}).click();\n> 57 |  await page.getByRole(\"link\",{name:/^\u09ab\u09b0\u09cd\u09ae \u0996\u09c1\u09b2\u09c1\u09a8$|^Open the form$/}).first().click();await expect(page).toHaveURL(/intake\\/form/);await expect(page.locator('[id=\"review-child.name\"]')).toBeVisible();\n     |                                                                                                                                                                                         ^\n  58 | });\n  59 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/fera-system-extra-specs/fera-system-extra.spec.ts",
+                        "column": 185,
+                        "line": 57
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('[id=\"review-child.name\"]')\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" locator('[id=\"review-child.name\"]') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('[id=\"review-child.name\"]')\u001b[22m\n\n\n  55 | test(\"TC-017: opening manual form before any extraction gives editable fields\",async({page})=>{\n  56 |  await page.goto(\"/intake\");await page.getByRole(\"button\",{name:/\u09ac\u09c1\u099d\u09c7\u099b\u09bf, \u099a\u09be\u09b2\u09bf\u09af\u09bc\u09c7 \u09af\u09be\u09a8|I understand, continue/}).click();\n> 57 |  await page.getByRole(\"link\",{name:/^\u09ab\u09b0\u09cd\u09ae \u0996\u09c1\u09b2\u09c1\u09a8$|^Open the form$/}).first().click();await expect(page).toHaveURL(/intake\\/form/);await expect(page.locator('[id=\"review-child.name\"]')).toBeVisible();\n     |                                                                                                                                                                                         ^\n  58 | });\n  59 |\n    at /tmp/fera-system-extra-specs/fera-system-extra.spec.ts:57:185"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T19:43:07.262Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/fera-system-extra-results/fera-system-extra-TC-017-o-0c653-ction-gives-editable-fields-desktop/test-failed-1.png"
+                    },
+                    {
+                      "name": "video",
+                      "contentType": "video/webm",
+                      "path": "/tmp/fera-system-extra-results/fera-system-extra-TC-017-o-0c653-ction-gives-editable-fields-desktop/video.webm"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/fera-system-extra-results/fera-system-extra-TC-017-o-0c653-ction-gives-editable-fields-desktop/error-context.md"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/fera-system-extra-results/fera-system-extra-TC-017-o-0c653-ction-gives-editable-fields-desktop/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/tmp/fera-system-extra-results/fera-system-extra-TC-017-o-0c653-ction-gives-editable-fields-desktop/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/fera-system-extra-specs/fera-system-extra.spec.ts",
+                    "column": 185,
+                    "line": 57
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "a133e32b9068ec276fd7-20398c1c98e96c56dd11",
+          "file": "fera-system-extra.spec.ts",
+          "line": 55,
+          "column": 5
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+import {afterAll,beforeAll,expect,it} from "vitest";
+import {connect,pool,seedReference,createActors,insertMissing,insertFound,openMissing,addCandidate} from "/home/obidit/secondBrain/coding/Fera-AI/tests/db/support/db";
+import {testUser} from "/home/obidit/secondBrain/coding/Fera-AI/tests/support/principals";
+import {setOfficerVerified} from "/home/obidit/secondBrain/coding/Fera-AI/src/server/admin/verify";
+import {decideDuplicate} from "/home/obidit/secondBrain/coding/Fera-AI/src/server/duplicates/decision";
+let admin:any, app:any, p:any, actors:any, other:any;
+beforeAll(async()=>{admin=await connect("admin");app=await connect("app");p=pool("app");await seedReference(admin);actors=await createActors(admin);other=await createActors(admin);});
+afterAll(async()=>{await Promise.all([admin?.end(),app?.end(),p?.end()]);});
+const projection="actor_type, actor_user_id, case_id, candidate_id, action, details";
+it("BR-010: verifying two different officer accounts keeps distinguishable audit subjects",async()=>{
+ const principal=testUser(actors.admin,"admin");
+ for(const id of [actors.unverifiedOfficer,other.unverifiedOfficer]) await setOfficerVerified(principal,id,{verified:true},{pool:p});
+ const {rows}=await admin.query(`SELECT ${projection} FROM audit_log WHERE action='user.verification_changed' ORDER BY id`);
+ expect(rows).toHaveLength(2); expect(rows[0]).not.toEqual(rows[1]);
+});
+it("BR-010/021: two duplicate links sharing case_a keep distinguishable audit subjects",async()=>{
+ const cases=await Promise.all([insertMissing(app),insertMissing(app),insertMissing(app)]);cases.sort((a,b)=>a.id.localeCompare(b.id));
+ const ids=[];
+ for(const b of cases.slice(1)) {const {rows}=await admin.query("INSERT INTO duplicate_links(case_a,case_b,score,rule) VALUES($1,$2,82.5,'profile') RETURNING id",[cases[0].id,b.id]);ids.push(rows[0].id);}
+ const principal=testUser(actors.officer,"officer",{verified:true});
+ for(const id of ids) await decideDuplicate(principal,id,{status:"dismissed",reason:"[MOCK] profile differs",profile_evidence_reviewed:true},{pool:p});
+ const {rows}=await admin.query(`SELECT ${projection} FROM audit_log WHERE action='duplicate.reviewed' ORDER BY id`);
+ expect(rows).toHaveLength(2); expect(rows[0]).not.toEqual(rows[1]);
+});
+
+import {decideCandidate} from "/home/obidit/secondBrain/coding/Fera-AI/src/server/case/decision";
+const confirm={decision:"confirm",expected_missing_version:1,expected_found_version:1,reviewer_checklist:{descriptions_reviewed:true,contradictions_reviewed:true,identity_not_proven_by_score:true,referral_is_simulated:true}} as const;
+async function fixture(){const m=await insertMissing(app);await openMissing(app,m.id);const f=await insertFound(app,actors.staff);const f2=await insertFound(app,actors.staff);const c=await addCandidate(app,m.id,f.id);const competitor=await addCandidate(app,m.id,f2.id,2);return {m,f,f2,c,competitor};}
+const snap=async(x:any)=>({cases:(await admin.query("SELECT id,status,version,closed_at FROM cases WHERE id=ANY($1::uuid[]) ORDER BY id",[[x.m.id,x.f.id,x.f2.id]])).rows,candidates:(await admin.query("SELECT id,status,decided_at FROM match_candidates WHERE id=ANY($1::uuid[]) ORDER BY id",[[x.c,x.competitor]])).rows,decisions:(await admin.query("SELECT * FROM review_decisions WHERE candidate_id=ANY($1::uuid[])",[[x.c,x.competitor]])).rows,referrals:(await admin.query("SELECT * FROM referrals WHERE candidate_id=ANY($1::uuid[])",[[x.c,x.competitor]])).rows,audit:(await admin.query("SELECT action,details FROM audit_log WHERE candidate_id=ANY($1::uuid[]) ORDER BY id",[[x.c,x.competitor]])).rows});
+function wrappedPool(after:(text:string,values:any[],run:()=>Promise<any>)=>Promise<any>){return {connect:async()=>{const client=await p.connect();return new Proxy(client,{get(target,key){if(key==="query")return async(text:string,values:any[]=[])=>after(text,values,()=>target.query(text,values));const v=target[key];return typeof v==="function"?v.bind(target):v;}});}};}
+it("TC-010/029/046: injected failure after every confirm write rolls back cases, competitors, decisions, referrals and success audit",async()=>{
+ const principal=testUser(actors.officer,"officer",{verified:true});let writes=0;const baseline=await fixture();
+ await decideCandidate(principal,baseline.c,confirm,{pool:wrappedPool(async(text,values,run)=>{const r=await run();if(/^\s*(INSERT|UPDATE|DELETE)\b/i.test(text))writes++;return r;}) as any,attempts:1});expect(writes).toBeGreaterThan(6);
+ for(let stop=1;stop<=writes;stop++){const x=await fixture(),before=await snap(x);let seen=0,injected=false;const pool=wrappedPool(async(text,values,run)=>{const r=await run();if(/^\s*(INSERT|UPDATE|DELETE)\b/i.test(text)&&++seen===stop){injected=true;throw new Error("synthetic injected failure");}return r;});await expect(decideCandidate(principal,x.c,confirm,{pool:pool as any,attempts:1})).rejects.toBeDefined();expect(injected).toBe(true);expect(await snap(x),`rollback after write ${stop}/${writes}`).toEqual(before);}
+ console.log(JSON.stringify({confirm_write_fault_points:writes}));
+});
+it("TC-047: restricted app role cannot commit a referral whose missing endpoint differs from its candidate",async()=>{
+ const principal=testUser(actors.officer,"officer",{verified:true}),x=await fixture(),wrong=await insertMissing(app);let injected=false;
+ // Use one real pooled connection and alter only the referral parameter inside the real transaction.
+ const corrupted={connect:async()=>{const client=await p.connect();return new Proxy(client,{get(target,key){if(key==="query")return async(text:string,values:any[]=[])=>{if(/INSERT INTO referrals/.test(text)){injected=true;values=[...values];values[2]=wrong.id;}return target.query(text,values);};const v=target[key];return typeof v==="function"?v.bind(target):v;}});}};
+ await expect(decideCandidate(principal,x.c,confirm,{pool:corrupted as any,attempts:1})).rejects.toMatchObject({id:"E-005"});expect(injected).toBe(true);
+ expect((await admin.query("SELECT count(*)::int n FROM referrals WHERE candidate_id=$1",[x.c])).rows[0].n).toBe(0);expect((await admin.query("SELECT status FROM match_candidates WHERE id=$1",[x.c])).rows[0].status).toBe("pending");
+});

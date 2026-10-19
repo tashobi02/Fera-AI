@@ -197,3 +197,10 @@ By **23 Oct** (DEP-009), Mahim records laptop, Android phone and hotspot availab
 The coordinator integrated all necessary worker output, completed quota-interrupted repairs, and ran 3,981 unit tests, 321 DB tests, 78 browser checks, six native embedding tests and five repetitions of 13 offline checks. Automated rehearsals do not close TASK-054’s human log. See [final verification](evidence/pre-main-final-verification.json). All three owners retain their external items; no owner approval is invented.
 
 Full remote CI: [39157185543](https://github.com/tashobi02/Fera-AI/actions/runs/39157185543) — check, DB and e2e PASS; includes 78 browser checks, 13 stricter offline checks and 6 native embedding checks.
+
+
+## System integration fixes and pre-main inspection — 19 October
+
+At baseline `8499361`, [the system plan execution](evidence/system-test-2026-10-19-8499361.md) found five defects. The [fix and verification report](evidence/system-fixes-2026-10-19.md) resolves all five: manual fallback (Obidit), account audit subject (Sadman), duplicate audit subject (Masnun), absolute rehearsal config and nested-worktree linting (Sadman). Final application source `77cdfee` passes build, typecheck, lint (73 warnings), 3,992 unit checks, 323 DB checks, 84 browser checks, six native checks and five automated 13-check offline repetitions. Scoped safeguarding review PASS; specialist quota limitations are disclosed in the report. TASK-025/054/062; BR-004/010/019/023; TC-017/036. Human/external gate requirements remain pending.
+
+Inspection of pre-main `2c7d1bf` separately reproduces three manual-form failures and a version-scoped rejection regression against D1 BR-019. These changes are excluded from the verified main push; details and reproduction evidence are in the same report. No all-owner approval, production acceptance or formal G6 approval is asserted.

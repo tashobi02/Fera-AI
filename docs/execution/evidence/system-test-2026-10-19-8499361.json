@@ -1,0 +1,263 @@
+{
+  "sha": "8499361daa64898de2e938551b9e63e181cb3f32",
+  "date_asia_dhaka": "2026-10-19",
+  "release_ready": false,
+  "source_changes": false,
+  "unit": {
+    "numTotalTests": 4290,
+    "numPassedTests": 3981,
+    "numFailedTests": 0,
+    "numPendingTests": 309,
+    "success": true
+  },
+  "database": {
+    "files": 31,
+    "passed": 321,
+    "failed": 0,
+    "exit": 0
+  },
+  "native_embeddings": {
+    "passed": 6,
+    "failed": 0
+  },
+  "new_database_probes": {
+    "passed": 2,
+    "failed": 2,
+    "confirm_write_fault_points": 13
+  },
+  "rehearsals": {
+    "automated": true,
+    "humanRehearsal": false,
+    "dirtyTree": true,
+    "gitStatusPorcelain": "?? docs/execution/SYSTEM_INTEGRATION_TEST_PLAN.md\n",
+    "results": [
+      {
+        "run": 1,
+        "code": 0,
+        "dbName": "fera_e2e_premainjourney_2631174_0_c37ba6",
+        "networkRecords": 189,
+        "externalAttempts": 0,
+        "sourceCommit": "8499361daa64898de2e938551b9e63e181cb3f32"
+      },
+      {
+        "run": 2,
+        "code": 0,
+        "dbName": "fera_e2e_premainjourney_2631174_1_565029",
+        "networkRecords": 189,
+        "externalAttempts": 0,
+        "sourceCommit": "8499361daa64898de2e938551b9e63e181cb3f32"
+      },
+      {
+        "run": 3,
+        "code": 0,
+        "dbName": "fera_e2e_premainjourney_2631174_2_03503d",
+        "networkRecords": 189,
+        "externalAttempts": 0,
+        "sourceCommit": "8499361daa64898de2e938551b9e63e181cb3f32"
+      },
+      {
+        "run": 4,
+        "code": 0,
+        "dbName": "fera_e2e_premainjourney_2631174_3_abd42f",
+        "networkRecords": 189,
+        "externalAttempts": 0,
+        "sourceCommit": "8499361daa64898de2e938551b9e63e181cb3f32"
+      },
+      {
+        "run": 5,
+        "code": 0,
+        "dbName": "fera_e2e_premainjourney_2631174_4_979e37",
+        "networkRecords": 189,
+        "externalAttempts": 0,
+        "sourceCommit": "8499361daa64898de2e938551b9e63e181cb3f32"
+      }
+    ],
+    "recordedAt": "2026-10-18T19:37:17.521Z"
+  },
+  "findings": [
+    {
+      "id": "SYS-BUG-01",
+      "severity": "S2",
+      "title": "Manual handoff without successful extraction produces an empty, unusable form"
+    },
+    {
+      "id": "SYS-BUG-02",
+      "severity": "S1",
+      "title": "Officer-verification audit omits target account ID",
+      "safeguarding_verdict": "BLOCK"
+    },
+    {
+      "id": "SYS-BUG-03",
+      "severity": "S1",
+      "title": "Duplicate-decision audit omits link ID and second endpoint",
+      "safeguarding_verdict": "BLOCK"
+    },
+    {
+      "id": "SYS-BUG-04",
+      "severity": "S3",
+      "title": "Rehearsal CLI rejects an existing absolute config path"
+    },
+    {
+      "id": "SYS-BUG-05",
+      "severity": "S3",
+      "title": "Default lint traverses nested worktrees"
+    }
+  ],
+  "e2e": {
+    "startTime": "2026-10-18T19:33:09.889Z",
+    "duration": 46077.892,
+    "expected": 78,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "offline": {
+    "startTime": "2026-10-18T19:38:15.569Z",
+    "duration": 28821.046,
+    "expected": 13,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "lint": {
+    "exit": 1,
+    "errors": 7044,
+    "warnings": 69788,
+    "cause": "nested .worktrees directory not ignored"
+  },
+  "extra_browser_probes": {
+    "startTime": "2026-10-18T19:42:47.421Z",
+    "duration": 30536.003,
+    "expected": 4,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  },
+  "performance": {
+    "unit": "ms",
+    "samples": [
+      {
+        "sample": 1,
+        "extract_cache_ms": 68.56476699999996,
+        "submit_ms": 1632.7861950000001,
+        "found_to_candidates_ms": 130.2042110000002,
+        "confirm_ms": 25.845586999999796
+      },
+      {
+        "sample": 2,
+        "extract_cache_ms": 18.796302000000196,
+        "submit_ms": 39.46775899999966,
+        "found_to_candidates_ms": 60.472256000000016,
+        "confirm_ms": 18.259935999999925
+      },
+      {
+        "sample": 3,
+        "extract_cache_ms": 17.005992999999762,
+        "submit_ms": 39.041859999999815,
+        "found_to_candidates_ms": 65.93646499999977,
+        "confirm_ms": 21.048823000000084
+      },
+      {
+        "sample": 4,
+        "extract_cache_ms": 15.398028999999951,
+        "submit_ms": 39.458454000000074,
+        "found_to_candidates_ms": 63.227112000000034,
+        "confirm_ms": 16.40185100000008
+      },
+      {
+        "sample": 5,
+        "extract_cache_ms": 15.24853499999972,
+        "submit_ms": 39.06907100000035,
+        "found_to_candidates_ms": 64.23371399999996,
+        "confirm_ms": 18.330446999999822
+      }
+    ],
+    "scope": "loopback, small dataset, production server, local E5; no deployed NFR acceptance"
+  },
+  "lint_active_tree_only": {
+    "exit": 0,
+    "errors": 0,
+    "warnings": 73
+  },
+  "commands": [
+    {
+      "command": "npm run lint",
+      "exit": 1
+    },
+    {
+      "command": "npm run lint -- --ignore-pattern '.worktrees/**'",
+      "exit": 0
+    },
+    {
+      "command": "npm run typecheck",
+      "exit": 0
+    },
+    {
+      "command": "DEMO_MODE=1 npm test (permitted rerun)",
+      "exit": 0
+    },
+    {
+      "command": "npm run build (Node22 Docker, network none, env masked)",
+      "exit": 0
+    },
+    {
+      "command": "DEMO_MODE=1 npm run test:db",
+      "exit": 0
+    },
+    {
+      "command": "FERA_REAL_EMBED=1 vitest embed.test.ts",
+      "exit": 0
+    },
+    {
+      "command": "test:e2e (temporary config, compiled build reused)",
+      "exit": 0
+    },
+    {
+      "command": "test:offline (temporary config, compiled build reused)",
+      "exit": 0
+    },
+    {
+      "command": "rehearsal:automated --runs 5 (relative temporary config)",
+      "exit": 0
+    },
+    {
+      "command": "new DB probes",
+      "exit": 1
+    },
+    {
+      "command": "new browser probes",
+      "exit": 1
+    },
+    {
+      "command": "npm audit --omit=dev",
+      "exit": 0
+    },
+    {
+      "command": "dev-only fresh prediction generation",
+      "exit": 0
+    },
+    {
+      "command": "eval:all --split dev (fresh predictions)",
+      "exit": 0
+    },
+    {
+      "command": "demo:local -- verify",
+      "exit": 1
+    },
+    {
+      "command": "release:check",
+      "exit": 2
+    },
+    {
+      "command": "claims_check.py",
+      "exit": 0
+    }
+  ],
+  "safeguarding_review": "BLOCK; fixes and regressions required; not exhaustive whole-codebase approval",
+  "cleanup": {
+    "dedicated_test_databases_removed": 4,
+    "historical_evidence_restored": true,
+    "application_source_unchanged": true
+  },
+  "final_evidence_review": "Corrections satisfied; runtime safeguarding verdict BLOCK"
+}
