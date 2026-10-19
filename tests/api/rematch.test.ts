@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { describe, expect, it } from "vitest";
 import { errorEnvelopeSchema, rematchResponseSchema, uuidSchema } from "@/contracts";
-import { createRematchHandler } from "@/app/api/match/[caseId]/route";
+import { createRematchHandler } from "@/app/api/match/[caseId]/handler";
 import { createFakeEmbedder } from "@/server/embeddings/model";
 import type { MatcherRunOptions, MatcherRunResult } from "@/server/matching/run";
 import { testParent, testUser } from "../support/principals";

@@ -2,8 +2,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { errorEnvelopeSchema, importResponseSchema, LIMITS, type ImportResponse } from "@/contracts";
 import { PRINCIPALS, exampleImportRequest } from "@/contracts/examples";
-import type { ImportService } from "@/app/api/admin/import/route";
-import { importRoute } from "@/app/api/admin/import/route";
+import type { ImportService } from "@/app/api/admin/import/handler";
+import { importRoute } from "@/app/api/admin/import/handler";
 import { computeDuplicatesFlagged } from "@/server/import/duplicates";
 import { jsonPost, noParams, testFactory } from "./fakes";
 
