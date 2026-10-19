@@ -278,7 +278,11 @@ function ageComponent(
     return null;
   }
   const tol = MATCH_CONFIG.ageOverlapToleranceYears;
-  // Widen only the b-side by the tolerance; a-side stays raw.
+  // Widen only the b-side by the tolerance; a-side stays raw. The filter
+  // at filters.ts:100 widens BOTH sides, but the score function is the
+  // inner per-candidate assessment and is tested with pairs that would
+  // have been excluded by the filter (e.g. b exactly 3 years above a) —
+  // those must score 0 here. Tests in tests/match/score.test.ts pin this.
   const overlapLo = Math.max(aMin, bMin - tol);
   const overlapHi = Math.min(aMax, bMax + tol);
   const overlapYears = overlapHi - overlapLo + 1;
