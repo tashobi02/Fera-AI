@@ -17,7 +17,7 @@
 //   would re-render the case in its closed state and the close form unmounts).
 // - The closeCaseRequestSchema note is trimmed to 3..500 chars; the UI enforces the
 //   trimmed minimum before step 2 and submission, and caps input at 500 characters.
-import { useId, useReducer, useRef, type FormEvent } from "react";
+import { useEffect, useId, useReducer, useRef, type FormEvent } from "react";
 import { CircleAlertIcon, CircleCheckIcon, LoaderCircleIcon } from "@/app/components/icons";
 import {
   closeCaseRequestSchema,
@@ -41,6 +41,7 @@ type Outcome = "coordination_recorded" | "resolved_outside_fera";
 
 const NOTE_MIN = 3;
 const NOTE_MAX = 500;
+const noteKey = (caseId: string) => `fera.close-note.${caseId}`;
 
 // "coordination_recorded" is the one that needs a referral record; the page guards the
 // status, the contract schema trims the note, and the service E-005s the version.
@@ -78,6 +79,7 @@ type ApiFailure = Exclude<Failure, "note">;
 type Action =
   | { type: "set-outcome"; value: Outcome }
   | { type: "set-note"; value: string }
+  | { type: "restore-note"; value: string }
   | { type: "next" }
   | { type: "back" }
   | { type: "submitting" }
@@ -90,6 +92,10 @@ function reducer(state: State, action: Action): State {
       return { ...state, outcome: action.value, success: null, failure: null };
     case "set-note":
       return { ...state, note: action.value, failure: null };
+    case "restore-note":
+      return state.note.length === 0 && state.status === "idle" && state.success === null
+        ? { ...state, note: action.value.slice(0, NOTE_MAX) }
+        : state;
     case "next":
       return state.note.trim().length >= NOTE_MIN
         ? { ...state, step: 2, stepped: true, failure: null }
@@ -183,6 +189,26 @@ export function CloseForm({
   const [state, dispatch] = useReducer(reducer, initialState(allowedOutcome ?? "resolved_outside_fera"));
   const formRef = useRef<HTMLFormElement>(null);
 
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(noteKey(caseId));
+      if (saved) dispatch({ type: "restore-note", value: saved });
+    } catch {
+      // Storage may be disabled; the form remains usable without persistence.
+    }
+  }, [caseId]);
+
+  const updateNote = (raw: string) => {
+    const value = raw.slice(0, NOTE_MAX);
+    dispatch({ type: "set-note", value });
+    try {
+      if (value.trim().length === 0) sessionStorage.removeItem(noteKey(caseId));
+      else sessionStorage.setItem(noteKey(caseId), value);
+    } catch {
+      // Storage is an optional recovery aid, not a submission requirement.
+    }
+  };
+
   if (allowedOutcome === null) {
     return (
       <section
@@ -219,6 +245,7 @@ export function CloseForm({
       fetchImpl,
     );
     if (result.ok) {
+      try { sessionStorage.removeItem(noteKey(caseId)); } catch { /* optional storage */ }
       dispatch({ type: "success", data: result.data });
     } else {
       dispatch({ type: "failure", failure: result.failure });
@@ -298,7 +325,7 @@ export function CloseForm({
               id={id.note}
               name="note"
               value={state.note}
-              onChange={(e) => dispatch({ type: "set-note", value: e.target.value.slice(0, NOTE_MAX) })}
+              onChange={(e) => updateNote(e.target.value)}
               rows={3}
               required
               minLength={NOTE_MIN}

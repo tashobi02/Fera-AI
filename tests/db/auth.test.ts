@@ -12,7 +12,7 @@ import { MemoryRateLimitStore, RATE_LIMITS, RateLimiter, createKeyer } from "@/a
 import { createSignIn, defaultAuth, defaultAuthStore, isCurrentHash } from "@/server/auth";
 import { setPoolForTests } from "@/server/db/pool";
 import { get, jsonPost, noParams, testFactory } from "../api/fakes";
-import { connect, dbTestsEnabled, one, pool } from "./support/db";
+import { connect, dbTestsEnabled, expectPgError, one, pool } from "./support/db";
 
 const PASSWORDS = { SEED_ADMIN_PASSWORD: "synthetic-admin-test-pass", SEED_USER_PASSWORD: "synthetic-desk-test-pass" };
 const DESK = PASSWORDS.SEED_USER_PASSWORD;
@@ -85,6 +85,13 @@ describe.skipIf(!dbTestsEnabled)("auth on PostgreSQL 16 (TASK-006)", () => {
       expect(JSON.parse(out).passwords).toEqual({ admin: "env", desk: "env" });
       expect((await one<{ n: number }>(admin, "SELECT count(*)::int AS n FROM users")).n).toBe(6);
       expect((await one<{ verified: boolean }>(admin, "SELECT verified FROM users WHERE username = 'officer2.demo'")).verified).toBe(true);
+    });
+
+    it("rejects a password hash outside the configured Argon2id PHC profile", async () => {
+      await expectPgError(
+        admin.query("INSERT INTO users (username, display_name, password_hash, role) VALUES ('hash.shape.' || substr(md5(random()::text), 1, 6), '[MOCK] Hash shape', 'short', 'staff')"),
+        "23514",
+      );
     });
 
     it("refuses a non-local database and short passwords", () => {

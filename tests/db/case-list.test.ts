@@ -16,7 +16,7 @@
 //
 // Runs under the fast DB loop (`/tmp/dbtest.sh`); skipped in plain `npm test`.
 import type { Client, Pool, PoolClient } from "pg";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { listCasesForDistrict, type CaseListRow } from "@/server/dashboard";
 import { caseListResponseSchema, cursorSchema, officerCaseRowSchema, toDhakaIso } from "@/contracts";
 import { userPrincipal } from "@/contracts/server";
@@ -117,6 +117,21 @@ describe.skipIf(!dbTestsEnabled)("API-022 case list (P3-041)", () => {
     setPoolForTests(null);
     if (dbClient) await dbClient.end();
     if (fixturePool) await fixturePool.end();
+  });
+
+  it("indexes the live district cursor path", async () => {
+    await dbClient.query("BEGIN");
+    try {
+      await dbClient.query("SET LOCAL enable_seqscan = off");
+      const { rows } = await dbClient.query<{ "QUERY PLAN": unknown }>(
+        "EXPLAIN (FORMAT JSON) SELECT id FROM cases WHERE district_code = 1 AND anonymised_at IS NULL ORDER BY id DESC LIMIT 20",
+      );
+      expect(JSON.stringify(rows[0]?.["QUERY PLAN"])).toContain("cases_district_anonymous_id_idx");
+      await dbClient.query("ROLLBACK");
+    } catch (err) {
+      await dbClient.query("ROLLBACK").catch(() => undefined);
+      throw err;
+    }
   });
 
   it("returns cases ordered by id DESC, anonymised rows excluded, and respects the district filter", async () => {
@@ -273,9 +288,12 @@ describe.skipIf(!dbTestsEnabled)("API-022 case list (P3-041)", () => {
     if (!principal) throw new Error("fixture officer principal was invalid");
 
     const filter = { district: "1", kind: "missing" as const, status_group: "open" as const, limit: 1 };
+    const querySpy = vi.spyOn(dbClient, "query");
     const firstPage = await listOfficerCases(principal, filter, dbClient);
 
     expect(firstPage.cases).toHaveLength(1);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    querySpy.mockClear();
     expect(caseListResponseSchema.safeParse(firstPage).success).toBe(true);
     expect(cursorSchema.safeParse(firstPage.next_cursor).success).toBe(true);
     expect(firstPage.cases[0]).toMatchObject({ kind: "missing", status_group: "open", is_synthetic: true, contact_phone: null });
@@ -289,6 +307,7 @@ describe.skipIf(!dbTestsEnabled)("API-022 case list (P3-041)", () => {
     const secondPage = await listOfficerCases(principal, { ...filter, cursor }, dbClient);
 
     expect(secondPage.cases).toHaveLength(1);
+    expect(querySpy).toHaveBeenCalledTimes(1);
     expect(secondPage.cases[0]?.id).not.toBe(firstPage.cases[0]?.id);
     expect(secondPage.cases[0]).toMatchObject({ kind: "missing", status_group: "open", event: { district_code: 1 } });
     expect(caseListResponseSchema.safeParse(secondPage).success).toBe(true);
@@ -296,5 +315,6 @@ describe.skipIf(!dbTestsEnabled)("API-022 case list (P3-041)", () => {
     await expect(
       listOfficerCases(principal, { ...filter, cursor: "abcdefgh.abcdefghijklmnop" }, dbClient),
     ).rejects.toMatchObject({ id: "E-001" });
+    querySpy.mockRestore();
   });
 });

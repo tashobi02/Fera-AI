@@ -125,6 +125,13 @@ const staffOwnCaseShape = {
 export const staffOwnCaseViewSchema = z.strictObject(staffOwnCaseShape).superRefine(checkIdentity);
 export type StaffOwnCaseView = z.infer<typeof staffOwnCaseViewSchema>;
 
+export const officerDuplicateSchema = z.strictObject({
+  id: uuidSchema,
+  ref: refCodeSchema,
+  status: caseStatusSchema,
+});
+export type OfficerDuplicate = z.infer<typeof officerDuplicateSchema>;
+
 const officerCaseShape = {
   id: uuidSchema,
   ref_code: refCodeSchema,
@@ -160,7 +167,7 @@ const officerCaseShape = {
   contact_phone: z.string().regex(PHONE_PATTERN).nullable(), // single-case and candidate detail only
   contact_phone_masked: z.string().regex(MASKED_PHONE_PATTERN).nullable(),
   version: versionSchema,
-  duplicate_of: z.array(refCodeSchema), // review cues; never hides a distinct report
+  duplicate_of: z.array(officerDuplicateSchema), // officer-scoped drill-through cues
   matching_state: matchingStateSchema,
   created_at: isoDateTimeSchema,
   updated_at: isoDateTimeSchema,
@@ -370,7 +377,8 @@ export const reviewQueueQuerySchema = z.object({
 export type ReviewQueueQuery = z.output<typeof reviewQueueQuerySchema>;
 export type ReviewQueueQueryInput = z.input<typeof reviewQueueQuerySchema>;
 
-const componentsSchema = z.record(z.string().regex(/^[a-z_]{1,40}$/), z.number().nullable()); // null = unknown cue
+export const MATCH_COMPONENT_KEYS = ["cosine", "name", "clothing", "district", "age"] as const;
+const componentsSchema = z.partialRecord(z.enum(MATCH_COMPONENT_KEYS), z.number().nullable()); // null = unknown cue
 
 export const queueCandidateSchema = z.strictObject({
   candidate_id: uuidSchema,
@@ -600,6 +608,7 @@ const auditActionSchema = z.string().regex(AUDIT_ACTION_PATTERN); // audit_log.a
 
 export const officerAuditEntryViewSchema = z.strictObject({
   at: isoDateTimeSchema,
+  is_synthetic: z.literal(true),
   actor_role: actorTypeSchema,
   actor_id: uuidSchema.nullable(), // internal user ID; null for parent sessions and system
   actor_display: displayNameSchema.nullable(), // staff/officer/admin display name only, never a parent

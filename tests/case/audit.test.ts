@@ -11,6 +11,7 @@ import {
   WRITABLE_AUDIT_ACTIONS,
   actorFor,
   appendAudit,
+  appendAudits,
   checkAuditEntry,
   createDeniedAuditHooks,
 } from "@/server/audit";
@@ -175,6 +176,23 @@ describe("appendAudit", () => {
   it("throws when the insert returns no id (the action must abort)", async () => {
     const r = recorder(() => []);
     await expect(appendAudit(r.db, officer, { action: CASE_AUDIT_ACTIONS.caseClosed })).rejects.toThrow(/insert/);
+  });
+});
+
+describe("appendAudits", () => {
+  it("validates and appends multiple rows with one insert", async () => {
+    const r = recorder((text) => text.startsWith("INSERT") ? [{ id: "17" }, { id: "18" }] : []);
+    const ids = await appendAudits(r.db, officer, [SESSION, OFFICER].map((caseId, i) => ({
+      action: CASE_AUDIT_ACTIONS.matchVoided,
+      caseId,
+      candidateId: i === 0 ? CASE : SESSION,
+      requestId: REQUEST,
+      details: { candidate_status: "voided", api: "API-010" },
+    })));
+    expect(ids).toEqual([17, 18]);
+    expect(r.calls).toHaveLength(1);
+    expect(r.calls[0]!.text.match(/\(\$\d+,/g)).toHaveLength(2);
+    expect(r.calls[0]!.values).toHaveLength(16);
   });
 });
 

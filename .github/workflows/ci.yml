@@ -24,9 +24,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
+      - run: npm run check
       - run: npm run build
 
   # TC-062: the frozen schema, db/roles.sql and the invariant/redaction tests on a real

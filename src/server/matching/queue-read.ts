@@ -24,6 +24,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { ApiError } from "@/app/api/_shared/envelope";
 import {
+  MATCH_COMPONENT_KEYS,
   LIMITS,
   isUuid,
   type ReviewQueueResponse,
@@ -69,7 +70,7 @@ const defaultDeps: ReadReviewQueueDeps = { withTransaction };
 // contract: anything else would mean DTO drift. The allowlist guards that
 // contract here so a future schema migration cannot silently widen the
 // field set projected to the queue.
-const COMPONENT_KEYS = new Set(["cosine", "name", "clothing", "district", "age"]);
+const COMPONENT_KEYS = new Set<string>(MATCH_COMPONENT_KEYS);
 function decodeComponents(value: unknown): Record<string, number | null> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) throw new RowShapeError(MC, "components");
   const out: Record<string, number | null> = {};

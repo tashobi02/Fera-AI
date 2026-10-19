@@ -38,6 +38,7 @@ import {
 } from "@/contracts";
 import { intakeDraftMetadataSchema } from "@/contracts/server";
 import { exampleMissingDraft } from "@/contracts/examples";
+import { CASE_AUDIT_ACTIONS } from "@/server/audit/actions";
 
 // The SQL companion is the source of truth for enums and CHECKs; it is read, never
 // edited. Trigger functions referenced: enforce_case_transition(), check_pair_integrity()
@@ -70,6 +71,11 @@ describe("state enums equal schema_v2.sql", () => {
     matching_state_t: MATCHING_STATES,
     output_t: OUTPUT_TYPES,
     actor_t: ACTOR_TYPES,
+    audit_action_t: [
+      ...Object.values(CASE_AUDIT_ACTIONS),
+      AUDIT_ACTIONS.payloadRedacted,
+      "case.close",
+    ].filter((value, index, values) => values.indexOf(value) === index),
   };
 
   it("the set of SQL enums is exactly the set the contracts mirror", () => {
@@ -77,7 +83,9 @@ describe("state enums equal schema_v2.sql", () => {
   });
 
   it.each(Object.keys(ours).map((k) => [k] as const))("%s", (name) => {
-    expect([...ours[name]]).toEqual(sqlEnums[name]);
+    const expected = [...ours[name]];
+    const actual = sqlEnums[name] ?? [];
+    expect(name === "audit_action_t" ? expected.sort() : expected).toEqual(name === "audit_action_t" ? actual.sort() : actual);
   });
 
   it("duplicate rules equal the rule CHECK", () => {
@@ -123,12 +131,20 @@ describe("lifecycle constants equal enforce_case_transition() and the redaction 
   });
 
   it("trigger-required audit actions", () => {
-    expect(has("a.action=('match.' || d.decision::text)")).toBe(true);
+    expect(has("a.action::text=('match.' || d.decision::text)")).toBe(true);
     expect(DECISION_TYPES.map((d) => `match.${d}`)).toEqual([AUDIT_ACTIONS.matchConfirm, AUDIT_ACTIONS.matchReject]);
     expect(has(`'${AUDIT_ACTIONS.payloadRedacted}'`)).toBe(true);
     const d2b = readFileSync(join(root, "docs", "spec", "D2_TRD_PartB_V2.md"), "utf8");
     expect(d2b).toContain(`\`${AUDIT_ACTIONS.accessDenied}\``);
     for (const action of Object.values(AUDIT_ACTIONS)) expect(action).toMatch(AUDIT_ACTION_PATTERN);
+  });
+
+  it("migrates check_pair_integrity with the enum-safe action comparison", () => {
+    const migration = readFileSync(join(root, "scripts", "db", "migrations", "005_audit_action_enum_and_indexes.sql"), "utf8");
+    const schemaFunction = match(/CREATE FUNCTION check_pair_integrity\(\) RETURNS trigger LANGUAGE plpgsql AS \$\$[\s\S]*?\$\$;/)[0];
+    const migrationFunction = migration.match(/CREATE OR REPLACE FUNCTION check_pair_integrity\(\) RETURNS trigger LANGUAGE plpgsql AS \$\$[\s\S]*?\$\$;/)?.[0];
+    const normalized = migrationFunction?.replace("CREATE OR REPLACE FUNCTION", "CREATE FUNCTION").replace(/\s+/g, " ");
+    expect(normalized).toBe(schemaFunction);
   });
 });
 
@@ -137,9 +153,14 @@ describe("patterns equal the SQL CHECK regexes", () => {
     ["ref_code", REF_CODE_PATTERN],
     ["contact_phone", PHONE_PATTERN],
     ["username", USERNAME_PATTERN],
-    ["action", AUDIT_ACTION_PATTERN],
   ] as const)("%s", (column, pattern) => {
     expect(match(new RegExp(`${column} ~ '([^']+)'`))[1]).toBe(pattern.source);
+  });
+
+  it("audit action enum mirrors all writable and database-owned actions", () => {
+    const values = quoted(match(/CREATE TYPE audit_action_t AS ENUM \(([^)]*)\)/)[1]);
+    expect(values).toHaveLength(new Set(values).size);
+    for (const action of values) expect(action).toMatch(AUDIT_ACTION_PATTERN);
   });
 
   it("every SHA-256 column uses the contract pattern", () => {

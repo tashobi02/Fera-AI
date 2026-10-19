@@ -30,7 +30,8 @@ describe.skipIf(!dbTestsEnabled)("seed rows equal service rows (TASK-019)", () =
     await seedDistricts(admin, loadDistrictData());
     await admin.query(
       `INSERT INTO users (username, display_name, password_hash, role) VALUES
-         ('staff.demo', '[MOCK] স্টাফ এক', 'x', 'staff'), ('staff2.demo', '[MOCK] স্টাফ দুই', 'x', 'staff')`,
+         ('staff.demo', '[MOCK] স্টাফ এক', '$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'staff'),
+         ('staff2.demo', '[MOCK] স্টাফ দুই', '$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'staff')`,
     );
   });
   afterAll(async () => {

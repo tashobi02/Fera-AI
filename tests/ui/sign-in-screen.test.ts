@@ -3,7 +3,10 @@
 // locale cookie.
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+const signInFormSource = readFileSync(new URL("../../src/app/(auth)/sign-in/sign-in-form.tsx", import.meta.url), "utf8");
 
 let localeCookie: string | undefined;
 vi.mock("next/headers", () => ({
@@ -111,6 +114,14 @@ describe("COMP-047 sign-in form", () => {
       expect(row).toContain('type="button"');
       expect(row).not.toContain("aria-controls");
     }
+  });
+
+  it("notifies native input listeners before focusing the password field after demo fill", () => {
+    const fill = signInFormSource.match(/function fillUsername\(value: string\) \{([\s\S]*?)\n  \}/)?.[1] ?? "";
+    const inputNotification = fill.indexOf("setInputValueAndNotify(usernameRef.current, value)");
+    const passwordFocus = fill.indexOf("passwordRef.current?.focus()");
+    expect(inputNotification).toBeGreaterThanOrEqual(0);
+    expect(passwordFocus).toBeGreaterThan(inputNotification);
   });
 
   it("shows no demo hint without demo accounts", () => {

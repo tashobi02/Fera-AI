@@ -35,7 +35,7 @@ function seed(over: Record<string, unknown> = {}, missing: Partial<CaseRow> = {}
   rows = { [m.id]: m, [f.id]: f };
   candidateRow = {
     id: candidateId, missing_case_id: m.id, found_case_id: f.id, missing_version: m.version, found_version: f.version,
-    score: "72.50", components: { age: 0.8, sex: 1, clothing: null }, status: "pending", ...over,
+    score: "72.50", components: { age: 0.8, cosine: 1, clothing: null }, status: "pending", ...over,
   };
   return { m, f };
 }
@@ -54,7 +54,7 @@ describe("readCandidate (API-009)", () => {
     if (r.kind !== "ok") return;
     expect(candidateDecisionViewSchema.safeParse(r.view).success).toBe(true);
     expect(r.view).toMatchObject({ score: 72.5, qualified: true, identity_probability: false });
-    expect(r.view.components).toEqual({ age: 0.8, sex: 1, clothing: null });
+    expect(r.view.components).toEqual({ age: 0.8, cosine: 1, clothing: null });
     expect(r.view.missing.kind).toBe("missing");
     expect(r.view.found.kind).toBe("found");
   });

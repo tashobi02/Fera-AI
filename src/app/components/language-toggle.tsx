@@ -1,12 +1,13 @@
 import { setLocale } from "@/app/actions/locale";
 import { supportedLocales } from "@/lib/locale";
-import { languageNames, locales, type Locale } from "@/locales";
+import { languageNames, locales, type Locale, type MessageKey } from "@/locales";
 
 // COMP-022 / ACT-030. A plain form posting to a Server Action: it works before
 // hydration and without JavaScript, and each option is a real <button>.
 // The selected state is styled from aria-pressed: semibold ink text plus an ink
 // bar (>= 3:1 in both themes), and an underline in forced-colors mode.
 export function LanguageToggle({ locale }: { locale: Locale }) {
+  const t = locales[locale] as Record<MessageKey, string>;
   return (
     <form action={setLocale}>
       <div
@@ -27,6 +28,7 @@ export function LanguageToggle({ locale }: { locale: Locale }) {
               value={option}
               lang={option}
               aria-pressed={option === locale}
+              aria-label={`${t.languageToggleAction.replace("{lang}", languageNames[option])}${option === locale ? ` (${t.languageToggleCurrent})` : ""}`}
               className={[
                 // Padding in px so 200 % text zoom still fits a 320 px viewport.
                 "relative min-h-11 min-w-11 cursor-pointer rounded-sm border border-transparent px-[10px]",

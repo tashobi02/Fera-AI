@@ -162,16 +162,39 @@ export async function seedCases(client, { set, recordIds }) {
       assertSynthetic(rec);
       const record = { ...rec, draft: parsedDraft(rec.draft) };
       const hash = payloadHash(record.draft);
-      const existing = await client.query("SELECT submission_payload_hash FROM cases WHERE client_submission_id = $1", [rec.record_id]);
-      if (existing.rows.length > 0) {
-        if (existing.rows[0].submission_payload_hash !== hash) throw new Error("a seeded case differs from the committed record; reset the database");
+      const seeded = await client.query("SELECT case_id FROM synthetic_case_seeds WHERE record_id = $1", [rec.record_id]);
+      if (seeded.rows.length > 0) {
         skipped++;
         continue;
+      }
+      const existing = await client.query("SELECT id, submission_payload_hash FROM cases WHERE client_submission_id = $1", [rec.record_id]);
+      if (existing.rows.length > 0) {
+        if (existing.rows[0].submission_payload_hash !== hash) throw new Error("a seeded case differs from the committed record; reset the database");
+        await client.query("INSERT INTO synthetic_case_seeds (record_id, case_id) VALUES ($1, $2) ON CONFLICT (record_id) DO NOTHING", [rec.record_id, existing.rows[0].id]);
+        skipped++;
+        continue;
+      }
+      // Older databases did not retain a seed key through redaction. Missing
+      // reports preserve their original synthetic record ID in the immutable
+      // case.created audit actor_session_id, which lets this migration period
+      // skip the already-redacted fixture without retaining child payload.
+      if (rec.kind === "missing") {
+        const tombstone = await client.query(
+          `SELECT 1 FROM audit_log a JOIN cases c ON c.id = a.case_id
+            WHERE a.actor_session_id = $1 AND a.action = 'case.created'
+              AND c.anonymised_at IS NOT NULL LIMIT 1`,
+          [rec.record_id],
+        );
+        if (tombstone.rows.length > 0) {
+          skipped++;
+          continue;
+        }
       }
       if (rec.kind === "missing") {
         // DO UPDATE, not DO NOTHING: a live session that happens to carry this id is revoked, never silently reused.
         await client.query("INSERT INTO parent_sessions (id, revoked_at) VALUES ($1, now()) ON CONFLICT (id) DO UPDATE SET revoked_at = COALESCE(parent_sessions.revoked_at, now())", [rec.record_id]);
         const row = await insertCase(client, record, rec.record_id, hash);
+        await client.query("INSERT INTO synthetic_case_seeds (record_id, case_id) VALUES ($1, $2)", [rec.record_id, row.id]);
         await audit(client, { type: "parent", sessionId: rec.record_id, action: "case.created", caseId: row.id,
           details: { ref_code: row.ref_code, version: row.version, to_status: "submitted", api: "API-003", replayed: false } });
         // D2A seed rule: load missing reports as submitted, then open them. No FOR UPDATE: the row is
@@ -182,6 +205,7 @@ export async function seedCases(client, { set, recordIds }) {
       } else {
         const userId = staffIds[parseInt(rec.record_id.slice(-1), 16) % 2];
         const row = await insertCase(client, record, userId, hash);
+        await client.query("INSERT INTO synthetic_case_seeds (record_id, case_id) VALUES ($1, $2)", [rec.record_id, row.id]);
         await audit(client, { type: "staff", userId, action: "case.created", caseId: row.id,
           details: { ref_code: row.ref_code, version: row.version, to_status: "open", api: "API-007", replayed: false } });
       }

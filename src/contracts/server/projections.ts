@@ -14,6 +14,7 @@ import {
   officerAuditEntryViewSchema,
   officerCaseRowSchema,
   officerCaseViewSchema,
+  type OfficerDuplicate,
   ownerCaseViewSchema,
   rematchResponseSchema,
   reviewQueueResponseSchema,
@@ -104,7 +105,7 @@ function toStaffOwnCaseView(row: CaseRow): StaffOwnCaseView {
   });
 }
 
-export type OfficerContext = { districtNameBn: string | null; duplicateOf: string[] };
+export type OfficerContext = { districtNameBn: string | null; duplicateOf: OfficerDuplicate[] };
 
 function officerFields(row: CaseRow, ctx: OfficerContext) {
   return {
@@ -327,6 +328,7 @@ export function projectAuditFor(
       const parsed = belongsTo(r, auditedCase)
         ? officerAuditEntryViewSchema.safeParse({
             at: r.at,
+            is_synthetic: r.is_synthetic,
             actor_role: r.actor_type,
             actor_id: r.actor_user_id,
             actor_display: r.actor_type === "parent" ? null : r.actor_display,

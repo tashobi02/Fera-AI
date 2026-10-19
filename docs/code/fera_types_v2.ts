@@ -285,6 +285,7 @@ export interface DuplicateLink { // ENTITY-008
 export interface AuditEntry { // ENTITY-009
   id: number;
   at: IsoDateTime;
+  is_synthetic: boolean;
   actor_type: ActorType;
   actor_user_id: Uuid | null;
   actor_session_id: Uuid | null;
@@ -475,7 +476,7 @@ export interface OfficerCaseView {
   contact_phone: string | null; // verified officer projection only; never logged
   contact_phone_masked: string | null;
   version: number;
-  duplicate_of: string[]; // review cues; flagged links never suppress a distinct report
+  duplicate_of: { id: Uuid; ref: string; status: CaseStatus }[]; // officer-only drill-through cues
   matching_state: MatchingState;
   created_at: IsoDateTime;
   updated_at: IsoDateTime;

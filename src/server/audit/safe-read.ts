@@ -50,6 +50,7 @@ function mapAuditRow(value: unknown): AuditRow {
   if (at === null) throw new RowShapeError(T, "at");
   return {
     at: toDhakaIso(at.getTime()),
+    is_synthetic: col.bool(T, r, "is_synthetic"),
     actor_type: col.oneOf(T, r, "actor_type", ["parent", "staff", "officer", "admin", "system"] as const),
     actor_user_id: col.uuidOrNull(T, r, "actor_user_id"),
     actor_session_id: col.uuidOrNull(T, r, "actor_session_id"),
@@ -95,7 +96,7 @@ export async function readCaseAudit(
 
   // Step 3: audit rows for this case, joined with the actor's display name.
   const { rows } = await db.query(
-    `SELECT a.at, a.actor_type, a.actor_user_id, a.actor_session_id, u.display_name AS actor_display,
+    `SELECT a.at, a.is_synthetic, a.actor_type, a.actor_user_id, a.actor_session_id, u.display_name AS actor_display,
             a.action, a.case_id, a.candidate_id, a.details
        FROM audit_log a
        LEFT JOIN users u ON u.id = a.actor_user_id

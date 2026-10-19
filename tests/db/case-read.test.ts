@@ -93,7 +93,7 @@ async function insertDeskUser(role: "staff" | "officer", verified: boolean): Pro
     const id = randomUUID();
     await c.query(
       `INSERT INTO users (id, role, username, display_name, password_hash, verified, is_active)
-       VALUES ($1, $2, $3, '[MOCK] Desk User', 'synthetic-not-a-hash', $4, true)`,
+       VALUES ($1, $2, $3, '[MOCK] Desk User', '$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', $4, true)`,
       [id, role, `${role}_${id.slice(0, 8)}`, verified],
     );
     return id;

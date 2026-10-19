@@ -209,6 +209,34 @@ describe("intake extract orchestrator safeguards (mock runPaidCall)", () => {
     expect(result.ok).toBe(true);
   });
 
+  it("forwards the request logger into runPaidCall for spend diagnostics", async () => {
+    vi.stubEnv("DEMO_MODE", "0");
+    const { deps, principal, token } = await makeSetup();
+    const lines: string[] = [];
+    const captureLogger: Logger = {
+      info: (e) => lines.push(JSON.stringify({ level: 30, ...(e as Record<string, unknown>) })),
+      warn: (e) => lines.push(JSON.stringify({ level: 40, ...(e as Record<string, unknown>) })),
+      error: (e) => lines.push(JSON.stringify({ level: 50, ...(e as Record<string, unknown>) })),
+    };
+    runPaidCall.mockImplementation(async (_principal, _input, _dispatch, options) => {
+      options.logger?.warn({ event: "spend.commit_uncertain", tx_stage: "commit", err_name: "Error" });
+      return makeOk(emptyOutput()) as PaidCallResult<unknown>;
+    });
+    const deps2: OrchestratorDeps = { ...deps, logger: captureLogger };
+    const result = await orchestrateExtract(deps2, {
+      body: extractRequestSchema.parse({ kind: "missing", text: EXTRACT_FIXTURE_SOURCE, draft_token: token }),
+      headers: ack(),
+      principal,
+      requestId: "req-test",
+      now: () => FIXED_NOW,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(lines.map((line) => JSON.parse(line))).toContainEqual(expect.objectContaining({
+      event: "spend.commit_uncertain", tx_stage: "commit",
+    }));
+  });
+
   it("refuses an unknown priceId slot rather than fabricating a value", async () => {
     vi.stubEnv("DEMO_MODE", "0");
     const { deps, principal, token } = await makeSetup();

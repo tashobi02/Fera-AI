@@ -18,6 +18,7 @@
 //   modules read. Reads go through the flat keys (officerCaseBn/En in
 //   src/locales/areas/officer-case.ts) and the inline `statusGroup*` keys.
 import { CircleCheckIcon, CircleDashedIcon, CircleDotIcon, GitCompareIcon } from "@/app/components/icons";
+import Link from "next/link";
 import {
   type CaseStatus,
   type OfficerCaseView,
@@ -194,13 +195,18 @@ export function OfficerCaseDetail({
             {t.duplicateSection}
           </h2>
           <ul className="flex flex-wrap gap-2" data-state="loaded">
-            {view.duplicate_of.map((ref) => (
+            {view.duplicate_of.map((duplicate) => (
               <li
-                key={ref}
+                key={duplicate.id}
                 data-test="duplicate-ref"
                 className="rounded-xs border border-hairline bg-elevated px-2 py-1 font-mono text-caption-md text-ink"
               >
-                {ref}
+                <Link className="underline underline-offset-2" href={`/officer/case/${encodeURIComponent(duplicate.id)}`}>
+                  {duplicate.ref}
+                </Link>
+                <span className={`ml-2 rounded-xs px-1.5 py-0.5 font-sans text-caption-sm ${STATUS_TONE[duplicate.status] ?? STATUS_TONE.open}`}>
+                  {statusLabelFor(duplicate.status, t)}
+                </span>
               </li>
             ))}
           </ul>

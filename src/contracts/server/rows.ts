@@ -71,6 +71,7 @@ export interface ParentSessionRow {
 // audit_log row joined with the actor's users.display_name.
 export interface AuditRow {
   at: IsoDateTime;
+  is_synthetic: boolean;
   actor_type: ActorType;
   actor_user_id: Uuid | null;
   actor_session_id: Uuid | null;

@@ -25,12 +25,11 @@
 //   module is the role-scoped + projected wrapper that satisfies the API-022 contract.
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { ApiError } from "@/app/api/_shared/envelope";
-import { caseListResponseSchema, cursorSchema, isUuid, type CaseListResponse } from "@/contracts";
+import { caseListResponseSchema, cursorSchema, isUuid, officerDuplicateSchema, type CaseListResponse } from "@/contracts";
 import { effectiveRole, projectCaseListFor, type OfficerContext, type Principal } from "@/contracts/server";
-import { listCasesForDistrict, type CaseListQuery, type CaseListResult } from "@/server/dashboard";
 import { loadSecret, subkey } from "@/server/auth/secrets";
-import { officerContext } from "./read";
-import { getCaseRow } from "./rows";
+import { CASE_COLUMNS, mapCaseRow } from "./rows";
+import { asRow, col } from "@/server/db/decode";
 import type { Queryable } from "@/server/db/queryable";
 
 // Allowlist of API-022 filter inputs the route forwards. Keeping this here (not in the
@@ -100,33 +99,81 @@ export async function listOfficerCases(
     cursor = decoded;
   }
 
-  const q: CaseListQuery = {
-    ...(input.district !== undefined ? { district: String(input.district) } : {}),
-    ...(input.kind !== undefined ? { kind: input.kind } : {}),
-    ...(input.status_group !== undefined ? { status_group: input.status_group } : {}),
-    ...(cursor !== undefined ? { cursor } : {}),
-    ...(input.limit !== undefined ? { limit: input.limit } : {}),
-  };
-
-  const { rows, nextCursor }: CaseListResult = await listCasesForDistrict(db, q);
-
-  // The dashboard reader gives us the internal row set (id, kind, status, district).
-  // We need the per-role DTO for each row, which means reading the full CaseRow plus
-  // the per-row officer context (district name, duplicate cue). One transaction so the
-  // projection matches what read.ts returns to API-004 (no row-state drift between the
-  // list and the detail view).
-  const projected: CaseListResponse["cases"] = [];
-  for (const r of rows) {
-    const row = await getCaseRow(db, r.id);
-    if (!row) continue; // the row was redacted between the list read and the projection read
-    const octx: OfficerContext = await officerContext(db, r.id, r.district_code);
-    const dto = projectCaseListFor(principal, [{ row, ctx: octx }], null);
-    if (!dto) continue; // effective role changed mid-request: refuse this row
-    projected.push(dto.cases[0]!);
+  const limit = Math.min(Math.max(input.limit ?? 20, 1), 50);
+  const params: unknown[] = [];
+  const where = ["c.anonymised_at IS NULL"];
+  if (input.district !== undefined) {
+    params.push(String(input.district));
+    where.push(`c.district_code = $${params.length}`);
   }
+  if (input.kind !== undefined) {
+    params.push(input.kind);
+    where.push(`c.kind = $${params.length}`);
+  }
+  if (input.status_group !== undefined) {
+    const statuses = {
+      open: ["submitted", "open"],
+      matched: ["matched_pending_review", "confirmed"],
+      closed: ["closed", "referred"],
+    }[input.status_group];
+    params.push(statuses);
+    where.push(`c.status = ANY($${params.length}::case_status[])`);
+  }
+  if (cursor !== undefined) {
+    params.push(cursor);
+    where.push(`c.id < $${params.length}`);
+  }
+  params.push(limit + 1);
+  const limitParam = `$${params.length}`;
+  const qualifiedColumns = CASE_COLUMNS.split(", ").map((column) => `c.${column}`).join(", ");
+
+  // Page selection, complete case rows, district labels and duplicate cues all come
+  // from one statement snapshot. This keeps API-022 to one database round-trip while
+  // retaining the same officer-only allowlist used by API-004.
+  const { rows: rawRows } = await db.query(
+    `WITH page AS (
+       SELECT c.id FROM cases c
+       WHERE ${where.join(" AND ")}
+       ORDER BY c.id DESC
+       LIMIT ${limitParam}
+     )
+     SELECT ${qualifiedColumns}, d.name_bn AS district_name_bn,
+            COALESCE(dupes.items, '[]'::json) AS duplicate_items
+     FROM page p
+     JOIN cases c ON c.id = p.id
+     LEFT JOIN districts d ON d.code = c.district_code
+     LEFT JOIN LATERAL (
+       SELECT json_agg(
+         json_build_object('id', other.id, 'ref', other.ref_code, 'status', other.status)
+         ORDER BY other.ref_code
+       ) AS items
+       FROM duplicate_links dl
+       JOIN cases other ON other.id = CASE WHEN dl.case_a = c.id THEN dl.case_b ELSE dl.case_a END
+       WHERE (dl.case_a = c.id OR dl.case_b = c.id) AND dl.status <> 'dismissed'
+     ) dupes ON true
+     ORDER BY c.id DESC`,
+    params,
+  );
+
+  const hasMore = rawRows.length > limit;
+  const pageRows = hasMore ? rawRows.slice(0, limit) : rawRows;
+  const items = pageRows.map((value) => {
+    const raw = asRow("cases", value);
+    const row = mapCaseRow(raw);
+    const duplicateValue = raw.duplicate_items;
+    const duplicates = officerDuplicateSchema.array().parse(duplicateValue);
+    const octx: OfficerContext = {
+      districtNameBn: col.textOrNull("districts", raw, "district_name_bn"),
+      duplicateOf: duplicates,
+    };
+    return { row, ctx: octx };
+  });
+  const projected = projectCaseListFor(principal, items, null);
+  if (!projected) throw new ApiError("E-003", { reason: "role" });
+  const lastId = items.at(-1)?.row.id;
 
   return caseListResponseSchema.parse({
-    cases: projected,
-    next_cursor: nextCursor === null ? null : encodeListCursor(nextCursor, getSigningKey()),
+    cases: projected.cases,
+    next_cursor: hasMore && lastId ? encodeListCursor(lastId, getSigningKey()) : null,
   });
 }

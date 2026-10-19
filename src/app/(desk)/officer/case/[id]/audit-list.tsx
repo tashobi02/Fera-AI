@@ -136,6 +136,11 @@ export function AuditList({
               >
                 <span className="font-mono text-caption-md text-mute">{at}</span>
                 <span className="text-body-sm font-medium text-ink">{action}</span>
+                {entry.is_synthetic ? (
+                  <span lang="en" translate="no" data-test="synthetic-badge" className="rounded-xs border border-dashed border-hairline-strong px-1.5 text-caption-sm font-medium text-mute">
+                    {t.mockLabel} {t.syntheticBadge}
+                  </span>
+                ) : null}
                 <span className="text-body-sm text-mute" lang={/[\u0980-\u09FF]/.test(actor) ? "bn" : undefined}>
                   {actor}
                 </span>

@@ -78,6 +78,7 @@ function auditRow(overrides: Partial<{
   action: string;
   case_id: string;
   candidate_id: string | null;
+  is_synthetic: boolean;
   details: Record<string, unknown>;
 }> = {}) {
   // The decoder (col.dateOrNull in src/server/db/decode.ts) accepts a Date OR an ISO
@@ -94,6 +95,7 @@ function auditRow(overrides: Partial<{
     action: overrides.action ?? "case.closed",
     case_id: overrides.case_id ?? CASE_ID,
     candidate_id: overrides.candidate_id ?? null,
+    is_synthetic: overrides.is_synthetic ?? true,
     details: overrides.details ?? { ref_code: CASE_REF, outcome: "resolved_outside_fera", api: "API-011", reason_recorded: true },
   };
 }

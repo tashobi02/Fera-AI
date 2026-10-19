@@ -28,7 +28,7 @@ export async function officerContext(db: Queryable, caseId: string, districtCode
     ? { rows: [] }
     : await db.query("SELECT name_bn FROM districts WHERE code = $1", [districtCode]);
   const dupes = await db.query(
-    `SELECT c.ref_code FROM duplicate_links d
+    `SELECT c.id, c.ref_code, c.status FROM duplicate_links d
      JOIN cases c ON c.id = CASE WHEN d.case_a = $1 THEN d.case_b ELSE d.case_a END
      WHERE (d.case_a = $1 OR d.case_b = $1) AND d.status <> 'dismissed' ORDER BY c.ref_code`,
     [caseId],
@@ -36,7 +36,14 @@ export async function officerContext(db: Queryable, caseId: string, districtCode
   const d = firstRow("districts", district.rows);
   return {
     districtNameBn: d ? col.text("districts", d, "name_bn") : null,
-    duplicateOf: dupes.rows.map((r) => col.text("cases", asRow("cases", r), "ref_code")),
+    duplicateOf: dupes.rows.map((r) => {
+      const row = asRow("cases", r);
+      return {
+        id: col.uuid("cases", row, "id"),
+        ref: col.text("cases", row, "ref_code"),
+        status: col.oneOf("cases", row, "status", ["submitted", "open", "matched_pending_review", "confirmed", "closed", "referred"] as const),
+      };
+    }),
   };
 }
 

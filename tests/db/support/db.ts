@@ -120,7 +120,7 @@ export async function createActors(owner: Pick<ClientBase, "query">): Promise<Ac
       await one<{ id: string }>(
         owner,
         `INSERT INTO users (username, display_name, password_hash, role, verified, district_code)
-         VALUES ($1, $2, 'synthetic-not-a-hash', $3, $4, $5) RETURNING id`,
+         VALUES ($1, $2, '$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', $3, $4, $5) RETURNING id`,
         [`${name}.${tag}`, `[MOCK] ${name}`, role, verified, MOCK_DISTRICT],
       )
     ).id;
