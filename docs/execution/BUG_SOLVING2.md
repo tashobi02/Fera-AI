@@ -733,3 +733,17 @@ Docker has no running daemon and the available PostgreSQL 18 installation has
 no pgvector extension. The migration runner was not pointed at any database.
 No PR was opened. Contract changes remain subject to the all-owner review in
 `AGENTS.md` before merge.
+
+## Verification refresh — 2026-10-19
+
+The previous database limitation is resolved for this verification run using
+the disposable local PostgreSQL 16.15 + pgvector 0.8.1 service. `npm run
+test:db` passed 33 files / 341 tests. Fresh migration application passed all
+seven migrations; an injected 007 failure confirmed migrations 006 and 007
+roll back together. Unit/static, E2E, offline, five-run rehearsal and smoke
+results are recorded in [pre-main verification](evidence/pre-main-verification-2026-10-19.md).
+
+The code has been committed to `pre-main`, but no merge was made. The final
+safeguarding review found the code clear and retained a BLOCK only because
+`src/contracts/` changed without the PR and all-owner review required by
+`AGENTS.md`.

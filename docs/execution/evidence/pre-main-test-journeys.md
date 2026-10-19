@@ -1,4 +1,4 @@
-Last run: 2026-10-18T19:10:00.000Z — 5 run(s) (AUTOMATED) — all green on a DIRTY tree (uncommitted changes; see pre-main-automated-repeat-summary.json gitStatusPorcelain)
+Last run: 2026-10-19T08:04:50.697Z — 5 run(s) (AUTOMATED) — all green on a DIRTY tree (uncommitted changes; see pre-main-automated-repeat-summary.json gitStatusPorcelain)
 
 # Pre-main test-journeys — automated offline rehearsal evidence
 
@@ -189,11 +189,11 @@ and 10 tests in 1 file. This iteration resolves both:
 
 | Run | Exit | Pass? | Notes |
 |----:|-----:|:----:|-------|
-| 1 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2571999_0_b13b5f
-| 2 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2571999_1_d8bed8
-| 3 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2571999_2_00e6b4
-| 4 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2571999_3_010505
-| 5 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_2571999_4_b495cf
+| 1 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_216986_0_163409
+| 2 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_216986_1_4a05b7
+| 3 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_216986_2_c5c478
+| 4 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_216986_3_c6d9df
+| 5 | 0 | ✅ | AUTOMATED | fera_e2e_premainjourney_216986_4_0a949c
 
 ## Offline network proof
 

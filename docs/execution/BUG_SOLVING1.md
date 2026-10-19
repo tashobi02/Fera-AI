@@ -1172,3 +1172,18 @@ no running daemon, and the available server binaries are PostgreSQL 18 without
 pgvector while this suite requires PostgreSQL 16 + pgvector 0.8.1. No database
 migration was applied. The branch remains unmerged; changes under `src/contracts/`
 still require the all-owner review specified by `AGENTS.md`.
+
+## Verification refresh — 2026-10-19
+
+This run supersedes the earlier note that PostgreSQL was unavailable. Against
+the disposable PostgreSQL 16.15 + pgvector 0.8.1 test service, `npm run
+test:db` passed all 33 files and 341 tests. The added migration and matcher
+regressions passed, including an injected migration-007 failure proving the
+006/007 pair rolls back without recording either migration or exposing the
+caller-cutoff function. Full test, browser, offline, repeat, lint/typecheck,
+and review results are in [pre-main verification](evidence/pre-main-verification-2026-10-19.md).
+
+The code changes are committed on `pre-main`; this is not a merge record.
+Safeguarding review found no code blocker but still requires a PR and
+all-owner review for changes under frozen `src/contracts/` before `main` can
+be updated.
