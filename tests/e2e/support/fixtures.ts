@@ -179,7 +179,7 @@ export async function seedActors(): Promise<Actors> {
         [
           candidateId, missingCaseId, foundCaseId,
           "[MOCK] কারণ", "[MOCK] reason",
-          JSON.stringify({ text: 0.7, age: 1 }),
+          JSON.stringify({ cosine: 0.7, name: null, clothing: null, district: null, age: 1 }),
         ],
       );
       // Move both endpoints to matched_pending_review (allowed: open → that).

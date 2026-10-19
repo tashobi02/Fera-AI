@@ -1635,7 +1635,7 @@ async function seedActors(): Promise<Actors> {
         `INSERT INTO match_candidates (id, missing_case_id, found_case_id, missing_version, found_version,
                                        score, rank, reason_bn, reason_en, components, status)
          VALUES ($1, $2, $3, 1, 1, 72.5, 1, $4, $5, $6::jsonb, 'pending')`,
-        [candidateId, missingCaseId, foundCaseId, "[MOCK] কারণ", "[MOCK] reason", JSON.stringify({ text: 0.7, age: 1 })],
+        [candidateId, missingCaseId, foundCaseId, "[MOCK] কারণ", "[MOCK] reason", JSON.stringify({ cosine: 0.7, name: null, clothing: null, district: null, age: 1 })],
       );
       await admin.query(
         `UPDATE cases SET status = 'matched_pending_review' WHERE id = ANY($1) AND status = 'open'`,
