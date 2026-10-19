@@ -109,7 +109,7 @@ const STAMP_FAILED_SQL = `
   UPDATE cases SET matching_state = 'failed', matched_at = NULL, match_error_id = $2
   WHERE id = $1 AND anonymised_at IS NULL
     AND status IN ('open', 'matched_pending_review')
-    AND matching_state IN ('queued', 'running', 'failed')`;
+    AND matching_state IN ('queued', 'running', 'failed', 'complete')`;
 
 const SUPERSEDE_PRIOR_VERSIONS_SQL = `
   UPDATE match_candidates SET status = 'superseded', decided_at = now()
