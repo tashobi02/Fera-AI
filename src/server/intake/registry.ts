@@ -444,13 +444,23 @@ export function createDbDraftRegistry(opts: DbRegistryOptions): DraftRegistry {
         return { ok: false, errorId: "E-019" };
       }
       const id = `00000000-0000-4000-8000-${(opts.rng ?? randomBytes)(6).toString("hex").padStart(12, "0")}`;
-      const inserted = await client.query<{ created_at: Date }>(
+      // Read both `created_at` and `expires_at` back from the database rather
+      // than computing `expires_at` client-side as `createdMs + DRAFT_TTL_MS`.
+      // The row's actual `expires_at` is `now() + interval '24 hours'` (see
+      // intake_drafts in db/schema_v2.sql). Clock skew between the app server
+      // and the DB server would otherwise yield an `expires_at` the client
+      // sees that disagrees with the row the DB itself compares against in
+      // `reserve_ai_call` / `issue_intake_question` / `set_intake_payload_hash`.
+      // The server-side `now()` is the single source of truth.
+      const inserted = await client.query<{ created_at: Date; expires_at: Date }>(
         `INSERT INTO intake_drafts (id, session_id, user_id, kind, payload_hash, follow_up_round, ai_calls_used, revision)
          VALUES ($1::uuid, $2::uuid, $3::uuid, $4::case_kind, $5::text, $6::smallint, 0, 1)
-         RETURNING created_at`,
+         RETURNING created_at, expires_at`,
         [id, sessionId, userId, input.kind, input.payloadHash, followUpRound],
       );
-      const createdAtIso = toIso(col.dateOrNull("intake_drafts", inserted.rows[0] ?? {}, "created_at"));
+      const insertedRow = inserted.rows[0] ?? {};
+      const createdAtIso = toIso(col.dateOrNull("intake_drafts", insertedRow, "created_at"));
+      const expiresAtIso = toIso(col.dateOrNull("intake_drafts", insertedRow, "expires_at"));
       await client.query("COMMIT");
       const createdMs = Date.parse(createdAtIso);
       const row: DraftRow = {
@@ -458,7 +468,7 @@ export function createDbDraftRegistry(opts: DbRegistryOptions): DraftRegistry {
         principalKey: keyFor(principal),
         kind: input.kind,
         created_at: toDhakaIso(createdMs),
-        expires_at: toDhakaIso(createdMs + DRAFT_TTL_MS),
+        expires_at: expiresAtIso,
         payload_hash: input.payloadHash,
         ai_calls_used: 0,
         revision: 1,
