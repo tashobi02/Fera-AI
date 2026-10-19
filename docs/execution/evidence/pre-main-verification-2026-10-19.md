@@ -1,7 +1,9 @@
 # Pre-main verification — 2026-10-19
 
-**Branch:** `pre-main`  
-**Verified source:** `4316515` (`fix(a11y): make the review phone link visible [TASK-062]`) and its parent source commits `c9036d9`, `9bdbf8f`, and `aa16581`. The automated repeat report was captured while the same source edits were still uncommitted at base `7b13b5f`; those code files were then committed without further source changes.  
+**Branch:** `pre-main`
+
+**Verified source:** `4316515` (`fix(a11y): make the review phone link visible [TASK-062]`) and its parent source commits `c9036d9`, `9bdbf8f`, and `aa16581`. The automated repeat report was captured while the same source edits were still uncommitted at base `7b13b5f`; those code files were then committed without further source changes. The PR-preparation build and check rerun used HEAD `34ce1a4`, which changes documentation only.
+
 **Data:** synthetic fixtures only. PostgreSQL checks used the disposable local PostgreSQL 16.15 + pgvector 0.8.1 service.
 
 ## Results
@@ -17,7 +19,8 @@
 | `npm run db:migrate` | PASS on a fresh schema: migrations 001–007 applied. Verified the no-argument sweep exists, the timestamp overload is absent, and `fera_app` can execute the safe function. |
 | Migration failure injection | PASS. A deliberate 007 schema conflict failed the runner; neither migration 006 nor 007 was recorded and the unsafe timestamp overload was absent, proving the pair rolled back together. |
 | `npm run release:check` | Exit 2 by design: local allowlist and path checks passed, while the GitHub and organiser URLs remain `UNVERIFIED`. The checker made no external requests. |
-| `git diff --check` and secret-pattern scan | PASS. No whitespace errors or matches for the checked secret-like patterns. |
+| PR-preparation rerun at `34ce1a4` | `npm run build` and `npm run check` passed. The build reported five Turbopack dynamic-filesystem tracing warnings; lint had 73 warnings and no errors. |
+| Source whitespace and secret-pattern scans | PASS. No source-code whitespace errors or matches for checked secret-like patterns. Raw captured test logs contain whitespace from command output. |
 
 Coverage mode was not available because `@vitest/coverage-v8` is not installed. No dependency was added. This is reported as **not measured**; the Fera test targets in `AGENTS.md` do not require the vendored 80% default.
 
