@@ -23,7 +23,6 @@ import { toDhakaIso, type SessionView } from "@/contracts";
 import { parentPrincipal, userPrincipal, type ApiId, type Principal } from "@/contracts/server";
 import type { CookieJar } from "@/app/api/_shared/cookies";
 import type { PrincipalResolver } from "@/app/api/_shared/compose";
-import { clientAddress, trustProxyFromEnv } from "@/app/api/_shared/request";
 import type { AuthStore, AuthUserRow } from "./store";
 import {
   PARENT_COOKIE_MAX_AGE_SECONDS,
@@ -55,17 +54,6 @@ export type AuthDeps = {
 
 export function createAuth(deps: AuthDeps) {
   const now = deps.now ?? Date.now;
-  const trustProxy = trustProxyFromEnv();
-
-  // Parent cookies bind to User-Agent and the normalized trusted-proxy address
-  // (exact IPv4; IPv6 /64; null without a trusted proxy). A changed fingerprint
-  // invalidates the cookie. Headers are not proof of identity; this supplements
-  // the signature and DB session checks. Only its keyed hash enters the cookie.
-  const parentFingerprintFor = (req: Request | null): string => {
-    const ip = clientAddress(req ?? new Request("http://x/"), trustProxy);
-    const ua = req?.headers.get("user-agent") ?? "";
-    return `${ip}|${ua}`;
-  };
 
   async function userFromToken(token: string): Promise<Principal | null> {
     const key = deps.keys.session();
@@ -76,45 +64,36 @@ export function createAuth(deps: AuthDeps) {
     return userPrincipal(row);
   }
 
-  async function parentFromToken(token: string, fingerprint: string): Promise<Principal | null> {
-    const sessionId = verifyParentToken(deps.keys.parent(), token, fingerprint);
+  async function parentFromToken(token: string): Promise<Principal | null> {
+    const sessionId = verifyParentToken(deps.keys.parent(), token);
     if (!sessionId) return null;
     return parentPrincipal(await deps.store.parentSession(sessionId), now());
   }
 
   // Read-only resolution (server components and every non-minting route).
-  async function principalFrom(
-    source: CookieSource,
-    secure: boolean,
-    fingerprint: string,
-  ): Promise<Principal | null> {
+  async function principalFrom(source: CookieSource, secure: boolean): Promise<Principal | null> {
     const names = cookieNames(secure);
     const session = singleCookie(source, names.session);
     if (session.state !== "absent") return session.state === "one" ? userFromToken(session.value) : null;
     const parent = singleCookie(source, names.parent);
-    return parent.state === "one" ? parentFromToken(parent.value, fingerprint) : null;
+    return parent.state === "one" ? parentFromToken(parent.value) : null;
   }
 
-  async function mintParent(req: Request, cookies: CookieJar): Promise<Principal | null> {
+  async function mintParent(cookies: CookieJar): Promise<Principal | null> {
     const row = await deps.store.createParentSession();
     const principal = parentPrincipal(row, now());
     if (!principal) return null;
     const remaining = Math.floor((Date.parse(row.expires_at) - now()) / 1000);
-    cookies.set(
-      cookieNames(cookies.secure).parent,
-      signParentToken(deps.keys.parent(), row.id, parentFingerprintFor(req)),
-      {
-        maxAgeSeconds: Math.max(0, Math.min(PARENT_COOKIE_MAX_AGE_SECONDS, remaining)),
-      },
-    );
+    cookies.set(cookieNames(cookies.secure).parent, signParentToken(deps.keys.parent(), row.id), {
+      maxAgeSeconds: Math.max(0, Math.min(PARENT_COOKIE_MAX_AGE_SECONDS, remaining)),
+    });
     return principal;
   }
 
   // The API layer's resolver seam ({ req, api, cookies }, compose.ts).
   const resolvePrincipal: PrincipalResolver = async ({ req, api, cookies }) => {
     const source = cookieSourceFromHeader(req.headers.get("cookie"));
-    const fingerprint = parentFingerprintFor(req);
-    const principal = await principalFrom(source, cookies.secure, fingerprint);
+    const principal = await principalFrom(source, cookies.secure);
     if (principal) return principal;
     const names = cookieNames(cookies.secure);
     // A credential cookie that failed means "sign in again", never "become a parent",
@@ -127,7 +106,7 @@ export function createAuth(deps: AuthDeps) {
     }
     const mints = MINTING_APIS.includes(api) || MINTING_IF_NO_PARENT_COOKIE.includes(api);
     if (!mints) return null;
-    return mintParent(req, cookies);
+    return mintParent(cookies);
   };
 
   // Starts an 8-hour credential session for an already verified account.

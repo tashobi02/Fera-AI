@@ -97,38 +97,16 @@ export function verifySessionToken(key: Buffer, token: string, nowMs: number): S
 
 /* ---------- parent session ---------- */
 
-// Four-part parent cookie: `p1.<sessionId>.<fp>.<mac>`, where fp is a
-// truncated HMAC of the request fingerprint. Legacy three-part cookies are
-// rejected; there is no compatibility window. Fingerprint headers can change
-// or be copied, so this is an additional check, not a replacement for cookie
-// confidentiality, signature validation or the live DB session checks.
-export function parentTokenFingerprint(key: Buffer, fingerprint: string): string {
-  return mac(key, `pfp|${fingerprint}`).slice(0, 22);
-}
-
-export function signParentToken(key: Buffer, sessionId: string, fingerprint: string): string {
+export function signParentToken(key: Buffer, sessionId: string): string {
   if (!isUuid(sessionId)) throw new Error("invalid session id");
-  const fp = parentTokenFingerprint(key, fingerprint);
-  const body = `p1.${sessionId.toLowerCase()}.${fp}`;
+  const body = `p1.${sessionId.toLowerCase()}`;
   return `${body}.${mac(key, body)}`;
 }
 
-export function verifyParentToken(
-  key: Buffer,
-  token: string,
-  fingerprint: string,
-): string | null {
+export function verifyParentToken(key: Buffer, token: string): string | null {
   const parts = token.split(".");
-  // New 4-part shape (SYS-BUG-11) is the only accepted form going forward;
-  // old 3-part tokens minted before the upgrade are invalid so they cannot
-  // be replayed from a captured surface without fingerprint binding.
-  if (parts.length !== 4 || parts[0] !== "p1") return null;
-  const [, sessionId, fp, sig] = parts;
-  if (!isUuid(sessionId) || sessionId !== sessionId.toLowerCase()) return null;
-  if (fp.length !== 22 || !B64URL.test(fp) || !B64URL.test(sig)) return null;
-  if (!equalMac(mac(key, `p1.${sessionId}.${fp}`), sig)) return null;
-  // The token's fingerprint must match the live request's. A captured
-  // cookie replayed from a different browser/network fails here.
-  if (!equalMac(parentTokenFingerprint(key, fingerprint), fp)) return null;
-  return sessionId;
+  if (parts.length !== 3 || parts[0] !== "p1") return null;
+  const [, sessionId, sig] = parts;
+  if (!isUuid(sessionId) || sessionId !== sessionId.toLowerCase() || !B64URL.test(sig)) return null;
+  return equalMac(mac(key, `p1.${sessionId}`), sig) ? sessionId : null;
 }
