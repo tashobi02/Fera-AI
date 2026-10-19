@@ -34,7 +34,7 @@ export const runtime = "nodejs"; // pg
 // Keep malformed path IDs inside the authenticated E-004 path. readCase returns
 // hidden without querying PostgreSQL for non-UUIDs; the route then audits the
 // denial with a null case FK, indistinguishable from an unknown valid UUID.
-const params = z.strictObject({ id: z.string() });
+const params = z.strictObject({ id: z.string().max(64) });
 
 // Not from the spec pack: a documented default. Per-role, per-principal reads; no extra
 // keys, so the default is a single per-principal window.

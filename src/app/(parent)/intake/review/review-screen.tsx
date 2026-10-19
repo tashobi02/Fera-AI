@@ -296,7 +296,7 @@ export function ReviewScreen({ locale }: { locale: Locale }) {
         // OD-022-10: E-019 means the server has confirmed the draft is over; the
         // submit handler has already cleared the device record. Drop React state so
         // the expired notice and back link are the only thing on screen.
-        else if (result.error.error.id === "E-019") { setClearFailed(result.cleared === false); setRecord(null); setChecked(false); setExpired(true); }
+        else if (result.error.error.id === "E-019") { setClearFailed(!clearSubmittedDraft(record.client_submission_id)); setRecord(null); setChecked(false); setExpired(true); }
       }
     }
   }

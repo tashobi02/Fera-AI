@@ -104,15 +104,19 @@ export function SignInForm({
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (guard.current.busy) return;
+    // Guard first: if a submit is already in flight, refuse and leave state untouched.
+    // Doing this BEFORE dispatch keeps status from being stuck on "submitting" with no
+    // in-flight request and no error.
+    if (!guard.current.enter()) return;
     const values = valuesFromFormData(new FormData(event.currentTarget));
     dispatch({ type: "submit", values });
     const missing: SignInField | null = values.username.trim() === "" ? "username" : values.password === "" ? "password" : null;
     if (missing) {
+      // No API call is in flight; release the guard so the user can submit again after fixing.
+      guard.current.leave();
       refs[missing].current?.focus();
       return;
     }
-    if (!guard.current.enter()) return;
     setShowPassword(false);
 
     const outcome = await requestSignIn(values, { next });

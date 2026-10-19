@@ -25,7 +25,7 @@ import { readCaseAudit } from "@/server/audit/safe-read";
 export const runtime = "nodejs"; // pg
 
 // Keep malformed path IDs inside the authenticated E-004 path (as API-004): the service guards isUuid.
-const params = z.strictObject({ id: z.string() });
+const params = z.strictObject({ id: z.string().max(64) });
 
 // Not from the spec pack: a documented default, same shape as API-004. Every denial appends a
 // permanent access.denied row, so a signed-in principal must not be able to probe unbounded.

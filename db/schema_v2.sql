@@ -603,9 +603,13 @@ BEGIN
   -- Global lock order: budget first, then draft; settlement uses budget then reservation.
   PERFORM 1 FROM ai_budget WHERE id=true FOR UPDATE;
   IF p_draft IS NOT NULL THEN
-    UPDATE intake_drafts SET ai_calls_used=ai_calls_used+1,revision=revision+1
-      WHERE id=p_draft AND expires_at>now() AND ai_calls_used<6;
+    -- Acquire row lock on the draft before the UPDATE so concurrent reservations
+    -- serialise on the per-draft ai_calls_used counter (BUG-DB5).
+    PERFORM 1 FROM intake_drafts WHERE id=p_draft
+      AND expires_at>now() AND ai_calls_used<6 FOR UPDATE;
     IF NOT FOUND THEN RAISE EXCEPTION 'draft expired or six-call limit reached' USING ERRCODE='check_violation'; END IF;
+    UPDATE intake_drafts SET ai_calls_used=ai_calls_used+1,revision=revision+1
+      WHERE id=p_draft;
   END IF;
   UPDATE ai_budget SET reserved_usd=reserved_usd+p_upper_usd
     WHERE id=true AND committed_usd+reserved_usd+p_upper_usd<=cap_usd;
