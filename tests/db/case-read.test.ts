@@ -235,6 +235,34 @@ describe.skipIf(!dbTestsEnabled)("API-004 cases read (P3-016, TC-022/052)", () =
     expect(rows[0].details.contact_viewed).toBe(true);
   });
 
+  it("officer duplicate cues omit linked cases after payload redaction", async () => {
+    const currentCaseId = await insertMissingCase(parentSessionId);
+    const redactedCaseId = await insertMissingCase(otherParentSessionId);
+    await appPool.query("UPDATE cases SET status = 'open' WHERE id = $1", [currentCaseId]);
+    await appPool.query("UPDATE cases SET status = 'open' WHERE id = $1", [redactedCaseId]);
+    await appPool.query(
+      "INSERT INTO duplicate_links (case_a, case_b, score, rule) VALUES ($1, $2, 88, 'profile')",
+      [currentCaseId, redactedCaseId].sort(),
+    );
+    await appPool.query(
+      "UPDATE cases SET status = 'closed', outcome = 'resolved_outside_fera', outcome_note = '[MOCK] synthetic closure', closed_at = now() WHERE id = $1",
+      [redactedCaseId],
+    );
+    await asFixtureOwner(async (client) => {
+      await client.query("SELECT set_config('fera.redaction_actor_id', $1, true)", [adminUserId]);
+      await client.query("SELECT redact_case($1, $2)", [redactedCaseId, adminUserId]);
+    });
+
+    const principal = userPrincipal({ id: officerUserId, role: "officer", verified: true, is_active: true });
+    expect(principal).not.toBeNull();
+    const result = await readCase(principal!, currentCaseId);
+    expect(result.kind).toBe("ok");
+    if (result.kind !== "ok") throw new Error("expected officer view");
+    expect(result.view.view).toBe("officer");
+    if (result.view.view !== "officer") throw new Error("expected officer view");
+    expect(result.view.data.duplicate_of).toEqual([]);
+  });
+
   // TC-022: an admin reading any case → AdminCaseView metadata; no child payload.
   it("admin reading any case → metadata only, no child, no contact", async () => {
     const principal = userPrincipal({ id: adminUserId, role: "admin", verified: false, is_active: true });

@@ -26,7 +26,7 @@ import { setPoolForTests } from "@/server/db/pool";
 import { loadDistrictData, seedDistricts } from "../../db/seed/districts.mjs";
 import {
   addCandidate, closeMissing, closedPair, connect, createActors, dbTestsEnabled,
-  insertFound, insertMissing, openMissing, pool, type Actors,
+  insertFound, insertMissing, openMissing, pool, tx, type Actors,
 } from "./support/db";
 
 let fixturePool: Pool;
@@ -304,5 +304,28 @@ describe.skipIf(!dbTestsEnabled)("API-022 case list (P3-041)", () => {
       listOfficerCases(principal, { ...filter, cursor: "abcdefgh.abcdefghijklmnop" }, dbClient),
     ).rejects.toMatchObject({ id: "E-001" });
     querySpy.mockRestore();
+  });
+
+  it("does not include redacted linked cases in officer duplicate cues", async () => {
+    const currentCase = await insertMissing(dbClient);
+    const redactedCase = await insertMissing(dbClient);
+    await openMissing(dbClient, currentCase.id);
+    await openMissing(dbClient, redactedCase.id);
+    await closeMissing(dbClient, redactedCase.id, "resolved_outside_fera");
+    await dbClient.query(
+      "INSERT INTO duplicate_links (case_a, case_b, score, rule) VALUES ($1, $2, 88, 'profile')",
+      [currentCase.id, redactedCase.id].sort(),
+    );
+    await tx(dbClient, async () => {
+      await dbClient.query("SELECT set_config('fera.redaction_actor_id', $1, true)", [actors.admin]);
+      await dbClient.query("SELECT redact_case($1, $2)", [redactedCase.id, actors.admin]);
+    });
+
+    const principal = userPrincipal({ id: actors.officer, role: "officer", verified: true, is_active: true });
+    if (!principal) throw new Error("fixture officer principal was invalid");
+    const result = await listOfficerCases(principal, { district: "1", kind: "missing", status_group: "open", limit: 50 }, dbClient);
+    const currentRow = result.cases.find((row) => row.id === currentCase.id);
+    expect(currentRow).toBeDefined();
+    expect(currentRow?.duplicate_of).toEqual([]);
   });
 });

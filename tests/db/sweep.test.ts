@@ -52,7 +52,7 @@ describe.skipIf(!dbTestsEnabled)("expired metadata sweep", () => {
       "SELECT reporter_session_id FROM cases WHERE id = $1", [linkedCase.id]);
     await admin.query("UPDATE parent_sessions SET created_at = $2, expires_at = $3 WHERE id = $1", [linkedSession.reporter_session_id, oldCreated, oldSessionExpiry]);
 
-    const sweep = await app.query("SELECT * FROM sweep_expired_metadata($1)", [now]);
+    const sweep = await app.query("SELECT * FROM sweep_expired_metadata()");
     expect(sweep.rows).toEqual([{ deleted_drafts: 1, deleted_sessions: 1 }]);
 
     expect((await app.query("SELECT id FROM intake_drafts WHERE id = $1", [oldDraft.id])).rowCount).toBe(0);
@@ -67,5 +67,16 @@ describe.skipIf(!dbTestsEnabled)("expired metadata sweep", () => {
     expect(retained).toEqual({ session_id: oldSession.id });
     expect((await app.query("SELECT id FROM ai_calls WHERE reservation_id = $1 AND draft_id IS NULL", [settled.id])).rowCount).toBe(1);
     expect((await app.query("SELECT id FROM ai_reservations WHERE id = $1 AND state = 'settled' AND draft_id IS NULL", [settled.id])).rowCount).toBe(1);
+  });
+
+  it("does not accept a caller-supplied time for the privileged metadata sweep", async () => {
+    const liveSession = await one<{ id: string }>(app, "INSERT INTO parent_sessions DEFAULT VALUES RETURNING id");
+    const liveDraft = await one<{ id: string }>(app,
+      "INSERT INTO intake_drafts (session_id, kind) VALUES ($1, 'missing') RETURNING id", [liveSession.id]);
+    const farFuture = new Date(Date.now() + 365 * 86_400_000);
+
+    await expect(app.query("SELECT * FROM sweep_expired_metadata($1)", [farFuture])).rejects.toMatchObject({ code: "42883" });
+    expect((await app.query("SELECT id FROM intake_drafts WHERE id = $1", [liveDraft.id])).rowCount).toBe(1);
+    expect((await app.query("SELECT id FROM parent_sessions WHERE id = $1", [liveSession.id])).rowCount).toBe(1);
   });
 });

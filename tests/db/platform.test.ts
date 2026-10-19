@@ -121,7 +121,7 @@ describe.skipIf(!dbTestsEnabled)("PostgreSQL 16 platform invariants (TASK-062)",
     it("limits EXECUTE on the service functions to their intended role", async () => {
       const { rows } = await admin.query(
         `SELECT f.fn, r.role, has_function_privilege(r.role, f.fn, 'EXECUTE') AS can
-         FROM unnest(ARRAY['redact_case(uuid,uuid)', 'reserve_ai_call(uuid,numeric)', 'settle_ai_call(uuid,numeric)', 'sweep_expired_metadata(timestamptz)']) AS f(fn)
+         FROM unnest(ARRAY['redact_case(uuid,uuid)', 'reserve_ai_call(uuid,numeric)', 'settle_ai_call(uuid,numeric)', 'sweep_expired_metadata()']) AS f(fn)
          CROSS JOIN unnest($1::text[]) AS r(role) ORDER BY 1, 2`,
         [RUNTIME_ROLES],
       );
@@ -132,8 +132,8 @@ describe.skipIf(!dbTestsEnabled)("PostgreSQL 16 platform invariants (TASK-062)",
         "reserve_ai_call(uuid,numeric):fera_redactor:false",
         "settle_ai_call(uuid,numeric):fera_app:true",
         "settle_ai_call(uuid,numeric):fera_redactor:false",
-        "sweep_expired_metadata(timestamptz):fera_app:true",
-        "sweep_expired_metadata(timestamptz):fera_redactor:false",
+        "sweep_expired_metadata():fera_app:true",
+        "sweep_expired_metadata():fera_redactor:false",
       ]);
       const publicAcl = await admin.query(
         `SELECT p.proname FROM pg_proc p, aclexplode(p.proacl) a
