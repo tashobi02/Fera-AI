@@ -74,7 +74,7 @@ async function insertVerifiedOfficer(): Promise<{ id: string }> {
     const u = randomUUID();
     await c.query(
       `INSERT INTO users (id, role, username, display_name, password_hash, verified, is_active)
-       VALUES ($1, 'officer', $2, 'Officer Test', 'x', true, true)`,
+       VALUES ($1, 'officer', $2, 'Officer Test', '$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', true, true)`,
       [u, `officer_${u.slice(0, 8)}`],
     );
     return { id: u };

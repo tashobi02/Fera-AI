@@ -32,6 +32,7 @@ import type { Queryable } from "@/server/db/queryable";
 import type { PoolClient } from "pg";
 import { canonicalCaseText } from "@/server/embeddings/text";
 import { ApiError } from "@/app/api/_shared/envelope";
+import { createLogger, type Logger } from "@/app/api/_shared/log";
 import { LIMITS, isUuid, type MatchingState } from "@/contracts";
 import { SYSTEM_ACTOR } from "@/server/audit";
 import type { Embedder } from "@/server/embeddings/model";
@@ -46,7 +47,7 @@ import {
   type Connectable,
   type TxOptions,
 } from "@/server/case/internal";
-import { getCaseRow, mapCaseRow } from "@/server/case/rows";
+import { CASE_COLUMNS, getCaseRow, mapCaseRow } from "@/server/case/rows";
 import type { CaseRow } from "@/contracts/server";
 import { eligibleFoundCandidates, type EligibleFoundCandidate } from "./filters";
 import { reasonsFor, type MatchReason, type ReasonsForView } from "./reasons";
@@ -67,6 +68,8 @@ export type MatcherRunOptions = {
   withTransaction?: typeof withTransaction;
   /** Test seam: use a selected pool for each bounded transaction. */
   pool?: Connectable;
+  /** Request-scoped allowlisted logger; falls back to the project logger. */
+  logger?: Logger;
 };
 
 export type MatcherRunResult = {
@@ -80,6 +83,8 @@ export type MatcherRunResult = {
   abstained: boolean;
   /** Error code to record on the case row when state === 'failed' (e.g. "E-021"). */
   errorId?: string;
+  /** Row-local write errors skipped during scoring that caused this run to fail and retry. */
+  skipped?: string[];
 };
 
 /* ---------- constants ---------- */
@@ -91,15 +96,19 @@ const SUPERSEDED_NOTE = "Superseded by a fresher match run";
 const STAMP_RUNNING_SQL = `
   UPDATE cases SET matching_state = 'running', match_error_id = NULL,
                    matched_at = NULL
-  WHERE id = $1 AND matching_state IN ('queued', 'failed')`;
+  WHERE id = $1 AND kind = 'missing' AND anonymised_at IS NULL
+    AND status IN ('open', 'matched_pending_review')
+    AND matching_state IN ('queued', 'failed')`;
 
 const STAMP_COMPLETE_SQL = `
   UPDATE cases SET matching_state = 'complete', matched_at = now(), match_error_id = NULL
-  WHERE id = $1`;
+  WHERE id = $1 AND kind = 'missing' AND anonymised_at IS NULL
+    AND status IN ('open', 'matched_pending_review')`;
 
 const STAMP_FAILED_SQL = `
   UPDATE cases SET matching_state = 'failed', matched_at = NULL, match_error_id = $2
-  WHERE id = $1`;
+  WHERE id = $1 AND anonymised_at IS NULL
+    AND status IN ('open', 'matched_pending_review')`;
 
 const SUPERSEDE_PRIOR_VERSIONS_SQL = `
   UPDATE match_candidates SET status = 'superseded', decided_at = now()
@@ -286,6 +295,7 @@ async function runInsideTransaction(
   opts: MatcherRunOptions,
   embedder: Embedder,
 ): Promise<MatcherRunResult> {
+  const logger = opts.logger ?? createLogger();
   // Read a preliminary set, then lock every known endpoint once in UUID order.
   // Re-check eligibility after the locks; edits/rejections that win the race are
   // therefore reflected in the versions used below.
@@ -436,25 +446,44 @@ async function runInsideTransaction(
   // that lost the top 5 are also superseded (they were the prior version's
   // top 5, not this version's).
   const topFiveIds = new Set(ranked.map((r) => r.id));
-  const keepIds: string[] = [];
-  await upsertTopFive(client, missing, ranked, scored, keepIds);
-  await client.query(SUPERSEDE_PRIOR_VERSIONS_SQL, [missingCaseId, keepIds]);
+  const { written, skipped } = await upsertTopFive(client, missing, ranked, scored, logger);
+  await client.query(SUPERSEDE_PRIOR_VERSIONS_SQL, [missingCaseId, written.map((candidate) => candidate.id)]);
   // Anything still pending at this version that is NOT in the new top 5 loses
   // the slot (a confirmed decision is left alone; superseded only touches
   // pending). The supersede above already covers different versions.
   await supersedeDropped(client, missingCaseId, missing.version, topFiveIds);
 
-  // 9) Reconcile the missing report's queue state and stamp 'complete'.
+  // 9) Reconcile the queue state. If any ranked write failed, withdraw every
+  // pending candidate so an incomplete shortlist cannot be served as current.
+  if (skipped.length > 0) {
+    await client.query(
+      `UPDATE match_candidates SET status = 'superseded', decided_at = now()
+       WHERE missing_case_id = $1 AND status = 'pending'`,
+      [missingCaseId],
+    );
+    await reconcileQueueState(client, SYSTEM_ACTOR, [missingCaseId], { api: opts.api, requestId: opts.requestId ?? null });
+    await client.query(STAMP_FAILED_SQL, [missingCaseId, "E-021"]);
+    return {
+      caseId: missingCaseId,
+      state: "failed",
+      candidates: [],
+      considered,
+      abstained: false,
+      errorId: "E-021",
+      skipped,
+    };
+  }
   await reconcileQueueState(client, SYSTEM_ACTOR, [missingCaseId], { api: opts.api, requestId: opts.requestId ?? null });
   await client.query(STAMP_COMPLETE_SQL, [missingCaseId]);
 
   return {
     caseId: missingCaseId,
     state: "complete",
-    candidates: keepIds.map((id, idx) => {
+    candidates: written.map(({ id, rank }) => {
       const r = ranked.find((x) => x.id === id);
-      return { id, rank: idx + 1, similarity: r?.similarity ?? 0 };
+      return { id, rank, similarity: r?.similarity ?? 0 };
     }),
+    ...(skipped.length > 0 ? { skipped } : {}),
     considered,
     abstained: ranked.length === 0,
   };
@@ -517,39 +546,65 @@ async function upsertTopFive(
   missing: CaseRow,
   ranked: readonly RankedCandidate[],
   scored: ReadonlyArray<{ id: string; foundId: string; scored: ScoredCandidate; reasons: MatchReason[] }>,
-  keepIdsOut: string[],
-): Promise<void> {
+  logger: Logger,
+): Promise<{ written: { id: string; rank: number }[]; skipped: string[] }> {
+  const written: { id: string; rank: number }[] = [];
+  const skipped: string[] = [];
+  const markSkipped = (errCode: string) => {
+    skipped.push("E-021");
+    logger.warn({ event: "match.row_skipped", error_id: "E-021", err_code: errCode });
+  };
   if (ranked.length === 0) {
-    keepIdsOut.length = 0;
-    return;
+    return { written, skipped };
   }
   for (let i = 0; i < ranked.length; i++) {
     const r = ranked[i]!;
     const s = scored.find((x) => x.id === r.id);
-    if (!s) continue;
-    const foundRow = (await getCaseRow(client, r.id)) ?? null;
-    if (!foundRow) continue;
-    // RankedCandidate carries similarity and components; wrap as ScoredCandidate for the reason builder.
-    const scoredForReasons: ScoredCandidate = {
-      similarity: r.similarity,
-      components: r.components,
-      qualified: true,
-    };
-    const built = buildReasonAndComponents(missing, foundRow, scoredForReasons, s.reasons);
-    const { rows } = await client.query(UPSERT_CANDIDATE_SQL, [
-      missing.id,
-      foundRow.id,
-      missing.version,
-      foundRow.version,
-      r.similarity,
-      i + 1,
-      built.reasonBn,
-      built.reasonEn,
-      JSON.stringify(built.components),
-    ]);
-    const id = rows[0]?.id as string | undefined;
-    if (id) keepIdsOut.push(id);
+    if (!s) {
+      markSkipped("MISSING_SCORE");
+      continue;
+    }
+    const savepoint = `candidate_write_${i}`;
+    await client.query(`SAVEPOINT ${savepoint}`);
+    try {
+      const foundRow = (await getCaseRow(client, r.id)) ?? null;
+      if (!foundRow) {
+        await client.query(`RELEASE SAVEPOINT ${savepoint}`);
+        markSkipped("MISSING_FOUND_CASE");
+        continue;
+      }
+
+      // RankedCandidate carries similarity and components; wrap as ScoredCandidate for the reason builder.
+      const scoredForReasons: ScoredCandidate = {
+        similarity: r.similarity,
+        components: r.components,
+        qualified: true,
+      };
+      const built = buildReasonAndComponents(missing, foundRow, scoredForReasons, s.reasons);
+      const { rows } = await client.query(UPSERT_CANDIDATE_SQL, [
+        missing.id,
+        foundRow.id,
+        missing.version,
+        foundRow.version,
+        r.similarity,
+        i + 1,
+        built.reasonBn,
+        built.reasonEn,
+        JSON.stringify(built.components),
+      ]);
+      const id = rows[0]?.id as string | undefined;
+      if (id) written.push({ id, rank: i + 1 });
+      else markSkipped("NO_RETURNED_CANDIDATE_ID");
+      await client.query(`RELEASE SAVEPOINT ${savepoint}`);
+    } catch (err) {
+      const code = (err as { code?: unknown } | null)?.code;
+      if (typeof code !== "string" || !/^(22|23)[0-9A-Z]{3}$/.test(code)) throw err;
+      await client.query(`ROLLBACK TO SAVEPOINT ${savepoint}`);
+      await client.query(`RELEASE SAVEPOINT ${savepoint}`);
+      markSkipped(code);
+    }
   }
+  return { written, skipped };
 }
 
 // The per-found-row projection the rest of the run reads: the mapped case
@@ -579,7 +634,6 @@ export async function readFoundRowsForScoring(
   // is parameterised on `$1::uuid[]` so the ids are never interpolated. The
   // embedding text + space travel in the same statement so a 50-row fanout
   // is one query, not 50.
-  const { CASE_COLUMNS } = await import("@/server/case/rows");
   const { rows } = await client.query(
     `SELECT ${CASE_COLUMNS}, embedding::text AS embedding, embedding_space AS embedding_space FROM cases WHERE id = ANY($1::uuid[])`,
     [ids],

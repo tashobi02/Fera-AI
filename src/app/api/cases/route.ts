@@ -14,7 +14,7 @@
 // reach the body. A signed-in non-officer gets E-003 and the compose layer writes
 // `access.denied` (BR-010, TC-052). The route does not touch child payload, contact,
 // candidate IDs, scores or district text: those never leave the service layer.
-import { caseListQuerySchema, caseListResponseSchema, createMissingRequestSchema, createMissingResponseSchema, type CaseListResponse, type CreateMissingResponse } from "@/contracts";
+import { caseListQuerySchema, caseListResponseSchema, createMissingRequestSchema, createMissingResponseSchema, outputTypeSchema, type CaseListResponse, type CreateMissingResponse } from "@/contracts";
 import { createMissingCase, listOfficerCases, openCase, readCase, fireMatcherPostcommit } from "@/server/case";
 import { getPool } from "@/server/db/pool";
 import { ApiError, RATE_LIMITS, Reply, defineRoute, type RateLimitRule } from "../_shared";
@@ -44,8 +44,14 @@ export const POST = defineRoute({
     // is reflected in matching_state. readCase applies the owner DTO allowlist.
     const current = await readCase(principal, created.id, { requestId });
     if (current.kind !== "ok" || current.view.view !== "owner") throw new ApiError("E-021", { reason: "response" });
-    // API-006 is not on this base, so no output can be fetched yet (OD-022-3).
-    return new Reply({ ...current.view.data, replayed, outputs_available: [] }, replayed ? 200 : 201);
+    // Read outputs after matching so an identical replay reflects outputs created
+    // since the original submission.
+    const outputRows = await getPool().query<{ type: string }>(
+      "SELECT type FROM generated_outputs WHERE case_id = $1 ORDER BY type",
+      [created.id],
+    );
+    const outputsAvailable = outputRows.rows.map((row) => outputTypeSchema.parse(row.type));
+    return new Reply({ ...current.view.data, replayed, outputs_available: outputsAvailable }, replayed ? 200 : 201);
   },
 });
 

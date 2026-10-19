@@ -1,4 +1,4 @@
-// TASK-062 / T006: the unchanged db/schema_v2.sql plus db/roles.sql on PostgreSQL 16,
+// TASK-062 / T006: db/schema_v2.sql plus db/roles.sql on PostgreSQL 16,
 // exercised as the restricted runtime role (BR-010/012/013/020/026; TC-016/029/032/046/051/053/062).
 // Synthetic data only. Runs under `npm run test:db`; skipped in plain `npm test`.
 import type { Client } from "pg";
@@ -121,7 +121,7 @@ describe.skipIf(!dbTestsEnabled)("PostgreSQL 16 platform invariants (TASK-062)",
     it("limits EXECUTE on the service functions to their intended role", async () => {
       const { rows } = await admin.query(
         `SELECT f.fn, r.role, has_function_privilege(r.role, f.fn, 'EXECUTE') AS can
-         FROM unnest(ARRAY['redact_case(uuid,uuid)', 'reserve_ai_call(uuid,numeric)', 'settle_ai_call(uuid,numeric)']) AS f(fn)
+         FROM unnest(ARRAY['redact_case(uuid,uuid)', 'reserve_ai_call(uuid,numeric)', 'settle_ai_call(uuid,numeric)', 'sweep_expired_metadata()']) AS f(fn)
          CROSS JOIN unnest($1::text[]) AS r(role) ORDER BY 1, 2`,
         [RUNTIME_ROLES],
       );
@@ -132,6 +132,8 @@ describe.skipIf(!dbTestsEnabled)("PostgreSQL 16 platform invariants (TASK-062)",
         "reserve_ai_call(uuid,numeric):fera_redactor:false",
         "settle_ai_call(uuid,numeric):fera_app:true",
         "settle_ai_call(uuid,numeric):fera_redactor:false",
+        "sweep_expired_metadata():fera_app:true",
+        "sweep_expired_metadata():fera_redactor:false",
       ]);
       const publicAcl = await admin.query(
         `SELECT p.proname FROM pg_proc p, aclexplode(p.proacl) a
@@ -165,20 +167,30 @@ describe.skipIf(!dbTestsEnabled)("PostgreSQL 16 platform invariants (TASK-062)",
       await expectPgError(app.query("UPDATE cases SET anonymised_at = now() WHERE id = $1", [missing.id]), "42501");
     });
 
+    it("rejects a direct owner write of anonymised_at outside redact_case", async () => {
+      const missing = await insertMissing(app);
+      await openMissing(app, missing.id);
+      await expectPgError(
+        admin.query("UPDATE cases SET anonymised_at = now() WHERE id = $1", [missing.id]),
+        "42501",
+        /only be set by redact_case/,
+      );
+    });
+
     it("matches the golden privilege matrix for every role, table and column", async () => {
       const { rows } = await admin.query<{ line: string }>(PRIVILEGE_MATRIX_SQL);
       expect(rows.map((r) => r.line)).toEqual(EXPECTED_PRIVILEGES);
     });
 
-    it("runs the three service functions as fera_owner with a pinned search_path (OD-062-2)", async () => {
+    it("runs the four service functions as fera_owner with a pinned search_path (OD-062-2)", async () => {
       const { rows } = await admin.query(
         `SELECT proname, prosecdef, pg_get_userbyid(proowner) AS owner, proconfig FROM pg_proc
-         WHERE pronamespace = 'public'::regnamespace AND proname IN ('redact_case', 'reserve_ai_call', 'settle_ai_call') ORDER BY 1`,
+         WHERE pronamespace = 'public'::regnamespace AND proname IN ('redact_case', 'reserve_ai_call', 'settle_ai_call', 'sweep_expired_metadata') ORDER BY 1`,
       );
       for (const r of rows) {
         expect(r).toMatchObject({ prosecdef: true, owner: "fera_owner", proconfig: ["search_path=pg_catalog, public, pg_temp"] });
       }
-      expect(rows).toHaveLength(3);
+      expect(rows).toHaveLength(4);
       const defaults = await one<{ n: number }>(
         admin,
         `SELECT count(*)::int AS n FROM pg_default_acl d WHERE d.defaclrole = 'fera_owner'::regrole AND d.defaclobjtype = 'f'
@@ -253,6 +265,33 @@ describe.skipIf(!dbTestsEnabled)("PostgreSQL 16 platform invariants (TASK-062)",
       );
       expect(row.recent).toBe(true);
       await expectPgError(app.query("INSERT INTO audit_log (at, actor_type, action) VALUES (now() - interval '1 year', 'system', 'case.closed')"), "42501");
+    });
+
+    it("rejects an unknown audit action and enforces the synthetic-only marker", async () => {
+      await expectPgError(
+        app.query("INSERT INTO audit_log (actor_type, action) VALUES ('system', 'match.ConfirM')"),
+        "22P02",
+        /invalid input value for enum audit_action_t/,
+      );
+      await expectPgError(
+        admin.query("INSERT INTO audit_log (actor_type, action, is_synthetic) VALUES ('system', 'access.denied', false)"),
+        "23514",
+        /audit_log_is_synthetic_true_check/,
+      );
+    });
+
+    it("exposes the audit operator indexes without partitioning the append-only log", async () => {
+      const { rows } = await admin.query<{ indexname: string }>(
+        "SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'audit_log' ORDER BY indexname",
+      );
+      expect(rows.map((r) => r.indexname)).toEqual([
+        "audit_log_action_at_idx",
+        "audit_log_actor_user_at_idx",
+        "audit_log_at_idx",
+        "audit_log_case_idx",
+        "audit_log_pkey",
+        "audit_log_request_id_idx",
+      ]);
     });
 
     it("records an unknown-resource denial with a null case FK (TC-052 at DB level)", async () => {
@@ -440,6 +479,27 @@ describe.skipIf(!dbTestsEnabled)("PostgreSQL 16 platform invariants (TASK-062)",
         "23514",
         /eligible current versions/,
       );
+    });
+
+    it("rejects terminal candidate rows without decided_at and keeps confirmed indexes NULLS NOT DISTINCT", async () => {
+      const missing = await insertMissing(app);
+      await openMissing(app, missing.id);
+      const found = await insertFound(app, actors.staff);
+      const candidate = await addCandidate(app, missing.id, found.id);
+      await expectPgError(
+        app.query("UPDATE match_candidates SET status = 'voided', decided_at = NULL WHERE id = $1", [candidate]),
+        "23514",
+      );
+      const { rows } = await admin.query<{ indexname: string; indnullsnotdistinct: boolean }>(
+        `SELECT ci.relname AS indexname, i.indnullsnotdistinct
+           FROM pg_index i JOIN pg_class ci ON ci.oid = i.indexrelid
+          WHERE ci.relname IN ('match_candidates_one_confirmed_missing', 'match_candidates_one_confirmed_found')
+          ORDER BY ci.relname`,
+      );
+      expect(rows).toEqual([
+        { indexname: "match_candidates_one_confirmed_found", indnullsnotdistinct: true },
+        { indexname: "match_candidates_one_confirmed_missing", indnullsnotdistinct: true },
+      ]);
     });
 
     it("rejects swapped endpoint kinds", async () => {

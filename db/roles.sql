@@ -93,12 +93,13 @@ WHERE n.nspname = 'public' AND t.typtype = 'e' AND t.typowner <> 'fera_owner'::r
 
 -- OD-062-2 (provisional, needs all-owner review): the three service functions run as
 -- their owner with a pinned search_path, so callers hold EXECUTE instead of the table
--- privileges the functions write. The function bodies are unchanged.
+-- privileges the functions write.
 ALTER FUNCTION redact_case(uuid, uuid) SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp;
 ALTER FUNCTION reserve_ai_call(uuid, numeric) SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp;
 ALTER FUNCTION settle_ai_call(uuid, numeric) SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp;
 ALTER FUNCTION issue_intake_question(uuid, int) SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp;
 ALTER FUNCTION set_intake_payload_hash(uuid, int, text) SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp;
+ALTER FUNCTION sweep_expired_metadata() SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp;
 ALTER DEFAULT PRIVILEGES FOR ROLE fera_owner REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
 
 -- Database and schema: nobody connects, creates or uses temp tables by default.
@@ -111,7 +112,7 @@ GRANT USAGE ON SCHEMA public TO fera_app, fera_redactor;
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM PUBLIC, fera_app, fera_redactor;
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM PUBLIC, fera_app, fera_redactor;
 REVOKE ALL ON FUNCTION redact_case(uuid, uuid), reserve_ai_call(uuid, numeric), settle_ai_call(uuid, numeric),
-  issue_intake_question(uuid, int), set_intake_payload_hash(uuid, int, text)
+  issue_intake_question(uuid, int), set_intake_payload_hash(uuid, int, text), sweep_expired_metadata()
   FROM PUBLIC, fera_app, fera_redactor;
 
 -- fera_app ------------------------------------------------------------------
@@ -170,6 +171,7 @@ GRANT EXECUTE ON FUNCTION reserve_ai_call(uuid, numeric), settle_ai_call(uuid, n
 -- only through these two functions; the app holds no UPDATE on follow_up_round
 -- or revision.
 GRANT EXECUTE ON FUNCTION issue_intake_question(uuid, int), set_intake_payload_hash(uuid, int, text) TO fera_app;
+GRANT EXECUTE ON FUNCTION sweep_expired_metadata() TO fera_app;
 
 GRANT SELECT, INSERT, DELETE ON rate_limits TO fera_app;
 GRANT UPDATE (count) ON rate_limits TO fera_app;

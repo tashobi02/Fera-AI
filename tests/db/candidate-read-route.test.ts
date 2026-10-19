@@ -22,7 +22,7 @@ describe.skipIf(!dbTestsEnabled)("API-009 candidate read denial (BR-010)", () =>
     officerId = randomUUID();
     await ownerPool.query(
       `INSERT INTO users (id, role, username, display_name, password_hash, verified, is_active)
-       VALUES ($1, 'officer', $2, '[MOCK] Officer', 'synthetic-not-a-hash', true, true)`,
+       VALUES ($1, 'officer', $2, '[MOCK] Officer', '$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', true, true)`,
       [officerId, `candidate_officer_${officerId.slice(0, 8)}`],
     );
   });

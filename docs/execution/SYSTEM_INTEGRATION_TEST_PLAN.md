@@ -6,6 +6,27 @@ This plan covers how the parts of Fera are tested together (integration) and how
 
 Baseline recorded in [PHASE_5_HANDOFF.md](handoff/PHASE_5_HANDOFF.md) at application source `9155963`: 3,693 unit tests pass (308 skipped), 320 DB tests pass, 78 browser checks pass, remote CI green. **Not yet done:** production smoke, frozen held-out evaluation, measured spend, formal G6 or offline-journey PASS. This plan has not re-run those numbers.
 
+## Verification run — 2026-10-19
+
+The current `pre-main` tree was checked against the synthetic-data prototype
+using a disposable PostgreSQL 16.15 + pgvector 0.8.1 service. `npm run check`
+passed (198 files passed, 31 skipped; 4,009 tests passed, 329 skipped;
+typecheck and audit-action check passed; lint had 73 warnings and no errors).
+The PostgreSQL suite passed 33 files / 341 tests. Production build plus
+Playwright passed 84 desktop/mobile checks; the offline suite passed 13 checks,
+including two server restarts; five automated rehearsals passed with 189
+recorded requests and zero external attempts per run. Read-only smoke checks
+passed health, home badge, and sign-in form. Migration application and an
+injected 006/007 rollback were also verified.
+
+Coverage was not measured because `@vitest/coverage-v8` is not installed; no
+dependency was added. The offline release check returned exit 2 because the
+repository and organiser URLs remain `UNVERIFIED`; they were not contacted.
+Code reviews passed for security, database, TypeScript and matcher failure
+handling. The safeguarding reviewer passed the code but blocks merge pending
+the required PR and all-owner review of frozen `src/contracts/` changes. See
+[the detailed verification record](evidence/pre-main-verification-2026-10-19.md).
+
 ---
 
 ## 1 Scope
@@ -343,3 +364,22 @@ The time of the release-candidate cut and the code freeze before 24 Oct is **UNK
 | OD-5 | Budget for live-provider manual checks (TC-001, TC-061), inside the USD 25 default cap | Obidit |
 | OD-6 | Who independently reviews and sets the eval freeze (TC-020 held-out) | UNKNOWN |
 | OD-7 | Number of repeats for `rehearsal:automated` on a release candidate | Mahim |
+
+## 14 Round 3 regression delta — 2026-10-19
+
+The BUG_SOLVING1/2 implementation added or extended these automated checks:
+
+| Area | Regression coverage |
+|------|---------------------|
+| API submit outputs and replay | `tests/intake/submit-api.test.ts`, `tests/db/submit.test.ts` |
+| Matcher stamps, bad candidate rows, and duplicate hook | `tests/db/match-run.test.ts` |
+| Batched audit writes and action contract | `tests/case/audit.test.ts`, `tests/contracts/sql-parity.test.ts`, `tests/db/platform.test.ts` |
+| Case list query plan | `tests/db/case-list.test.ts` |
+| Redaction actor, seed replay, and direct anonymisation | `tests/db/redaction.test.ts`, `tests/db/seed-cases.test.ts`, `tests/db/platform.test.ts` |
+| Password-hash and audit-action constraints | `tests/db/platform.test.ts`, `tests/lint/` |
+| Expiry sweep | `tests/db/sweep.test.ts` |
+| Officer audit marker and duplicate links | `tests/ui/officer-case.test.ts`, `tests/match/match-review-screen.test.ts` |
+| Close note reload and sign-in demo fill | `tests/ui/officer-case.test.ts`, `tests/auth/sign-in-dom.test.ts`, `tests/ui/sign-in-screen.test.ts` |
+| Matcher runner and logger propagation | `tests/lint/`, `tests/intake/orchestrator.test.ts` |
+| Voice cancellation and partial time input | `tests/intake-ui/voice-lifecycle.test.ts`, `tests/intake/review/review-fields-regressions.test.ts` |
+| Language toggle accessible name | `tests/ui/language-toggle.test.ts` |

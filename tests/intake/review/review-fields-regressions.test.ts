@@ -120,6 +120,7 @@ it("HH:mm can be cleared and typed one character at a time without suffix leakag
   for (const value of ["", "০", "০৯", "০৯:", "০৯:৩", "০৯:৩০"]) {
     change(h.tree, id, value); h.render();
     expect(input(h.tree, id).props.value).toBe(value);
+    expect(input(h.tree, id).props["aria-invalid"]).toBeUndefined();
   }
   expect(record().edits["event.at"]).toContain("T09:30:00+06:00");
 });

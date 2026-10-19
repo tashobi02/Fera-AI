@@ -1,0 +1,531 @@
+npm notice run fera-ai@0.1.0 test:db
+npm notice run node scripts/db/test-db.mjs
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_0
+{"database":"fera_test_2616496_0","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/admin-import.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  01:30:32
+   Duration  450ms (tests 42%, import 39%, transform 18%, worker 1%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_1
+{"database":"fera_test_2616496_1","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/admin.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+{"level":40,"time":1792351835068,"event":"auth.dev_secret"}
+
+ Test Files  1 passed (1)
+      Tests  11 passed (11)
+   Start at  01:30:34
+   Duration  840ms (tests 66%, import 21%, transform 12%, worker 1%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_2
+{"database":"fera_test_2616496_2","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/auth.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+{"level":40,"time":1792351837958,"event":"ratelimit.unknown_address","reason":"ratelimit"}
+{"level":40,"time":1792351837959,"event":"auth.dev_secret"}
+{"level":30,"time":1792351838011,"request_id":"6d80a867-d56b-4b15-badf-7c4e82f970dc","route":"API-020","method":"POST","event":"request","role":"anonymous","status":200,"duration_ms":54}
+{"level":30,"time":1792351838057,"request_id":"de0538cb-d7cb-4e70-bd79-7cbcb2e04de3","route":"API-020","method":"POST","event":"request","role":"anonymous","status":200,"duration_ms":36}
+{"level":30,"time":1792351838102,"request_id":"2231f156-cbb5-402e-8679-f9028d1b29c6","route":"API-020","method":"POST","event":"request","role":"anonymous","status":200,"duration_ms":34}
+{"level":30,"time":1792351838151,"request_id":"28786d90-af6d-475a-9108-e3c8c32cb868","route":"API-020","method":"POST","event":"request","role":"anonymous","status":200,"duration_ms":37}
+{"level":30,"time":1792351838186,"request_id":"d6fa52d2-d942-4ebb-8b62-1015b5794eac","route":"API-020","method":"POST","event":"request","role":"anonymous","status":401,"duration_ms":30,"error_id":"E-002","reason":"credentials","stage":"handler"}
+{"level":30,"time":1792351838215,"request_id":"0b904927-f1ee-4a8c-9224-0f1614e0b76c","route":"API-020","method":"POST","event":"request","role":"anonymous","status":200,"duration_ms":25}
+{"level":30,"time":1792351838242,"request_id":"a828becc-f2da-4c6d-9f6b-0b6c52bd29d2","route":"API-020","method":"POST","event":"request","role":"anonymous","status":200,"duration_ms":23}
+{"level":30,"time":1792351838554,"request_id":"c7796c00-c5bc-48b2-9bb6-3708e1398669","route":"API-020","method":"POST","event":"request","role":"anonymous","status":200,"duration_ms":0}
+{"level":40,"time":1792351838562,"event":"auth.dev_secret"}
+
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
+   Start at  01:30:36
+   Duration  1.87s (tests 88%, import 8%, transform 4%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_3
+{"database":"fera_test_2616496_3","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/candidate-read-route.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+{"level":40,"time":1792351840708,"event":"ratelimit.unknown_address","reason":"ratelimit"}
+{"level":40,"time":1792351840738,"request_id":"dad92e59-2f85-4930-ba91-804052fd4d35","route":"API-009","method":"GET","event":"request","role":"officer","status":404,"duration_ms":31,"error_id":"E-004","stage":"handler"}
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  01:30:40
+   Duration  458ms (import 46%, tests 31%, transform 21%, worker 1%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_4
+{"database":"fera_test_2616496_4","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/case-audit-read.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+
+ Test Files  1 passed (1)
+      Tests  11 passed (11)
+   Start at  01:30:42
+   Duration  382ms (import 66%, transform 22%, tests 10%, worker 2%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_5
+{"database":"fera_test_2616496_5","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/case-audit-route.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+{"level":40,"time":1792351845331,"event":"ratelimit.unknown_address","reason":"ratelimit"}
+{"level":30,"time":1792351845381,"request_id":"68295674-d672-4492-a2ae-de014b48b824","route":"API-013","method":"GET","event":"request","role":"officer","status":200,"duration_ms":52}
+{"level":30,"time":1792351845396,"request_id":"4a0fde91-89b7-4308-81cf-090a591d8a2e","route":"API-013","method":"GET","event":"request","role":"admin","status":200,"duration_ms":8}
+{"level":40,"time":1792351845411,"request_id":"4aa8d5fd-dbfc-4850-8fa7-643bcbf57770","route":"API-013","method":"GET","event":"request","role":"parent","status":404,"duration_ms":11,"error_id":"E-004","reason":"role","stage":"resolver"}
+{"level":40,"time":1792351845420,"request_id":"af3beec4-6816-4075-980d-1ef4a2cfa77f","route":"API-013","method":"GET","event":"request","role":"officer","status":404,"duration_ms":6,"error_id":"E-004","stage":"handler"}
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  01:30:44
+   Duration  631ms (tests 47%, import 38%, transform 13%, worker 2%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_6
+{"database":"fera_test_2616496_6","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/case-close-route.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+{"level":40,"time":1792351847837,"event":"ratelimit.unknown_address","reason":"ratelimit"}
+{"level":30,"time":1792351847906,"request_id":"a884afee-04af-4a34-ab53-7f14a81c7760","route":"API-011","method":"POST","event":"request","role":"officer","status":200,"duration_ms":69}
+{"level":40,"time":1792351847924,"request_id":"c8a479c0-a6be-42e6-8abe-f58d0238a5cb","route":"API-011","method":"POST","event":"request","role":"parent","status":404,"duration_ms":9,"error_id":"E-004","reason":"role","stage":"resolver"}
+{"level":40,"time":1792351847960,"request_id":"80804611-4ba0-483a-8de3-ee5c51123f49","route":"API-011","method":"POST","event":"request","role":"officer","status":409,"duration_ms":15,"error_id":"E-005","stage":"handler"}
+{"level":40,"time":1792351847973,"request_id":"5797bec2-ebd3-4172-822f-ee30707554fc","route":"API-011","method":"POST","event":"request","role":"officer","status":404,"duration_ms":7,"error_id":"E-004","stage":"handler"}
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  01:30:47
+   Duration  696ms (tests 48%, import 35%, transform 15%, worker 2%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_7
+{"database":"fera_test_2616496_7","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/case-edit-route.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+{"level":40,"time":1792351850252,"event":"ratelimit.unknown_address","reason":"ratelimit"}
+{"level":30,"time":1792351851979,"request_id":"5d799e05-7bc0-4692-8410-ffc120c4a15b","route":"API-005","method":"PATCH","event":"request","role":"parent","status":200,"duration_ms":1727}
+{"level":40,"time":1792351852051,"request_id":"479002ad-d26c-4384-8348-378f0b6fded5","route":"API-005","method":"PATCH","event":"request","role":"parent","status":404,"duration_ms":10,"error_id":"E-004","stage":"handler"}
+{"level":40,"time":1792351852065,"request_id":"b22e5a16-b7f3-402d-800c-74f0562fc811","route":"API-005","method":"PATCH","event":"request","role":"parent","status":409,"duration_ms":11,"error_id":"E-005","stage":"handler"}
+{"level":30,"time":1792351852079,"request_id":"834c0f8f-41c5-4572-a1a0-ec142a040c5e","route":"API-005","method":"PATCH","event":"request","role":"parent","status":409,"duration_ms":11,"error_id":"E-018","stage":"handler"}
+{"level":40,"time":1792351852086,"request_id":"d4d1c2e3-3b43-417d-ada6-d6328562d4c4","route":"API-005","method":"PATCH","event":"request","role":"parent","status":404,"duration_ms":4,"error_id":"E-004","stage":"handler"}
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  01:30:49
+   Duration  2.29s (tests 91%, import 6%, transform 3%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_8
+{"database":"fera_test_2616496_8","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/case-list.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+{"level":40,"time":1792351854151,"event":"auth.dev_secret"}
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  01:30:53
+   Duration  593ms (tests 61%, import 25%, transform 14%, worker 1%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_9
+{"database":"fera_test_2616496_9","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/case-read.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+{"level":40,"time":1792351856019,"event":"ratelimit.unknown_address","reason":"ratelimit"}
+{"level":30,"time":1792351856027,"request_id":"f20b493a-3815-4370-a8bd-0330a592d521","route":"API-004","method":"GET","event":"request","role":"parent","status":200,"duration_ms":8}
+{"level":30,"time":1792351856062,"request_id":"8a1c6e3d-9566-43c2-98d5-c677f9ebabdf","route":"API-004","method":"GET","event":"request","role":"staff","status":200,"duration_ms":6}
+{"level":40,"time":1792351856071,"request_id":"6d048a9b-55e9-4b2b-b454-e78993ad91f5","route":"API-004","method":"GET","event":"request","role":"staff","status":404,"duration_ms":8,"error_id":"E-004","stage":"handler"}
+{"level":30,"time":1792351856075,"request_id":"a55223bd-d161-4742-bb5d-7337a726e74d","route":"API-004","method":"GET","event":"request","role":"staff","status":200,"duration_ms":2}
+{"level":40,"time":1792351856082,"request_id":"c7a0d310-1738-477c-b033-edcf42334dd6","route":"API-004","method":"GET","event":"request","role":"staff","status":404,"duration_ms":7,"error_id":"E-004","stage":"handler"}
+{"level":40,"time":1792351856089,"request_id":"ce14c0df-455a-4c87-8bb0-82c4739f1b36","route":"API-004","method":"GET","event":"request","role":"parent","status":404,"duration_ms":6,"error_id":"E-004","stage":"handler"}
+{"level":40,"time":1792351856095,"request_id":"98700b27-83d1-42b6-a541-d24e672d28a9","route":"API-004","method":"GET","event":"request","role":"parent","status":404,"duration_ms":4,"error_id":"E-004","stage":"handler"}
+{"level":40,"time":1792351856105,"request_id":"aba7f5e4-afb1-4ef6-b18b-7b98175d7333","route":"API-004","method":"GET","event":"request","role":"parent","status":404,"duration_ms":7,"error_id":"E-004","stage":"handler"}
+
+ Test Files  1 passed (1)
+      Tests  12 passed (12)
+   Start at  01:30:55
+   Duration  501ms (tests 53%, import 32%, transform 14%, worker 1%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_10
+{"database":"fera_test_2616496_10","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/case.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+{"level":40,"time":1792351858171,"event":"db.refusal","err_code":"23514","routine":"exec_stmt_raise","tx_stage":"callback"}
+{"level":40,"time":1792351858684,"event":"db.refusal","err_code":"23514","constraint":"referrals_agency_name_check","table":"referrals","routine":"ExecConstraints","tx_stage":"callback"}
+
+ Test Files  1 passed (1)
+      Tests  38 passed (38)
+   Start at  01:30:57
+   Duration  1.94s (tests 88%, import 8%, transform 4%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_11
+{"database":"fera_test_2616496_11","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/dashboard.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  01:31:01
+   Duration  730ms (tests 74%, import 19%, transform 6%, worker 1%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_12
+{"database":"fera_test_2616496_12","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/districts-seed.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  01:31:04
+   Duration  814ms (tests 67%, import 21%, transform 8%, worker 4%, environment 1%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_13
+{"database":"fera_test_2616496_13","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/duplicate-decision.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  01:31:08
+   Duration  1.17s (tests 48%, import 36%, transform 15%, worker 1%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_14
+{"database":"fera_test_2616496_14","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/duplicate-hook.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+{"level":50,"time":1792351874242,"event":"db.tx_failed","tx_stage":"callback","err_name":"FoundNotEmbeddableError","err_frame":"run.ts:259"}
+{"level":40,"time":1792351874316,"event":"db.refusal","err_code":"P0001","routine":"exec_stmt_raise","tx_stage":"callback"}
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  01:31:13
+   Duration  1.18s (tests 49%, import 30%, transform 19%, worker 2%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_15
+{"database":"fera_test_2616496_15","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/duplicate-persist.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  01:31:15
+   Duration  441ms (tests 56%, import 28%, transform 15%, worker 1%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_16
+{"database":"fera_test_2616496_16","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/duplicates.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  01:31:17
+   Duration  441ms (tests 49%, import 30%, transform 19%, worker 1%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_17
+{"database":"fera_test_2616496_17","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/found-match.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+{"level":40,"time":1792351881704,"event":"db.refusal","err_code":"P0001","routine":"exec_stmt_raise","tx_stage":"callback"}
+{"level":40,"time":1792351881790,"event":"db.refusal","err_code":"40001","routine":"ExecLockRows","tx_stage":"callback"}
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  01:31:19
+   Duration  2.42s (tests 89%, import 7%, transform 4%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_18
+{"database":"fera_test_2616496_18","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/intake-runtime.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+{"level":40,"time":1792351883885,"event":"ai.attempt","rule":"primary.first","duration_ms":14,"error_id":"E-012","issues":[{"code":"invalid_non_json","path":""}]}
+{"level":40,"time":1792351883891,"event":"ai.attempt","rule":"primary.repair","duration_ms":6,"error_id":"E-012","issues":[{"code":"invalid_non_json","path":""}]}
+{"level":30,"time":1792351883898,"event":"ai.attempt","rule":"fallback.first","duration_ms":7,"issues":[{"code":"ok","path":""}]}
+{"level":30,"time":1792351883898,"event":"ai.summary","issues":[{"code":"invalid","path":"2"},{"code":"ok","path":"1"}]}
+{"level":40,"time":1792351883922,"event":"spend.retained","route":"API-002","reservation_id":"45ce809b-6a19-42aa-b377-c30cf845a9e7","draft_id":"00000000-0000-4000-8000-53caf4756479","upper_usd":"0.000314","reason":"unknown_billing"}
+{"level":40,"time":1792351883928,"event":"spend.retained","route":"API-002","reservation_id":"d71c4e0a-b6e5-4eee-b4da-c3290ff4f8f1","draft_id":"00000000-0000-4000-8000-53caf4756479","upper_usd":"0.000314","reason":"unknown_billing"}
+{"level":40,"time":1792351883934,"event":"spend.retained","route":"API-002","reservation_id":"6f07da98-5b36-4dfb-b2b4-d88bfa483cbb","draft_id":"00000000-0000-4000-8000-53caf4756479","upper_usd":"0.000314","reason":"unknown_billing"}
+{"level":40,"time":1792351883939,"event":"spend.retained","route":"API-002","reservation_id":"32ab9e4e-f96f-4c1e-a92a-82c7ca505f25","draft_id":"00000000-0000-4000-8000-53caf4756479","upper_usd":"0.000314","reason":"unknown_billing"}
+{"level":40,"time":1792351883944,"event":"spend.retained","route":"API-002","reservation_id":"8febcf34-b32b-493f-911e-06cc37123bac","draft_id":"00000000-0000-4000-8000-53caf4756479","upper_usd":"0.000314","reason":"unknown_billing"}
+{"level":40,"time":1792351883949,"event":"spend.retained","route":"API-002","reservation_id":"89ec2269-4d31-42e5-adf1-9a52468bacf7","draft_id":"00000000-0000-4000-8000-53caf4756479","upper_usd":"0.000314","reason":"unknown_billing"}
+{"level":40,"time":1792351883953,"event":"db.refusal","err_code":"23514","routine":"exec_stmt_raise","tx_stage":"callback"}
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  01:31:23
+   Duration  570ms (tests 48%, import 33%, transform 18%, worker 1%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_19
+{"database":"fera_test_2616496_19","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/match-filters.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
+   Start at  01:31:25
+   Duration  561ms (tests 71%, import 22%, transform 7%, worker 1%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_20
+{"database":"fera_test_2616496_20","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/match-run.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  01:31:27
+   Duration  807ms (tests 63%, import 24%, transform 13%, worker 1%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_21
+{"database":"fera_test_2616496_21","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/outputs.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  01:31:29
+   Duration  578ms (tests 54%, import 31%, transform 14%, worker 1%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_22
+{"database":"fera_test_2616496_22","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/platform.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+
+ Test Files  1 passed (1)
+      Tests  48 passed (48)
+   Start at  01:31:31
+   Duration  920ms (tests 94%, import 4%, transform 2%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_23
+{"database":"fera_test_2616496_23","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/redaction.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+
+ Test Files  1 passed (1)
+      Tests  18 passed (18)
+   Start at  01:31:34
+   Duration  857ms (tests 83%, import 13%, transform 4%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_24
+{"database":"fera_test_2616496_24","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/reembed.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  01:31:36
+   Duration  425ms (tests 77%, import 13%, transform 8%, worker 2%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_25
+{"database":"fera_test_2616496_25","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/review-queue.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+{"level":40,"time":1792351898769,"event":"ratelimit.unknown_address","reason":"ratelimit"}
+{"level":30,"time":1792351898794,"request_id":"ea7d51b1-349b-45fb-8487-fa1aedb5ffc4","route":"API-008","method":"GET","event":"request","role":"officer","status":200,"duration_ms":25}
+{"level":40,"time":1792351898804,"request_id":"3ef8ebf1-e05c-4f6d-897d-d8236d3343cc","route":"API-008","method":"GET","event":"request","role":"staff","status":404,"duration_ms":8,"error_id":"E-004","reason":"role","stage":"resolver"}
+{"level":40,"time":1792351898811,"request_id":"43cbb248-e7e9-4d5c-a82b-e2aab4a14397","route":"API-008","method":"GET","event":"request","role":"staff","status":404,"duration_ms":4,"error_id":"E-004","reason":"role","stage":"resolver"}
+{"level":40,"time":1792351898815,"request_id":"4b54ae21-f2e9-46dc-8f8a-a71b52ccdceb","route":"API-008","method":"GET","event":"request","role":"parent","status":404,"duration_ms":3,"error_id":"E-004","reason":"role","stage":"resolver"}
+{"level":40,"time":1792351898819,"request_id":"9ff1430d-930c-4c7d-8c56-1fb78fce4b8b","route":"API-008","method":"GET","event":"request","role":"admin","status":404,"duration_ms":3,"error_id":"E-004","reason":"role","stage":"resolver"}
+{"level":40,"time":1792351898821,"request_id":"16524df9-6406-4040-af0e-1f6d714b2d61","route":"API-008","method":"GET","event":"request","role":"officer","status":400,"duration_ms":1,"error_id":"E-001","reason":"schema","stage":"input"}
+(node:2623558) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+{"level":40,"time":1792351898924,"event":"auth.dev_secret"}
+{"level":40,"time":1792351898925,"request_id":"589cc54d-f41b-42fc-aa06-f0e0caa8a264","route":"API-008","method":"GET","event":"request","role":"officer","status":400,"duration_ms":1,"error_id":"E-001","reason":"schema","stage":"handler"}
+{"level":40,"time":1792351898927,"request_id":"1ec3dd07-456e-476f-81c1-b04a3fdc8c86","route":"API-008","method":"GET","event":"request","role":"officer","status":400,"duration_ms":1,"error_id":"E-001","reason":"schema","stage":"handler"}
+
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+   Start at  01:31:38
+   Duration  953ms (tests 77%, import 14%, transform 8%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_26
+{"database":"fera_test_2616496_26","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/seed-cases-parity.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  01:31:40
+   Duration  1.14s (tests 83%, import 11%, transform 5%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_27
+{"database":"fera_test_2616496_27","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/seed-cases.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+
+ Test Files  1 passed (1)
+      Tests  12 passed (12)
+   Start at  01:31:43
+   Duration  1.22s (tests 77%, import 17%, transform 6%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_28
+{"database":"fera_test_2616496_28","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/spend-cli.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+
+ Test Files  1 passed (1)
+      Tests  23 passed (23)
+   Start at  01:31:46
+   Duration  1.78s (tests 97%, import 2%, transform 1%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_29
+{"database":"fera_test_2616496_29","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/spend.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+{"level":40,"time":1792351909801,"event":"db.refusal","err_code":"23514","routine":"exec_stmt_raise","tx_stage":"callback"}
+{"level":40,"time":1792351910007,"event":"spend.refused","route":"API-002","error_id":"E-023","rule":"stale.revision"}
+{"level":40,"time":1792351910015,"event":"spend.refused","route":"API-002","error_id":"E-023","rule":"stale.revision"}
+{"level":40,"time":1792351910018,"event":"spend.refused","route":"API-002","error_id":"E-023","rule":"stale.revision"}
+{"level":40,"time":1792351910022,"event":"spend.refused","route":"API-002","error_id":"E-023","rule":"stale.revision"}
+{"level":40,"time":1792351910024,"event":"spend.refused","route":"API-002","error_id":"E-023","rule":"stale.revision"}
+{"level":40,"time":1792351910027,"event":"spend.refused","route":"API-002","error_id":"E-023","rule":"stale.revision"}
+{"level":40,"time":1792351910031,"event":"spend.refused","route":"API-002","error_id":"E-023","rule":"stale.revision"}
+{"level":40,"time":1792351910033,"event":"spend.refused","route":"API-002","error_id":"E-023","rule":"stale.revision"}
+{"level":40,"time":1792351910035,"event":"spend.refused","route":"API-002","error_id":"E-023","rule":"stale.revision"}
+{"level":40,"time":1792351910057,"event":"spend.refused","route":"API-002","error_id":"E-023","rule":"stale.revision"}
+{"level":40,"time":1792351910062,"event":"spend.refused","route":"API-002","error_id":"E-023","rule":"stale.revision"}
+{"level":40,"time":1792351910066,"event":"spend.refused","route":"API-002","error_id":"E-023","rule":"stale.revision"}
+{"level":40,"time":1792351910068,"event":"spend.refused","route":"API-002","error_id":"E-023","rule":"stale.revision"}
+{"level":40,"time":1792351910069,"event":"spend.refused","route":"API-002","error_id":"E-023","rule":"stale.revision"}
+{"level":40,"time":1792351910070,"event":"spend.refused","route":"API-002","error_id":"E-023","rule":"stale.revision"}
+{"level":40,"time":1792351910072,"event":"spend.refused","route":"API-002","error_id":"E-023","rule":"stale.revision"}
+{"level":40,"time":1792351910099,"event":"spend.refused","route":"API-002","error_id":"E-023","rule":"stale.revision"}
+{"level":40,"time":1792351910116,"event":"db.refusal","err_code":"23514","routine":"exec_stmt_raise","tx_stage":"callback"}
+{"level":40,"time":1792351910193,"event":"db.refusal","err_code":"23514","routine":"exec_stmt_raise","tx_stage":"callback"}
+{"level":40,"time":1792351910193,"event":"db.refusal","err_code":"23514","routine":"exec_stmt_raise","tx_stage":"callback"}
+{"level":40,"time":1792351910193,"event":"db.refusal","err_code":"23514","routine":"exec_stmt_raise","tx_stage":"callback"}
+{"level":40,"time":1792351910194,"event":"db.refusal","err_code":"23514","routine":"exec_stmt_raise","tx_stage":"callback"}
+{"level":40,"time":1792351910194,"event":"db.refusal","err_code":"23514","routine":"exec_stmt_raise","tx_stage":"callback"}
+{"level":40,"time":1792351910194,"event":"db.refusal","err_code":"23514","routine":"exec_stmt_raise","tx_stage":"callback"}
+{"level":40,"time":1792351910195,"event":"db.refusal","err_code":"23514","routine":"exec_stmt_raise","tx_stage":"callback"}
+{"level":40,"time":1792351910220,"event":"db.refusal","err_code":"P0001","routine":"exec_stmt_raise","tx_stage":"callback"}
+{"level":40,"time":1792351910238,"event":"db.refusal","err_code":"P0001","routine":"exec_stmt_raise","tx_stage":"callback"}
+{"level":40,"time":1792351910263,"event":"spend.refused","route":"API-002","error_id":"E-023","rule":"foreign.draft"}
+{"level":40,"time":1792351910263,"event":"spend.refused","route":"API-002","error_id":"E-023","rule":"foreign.draft"}
+{"level":40,"time":1792351910264,"event":"spend.refused","route":"API-002","error_id":"E-023","rule":"foreign.draft"}
+{"level":40,"time":1792351910279,"event":"spend.refused","route":"API-002","error_id":"E-023","rule":"foreign.draft"}
+{"level":40,"time":1792351910329,"event":"spend.retained","route":"API-002","reservation_id":"ccecc85b-14fc-4d7a-8bcd-b341d8d89a6a","draft_id":"5c5666be-aee8-4ecc-b364-7c58bf2e58a9","upper_usd":"0.010000","reason":"bad_actual"}
+{"level":40,"time":1792351910345,"event":"spend.retained","route":"API-002","reservation_id":"94f48355-9c64-45f0-a630-6560e81e972b","draft_id":"9742e807-e561-4cc1-bc38-d64e172a5d75","upper_usd":"0.010000","reason":"bad_actual"}
+{"level":40,"time":1792351910365,"event":"spend.retained","route":"API-002","reservation_id":"7ae76de4-62a9-43ae-9045-0cfe21c1daf2","draft_id":"ad32a2d8-cfe5-4e39-a024-65f27ef81233","upper_usd":"0.010000","provider_error_id":"E-013","err_name":"Error","err_frame":"spend.test.ts:193","reason":"unknown_billing"}
+{"level":30,"time":1792351910373,"event":"spend.settled","route":"API-002","reservation_id":"a29bd7a1-5b14-4f69-822a-93f64f9eaaf9","draft_id":"ad32a2d8-cfe5-4e39-a024-65f27ef81233","upper_usd":"0.010000"}
+{"level":30,"time":1792351910394,"event":"spend.settled","route":"API-002","reservation_id":"050fd98b-7857-4fb8-b623-5f2f9af63fcc","draft_id":"8fcc16a4-1b7f-4717-82d3-f8e3b65d8f72","upper_usd":"0.010000","provider_error_id":"E-013","err_name":"PaidProviderFailure","err_frame":"spend.test.ts:201"}
+{"level":40,"time":1792351910413,"event":"db.refusal","err_code":"23514","routine":"exec_stmt_raise","tx_stage":"callback"}
+{"level":40,"time":1792351910477,"event":"db.refusal","err_code":"23514","routine":"exec_stmt_raise","tx_stage":"callback"}
+
+ Test Files  1 passed (1)
+      Tests  20 passed (20)
+   Start at  01:31:49
+   Duration  1.15s (tests 79%, import 15%, transform 6%)
+
+db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_test_2616496_30
+{"database":"fera_test_2616496_30","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run tests/db/submit.test.ts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+{"level":40,"time":1792351912367,"event":"ratelimit.unknown_address","reason":"ratelimit"}
+{"level":40,"time":1792351912380,"request_id":"52452f9e-468d-4f4a-8440-8fdf6cb00b2c","route":"API-003","method":"POST","event":"request","role":"parent","status":400,"duration_ms":13,"error_id":"E-001","reason":"schema","stage":"input"}
+{"level":30,"time":1792351912433,"request_id":"53730ced-4e6f-4541-a46f-2bad3ba6d70e","route":"API-003","method":"POST","event":"request","role":"parent","status":201,"duration_ms":49}
+{"level":30,"time":1792351912465,"request_id":"f7019752-0caa-4c13-8aa7-bb9f4cb54930","route":"API-003","method":"POST","event":"request","role":"parent","status":201,"duration_ms":22}
+{"level":30,"time":1792351912480,"request_id":"f430af7d-9078-4ce2-a194-ca09fd1fea91","route":"API-003","method":"POST","event":"request","role":"parent","status":200,"duration_ms":15}
+{"level":30,"time":1792351912504,"request_id":"8c8ec032-e3b1-4656-86d1-265f5990d2fc","route":"API-003","method":"POST","event":"request","role":"parent","status":201,"duration_ms":19}
+{"level":30,"time":1792351912511,"request_id":"61706e0d-08f9-46ae-a6e3-fc2e8a16aa01","route":"API-003","method":"POST","event":"request","role":"parent","status":200,"duration_ms":26}
+{"level":30,"time":1792351912548,"request_id":"ef89104c-8c67-44a9-b1a0-84a20f777b29","route":"API-003","method":"POST","event":"request","role":"parent","status":201,"duration_ms":29}
+{"level":40,"time":1792351912555,"request_id":"232c588c-8a34-4316-a2fb-22db558b4046","route":"API-003","method":"POST","event":"request","role":"parent","status":409,"duration_ms":5,"error_id":"E-006","stage":"handler"}
+{"level":40,"time":1792351912565,"request_id":"d8e31896-4bc0-4640-9a2d-132f08b3dd6b","route":"API-003","method":"POST","event":"request","role":"parent","status":400,"duration_ms":2,"error_id":"E-001","reason":"schema","stage":"input"}
+{"level":40,"time":1792351912573,"request_id":"ac61d403-dada-4a67-b44a-8e7dcd2e628a","route":"API-003","method":"POST","event":"request","role":"parent","status":400,"duration_ms":2,"error_id":"E-001","reason":"schema","stage":"input"}
+{"level":30,"time":1792351912579,"event":"submit.draft_token_unverified","request_id":"90909978-a418-4d1c-8224-e8ea35eb6df3","route":"API-003","method":"POST","role":"parent"}
+{"level":30,"time":1792351912597,"request_id":"90909978-a418-4d1c-8224-e8ea35eb6df3","route":"API-003","method":"POST","event":"request","role":"parent","status":201,"duration_ms":19}
+{"level":30,"time":1792351912622,"request_id":"cf72f9bc-ad89-469c-bf9c-6dd74e72c4cb","route":"API-003","method":"POST","event":"request","role":"parent","status":201,"duration_ms":20}
+{"level":30,"time":1792351912636,"request_id":"7c665bbe-6866-475e-9545-4e523988d386","route":"API-003","method":"POST","event":"request","role":"parent","status":200,"duration_ms":12}
+{"level":40,"time":1792351912642,"request_id":"1a6f998c-7f75-4358-972c-f4909bc33e97","route":"API-003","method":"POST","event":"request","role":"parent","status":400,"duration_ms":3,"error_id":"E-001","reason":"schema","stage":"input"}
+{"level":30,"time":1792351912648,"request_id":"df18ea03-987b-4f7d-a18a-cf48e096688b","route":"API-003","method":"POST","event":"request","role":"anonymous","status":401,"duration_ms":1,"error_id":"E-002","reason":"role","stage":"resolver"}
+{"level":40,"time":1792351912657,"request_id":"7ab9d705-063a-47a5-b089-0de7f278f818","route":"API-003","method":"POST","event":"request","role":"staff","status":403,"duration_ms":4,"error_id":"E-003","reason":"role","stage":"resolver"}
+
+ Test Files  1 passed (1)
+      Tests  12 passed (12)
+   Start at  01:31:51
+   Duration  708ms (tests 62%, import 25%, transform 13%, worker 1%)
+

@@ -10,7 +10,7 @@ import { submissionPayloadHash } from "../../src/contracts/server";
 import { DEMO_ROLES, assertSynthetic, loadSyntheticSet, seedCases } from "../../db/seed/cases.mjs";
 // @ts-expect-error -- plain ESM module without type declarations
 import { loadDistrictData, seedDistricts } from "../../db/seed/districts.mjs";
-import { connect, dbTestsEnabled } from "./support/db";
+import { closeMissing, connect, dbTestsEnabled, one } from "./support/db";
 
 type Rec = { record_id: string; kind: "missing" | "found"; draft: Record<string, unknown> };
 const records: Rec[] = readFileSync(join(process.cwd(), "data/synthetic/records.jsonl"), "utf8")
@@ -40,18 +40,24 @@ describe("synthetic-only guard (TASK-019)", () => {
 
 describe.skipIf(!dbTestsEnabled)("case seed (TASK-019)", () => {
   let admin: Client;
+  let app: Client;
   const count = async (sql: string) => (await admin.query(sql)).rows[0].n as number;
 
   beforeAll(async () => {
     admin = await connect("admin");
+    app = await connect("app");
     await seedDistricts(admin, loadDistrictData());
     await admin.query(
       `INSERT INTO users (username, display_name, password_hash, role) VALUES
-         ('staff.demo', '[MOCK] স্টাফ এক', 'x', 'staff'), ('staff2.demo', '[MOCK] স্টাফ দুই', 'x', 'staff')`,
+         ('staff.demo', '[MOCK] স্টাফ এক', '$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'staff'),
+         ('staff2.demo', '[MOCK] স্টাফ দুই', '$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'staff')`,
+    );
+    await admin.query(
+      "INSERT INTO users (username, display_name, password_hash, role) VALUES ('admin.demo', '[MOCK] Admin', '$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'admin')",
     );
   });
   afterAll(async () => {
-    await admin?.end();
+    await Promise.all([admin?.end(), app?.end()]);
   });
 
   it("documents the demo set: five records, Rafi withheld (OD-010-4)", () => {
@@ -146,6 +152,33 @@ describe.skipIf(!dbTestsEnabled)("case seed (TASK-019)", () => {
   it("leaves embeddings NULL and the matcher queue untouched", async () => {
     expect(await count("SELECT count(*)::int AS n FROM cases WHERE embedding IS NOT NULL OR embedding_model IS NOT NULL")).toBe(0);
     expect(await count("SELECT count(*)::int AS n FROM cases WHERE matching_state <> 'queued'")).toBe(0);
+  });
+
+  it("does not recreate a redacted synthetic seed on a later full replay", async () => {
+    const record = records.find((r) => r.kind === "missing")!;
+    const seeded = await one<{ case_id: string }>(admin,
+      "SELECT case_id FROM synthetic_case_seeds WHERE record_id = $1", [record.record_id]);
+    await closeMissing(app, seeded.case_id, "resolved_outside_fera");
+    const adminId = await one<{ id: string }>(admin, "SELECT id FROM users WHERE username = 'admin.demo'");
+
+    await admin.query("BEGIN");
+    try {
+      await admin.query("SELECT set_config('fera.redaction_actor_id', $1, true)", [adminId.id]);
+      await admin.query("SELECT redact_case($1, $2)", [seeded.case_id, adminId.id]);
+      await admin.query("COMMIT");
+    } catch (err) {
+      await admin.query("ROLLBACK").catch(() => undefined);
+      throw err;
+    }
+
+    const casesBefore = await count("SELECT count(*)::int AS n FROM cases");
+    const auditBefore = await count("SELECT count(*)::int AS n FROM audit_log");
+    expect(await seedCases(admin, { set: "full" })).toEqual({ inserted: 0, skipped: 200 });
+    expect(await count("SELECT count(*)::int AS n FROM cases")).toBe(casesBefore);
+    expect(await count("SELECT count(*)::int AS n FROM audit_log")).toBe(auditBefore);
+    expect(await one<{ id: string; anonymised: boolean }>(admin,
+      "SELECT id, anonymised_at IS NOT NULL AS anonymised FROM cases WHERE id = $1", [seeded.case_id]))
+      .toEqual({ id: seeded.case_id, anonymised: true });
   });
 
 });

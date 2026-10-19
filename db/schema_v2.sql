@@ -1,4 +1,5 @@
 -- Fera schema V2.0 - D2A section 7. PostgreSQL 16, pgvector >= 0.8.1.
+-- Audit partitioning remains a future measured migration; see db/notes/audit-partitioning.md.
 -- Authors: Sadman Shaharier; Obidit Islam. Date: 11 October 2026, Asia/Dhaka.
 -- Fresh synthetic-demo database only. This is not an in-place V1 migration.
 -- Rows marked non-synthetic are blocked by cases_synthetic_release_only.
@@ -20,6 +21,14 @@ CREATE TYPE duplicate_status AS ENUM ('flagged', 'confirmed_same', 'dismissed');
 CREATE TYPE matching_state_t AS ENUM ('queued', 'running', 'complete', 'failed');
 CREATE TYPE output_t         AS ENUM ('gd', 'poster', 'helpline');
 CREATE TYPE actor_t          AS ENUM ('parent', 'staff', 'officer', 'admin', 'system');
+CREATE TYPE audit_action_t   AS ENUM (
+  'match.confirm', 'match.reject', 'case.payload_redacted', 'access.denied',
+  'case.created', 'case.imported', 'case.submission_replayed', 'case.state_changed',
+  'case.edited', 'case.closed', 'case.contact_viewed', 'match.voided',
+  'referral.recorded', 'duplicate.reviewed', 'duplicate.flagged', 'match.refused',
+  'case.close.refused', 'case.edit.refused', 'user.verification_changed',
+  'case.close'
+);
 
 -- Shared trigger: updated_at -----------------------------------------
 CREATE FUNCTION set_updated_at() RETURNS trigger LANGUAGE plpgsql AS $$
@@ -57,7 +66,9 @@ CREATE TABLE users (
   is_active     boolean NOT NULL DEFAULT true,
   created_at    timestamptz NOT NULL DEFAULT now(),
   updated_at    timestamptz NOT NULL DEFAULT now(),
-  CHECK (role = 'officer' OR verified = false)
+  CHECK (role = 'officer' OR verified = false),
+  CONSTRAINT users_password_hash_phc_check
+    CHECK (password_hash ~ $hash$^\$argon2id\$v=19\$m=19456,t=2,p=1\$[A-Za-z0-9+/]{22}\$[A-Za-z0-9+/]{43}$hash$)
 );
 CREATE TRIGGER users_updated_at BEFORE UPDATE ON users
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -97,6 +108,10 @@ CREATE INDEX intake_drafts_session_id_recent_idx
 CREATE INDEX intake_drafts_user_id_recent_idx
   ON intake_drafts (user_id, created_at)
   WHERE user_id IS NOT NULL;
+-- Expiry predicates use ordinary B-tree indexes: `now()` is not immutable and
+-- therefore cannot appear in a partial-index predicate.
+CREATE INDEX parent_sessions_expires_at_idx ON parent_sessions (expires_at);
+CREATE INDEX intake_drafts_expires_at_idx ON intake_drafts (expires_at);
 
 -- Cases --------------------------------------------------------------
 CREATE TABLE cases (
@@ -194,6 +209,11 @@ CREATE TRIGGER cases_updated_at BEFORE UPDATE ON cases
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 CREATE INDEX cases_kind_status_district_idx ON cases (kind, status, district_code);
+CREATE INDEX cases_district_anonymous_id_idx
+  ON cases (district_code, id DESC) WHERE anonymised_at IS NULL;
+CREATE INDEX cases_district_kind_anonymous_id_idx
+  ON cases (district_code, kind, id DESC) WHERE anonymised_at IS NULL;
+CREATE INDEX cases_district_kind_status_idx ON cases (district_code, kind, status);
 CREATE INDEX cases_event_at_idx             ON cases (event_at);
 CREATE INDEX cases_session_hash_idx         ON cases (reporter_session_id, input_hash);
 -- Optional index; V2 demo matcher uses exact filtered search first.
@@ -209,6 +229,10 @@ BEGIN
       RAISE EXCEPTION 'invalid initial case status' USING ERRCODE = 'check_violation';
     END IF;
   ELSE
+    IF NEW.anonymised_at IS NOT NULL AND OLD.anonymised_at IS NULL
+       AND current_setting('fera.redacting', true) IS DISTINCT FROM '1' THEN
+      RAISE EXCEPTION 'anonymised_at may only be set by redact_case' USING ERRCODE = 'insufficient_privilege';
+    END IF;
     IF NEW.kind <> OLD.kind THEN
       RAISE EXCEPTION 'case kind is immutable' USING ERRCODE = 'check_violation';
     END IF;
@@ -252,6 +276,14 @@ END $$;
 CREATE TRIGGER cases_transition_guard BEFORE INSERT OR UPDATE ON cases
   FOR EACH ROW EXECUTE FUNCTION enforce_case_transition();
 
+-- The prototype seed loader retains its synthetic record key across payload
+-- redaction so a later seed run cannot recreate an anonymised fixture.
+CREATE TABLE synthetic_case_seeds (
+  record_id uuid PRIMARY KEY,
+  case_id uuid NOT NULL UNIQUE REFERENCES cases(id),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE TABLE case_versions (
   id        uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   case_id   uuid NOT NULL REFERENCES cases(id),
@@ -283,8 +315,10 @@ CREATE TABLE match_candidates (
 );
 CREATE INDEX match_candidates_missing_status_idx ON match_candidates (missing_case_id, status);
 CREATE INDEX match_candidates_found_status_idx   ON match_candidates (found_case_id, status);
-CREATE UNIQUE INDEX match_candidates_one_confirmed_missing ON match_candidates (missing_case_id) WHERE status = 'confirmed';
-CREATE UNIQUE INDEX match_candidates_one_confirmed_found   ON match_candidates (found_case_id)   WHERE status = 'confirmed';
+CREATE UNIQUE INDEX match_candidates_one_confirmed_missing ON match_candidates (missing_case_id) NULLS NOT DISTINCT WHERE status = 'confirmed';
+CREATE UNIQUE INDEX match_candidates_one_confirmed_found   ON match_candidates (found_case_id)   NULLS NOT DISTINCT WHERE status = 'confirmed';
+ALTER TABLE match_candidates ADD CONSTRAINT match_candidates_endpoints_not_null
+  CHECK (missing_case_id IS NOT NULL AND found_case_id IS NOT NULL);
 
 CREATE TABLE review_decisions (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -341,19 +375,26 @@ CREATE TABLE generated_outputs (
 CREATE UNIQUE INDEX generated_outputs_version_idx ON generated_outputs (case_id, type, case_version);
 CREATE INDEX generated_outputs_case_type_idx ON generated_outputs (case_id, type);
 
+-- Audit growth and partitioning remain unmeasured; see db/notes/audit-partitioning.md.
 CREATE TABLE audit_log (
   id                bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   at                timestamptz NOT NULL DEFAULT now(),
   actor_type        actor_t NOT NULL,
   actor_user_id     uuid REFERENCES users(id),
-  actor_session_id  uuid REFERENCES parent_sessions(id),
-  action            text NOT NULL CHECK (action ~ '^[a-z_.]{3,60}$'),
+  -- Session IDs remain opaque audit attribution after the short-lived session row is swept.
+  actor_session_id  uuid,
+  action            audit_action_t NOT NULL,
+  is_synthetic      boolean NOT NULL DEFAULT true CONSTRAINT audit_log_is_synthetic_true_check CHECK (is_synthetic),
   case_id           uuid REFERENCES cases(id),
   candidate_id      uuid REFERENCES match_candidates(id),
   details           jsonb NOT NULL DEFAULT '{}'::jsonb,
   request_id        text
 );
 CREATE INDEX audit_log_case_idx ON audit_log (case_id, at);
+CREATE INDEX audit_log_at_idx ON audit_log (at);
+CREATE INDEX audit_log_actor_user_at_idx ON audit_log (actor_user_id, at);
+CREATE INDEX audit_log_action_at_idx ON audit_log (action, at);
+CREATE INDEX audit_log_request_id_idx ON audit_log (request_id) WHERE request_id IS NOT NULL;
 
 CREATE FUNCTION audit_log_append_only() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
@@ -384,6 +425,7 @@ CREATE TABLE ai_reservations (
   CHECK ((state = 'settled') = (settled_at IS NOT NULL)),
   CHECK ((state = 'settled') = (actual_usd IS NOT NULL))
 );
+CREATE INDEX ai_reservations_draft_state_idx ON ai_reservations (draft_id, state) WHERE draft_id IS NOT NULL;
 
 CREATE TABLE ai_calls (
   id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -404,6 +446,7 @@ CREATE TABLE ai_calls (
   error_id      text CHECK (error_id ~ '^E-[0-9]{3}$')
 );
 CREATE INDEX ai_calls_at_idx ON ai_calls (at);
+CREATE INDEX ai_calls_draft_id_idx ON ai_calls (draft_id) WHERE draft_id IS NOT NULL;
 
 CREATE TABLE rate_limits (
   key          text NOT NULL,
@@ -479,7 +522,7 @@ BEGIN
   END IF;
   IF d.id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM audit_log a
       WHERE a.candidate_id=cid AND a.actor_type='officer' AND a.actor_user_id=d.officer_id
-        AND a.action=('match.' || d.decision::text)) THEN
+        AND a.action::text=('match.' || d.decision::text)) THEN
     RAISE EXCEPTION 'review decision requires matching officer audit event' USING ERRCODE='check_violation';
   END IF;
   RETURN NULL;
@@ -592,6 +635,9 @@ END $$;
 CREATE FUNCTION redact_case(p_case uuid,p_admin uuid) RETURNS void LANGUAGE plpgsql AS $$
 DECLARE rec cases;
 BEGIN
+  IF current_setting('fera.redaction_actor_id', true) IS DISTINCT FROM p_admin::text THEN
+    RAISE EXCEPTION 'redaction calling admin must match p_admin' USING ERRCODE='insufficient_privilege';
+  END IF;
   IF NOT EXISTS (SELECT 1 FROM users WHERE id=p_admin AND role='admin' AND is_active) THEN
     RAISE EXCEPTION 'redaction requires active admin' USING ERRCODE='insufficient_privilege';
   END IF;
@@ -602,6 +648,7 @@ BEGIN
     RAISE EXCEPTION 'retain found evidence until linked missing report is closed';
   END IF;
   IF rec.anonymised_at IS NOT NULL THEN RETURN; END IF;
+  PERFORM set_config('fera.redacting', '1', true);
   UPDATE cases SET child_name=NULL,child_name_latin=NULL,age_years=NULL,
     age_min=CASE WHEN age_min IS NULL THEN NULL ELSE 2*(age_min/2) END,
     age_max=CASE WHEN age_max IS NULL THEN NULL ELSE least(25,2*(age_max/2)+1) END,
@@ -621,6 +668,39 @@ BEGIN
   UPDATE duplicate_links SET reason='[REDACTED]' WHERE case_a=p_case OR case_b=p_case;
   INSERT INTO audit_log(actor_type,actor_user_id,action,case_id,details)
     VALUES('admin',p_admin,'case.payload_redacted',p_case,'{"mode":"pseudonymisation","external_copies_removed":false}');
+END $$;
+
+-- Retain only bounded draft/session metadata. Settled spend rows keep their
+-- totals and status but release expired draft identifiers; active reservations
+-- pin their draft until settlement is resolved.
+CREATE FUNCTION sweep_expired_metadata()
+RETURNS TABLE(deleted_drafts integer, deleted_sessions integer)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+DECLARE
+  p_now timestamptz := clock_timestamp();
+BEGIN
+  UPDATE ai_calls c SET draft_id = NULL
+   WHERE c.draft_id IN (
+     SELECT d.id FROM intake_drafts d
+      WHERE d.expires_at < p_now - interval '1 day'
+        AND NOT EXISTS (SELECT 1 FROM ai_reservations r WHERE r.draft_id = d.id AND r.state = 'reserved')
+   );
+  UPDATE ai_reservations r SET draft_id = NULL
+   WHERE r.draft_id IN (
+     SELECT d.id FROM intake_drafts d
+      WHERE d.expires_at < p_now - interval '1 day'
+        AND NOT EXISTS (SELECT 1 FROM ai_reservations active WHERE active.draft_id = d.id AND active.state = 'reserved')
+   );
+  DELETE FROM intake_drafts d
+   WHERE d.expires_at < p_now - interval '1 day'
+     AND NOT EXISTS (SELECT 1 FROM ai_reservations r WHERE r.draft_id = d.id AND r.state = 'reserved');
+  GET DIAGNOSTICS deleted_drafts = ROW_COUNT;
+
+  DELETE FROM parent_sessions s
+   WHERE s.expires_at < p_now - interval '7 days'
+     AND NOT EXISTS (SELECT 1 FROM cases c WHERE c.reporter_session_id = s.id);
+  GET DIAGNOSTICS deleted_sessions = ROW_COUNT;
+  RETURN NEXT;
 END $$;
 
 -- Issue the next follow-up question. Atomic: increments follow_up_round and

@@ -16,7 +16,7 @@
 //
 // Runs under the fast DB loop (`/tmp/dbtest.sh`); skipped in plain `npm test`.
 import type { Client, Pool, PoolClient } from "pg";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { listCasesForDistrict, type CaseListRow } from "@/server/dashboard";
 import { caseListResponseSchema, cursorSchema, officerCaseRowSchema, toDhakaIso } from "@/contracts";
 import { userPrincipal } from "@/contracts/server";
@@ -26,7 +26,7 @@ import { setPoolForTests } from "@/server/db/pool";
 import { loadDistrictData, seedDistricts } from "../../db/seed/districts.mjs";
 import {
   addCandidate, closeMissing, closedPair, connect, createActors, dbTestsEnabled,
-  insertFound, insertMissing, openMissing, pool, type Actors,
+  insertFound, insertMissing, openMissing, pool, tx, type Actors,
 } from "./support/db";
 
 let fixturePool: Pool;
@@ -119,6 +119,21 @@ describe.skipIf(!dbTestsEnabled)("API-022 case list (P3-041)", () => {
     if (fixturePool) await fixturePool.end();
   });
 
+  it("indexes the live district cursor path", async () => {
+    await dbClient.query("BEGIN");
+    try {
+      await dbClient.query("SET LOCAL enable_seqscan = off");
+      const { rows } = await dbClient.query<{ "QUERY PLAN": unknown }>(
+        "EXPLAIN (FORMAT JSON) SELECT id FROM cases WHERE district_code = 1 AND anonymised_at IS NULL ORDER BY id DESC LIMIT 20",
+      );
+      expect(JSON.stringify(rows[0]?.["QUERY PLAN"])).toContain("cases_district_anonymous_id_idx");
+      await dbClient.query("ROLLBACK");
+    } catch (err) {
+      await dbClient.query("ROLLBACK").catch(() => undefined);
+      throw err;
+    }
+  });
+
   it("returns cases ordered by id DESC, anonymised rows excluded, and respects the district filter", async () => {
     // Seed: one open missing, one open found, one matched pending review, one
     // anonymised (must not appear), all in district 1.
@@ -137,20 +152,8 @@ describe.skipIf(!dbTestsEnabled)("API-022 case list (P3-041)", () => {
     // Redaction may not rewrite the lifecycle in the same UPDATE: close first, redact afterwards.
     await closeMissing(dbClient, m4.id, "resolved_outside_fera");
     await asFixtureOwner(async (c) => {
-      await c.query(
-        `UPDATE cases SET anonymised_at = now(),
-                           child_name = NULL, child_name_latin = NULL, contact_phone = NULL,
-                           raw_text = NULL, place_text = NULL, embedding = NULL,
-                           height_cm = NULL, clothing = NULL, marks = NULL, circumstances = NULL,
-                           thana = NULL, reporter_relation = NULL, gd_number = NULL,
-                           source_url = NULL, age_years = NULL, outcome_note = NULL,
-                           reporter_session_id = NULL, created_by_user_id = NULL,
-                           input_hash = NULL, submission_payload_hash = NULL,
-                           client_submission_id = NULL, provenance = '{}'::jsonb,
-                           embedding_model = NULL, embedding_revision = NULL, embedding_space = NULL
-         WHERE id = $1`,
-        [m4.id],
-      );
+      await c.query("SELECT set_config('fera.redaction_actor_id', $1, true)", [actors.admin]);
+      await c.query("SELECT redact_case($1, $2)", [m4.id, actors.admin]);
     });
 
     const listed = await listCasesForDistrict(dbClient, { district: "1", limit: 50 });
@@ -273,9 +276,12 @@ describe.skipIf(!dbTestsEnabled)("API-022 case list (P3-041)", () => {
     if (!principal) throw new Error("fixture officer principal was invalid");
 
     const filter = { district: "1", kind: "missing" as const, status_group: "open" as const, limit: 1 };
+    const querySpy = vi.spyOn(dbClient, "query");
     const firstPage = await listOfficerCases(principal, filter, dbClient);
 
     expect(firstPage.cases).toHaveLength(1);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    querySpy.mockClear();
     expect(caseListResponseSchema.safeParse(firstPage).success).toBe(true);
     expect(cursorSchema.safeParse(firstPage.next_cursor).success).toBe(true);
     expect(firstPage.cases[0]).toMatchObject({ kind: "missing", status_group: "open", is_synthetic: true, contact_phone: null });
@@ -289,6 +295,7 @@ describe.skipIf(!dbTestsEnabled)("API-022 case list (P3-041)", () => {
     const secondPage = await listOfficerCases(principal, { ...filter, cursor }, dbClient);
 
     expect(secondPage.cases).toHaveLength(1);
+    expect(querySpy).toHaveBeenCalledTimes(1);
     expect(secondPage.cases[0]?.id).not.toBe(firstPage.cases[0]?.id);
     expect(secondPage.cases[0]).toMatchObject({ kind: "missing", status_group: "open", event: { district_code: 1 } });
     expect(caseListResponseSchema.safeParse(secondPage).success).toBe(true);
@@ -296,5 +303,29 @@ describe.skipIf(!dbTestsEnabled)("API-022 case list (P3-041)", () => {
     await expect(
       listOfficerCases(principal, { ...filter, cursor: "abcdefgh.abcdefghijklmnop" }, dbClient),
     ).rejects.toMatchObject({ id: "E-001" });
+    querySpy.mockRestore();
+  });
+
+  it("does not include redacted linked cases in officer duplicate cues", async () => {
+    const currentCase = await insertMissing(dbClient);
+    const redactedCase = await insertMissing(dbClient);
+    await openMissing(dbClient, currentCase.id);
+    await openMissing(dbClient, redactedCase.id);
+    await closeMissing(dbClient, redactedCase.id, "resolved_outside_fera");
+    await dbClient.query(
+      "INSERT INTO duplicate_links (case_a, case_b, score, rule) VALUES ($1, $2, 88, 'profile')",
+      [currentCase.id, redactedCase.id].sort(),
+    );
+    await tx(dbClient, async () => {
+      await dbClient.query("SELECT set_config('fera.redaction_actor_id', $1, true)", [actors.admin]);
+      await dbClient.query("SELECT redact_case($1, $2)", [redactedCase.id, actors.admin]);
+    });
+
+    const principal = userPrincipal({ id: actors.officer, role: "officer", verified: true, is_active: true });
+    if (!principal) throw new Error("fixture officer principal was invalid");
+    const result = await listOfficerCases(principal, { district: "1", kind: "missing", status_group: "open", limit: 50 }, dbClient);
+    const currentRow = result.cases.find((row) => row.id === currentCase.id);
+    expect(currentRow).toBeDefined();
+    expect(currentRow?.duplicate_of).toEqual([]);
   });
 });

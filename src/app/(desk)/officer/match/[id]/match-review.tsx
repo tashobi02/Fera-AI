@@ -237,7 +237,7 @@ export function MatchReview({ view, locale, queueHref }: { view: CandidateDecisi
           <p>
             <strong className="font-semibold text-ink">{t.matchReviewDuplicate}</strong> — {t.matchReviewDuplicateNote}{" "}
             {duplicates.map((d, i) => (
-              <span key={d}>{i > 0 && ", "}{refLabel(d)}</span>
+              <span key={d.id}>{i > 0 && ", "}{refLabel(d.ref)}</span>
             ))}
           </p>
         </aside>

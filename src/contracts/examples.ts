@@ -488,6 +488,7 @@ export const exampleDashboardStatsResponse: s.DashboardStatsResponse = {
 export const exampleAuditRows: AuditRow[] = [
   {
     at: "2026-10-12T20:30:00+06:00",
+    is_synthetic: true,
     actor_type: "officer",
     actor_user_id: IDS.officerUser,
     actor_session_id: null,
@@ -509,6 +510,7 @@ export const exampleAuditRows: AuditRow[] = [
   },
   {
     at: "2026-10-12T21:00:00+06:00",
+    is_synthetic: true,
     actor_type: "officer",
     actor_user_id: IDS.officerUser,
     actor_session_id: null,

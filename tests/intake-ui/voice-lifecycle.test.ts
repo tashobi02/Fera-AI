@@ -42,6 +42,23 @@ describe("recorder privacy and recovery (items 1 and 14)", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it("visibilitychange before getUserMedia resolves cancels the late stream", async () => {
+    const media = fakeMedia();
+    const permission = deferred<MediaStream>();
+    media.getUserMedia.mockReturnValueOnce(permission.promise);
+    const { h, onRecorded } = mount();
+    doc.visibilityState = "hidden";
+    doc.dispatchEvent(new Event("visibilitychange"));
+    permission.resolve(media.stream);
+    await settle();
+    h.render();
+    expect(media.stopTrack).toHaveBeenCalled();
+    expect(media.records).toHaveLength(0);
+    expect(onRecorded).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+    h.unmount();
+  });
+
   it("constructor failure releases every track and offers the text path", async () => {
     const media = fakeMedia();
     media.failConstructor();

@@ -1,0 +1,69 @@
+npm notice run fera-ai@0.1.0 test:e2e
+npm notice run playwright test --config /tmp/fera-system-extra.config.ts --grep TC-017
+[WebServer] npm notice run fera-ai@0.1.0 db:reset
+[WebServer] npm notice run node scripts/db/reset.mjs
+[WebServer] db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_e2e_system_extra_a91f
+[WebServer] {"database":"fera_e2e_system_extra_a91f","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+[WebServer] (node:2642081) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] npm notice run fera-ai@0.1.0 npx
+[WebServer] npm notice run 'next' start -p 3111
+[WebServer] (node:2642097) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] ▲ Next.js 16.4.0
+[WebServer] - Local:         http://localhost:3111
+[WebServer] - Network:       http://192.168.1.163:3111
+[WebServer] ✓ Ready in 87ms
+[WebServer] ✓ Running next.config.ts took 22ms
+
+Running 1 test using 1 worker
+
+(node:2642145) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop] › ../../../../../tmp/fera-system-extra-specs/fera-system-extra.spec.ts:53:5 › TC-017: opening manual form before any extraction gives editable fields (10.7s)
+
+
+  1) [desktop] › ../../../../../tmp/fera-system-extra-specs/fera-system-extra.spec.ts:53:5 › TC-017: opening manual form before any extraction gives editable fields 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('[id="review-child.name"]')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" locator('[id="review-child.name"]') with timeout 10000ms
+      - waiting for locator('[id="review-child.name"]')
+
+
+      53 | test("TC-017: opening manual form before any extraction gives editable fields",async({page})=>{
+      54 |  await page.goto("/intake");await page.getByRole("button",{name:/বুঝেছি, চালিয়ে যান|I understand, continue/}).click();
+    > 55 |  await page.getByRole("link",{name:/^ফর্ম খুলুন$|^Open the form$/}).first().click();await expect(page).toHaveURL(/intake\/form/);await expect(page.locator('[id="review-child.name"]')).toBeVisible();
+         |                                                                                                                                                                                         ^
+      56 | });
+      57 |
+        at /tmp/fera-system-extra-specs/fera-system-extra.spec.ts:55:185
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../tmp/fera-system-extra-results/fera-system-extra-TC-017-o-0c653-ction-gives-editable-fields-desktop/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ../../../../../tmp/fera-system-extra-results/fera-system-extra-TC-017-o-0c653-ction-gives-editable-fields-desktop/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../tmp/fera-system-extra-results/fera-system-extra-TC-017-o-0c653-ction-gives-editable-fields-desktop/error-context.md
+
+    Error Context: ../../../../../tmp/fera-system-extra-results/fera-system-extra-TC-017-o-0c653-ction-gives-editable-fields-desktop/error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../tmp/fera-system-extra-results/fera-system-extra-TC-017-o-0c653-ction-gives-editable-fields-desktop/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../tmp/fera-system-extra-results/fera-system-extra-TC-017-o-0c653-ction-gives-editable-fields-desktop/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [desktop] › ../../../../../tmp/fera-system-extra-specs/fera-system-extra.spec.ts:53:5 › TC-017: opening manual form before any extraction gives editable fields 

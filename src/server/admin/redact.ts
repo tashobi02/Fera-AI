@@ -100,6 +100,7 @@ async function redactOne(pool: Pick<Pool, "connect">, caseId: string, adminId: s
       await client.query("ROLLBACK");
       return false;
     }
+    await client.query("SELECT set_config('fera.redaction_actor_id', $1, true)", [adminId]);
     await client.query("SELECT redact_case($1, $2)", [caseId, adminId]);
     await client.query("COMMIT");
     return true;

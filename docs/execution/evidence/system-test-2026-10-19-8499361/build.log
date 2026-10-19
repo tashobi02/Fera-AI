@@ -1,0 +1,259 @@
+
+> fera-ai@0.1.0 build
+> next build
+
+▲ Next.js 16.4.0 (Turbopack)
+✓ Running next.config.ts took 29ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 3.2s
+  Running TypeScript ...
+  Finished TypeScript in 9.4s ...
+  Collecting page data using 15 workers ...
+  Generating static pages using 15 workers (0/27) ...
+  Generating static pages using 15 workers (6/27) 
+  Generating static pages using 15 workers (13/27) 
+  Generating static pages using 15 workers (20/27) 
+✓ Generating static pages using 15 workers (27/27) in 302ms
+  Finalizing page optimization ...
+Turbopack build encountered 5 warnings:
+./src/server/embeddings/model.ts:421:10
+Warning: Dynamic filesystem access causes tracing of the whole project
+  [90m419 |[0m   [36mconst[0m hint = [32m"run `npm run model:fetch`"[0m;
+  [90m420 |[0m   [36mfor[0m ([36mconst[0m dir [36mof[0m [cacheDir, join(cacheDir, model)]) {
+[33m[1m>[0m [90m421 |[0m     [36mif[0m (!existsSync(dir)) {
+  [90m    |[0m          [33m[1m^^^^^^^^^^^^^^^[0m
+  [90m422 |[0m       [36mthrow[0m [36mnew[0m [33mError[0m(
+  [90m423 |[0m         [32m`embedding model is not available locally ([0m${hint[32m}): [0m${dir[32m} is missing`[0m,
+  [90m424 |[0m       );
+
+Static analysis determined that this filesystem access causes the whole project to be traced and included in the output.
+This is usually unintentional and leads to all source files (including the public folder) to be deployed as part of the server code.
+This can slow down deployments or lead to failures when size limits are exceeded.
+To resolve this, you can
+- make sure the path is statically scoped to some subfolder, for example path.join(process.cwd(), 'data', bar), or
+- only use them in development, or
+- opt out by adding an ignore comment to the highlighted call: fs.existsSync(/*turbopackIgnore: true*/ ...), or
+- remove them.
+
+Import traces:
+  #1 [App Route]:
+    ./src/server/embeddings/model.ts
+    ./src/server/matching/run.ts
+    ./src/app/api/match/[caseId]/route.ts
+
+  #2 [App Route]:
+    ./src/server/embeddings/model.ts
+    ./src/server/embeddings/model.ts
+    ./src/server/health/readiness.ts
+    ./src/app/api/health/route.ts
+
+  #3 [Server Component]:
+    ./src/server/embeddings/model.ts
+    ./src/server/matching/run.ts
+    ./src/server/case/postcommit.ts
+    ./src/server/case/index.ts
+    ./src/app/(desk)/officer/map/page.tsx
+
+
+./src/server/embeddings/model.ts:434:10
+Warning: Dynamic filesystem access causes tracing of the whole project
+  [90m432 |[0m   [36mfor[0m ([36mconst[0m file [36mof[0m files) {
+  [90m433 |[0m     [36mconst[0m path = join(cacheDir, model, file.path);
+[33m[1m>[0m [90m434 |[0m     [36mif[0m (!existsSync(path)) {
+  [90m    |[0m          [33m[1m^^^^^^^^^^^^^^^^[0m
+  [90m435 |[0m       [36mthrow[0m [36mnew[0m [33mError[0m(
+  [90m436 |[0m         [32m`embedding model is not available locally ([0m${hint[32m}); missing [0m${file.path[32m}`[0m,
+  [90m437 |[0m       );
+
+Static analysis determined that this filesystem access causes the whole project to be traced and included in the output.
+This is usually unintentional and leads to all source files (including the public folder) to be deployed as part of the server code.
+This can slow down deployments or lead to failures when size limits are exceeded.
+To resolve this, you can
+- make sure the path is statically scoped to some subfolder, for example path.join(process.cwd(), 'data', bar), or
+- only use them in development, or
+- opt out by adding an ignore comment to the highlighted call: fs.existsSync(/*turbopackIgnore: true*/ ...), or
+- remove them.
+
+Import traces:
+  #1 [App Route]:
+    ./src/server/embeddings/model.ts
+    ./src/server/matching/run.ts
+    ./src/app/api/match/[caseId]/route.ts
+
+  #2 [App Route]:
+    ./src/server/embeddings/model.ts
+    ./src/server/embeddings/model.ts
+    ./src/server/health/readiness.ts
+    ./src/app/api/health/route.ts
+
+  #3 [Server Component]:
+    ./src/server/embeddings/model.ts
+    ./src/server/matching/run.ts
+    ./src/server/case/postcommit.ts
+    ./src/server/case/index.ts
+    ./src/app/(desk)/officer/map/page.tsx
+
+
+./src/server/embeddings/model.ts:426:42
+Warning: Dynamic filesystem access causes tracing of the whole project
+  [90m424 |[0m ...  );
+  [90m425 |[0m ...}
+[33m[1m>[0m [90m426 |[0m ...[36mif[0m (process.platform !== [32m"win32"[0m && (statSync(dir).mode & [35m0o002[0m) !== [35m0[0m) {
+  [90m    |[0m                                         [33m[1m^^^^^^^^^^^^^[0m
+  [90m427 |[0m ...  [36mthrow[0m [36mnew[0m [33mError[0m(
+  [90m428 |[0m ...    [32m`embedding model cache [0m${dir[32m} is world-writable; refusing to load model files from...[0m
+  [90m429 |[0m ...  );
+
+Static analysis determined that this filesystem access causes the whole project to be traced and included in the output.
+This is usually unintentional and leads to all source files (including the public folder) to be deployed as part of the server code.
+This can slow down deployments or lead to failures when size limits are exceeded.
+To resolve this, you can
+- make sure the path is statically scoped to some subfolder, for example path.join(process.cwd(), 'data', bar), or
+- only use them in development, or
+- opt out by adding an ignore comment to the highlighted call: fs.statSync(/*turbopackIgnore: true*/ ...), or
+- remove them.
+
+Import traces:
+  #1 [App Route]:
+    ./src/server/embeddings/model.ts
+    ./src/server/matching/run.ts
+    ./src/app/api/match/[caseId]/route.ts
+
+  #2 [App Route]:
+    ./src/server/embeddings/model.ts
+    ./src/server/embeddings/model.ts
+    ./src/server/health/readiness.ts
+    ./src/app/api/health/route.ts
+
+  #3 [Server Component]:
+    ./src/server/embeddings/model.ts
+    ./src/server/matching/run.ts
+    ./src/server/case/postcommit.ts
+    ./src/server/case/index.ts
+    ./src/app/(desk)/officer/map/page.tsx
+
+
+./src/server/embeddings/model.ts:420:32
+Warning: Dynamic filesystem access causes tracing of the whole project
+  [90m418 |[0m   [36mif[0m (verified.has(key)) [36mreturn[0m;
+  [90m419 |[0m   [36mconst[0m hint = [32m"run `npm run model:fetch`"[0m;
+[33m[1m>[0m [90m420 |[0m   [36mfor[0m ([36mconst[0m dir [36mof[0m [cacheDir, join(cacheDir, model)]) {
+  [90m    |[0m                                [33m[1m^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m421 |[0m     [36mif[0m (!existsSync(dir)) {
+  [90m422 |[0m       [36mthrow[0m [36mnew[0m [33mError[0m(
+  [90m423 |[0m         [32m`embedding model is not available locally ([0m${hint[32m}): [0m${dir[32m} is missing`[0m,
+
+Static analysis determined that this filesystem access causes the whole project to be traced and included in the output.
+This is usually unintentional and leads to all source files (including the public folder) to be deployed as part of the server code.
+This can slow down deployments or lead to failures when size limits are exceeded.
+To resolve this, you can
+- make sure the path is statically scoped to some subfolder, for example path.join(process.cwd(), 'data', bar), or
+- only use them in development, or
+- opt out by adding an ignore comment to the highlighted call: path.join(/*turbopackIgnore: true*/ ...), or
+- remove them.
+
+Import traces:
+  #1 [App Route]:
+    ./src/server/embeddings/model.ts
+    ./src/server/matching/run.ts
+    ./src/app/api/match/[caseId]/route.ts
+
+  #2 [App Route]:
+    ./src/server/embeddings/model.ts
+    ./src/server/embeddings/model.ts
+    ./src/server/health/readiness.ts
+    ./src/app/api/health/route.ts
+
+  #3 [Server Component]:
+    ./src/server/embeddings/model.ts
+    ./src/server/matching/run.ts
+    ./src/server/case/postcommit.ts
+    ./src/server/case/index.ts
+    ./src/app/(desk)/officer/map/page.tsx
+
+
+./src/server/embeddings/model.ts:433:18
+Warning: Dynamic filesystem access causes tracing of the whole project
+  [90m431 |[0m   }
+  [90m432 |[0m   [36mfor[0m ([36mconst[0m file [36mof[0m files) {
+[33m[1m>[0m [90m433 |[0m     [36mconst[0m path = join(cacheDir, model, file.path);
+  [90m    |[0m                  [33m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m434 |[0m     [36mif[0m (!existsSync(path)) {
+  [90m435 |[0m       [36mthrow[0m [36mnew[0m [33mError[0m(
+  [90m436 |[0m         [32m`embedding model is not available locally ([0m${hint[32m}); missing [0m${file.path[32m}`[0m,
+
+Static analysis determined that this filesystem access causes the whole project to be traced and included in the output.
+This is usually unintentional and leads to all source files (including the public folder) to be deployed as part of the server code.
+This can slow down deployments or lead to failures when size limits are exceeded.
+To resolve this, you can
+- make sure the path is statically scoped to some subfolder, for example path.join(process.cwd(), 'data', bar), or
+- only use them in development, or
+- opt out by adding an ignore comment to the highlighted call: path.join(/*turbopackIgnore: true*/ ...), or
+- remove them.
+
+Import traces:
+  #1 [App Route]:
+    ./src/server/embeddings/model.ts
+    ./src/server/matching/run.ts
+    ./src/app/api/match/[caseId]/route.ts
+
+  #2 [App Route]:
+    ./src/server/embeddings/model.ts
+    ./src/server/embeddings/model.ts
+    ./src/server/health/readiness.ts
+    ./src/app/api/health/route.ts
+
+  #3 [Server Component]:
+    ./src/server/embeddings/model.ts
+    ./src/server/matching/run.ts
+    ./src/server/case/postcommit.ts
+    ./src/server/case/index.ts
+    ./src/app/(desk)/officer/map/page.tsx
+
+
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /admin
+├ ƒ /api/admin/anonymise
+├ ƒ /api/admin/import
+├ ƒ /api/admin/users
+├ ƒ /api/admin/users/[id]/verify
+├ ƒ /api/auth/sign-in
+├ ƒ /api/auth/sign-out
+├ ƒ /api/candidates/[id]
+├ ƒ /api/candidates/[id]/decision
+├ ƒ /api/cases
+├ ƒ /api/cases/[id]
+├ ƒ /api/cases/[id]/audit
+├ ƒ /api/cases/[id]/close
+├ ƒ /api/cases/[id]/outputs
+├ ƒ /api/dashboard/stats
+├ ƒ /api/duplicates/[id]/decision
+├ ƒ /api/found-cases
+├ ƒ /api/health
+├ ƒ /api/intake/extract
+├ ƒ /api/intake/transcribe
+├ ƒ /api/match/[caseId]
+├ ƒ /api/my-case
+├ ƒ /api/review-queue
+├ ƒ /intake
+├ ƒ /intake/form
+├ ƒ /intake/review
+├ ƒ /officer/case/[id]
+├ ƒ /officer/duplicates
+├ ƒ /officer/duplicates/[id]
+├ ƒ /officer/map
+├ ƒ /officer/match/[id]
+├ ƒ /officer/queue
+├ ƒ /report/[id]
+├ ƒ /sign-in
+├ ƒ /staff
+├ ƒ /staff/disaster
+└ ƒ /status
+
+
+ƒ  (Dynamic)  server-rendered on demand
+

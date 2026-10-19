@@ -69,7 +69,7 @@ describe("COMP-037/038 match review", () => {
 
   it("shows the duplicate banner only when the reports carry duplicate cues", () => {
     expect(render("en")).not.toContain(locales.en.matchReviewDuplicate);
-    const withDup = { ...view, missing: { ...view.missing, duplicate_of: ["M-2026-0099"] } };
+    const withDup = { ...view, missing: { ...view.missing, duplicate_of: [{ id: "6b1f3c2a-4d5e-4f60-8a71-000000000099", ref: "M-2026-0099", status: "open" as const }] } };
     expect(render("en", withDup)).toContain(locales.en.matchReviewDuplicate);
     expect(render("en", withDup)).toContain("M-2026-0099");
   });

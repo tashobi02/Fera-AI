@@ -105,6 +105,15 @@ describe.skipIf(!dbTestsEnabled)("API-003 on PostgreSQL 16 (TASK-022)", () => {
     expect(await actionsFor(first.id)).toEqual(["case.created", "case.state_changed", "case.submission_replayed"]);
   });
 
+  it("includes outputs created after the first submit when an identical report is replayed", async () => {
+    const parent = await newParent();
+    const body = manualRequest();
+    const first = createMissingResponseSchema.parse(await (await submit(body, parent.cookie)).json());
+    await appClient.query("INSERT INTO generated_outputs (case_id, type, case_version) VALUES ($1, 'gd', 1)", [first.id]);
+    const replay = createMissingResponseSchema.parse(await (await submit(body, parent.cookie)).json());
+    expect(replay).toMatchObject({ id: first.id, replayed: true, outputs_available: ["gd"] });
+  });
+
   it("serialises concurrent identical submissions into one 201 and one 200 with a stable reference (TC-031/042)", async () => {
     const parent = await newParent();
     const body = manualRequest();
@@ -213,8 +222,8 @@ describe.skipIf(!dbTestsEnabled)("API-003 on PostgreSQL 16 (TASK-022)", () => {
 
   it("denies a credential principal with E-003 and writes only the safe access.denied audit", async () => {
     const user = await one<{ id: string }>(admin,
-      "INSERT INTO users (username, display_name, password_hash, role) VALUES ($1, '[MOCK] submit staff', 'synthetic-not-a-hash', 'staff') RETURNING id", [`submit.${randomUUID().slice(0, 8)}`]);
-    const cookie = `${cookieNames(false).session}=${signSessionToken(KEYS.session, user.id, "synthetic-not-a-hash", Date.now()).token}`;
+      "INSERT INTO users (username, display_name, password_hash, role) VALUES ($1, '[MOCK] submit staff', '$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'staff') RETURNING id", [`submit.${randomUUID().slice(0, 8)}`]);
+    const cookie = `${cookieNames(false).session}=${signSessionToken(KEYS.session, user.id, "$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", Date.now()).token}`;
     const before = await counts();
     const response = await submit(manualRequest(), cookie);
     expect(response.status).toBe(403);

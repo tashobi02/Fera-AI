@@ -195,7 +195,7 @@ function makeLlmBrandedDispatch(
       upperUsd,
       timeoutMs: deps.llmDeps.timeoutMs,
       headers: ctx.headers,
-      logger: { info() {}, warn() {}, error() {} } as RuntimeContext["logger"],
+      logger: deps.logger ?? orchestratorLogger,
     };
     try {
       const paid = await runPaidCall<unknown>(ctx.principal, {
@@ -257,7 +257,7 @@ function makeSttBrandedDispatch(
       upperUsd,
       timeoutMs: deps.speechDeps.timeoutMs,
       headers: ctx.headers,
-      logger: { info() {}, warn() {}, error() {} } as RuntimeContext["logger"],
+      logger: deps.logger ?? orchestratorLogger,
     };
     try {
       const paid = await runPaidCall<{ text: string }>(ctx.principal, {

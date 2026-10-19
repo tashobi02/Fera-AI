@@ -71,7 +71,7 @@ async function insertVerifiedOfficer(): Promise<string> {
     const id = randomUUID();
     await c.query(
       `INSERT INTO users (id, role, username, display_name, password_hash, verified, is_active)
-       VALUES ($1, 'officer', $2, '[MOCK] Officer Queue', 'synthetic-not-a-hash', true, true)`,
+       VALUES ($1, 'officer', $2, '[MOCK] Officer Queue', '$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', true, true)`,
       [id, `officer_${id.slice(0, 8)}`],
     );
     return id;
@@ -83,7 +83,7 @@ async function insertDeskUser(role: "staff" | "officer", verified: boolean): Pro
     const id = randomUUID();
     await c.query(
       `INSERT INTO users (id, role, username, display_name, password_hash, verified, is_active)
-       VALUES ($1, $2, $3, '[MOCK] Desk User', 'synthetic-not-a-hash', $4, true)`,
+       VALUES ($1, $2, $3, '[MOCK] Desk User', '$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', $4, true)`,
       [id, role, `${role}_${id.slice(0, 8)}`, verified],
     );
     return id;
@@ -95,7 +95,7 @@ async function insertAdmin(): Promise<string> {
     const id = randomUUID();
     await c.query(
       `INSERT INTO users (id, role, username, display_name, password_hash, verified, is_active)
-       VALUES ($1, 'admin', $2, '[MOCK] Admin', 'synthetic-not-a-hash', false, true)`,
+       VALUES ($1, 'admin', $2, '[MOCK] Admin', '$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', false, true)`,
       [id, `admin_${id.slice(0, 8)}`],
     );
     return id;

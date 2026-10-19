@@ -300,20 +300,8 @@ describe.skipIf(!dbTestsEnabled)("API-012 dashboard stats (P3-041, TC-012/TC-055
     });
     const beforeRedaction = (await districtStats(dbClient)).find((r) => r.code === 1)!;
     await asFixtureOwner(async (c) => {
-      await c.query(
-        `UPDATE cases SET anonymised_at = now(),
-                           child_name = NULL, child_name_latin = NULL, contact_phone = NULL,
-                           raw_text = NULL, place_text = NULL, embedding = NULL,
-                           height_cm = NULL, clothing = NULL, marks = NULL, circumstances = NULL,
-                           thana = NULL, reporter_relation = NULL, gd_number = NULL,
-                           source_url = NULL, age_years = NULL, outcome_note = NULL,
-                           reporter_session_id = NULL, created_by_user_id = NULL,
-                           input_hash = NULL, submission_payload_hash = NULL,
-                           client_submission_id = NULL, provenance = '{}'::jsonb,
-                           embedding_model = NULL, embedding_revision = NULL, embedding_space = NULL
-         WHERE id = $1`,
-        [m.id],
-      );
+      await c.query("SELECT set_config('fera.redaction_actor_id', $1, true)", [actors.admin]);
+      await c.query("SELECT redact_case($1, $2)", [m.id, actors.admin]);
     });
     const afterRedaction = (await districtStats(dbClient)).find((r) => r.code === 1)!;
     // Redaction clears identifying fields only; the pseudonymous counts do not move.

@@ -1,0 +1,29 @@
+npm notice run fera-ai@0.1.0 release:check
+npm notice run node scripts/release/check.mjs
+{"name":"manifest:fera-round2-deck.pptx","status":"PASS","detail":"56946 bytes, sha256=d63482e60ead…"}
+{"name":"manifest:fera-round2-deck.pdf","status":"PASS","detail":"155220 bytes, sha256=5af0e993e530…"}
+{"name":"manifest:final.mp4","status":"PASS","detail":"864854 bytes, sha256=1403d679c454…"}
+{"name":"manifest:captions.srt","status":"PASS","detail":"1399 bytes, sha256=bd70f03e6d3b…"}
+{"name":"manifest:links.txt","status":"PASS","detail":"7475 bytes, sha256=90cdc216e536…"}
+{"name":"manifest:selection-email-draft.md","status":"PASS","detail":"1375 bytes, sha256=b9296111c5b6…"}
+{"name":"manifest:README.md","status":"PASS","detail":"11233 bytes, sha256=a69e3d3a47eb…"}
+{"name":"manifest:metrics.md","status":"PASS","detail":"5592 bytes, sha256=866c0b2dff32…"}
+{"name":"manifest:allowlist-size","status":"PASS","detail":"8/8 entries present (no cross-check with build-submission-zip.py)"}
+{"name":"links:url:https://github.com/tashobi02/Fera-AI","status":"UNVERIFIED","detail":"external URL not contacted; offline check only"}
+{"name":"links:url:https://h4hbd.ezassist.me/","status":"UNVERIFIED","detail":"external URL not contacted; offline check only"}
+{"name":"links:path:../demo/final.mp4","status":"PASS","detail":"exists"}
+{"name":"links:path:../demo/captions.srt","status":"PASS","detail":"exists"}
+{"name":"links:path:../demo/provenance.json","status":"PASS","detail":"exists"}
+{"name":"links:path:../demo/proof/","status":"PASS","detail":"exists"}
+{"name":"links:path:../demo/README.md","status":"PASS","detail":"exists"}
+{"name":"links:path:build/storyboard-contact-sheet.png","status":"PASS","detail":"exists"}
+{"name":"links:path:scripts/build_pptx.py","status":"PASS","detail":"exists"}
+{"name":"links:path:scripts/build_video.py","status":"PASS","detail":"exists"}
+{"name":"links:path:scripts/cleanup_frames.py","status":"PASS","detail":"exists"}
+{"name":"links:path:scripts/build_contact_sheet.py","status":"PASS","detail":"exists"}
+{"name":"links:path:scripts/claims_check.py","status":"PASS","detail":"exists"}
+{"name":"links:path:scripts/replace_dashes.py","status":"PASS","detail":"exists"}
+{"name":"links:path:../demo/run.sh","status":"PASS","detail":"exists"}
+{"name":"links:path:frames/shot-01.png","status":"PASS","detail":"exists"}
+{"name":"links:path:build/slide-imgs/slide-1.png","status":"PASS","detail":"exists"}
+{"name":"summary:exit","status":"INFO","detail":"exit=2"}

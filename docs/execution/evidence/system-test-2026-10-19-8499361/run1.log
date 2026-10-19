@@ -1,0 +1,36 @@
+(node:2631280) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+▲ Next.js 16.4.0
+- Local:         http://127.0.0.1:3225
+- Network:       http://127.0.0.1:3225
+✓ Ready in 120ms
+✓ Running next.config.ts took 29ms
+{"level":50,"time":1792352097120,"event":"auth.insecure_cookies"}
+{"level":50,"time":1792352097120,"event":"ratelimit.memory_store"}
+{"level":40,"time":1792352097120,"event":"ratelimit.unknown_address","reason":"ratelimit"}
+{"level":40,"time":1792352097159,"request_id":"da7f3b00-77e2-4d1b-b0ad-6f9f1ca2cc7e","route":"API-003","method":"POST","event":"request","role":"parent","status":400,"duration_ms":39,"error_id":"E-001","reason":"schema","stage":"input"}
+{"level":30,"time":1792352099255,"request_id":"9879d160-315b-4ed5-b857-a99b332b8d7c","route":"API-003","method":"POST","event":"request","role":"parent","status":201,"duration_ms":1428}
+{"level":30,"time":1792352100072,"request_id":"593e8b4b-cb2d-40ad-bdc3-c7d31a91fbfc","route":"API-004","method":"GET","event":"request","role":"parent","status":200,"duration_ms":9}
+{"level":30,"time":1792352100309,"request_id":"4ddd5e83-0b1a-4efc-8c3c-bde1e55be5da","route":"API-005","method":"PATCH","event":"request","role":"parent","status":200,"duration_ms":81}
+{"level":30,"time":1792352100601,"request_id":"83c3cdac-b3a1-4050-bbe1-b57a808a76cc","route":"API-020","method":"POST","event":"request","role":"anonymous","status":200,"duration_ms":48}
+{"level":30,"time":1792352101354,"request_id":"040d432e-40a2-484f-8ada-f68031428791","route":"API-007","method":"POST","event":"request","role":"staff","status":201,"duration_ms":185}
+{"level":30,"time":1792352101743,"request_id":"aee8e06e-88a1-4e3c-a793-7260a76eba53","route":"API-020","method":"POST","event":"request","role":"anonymous","status":200,"duration_ms":76}
+{"level":30,"time":1792352101776,"request_id":"4c77a0c1-2299-4be5-a3f2-e54da78e054d","route":"API-008","method":"GET","event":"request","role":"officer","status":200,"duration_ms":21}
+{"level":30,"time":1792352101828,"request_id":"ddc0c763-3774-4554-9d4a-2aed6273cf68","route":"API-010","method":"POST","event":"request","role":"officer","status":200,"duration_ms":27}
+{"level":30,"time":1792352101972,"request_id":"bec33882-1ae2-40a7-8de9-ed5f1718321d","route":"API-010","method":"POST","event":"request","role":"officer","status":200,"duration_ms":20}
+{"level":30,"time":1792352102124,"request_id":"dd8967e0-5bca-4f19-a94f-9427ba931d02","route":"API-020","method":"POST","event":"request","role":"anonymous","status":200,"duration_ms":38}
+{"level":30,"time":1792352102679,"request_id":"bc365439-86d9-4ca2-aafc-ab0dab8298de","route":"API-010","method":"POST","event":"request","role":"officer","status":200,"duration_ms":52}
+{"level":30,"time":1792352102914,"request_id":"ea47d9b3-f1e2-4863-922e-c58ced811f55","route":"API-020","method":"POST","event":"request","role":"anonymous","status":200,"duration_ms":41}
+{"level":30,"time":1792352102991,"request_id":"3954fb71-3b46-4255-9a74-5e22bbfe9d2a","route":"API-004","method":"GET","event":"request","role":"officer","status":200,"duration_ms":7}
+{"level":30,"time":1792352103008,"request_id":"2a78c8be-6959-4e95-b686-e24507a5153f","route":"API-011","method":"POST","event":"request","role":"officer","status":200,"duration_ms":9}
+{"level":30,"time":1792352103444,"request_id":"727a6ca6-eaf4-488f-8c7f-3f28f2011223","route":"API-020","method":"POST","event":"request","role":"anonymous","status":200,"duration_ms":36}
+{"level":30,"time":1792352103876,"request_id":"d1eddc4a-b231-444d-9b72-db07a4f7b58e","route":"API-020","method":"POST","event":"request","role":"anonymous","status":200,"duration_ms":31}
+{"level":30,"time":1792352103917,"request_id":"4489f230-cce6-428b-a052-9fd5d4f241d9","route":"API-015","method":"POST","event":"request","role":"admin","status":200,"duration_ms":18}
+{"level":30,"time":1792352104177,"request_id":"241d11b2-02ef-4285-a10c-73f634fdc507","route":"API-002","method":"POST","event":"request","role":"parent","status":200,"duration_ms":22}
+{"level":30,"time":1792352104594,"request_id":"4d5a358b-02b7-47b0-af8d-8e154010edbd","route":"API-002","method":"POST","event":"request","role":"parent","status":200,"duration_ms":20}
+{"level":30,"time":1792352104924,"request_id":"85a1693b-15c3-45fd-b8a4-a28a20d9b1a2","route":"API-003","method":"POST","event":"request","role":"parent","status":201,"duration_ms":95}
+{"level":30,"time":1792352105246,"request_id":"fdfe7a29-f33a-472a-b21b-e8d96e67e720","route":"API-006","method":"POST","event":"request","role":"parent","status":200,"duration_ms":13}
+{"level":30,"time":1792352105262,"request_id":"9c281e7a-5e51-49f4-ac0e-f87ca24bb5a8","route":"API-006","method":"POST","event":"request","role":"parent","status":200,"duration_ms":8}
+{"level":30,"time":1792352105340,"request_id":"d9907d66-dcdf-48f6-9325-a5867f169190","route":"API-006","method":"POST","event":"request","role":"parent","status":200,"duration_ms":13}
+{"level":50,"time":1792352111382,"request_id":"9f3624ea-8575-4184-bf3e-3f15a39dd37b","route":"API-001","method":"POST","event":"request","role":"parent","status":503,"duration_ms":10,"error_id":"E-011","stage":"handler"}
+{"level":50,"time":1792352117274,"request_id":"3baf44c7-b42e-489f-a34b-6e209ce3bd91","route":"API-001","method":"POST","event":"request","role":"parent","status":503,"duration_ms":5,"error_id":"E-011","stage":"handler"}

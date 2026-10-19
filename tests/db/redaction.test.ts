@@ -36,6 +36,18 @@ describe.skipIf(!dbTestsEnabled)("payload redaction (TASK-062 / T007)", () => {
 
   const statusCounts = async () =>
     (await app.query("SELECT kind, status, district_code, count(*)::int AS n FROM cases GROUP BY 1, 2, 3 ORDER BY 1, 2, 3")).rows;
+  const redactorCall = async (caseId: string, adminId: string, actorId = adminId) => {
+    await redactor.query("BEGIN");
+    try {
+      await redactor.query("SELECT set_config('fera.redaction_actor_id', $1, true)", [actorId]);
+      const result = await redactor.query("SELECT redact_case($1, $2)", [caseId, adminId]);
+      await redactor.query("COMMIT");
+      return result;
+    } catch (err) {
+      await redactor.query("ROLLBACK").catch(() => undefined);
+      throw err;
+    }
+  };
   const anonymised = async (ids: string[]) =>
     Object.fromEntries(
       (await app.query("SELECT id, anonymised_at IS NOT NULL AS done FROM cases WHERE id = ANY($1)", [ids])).rows.map((r) => [r.id, r.done]),
@@ -188,7 +200,7 @@ describe.skipIf(!dbTestsEnabled)("payload redaction (TASK-062 / T007)", () => {
       const n = await count();
       expect(await redactCases(redactorPool, asAdmin(), { case_ids: [missing.id, missing.id], confirmation: "বেনামী" }))
         .toEqual({ redacted: 0, skipped_not_eligible: 1, ...PSEUDONYMISATION });
-      await redactor.query("SELECT redact_case($1, $2)", [missing.id, actors.admin]);
+      await redactorCall(missing.id, actors.admin);
       expect(await count()).toBe(n);
     });
 
@@ -205,7 +217,7 @@ describe.skipIf(!dbTestsEnabled)("payload redaction (TASK-062 / T007)", () => {
     it("refuses non-terminal reports and leaves their payload intact", async () => {
       const open = await insertMissing(app);
       await openMissing(app, open.id);
-      await expectPgError(redactor.query("SELECT redact_case($1, $2)", [open.id, actors.admin]), "P0001", /not eligible for redaction/);
+      await expectPgError(redactorCall(open.id, actors.admin), "P0001", /not eligible for redaction/);
       expect(await redactCases(redactorPool, asAdmin(), { case_ids: [open.id, "00000000-0000-4000-8000-000000000000"], confirmation: "বেনামী" }))
         .toEqual({ redacted: 0, skipped_not_eligible: 2, ...PSEUDONYMISATION });
       expect((await one(app, "SELECT child_name FROM cases WHERE id = $1", [open.id])).child_name).toBe(open.name);
@@ -217,8 +229,8 @@ describe.skipIf(!dbTestsEnabled)("payload redaction (TASK-062 / T007)", () => {
       const found = await insertFound(app, actors.staff);
       const c = await addCandidate(app, missing.id, found.id);
       await confirmPair(app, { candidateId: c, missingId: missing.id, foundId: found.id, officerId: actors.officer });
-      await expectPgError(redactor.query("SELECT redact_case($1, $2)", [missing.id, actors.admin]), "P0001", /not eligible/);
-      await expectPgError(redactor.query("SELECT redact_case($1, $2)", [found.id, actors.admin]), "P0001", /retain found evidence/);
+      await expectPgError(redactorCall(missing.id, actors.admin), "P0001", /not eligible/);
+      await expectPgError(redactorCall(found.id, actors.admin), "P0001", /retain found evidence/);
       expect(await redactCases(redactorPool, asAdmin(), { case_ids: [found.id], confirmation: "বেনামী" }))
         .toEqual({ redacted: 0, skipped_not_eligible: 1, ...PSEUDONYMISATION });
       await closeMissing(app, missing.id);
@@ -253,18 +265,37 @@ describe.skipIf(!dbTestsEnabled)("payload redaction (TASK-062 / T007)", () => {
 
     it("lets the database refuse an admin who is no longer active, surfacing only the SQLSTATE", async () => {
       const { missing } = await closedPair(app, actors);
-      const formerAdmin = (await one<{ id: string }>(admin, "INSERT INTO users (username, display_name, password_hash, role, is_active) VALUES ('former.admin.' || substr(md5(random()::text), 1, 6), '[MOCK] Former admin', 'synthetic-not-a-hash', 'admin', false) RETURNING id")).id;
+      const formerAdmin = (await one<{ id: string }>(admin, "INSERT INTO users (username, display_name, password_hash, role, is_active) VALUES ('former.admin.' || substr(md5(random()::text), 1, 6), '[MOCK] Former admin', '$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'admin', false) RETURNING id")).id;
       const err = await redactCases(redactorPool, testUser(formerAdmin, "admin"), { case_ids: [missing.id], confirmation: "বেনামী" }).catch((e: unknown) => e);
       expect(err).toBeInstanceOf(RedactionDbError);
       expect(err).toMatchObject({ sqlstate: "42501", redacted: 0, message: "payload redaction failed (SQLSTATE 42501)" });
       expect(Object.keys(err as object)).toEqual(["sqlstate", "redacted"]);
-      await expectPgError(redactor.query("SELECT redact_case($1, $2)", [missing.id, actors.staff]), "42501", /requires active admin/);
+      await expectPgError(redactorCall(missing.id, actors.staff), "42501", /requires active admin/);
+      expect((await one(app, "SELECT anonymised_at FROM cases WHERE id = $1", [missing.id])).anonymised_at).toBeNull();
+    });
+
+    it("refuses a redaction actor that differs from the request-scoped admin", async () => {
+      const { missing } = await closedPair(app, actors);
+      const otherAdmin = (await one<{ id: string }>(admin,
+        "INSERT INTO users (username, display_name, password_hash, role) VALUES ('other.admin.' || substr(md5(random()::text), 1, 6), '[MOCK] Other admin', '$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'admin') RETURNING id",
+      )).id;
+      await redactor.query("BEGIN");
+      try {
+        await redactor.query("SELECT set_config('fera.redaction_actor_id', $1, true)", [actors.admin]);
+        await expectPgError(
+          redactor.query("SELECT redact_case($1, $2)", [missing.id, otherAdmin]),
+          "42501",
+          /calling admin must match p_admin/,
+        );
+      } finally {
+        await redactor.query("ROLLBACK").catch(() => undefined);
+      }
       expect((await one(app, "SELECT anonymised_at FROM cases WHERE id = $1", [missing.id])).anonymised_at).toBeNull();
     });
 
     it("fails closed if redact_case() is called without immediate constraints: the deferred checks run as fera_redactor at COMMIT", async () => {
       const { missing } = await closedPair(app, actors);
-      await expectPgError(redactor.query("SELECT redact_case($1, $2)", [missing.id, actors.admin]), "42501", /permission denied/);
+      await expectPgError(redactorCall(missing.id, actors.admin), "42501", /permission denied/);
       expect((await one(app, "SELECT anonymised_at, child_name FROM cases WHERE id = $1", [missing.id]))).toEqual({ anonymised_at: null, child_name: missing.name });
       expect(await redactCases(redactorPool, asAdmin(), { case_ids: [missing.id], confirmation: "বেনামী" }))
         .toEqual({ redacted: 1, skipped_not_eligible: 0, ...PSEUDONYMISATION });
@@ -278,7 +309,7 @@ describe.skipIf(!dbTestsEnabled)("payload redaction (TASK-062 / T007)", () => {
     await openMissing(app, closed.id);
     await closeMissing(app, closed.id, "resolved_outside_fera");
     const twin = await insertMissing(app);
-    const officer = (await one<{ id: string }>(admin, "INSERT INTO users (username, display_name, password_hash, role, verified) VALUES ('leaving.officer.' || substr(md5(random()::text), 1, 6), '[MOCK] Leaving officer', 'synthetic-not-a-hash', 'officer', true) RETURNING id")).id;
+    const officer = (await one<{ id: string }>(admin, "INSERT INTO users (username, display_name, password_hash, role, verified) VALUES ('leaving.officer.' || substr(md5(random()::text), 1, 6), '[MOCK] Leaving officer', '$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'officer', true) RETURNING id")).id;
     const [a, b] = closed.id < twin.id ? [closed.id, twin.id] : [twin.id, closed.id];
     await app.query(
       "INSERT INTO duplicate_links (case_a, case_b, score, rule, status, resolved_by, resolved_at, reason) VALUES ($1, $2, 80, 'profile', 'dismissed', $3, now(), '[MOCK] different')",
@@ -313,7 +344,7 @@ describe.skipIf(!dbTestsEnabled)("payload redaction (TASK-062 / T007)", () => {
   describe("recorded schema gap (reported, schema unchanged)", () => {
     it("a duplicate link resolved by an officer who was later deactivated blocks redaction", async () => {
       const closed = await blockedByDeactivatedResolver();
-      await expectPgError(redactor.query("SELECT redact_case($1, $2)", [closed.id, actors.admin]), "42501", /duplicate resolution requires verified officer/);
+      await expectPgError(redactorCall(closed.id, actors.admin), "42501", /duplicate resolution requires verified officer/);
     });
   });
 });

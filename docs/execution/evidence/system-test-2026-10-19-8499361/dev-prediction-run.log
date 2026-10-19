@@ -1,0 +1,11 @@
+npm notice run fera-ai@0.1.0 npx
+npm notice run 'vitest' run --config vitest.predict-dev.config.mts
+
+ RUN  v5.0.4 /home/obidit/secondBrain/coding/Fera-AI
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  01:34:00
+   Duration  5.84s (tests 90%, transform 7%, import 3%)
+

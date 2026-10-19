@@ -2,6 +2,6 @@
 // access.denied hooks the API layer and page guards use.
 export { CASE_AUDIT_ACTIONS, WRITABLE_AUDIT_ACTIONS, isWritableAuditAction } from "./actions";
 export type { CaseAuditAction } from "./actions";
-export { SYSTEM_ACTOR, AuditWriteError, actorFor, appendAudit, auditDetailsSchema, checkAuditEntry } from "./write";
+export { SYSTEM_ACTOR, AuditWriteError, actorFor, appendAudit, appendAudits, auditDetailsSchema, checkAuditEntry } from "./write";
 export type { AuditActor, AuditDetails, AuditEntry } from "./write";
 export { auditAccessDenied, auditPageDenied, createDeniedAuditHooks } from "./denied";

@@ -4,7 +4,7 @@
 // row 12; `superseded` is left to the matcher for its own replacement of pending rows
 // (OD-015-2).
 import type { ApiId } from "@/contracts/server";
-import { CASE_AUDIT_ACTIONS, appendAudit, type AuditActor } from "@/server/audit";
+import { CASE_AUDIT_ACTIONS, appendAudits, type AuditActor } from "@/server/audit";
 import type { Queryable } from "@/server/db/queryable";
 import { col, asRow } from "@/server/db/decode";
 import type { PendingCandidate } from "./rows";
@@ -26,16 +26,16 @@ export async function voidPendingCandidates(
     [pending.map((c) => c.id)],
   );
   const voided = new Set(rows.map((r) => col.uuid("match_candidates", asRow("match_candidates", r), "id")));
-  for (const c of pending) {
-    if (!voided.has(c.id)) continue;
+  const audits = pending.filter((c) => voided.has(c.id)).map((c) => {
     const other = subject.has(c.missing_case_id) ? c.found_case_id : c.missing_case_id;
-    await appendAudit(db, actor, {
+    return {
       action: CASE_AUDIT_ACTIONS.matchVoided,
       caseId: other,
       candidateId: c.id,
       requestId,
-      details: { candidate_status: "voided", api },
-    });
-  }
+      details: { candidate_status: "voided" as const, api },
+    };
+  });
+  await appendAudits(db, actor, audits);
   return pending.filter((c) => voided.has(c.id)).map((c) => c.id);
 }

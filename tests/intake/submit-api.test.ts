@@ -38,6 +38,7 @@ function installDb(opts: { existing?: boolean; hash?: string; status?: CaseRow["
     { match: /FROM cases WHERE reporter_session_id = \$1 AND client_submission_id = \$2/, reply: () => exists ? [row] : [] },
     { match: /^INSERT INTO cases/, reply: () => { exists = true; return [row]; } },
     { match: /FROM cases WHERE id = \$1/, reply: () => exists ? [row] : [] },
+    { match: /FROM generated_outputs WHERE case_id = \$1/, reply: () => [] },
     { match: /^UPDATE cases SET status/, reply: (values) => {
       if (failOpen) { failOpen = false; return pgError("58000"); }
       row = { ...row, status: values[1] as CaseRow["status"] };

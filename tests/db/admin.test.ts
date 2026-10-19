@@ -177,7 +177,7 @@ describe.skipIf(!dbTestsEnabled)("admin tools on PostgreSQL 16 (TASK-032)", () =
     });
 
     it("an un-verified officer can no longer decide (BR-024: re-read in the decision transaction)", async () => {
-      const officer = (await one<{ id: string }>(admin, "INSERT INTO users (username, display_name, password_hash, role, verified) VALUES ('mock.officer.' || substr(md5(random()::text), 1, 6), '[MOCK] Officer', 'synthetic-not-a-hash', 'officer', true) RETURNING id")).id;
+      const officer = (await one<{ id: string }>(admin, "INSERT INTO users (username, display_name, password_hash, role, verified) VALUES ('mock.officer.' || substr(md5(random()::text), 1, 6), '[MOCK] Officer', '$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'officer', true) RETURNING id")).id;
       const m = await insertMissing(app);
       await openMissing(app, m.id);
       const f = await insertFound(app, actors.staff);
@@ -202,7 +202,7 @@ describe.skipIf(!dbTestsEnabled)("admin tools on PostgreSQL 16 (TASK-032)", () =
     });
 
     it("refuses a deactivated admin whose session still claims active (E-003, re-read in the transaction)", async () => {
-      const former = (await one<{ id: string }>(admin, "INSERT INTO users (username, display_name, password_hash, role, is_active) VALUES ('former.admin.' || substr(md5(random()::text), 1, 6), '[MOCK] Former admin', 'synthetic-not-a-hash', 'admin', false) RETURNING id")).id;
+      const former = (await one<{ id: string }>(admin, "INSERT INTO users (username, display_name, password_hash, role, is_active) VALUES ('former.admin.' || substr(md5(random()::text), 1, 6), '[MOCK] Former admin', '$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'admin', false) RETURNING id")).id;
       await expect(setOfficerVerified(testUser(former, "admin"), actors.unverifiedOfficer, { verified: true }, { pool: appPool })).rejects.toMatchObject({ id: "E-003" });
     });
 
@@ -236,7 +236,7 @@ describe.skipIf(!dbTestsEnabled)("admin tools on PostgreSQL 16 (TASK-032)", () =
         cursor = body.next_cursor;
       }
       expect(seen).toEqual(all);
-      expect(JSON.stringify(await listAdminUsers(asAdmin, {}, { pool: appPool }))).not.toContain("synthetic-not-a-hash");
+      expect(JSON.stringify(await listAdminUsers(asAdmin, {}, { pool: appPool }))).not.toContain("$argon2id$v=19$m=19456,t=2,p=1$aaaaaaaaaaaaaaaaaaaaaa$bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
     });
 
     it("refuses a non-admin with E-003", async () => {

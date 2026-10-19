@@ -101,3 +101,29 @@ export async function appendAudit(client: Queryable, actor: AuditActor, entry: A
   if (!Number.isSafeInteger(id) || id < 1) throw new AuditWriteError("insert");
   return id;
 }
+
+// Batched sibling for transactions that emit one same-shaped row per candidate.
+// Every entry is validated before the single INSERT, and a short write fails the
+// caller's transaction just like appendAudit does.
+export async function appendAudits(client: Queryable, actor: AuditActor, entries: readonly AuditEntry[]): Promise<number[]> {
+  if (entries.length === 0) return [];
+  const safe = entries.map((entry) => checkAuditEntry(actor, entry));
+  const values: unknown[] = [];
+  const tuples = entries.map((entry, index) => {
+    const offset = index * 8;
+    values.push(actor.type, actor.userId, actor.sessionId, entry.action,
+      safe[index]!.caseId, safe[index]!.candidateId, JSON.stringify(safe[index]!.details), safe[index]!.requestId);
+    return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}::jsonb, $${offset + 8})`;
+  });
+  const { rows } = await client.query(
+    `INSERT INTO audit_log (actor_type, actor_user_id, actor_session_id, action, case_id, candidate_id, details, request_id)
+     VALUES ${tuples.join(", ")} RETURNING id`,
+    values,
+  );
+  if (rows.length !== entries.length) throw new AuditWriteError("insert");
+  return rows.map((row) => {
+    const id = col.numeric("audit_log", firstRow("audit_log", [row])!, "id");
+    if (!Number.isSafeInteger(id) || id < 1) throw new AuditWriteError("insert");
+    return id;
+  });
+}

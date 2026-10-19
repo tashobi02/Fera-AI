@@ -32,6 +32,7 @@ import {
 import { button, click, content, elements, mountHooks, settle } from "../intake-ui/fakes/hook-harness";
 
 let localeCookie: string | undefined;
+let storage: Map<string, string>;
 vi.mock("next/headers", () => ({
   cookies: async () => ({
     get: (name: string) =>
@@ -131,6 +132,13 @@ async function renderPage(id: string = CASE_ID) {
 }
 
 beforeEach(() => {
+  storage = new Map();
+  vi.stubGlobal("sessionStorage", {
+    getItem: (key: string) => storage.get(key) ?? null,
+    setItem: (key: string, value: string) => storage.set(key, value),
+    removeItem: (key: string) => { storage.delete(key); },
+  });
+  vi.stubGlobal("window", { location: { reload: vi.fn() } });
   localeCookie = undefined;
   guard.notFound = false;
   pageReads.caseResult = { kind: "ok", view: { view: "officer" as const, data: exampleOfficerMissingView } };
@@ -144,6 +152,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 function renderToStaticHtml(tree: ReactNode): string {
@@ -224,6 +233,15 @@ describe("SCREEN-012 detail (node-server markup)", () => {
     expect(html).toContain("Phone (masked)");
     expect(html).toContain("No likely same report found");
     expect(html).toContain("Reporter and contact");
+  });
+
+  it("links each duplicate to its officer case and shows its status", () => {
+    const duplicate = exampleOfficerFoundView;
+    const view = { ...exampleOfficerMissingView, duplicate_of: [{ id: duplicate.id, ref: duplicate.ref_code, status: duplicate.status }] };
+    const html = renderToString(OfficerCaseDetail({ locale: "en", view, t: enKeys() }));
+    expect(html).toContain(`href="/officer/case/${duplicate.id}"`);
+    expect(html).toContain(duplicate.ref_code);
+    expect(html).toContain("Being checked");
   });
 
   it("uses the safe per-role allowlist (BR-010/024): never raw details, never a phone in plain text unexpected to the officer", () => {
@@ -439,6 +457,37 @@ describe("SCREEN-012 close form (two-step confirm)", () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
+  it("restores the close note after E-005 reload and removes it after success", async () => {
+    const note = "আমার নোট — সমন্বয় চলছে";
+    const staleFetch = vi.fn().mockResolvedValue(Response.json(errorEnvelope("E-005"), { status: 409 }));
+    const h = mountOpen("bn", staleFetch as unknown as typeof fetch);
+    setNote(h, note);
+    submitCloseForm(h, "পর্যালোচনা শেষ");
+    h.render();
+    submitCloseForm(h, "সমন্বয়ের রেকর্ড বন্ধ করুন");
+    await settle();
+    h.render();
+    click(button(h.tree, "পাতা আবার লোড করুন"));
+    expect(window.location.reload).toHaveBeenCalledOnce();
+    h.unmount();
+
+    const restored = mountOpen("bn");
+    await settle();
+    restored.render();
+    expect(elements(restored.tree).find((node) => node.type === "textarea")?.props["value"]).toBe(note);
+    restored.unmount();
+
+    const successFetch = vi.fn().mockResolvedValue(Response.json(exampleCloseCaseResponse));
+    const successful = mountOpen("bn", successFetch as unknown as typeof fetch);
+    setNote(successful, note);
+    submitCloseForm(successful, "পর্যালোচনা শেষ");
+    successful.render();
+    submitCloseForm(successful, "সমন্বয়ের রেকর্ড বন্ধ করুন");
+    await settle();
+    successful.render();
+    expect(storage.has(`fera.close-note.${CASE_ID}`)).toBe(false);
+  });
+
   it("404 maps to the \"already closed\" copy without retrying or losing the note", async () => {
     const fetcher = vi.fn().mockResolvedValue(
       Response.json(errorEnvelope("E-004"), { status: 404 }),
@@ -482,6 +531,7 @@ describe("SCREEN-012 audit timeline", () => {
     expect(html).toContain('aria-labelledby="audit-heading"');
     expect(html).toContain('data-state="loaded"');
     expect((html.match(/<li\b/g) ?? []).length).toBe(exampleOfficerAuditResponse.entries.length);
+    expect((html.match(/data-test="synthetic-badge"/g) ?? []).length).toBe(exampleOfficerAuditResponse.entries.length);
     // Action labels exist in Bangla.
     expect(html).toContain("কেস বন্ধ");
     expect(html).toContain("মিল নিশ্চিত");

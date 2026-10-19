@@ -61,8 +61,8 @@ describe("compareCases", () => {
 
 describe("componentEntries", () => {
   it("sorts by key and keeps null as an unknown cue", () => {
-    expect(componentEntries({ time: 0.4, age: null, sex: 1 })).toEqual([
-      { key: "age", value: null }, { key: "sex", value: 1 }, { key: "time", value: 0.4 },
+    expect(componentEntries({ name: 1, age: null, cosine: 0.4 })).toEqual([
+      { key: "age", value: null }, { key: "cosine", value: 0.4 }, { key: "name", value: 1 },
     ]);
   });
 });

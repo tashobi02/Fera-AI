@@ -4,13 +4,14 @@ import type { Client, Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createMissingRequestSchema, decisionRequestSchema } from "@/contracts";
 import { exampleCreateMissingRequest, exampleRejectDecisionRequest } from "@/contracts/examples";
+import { createLogger } from "@/app/api/_shared/log";
 import { createFakeEmbedder, EMBEDDING_DIM, type Embedder } from "@/server/embeddings/model";
 import { createMissingCase, decideCandidate, editMissingCase, openCase } from "@/server/case";
 import { withTransaction } from "@/server/case/internal";
 import { setPoolForTests } from "@/server/db/pool";
-import { runMatcherForCase } from "@/server/matching/run";
+import { runMatcherForCase, runMatcherForFoundCase } from "@/server/matching/run";
 import { testParent, testUser } from "../support/principals";
-import { connect, createActors, dbTestsEnabled, fakePhone, insertFound, one, pool, seedReference, type Actors } from "./support/db";
+import { closeMissing, connect, createActors, dbTestsEnabled, fakePhone, insertFound, one, pool, seedReference, type Actors } from "./support/db";
 
 describe.skipIf(!dbTestsEnabled)("P3-040 matcher run on PostgreSQL 16", () => {
   let admin: Client;
@@ -91,17 +92,102 @@ describe.skipIf(!dbTestsEnabled)("P3-040 matcher run on PostgreSQL 16", () => {
     return { missing, found };
   };
 
-  it("writes one qualified pair at current versions under the endpoint lock set", async () => {
+  it("marks a failed candidate write incomplete and withdraws its partial shortlist", async () => {
+    const { missing, found } = await pair();
+    const twin = await insertFound(appClient, actors.staff);
+    const profile = await one<{
+      child_name: string; age_min: number; age_max: number; sex: string; clothing: string;
+      circumstances: string; event_at: Date; event_at_lower: Date; event_at_upper: Date;
+      place_text: string; district_code: number;
+    }>(appClient,
+      `SELECT child_name, age_min, age_max, sex, clothing, circumstances, event_at,
+              event_at_lower, event_at_upper, place_text, district_code
+         FROM cases WHERE id = $1`, [found.id]);
+    await app.query(
+      `UPDATE cases SET child_name = $2, age_min = $3, age_max = $4, sex = $5, clothing = $6,
+         circumstances = $7, event_at = $8, event_at_lower = $9, event_at_upper = $10,
+         place_text = $11, district_code = $12 WHERE id = $1`,
+      [twin.id, profile.child_name, profile.age_min, profile.age_max, profile.sex, profile.clothing,
+        profile.circumstances, profile.event_at, profile.event_at_lower, profile.event_at_upper,
+        profile.place_text, profile.district_code],
+    );
+    await setSyntheticVector(found.id);
+    await setSyntheticVector(twin.id);
+
+    await admin.query(`CREATE FUNCTION public.test_reject_one_match_candidate() RETURNS trigger
+      LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'test candidate rejection' USING ERRCODE = '23514'; END $$`);
+    await admin.query(`CREATE TRIGGER test_reject_one_match_candidate BEFORE INSERT ON public.match_candidates
+      FOR EACH ROW WHEN (NEW.missing_case_id = '${missing.id}'::uuid AND NEW.found_case_id = '${found.id}'::uuid)
+      EXECUTE FUNCTION public.test_reject_one_match_candidate()`);
+
+    const logLines: string[] = [];
+    const logger = createLogger((line) => logLines.push(line), () => 1_700_000_000_000);
+    try {
+      const direct = await runMatcherForCase(missing.id, { embedder: constantEmbedder(), api: "API-014", pool: app, logger });
+      expect(direct).toMatchObject({ state: "failed", considered: 2, skipped: ["E-021"], errorId: "E-021", candidates: [] });
+      const persisted = await one<{ status: string }>(appClient,
+        "SELECT status FROM match_candidates WHERE missing_case_id = $1 AND found_case_id = $2",
+        [missing.id, twin.id]);
+      expect(persisted.status).toBe("superseded");
+      const failedState = await one<{ status: string; matching_state: string; match_error_id: string | null }>(appClient,
+        "SELECT status, matching_state, match_error_id FROM cases WHERE id = $1", [missing.id]);
+      expect(failedState).toMatchObject({ status: "open", matching_state: "failed", match_error_id: "E-021" });
+      expect(logLines.map((line) => JSON.parse(line))).toContainEqual(expect.objectContaining({
+        event: "match.row_skipped", error_id: "E-021", err_code: "23514",
+      }));
+    } finally {
+      await admin.query("DROP TRIGGER IF EXISTS test_reject_one_match_candidate ON public.match_candidates");
+      await admin.query("DROP FUNCTION IF EXISTS public.test_reject_one_match_candidate()");
+    }
+
+    const fanout = await runMatcherForFoundCase(found.id, { embedder: constantEmbedder(), pool: app, logger });
+    expect(fanout).toMatchObject({ state: "complete", considered: 2 });
+    const duplicate = await one<{ status: string }>(appClient,
+      `SELECT status FROM duplicate_links WHERE case_a = least($1::uuid, $2::uuid)
+         AND case_b = greatest($1::uuid, $2::uuid)`, [found.id, twin.id]);
+    expect(duplicate.status).toBe("flagged");
+  });
+
+  it("does not stamp closed or redacted reports during a matcher re-run", async () => {
+    const closed = await newOpenMissing();
+    await closeMissing(appClient, closed.id, "resolved_outside_fera");
+    const closedBefore = await one<{ matching_state: string; matched_at: Date | null }>(appClient,
+      "SELECT matching_state, matched_at FROM cases WHERE id = $1", [closed.id]);
+    expect(await runMatcherForCase(closed.id, { embedder: constantEmbedder(), api: "API-014", pool: app }))
+      .toMatchObject({ state: "failed", errorId: "E-005" });
+    expect(await one(appClient, "SELECT matching_state, matched_at FROM cases WHERE id = $1", [closed.id])).toEqual(closedBefore);
+
+    const redacted = await newOpenMissing();
+    await closeMissing(appClient, redacted.id, "resolved_outside_fera");
+    await admin.query("BEGIN");
+    try {
+      await admin.query("SELECT set_config('fera.redaction_actor_id', $1, true)", [actors.admin]);
+      await admin.query("SELECT redact_case($1, $2)", [redacted.id, actors.admin]);
+      await admin.query("COMMIT");
+    } catch (err) {
+      await admin.query("ROLLBACK").catch(() => undefined);
+      throw err;
+    }
+    const redactedBefore = await one<{ matching_state: string; matched_at: Date | null }>(appClient,
+      "SELECT matching_state, matched_at FROM cases WHERE id = $1", [redacted.id]);
+    expect(await runMatcherForCase(redacted.id, { embedder: constantEmbedder(), api: "API-014", pool: app }))
+      .toMatchObject({ state: "failed", errorId: "E-018" });
+    expect(await one(appClient, "SELECT matching_state, matched_at FROM cases WHERE id = $1", [redacted.id])).toEqual(redactedBefore);
+  });
+
+  it("writes a qualified pair at current versions under the endpoint lock set", async () => {
+    // The first test leaves two eligible found reports in this per-file database;
+    // this run therefore considers those plus the new pair's found report.
     const { missing, found } = await pair();
     const result = await runMatcherForCase(missing.id, { embedder: constantEmbedder(), api: "API-014", pool: app });
-    expect(result).toMatchObject({ state: "complete", considered: 1, abstained: false });
-    expect(result.candidates).toHaveLength(1);
-    const candidate = await one<{ missing_version: number; found_version: number; status: string; rank: number }>(
+    expect(result).toMatchObject({ state: "complete", considered: 3, abstained: false });
+    const candidate = await one<{ id: string; missing_version: number; found_version: number; status: string; rank: number }>(
       appClient,
-      "SELECT missing_version, found_version, status, rank FROM match_candidates WHERE missing_case_id = $1 AND found_case_id = $2",
+      "SELECT id, missing_version, found_version, status, rank FROM match_candidates WHERE missing_case_id = $1 AND found_case_id = $2",
       [missing.id, found.id],
     );
-    expect(candidate).toEqual({ missing_version: 1, found_version: 1, status: "pending", rank: 1 });
+    expect(result.candidates).toContainEqual(expect.objectContaining({ id: candidate.id, rank: candidate.rank }));
+    expect(candidate).toMatchObject({ missing_version: 1, found_version: 1, status: "pending" });
   });
 
   it("does not resuggest a rejected pair at the same versions", async () => {
@@ -207,5 +293,28 @@ describe.skipIf(!dbTestsEnabled)("P3-040 matcher run on PostgreSQL 16", () => {
       matching_state: "failed",
       match_error_id: "E-021",
     });
+  });
+
+  it("fails when a trigger suppresses a ranked candidate write", async () => {
+    const { missing } = await pair();
+    await admin.query(`CREATE FUNCTION public.test_suppress_match_candidate() RETURNS trigger
+      LANGUAGE plpgsql AS $$ BEGIN RETURN NULL; END $$`);
+    await admin.query(`CREATE TRIGGER test_suppress_match_candidate BEFORE INSERT ON public.match_candidates
+      FOR EACH ROW WHEN (NEW.missing_case_id = '${missing.id}'::uuid)
+      EXECUTE FUNCTION public.test_suppress_match_candidate()`);
+
+    try {
+      const direct = await runMatcherForCase(missing.id, { embedder: constantEmbedder(), api: "API-014", pool: app });
+      expect(direct).toMatchObject({ state: "failed", errorId: "E-021", candidates: [] });
+      expect(direct.skipped).toContain("E-021");
+      expect(await one<{ status: string; matching_state: string; match_error_id: string | null }>(appClient,
+        "SELECT status, matching_state, match_error_id FROM cases WHERE id = $1", [missing.id]))
+        .toMatchObject({ status: "open", matching_state: "failed", match_error_id: "E-021" });
+      expect(await appClient.query("SELECT id FROM match_candidates WHERE missing_case_id = $1", [missing.id]))
+        .toMatchObject({ rows: [] });
+    } finally {
+      await admin.query("DROP TRIGGER IF EXISTS test_suppress_match_candidate ON public.match_candidates");
+      await admin.query("DROP FUNCTION IF EXISTS public.test_suppress_match_candidate()");
+    }
   });
 });

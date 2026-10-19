@@ -1,0 +1,181 @@
+npm notice run fera-ai@0.1.0 test:e2e
+npm notice run playwright test --config /tmp/fera-system-extra.config.ts
+[WebServer] npm notice run fera-ai@0.1.0 db:reset
+[WebServer] npm notice run node scripts/db/reset.mjs
+[WebServer] db:reset → postgresql://postgres:***@127.0.0.1:54322/fera_e2e_system_extra_a91f
+[WebServer] {"database":"fera_e2e_system_extra_a91f","server_version":"16.15","pgvector":"0.8.1","hnsw_index":"cases_embedding_hnsw_idx","hnsw_valid":true,"public_tables":17,"roles":["fera_app","fera_owner","fera_redactor"],"schema_sha256":"08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"}
+[WebServer] (node:2647117) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] npm notice run fera-ai@0.1.0 npx
+[WebServer] npm notice run 'next' start -p 3111
+[WebServer] (node:2647209) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] ▲ Next.js 16.4.0
+[WebServer] - Local:         http://localhost:3111
+[WebServer] - Network:       http://192.168.1.163:3111
+[WebServer] ✓ Ready in 88ms
+[WebServer] ✓ Running next.config.ts took 24ms
+
+Running 6 tests using 1 worker
+
+(node:2647261) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] {"level":50,"time":1792352571319,"event":"auth.insecure_cookies"}
+[WebServer] {"level":50,"time":1792352571319,"event":"ratelimit.memory_store"}
+[WebServer] {"level":40,"time":1792352571320,"event":"ratelimit.unknown_address","reason":"ratelimit"}
+[WebServer] {"level":30,"time":1792352571384,"request_id":"584e6a8e-b2ce-4bbc-8b02-aa0d6215f4c8","route":"API-020","method":"POST","event":"request","role":"anonymous","status":200,"duration_ms":65}
+[WebServer] {"level":30,"time":1792352571438,"request_id":"a40ce3e7-56d3-4d75-a0d0-e092445eee94","route":"API-020","method":"POST","event":"request","role":"anonymous","status":200,"duration_ms":42}
+[WebServer] {"level":30,"time":1792352571506,"request_id":"d217fdac-c169-45c2-bbfc-2dbe91af489b","route":"API-002","method":"POST","event":"request","role":"parent","status":200,"duration_ms":39}
+[WebServer] {"level":40,"time":1792352571550,"request_id":"e43c94cd-b16f-480d-b184-c47ac87b3788","route":"API-003","method":"POST","event":"request","role":"parent","status":400,"duration_ms":8,"error_id":"E-001","reason":"schema","stage":"input"}
+[WebServer] {"level":30,"time":1792352573186,"request_id":"d01bf322-f648-4d35-97e2-47d1839fe14d","route":"API-003","method":"POST","event":"request","role":"parent","status":201,"duration_ms":1623}
+[WebServer] {"level":30,"time":1792352573207,"request_id":"0d50de31-9b23-4093-b2bd-78f5858ac422","route":"API-006","method":"POST","event":"request","role":"parent","status":200,"duration_ms":9}
+[WebServer] {"level":30,"time":1792352573339,"request_id":"5ce0ed67-b10d-4115-b992-17ae51776afc","route":"API-007","method":"POST","event":"request","role":"staff","status":201,"duration_ms":123}
+[WebServer] {"level":30,"time":1792352573361,"request_id":"de1c1507-78a9-46e5-93ad-80422d21ccd8","route":"API-008","method":"GET","event":"request","role":"officer","status":200,"duration_ms":11}
+[WebServer] {"level":40,"time":1792352573374,"request_id":"de46d58e-26f8-4242-bf0e-e9c6b52b4d40","route":"API-009","method":"GET","event":"request","role":"parent","status":404,"duration_ms":4,"error_id":"E-004","reason":"role","stage":"resolver"}
+[WebServer] {"level":30,"time":1792352573401,"request_id":"5ad3d26d-aece-4596-83fc-15ec76ae3098","route":"API-010","method":"POST","event":"request","role":"officer","status":200,"duration_ms":19}
+[WebServer] {"level":30,"time":1792352573419,"request_id":"37800357-be71-429c-88cd-8f35eae9087d","route":"API-011","method":"POST","event":"request","role":"officer","status":200,"duration_ms":9}
+[WebServer] {"level":30,"time":1792352573434,"request_id":"d1fc0d39-7583-420d-a53f-621430dae44f","route":"API-012","method":"GET","event":"request","role":"officer","status":200,"duration_ms":4}
+[WebServer] {"level":30,"time":1792352573469,"request_id":"b78ef2e6-570c-4d16-8157-8054fe21bcd5","route":"API-002","method":"POST","event":"request","role":"parent","status":200,"duration_ms":14}
+[WebServer] {"level":40,"time":1792352573478,"request_id":"a8cc4949-4973-4bdf-b0b8-74bc4741c16d","route":"API-003","method":"POST","event":"request","role":"parent","status":400,"duration_ms":1,"error_id":"E-001","reason":"schema","stage":"input"}
+[WebServer] {"level":30,"time":1792352573518,"request_id":"e67ca8cd-c207-4c3b-8b59-34941661823c","route":"API-003","method":"POST","event":"request","role":"parent","status":201,"duration_ms":34}
+[WebServer] {"level":30,"time":1792352573527,"request_id":"0482243c-3f20-4221-9418-021c57ad0226","route":"API-006","method":"POST","event":"request","role":"parent","status":200,"duration_ms":5}
+[WebServer] {"level":30,"time":1792352573589,"request_id":"a4163c4b-8e75-44c9-8982-1ae28280c91d","route":"API-007","method":"POST","event":"request","role":"staff","status":201,"duration_ms":58}
+[WebServer] {"level":30,"time":1792352573600,"request_id":"16a8840b-14fc-4a01-aeec-b05972b3c363","route":"API-008","method":"GET","event":"request","role":"officer","status":200,"duration_ms":6}
+[WebServer] {"level":40,"time":1792352573606,"request_id":"dd7c7beb-718b-4d1b-a63d-ac723f475715","route":"API-009","method":"GET","event":"request","role":"parent","status":404,"duration_ms":3,"error_id":"E-004","reason":"role","stage":"resolver"}
+[WebServer] {"level":30,"time":1792352573625,"request_id":"6768c17d-b23b-4d3f-bc7b-843d3e0b9a6f","route":"API-010","method":"POST","event":"request","role":"officer","status":200,"duration_ms":15}
+[WebServer] {"level":30,"time":1792352573637,"request_id":"b3e2806f-db48-4562-a922-b4401e9abfef","route":"API-011","method":"POST","event":"request","role":"officer","status":200,"duration_ms":6}
+[WebServer] {"level":30,"time":1792352573646,"request_id":"2205ae2e-b616-443e-b38c-8bbf976d7dd5","route":"API-012","method":"GET","event":"request","role":"officer","status":200,"duration_ms":3}
+[WebServer] {"level":30,"time":1792352573671,"request_id":"97c20676-10de-41f0-90fa-5b9685b75927","route":"API-002","method":"POST","event":"request","role":"parent","status":200,"duration_ms":14}
+[WebServer] {"level":40,"time":1792352573679,"request_id":"3656becd-189f-46ab-9bdd-1f6601fb9edf","route":"API-003","method":"POST","event":"request","role":"parent","status":400,"duration_ms":2,"error_id":"E-001","reason":"schema","stage":"input"}
+[WebServer] {"level":30,"time":1792352573718,"request_id":"7893ffd5-1e62-4568-96f4-e3ab6bf9cd02","route":"API-003","method":"POST","event":"request","role":"parent","status":201,"duration_ms":36}
+[WebServer] {"level":30,"time":1792352573728,"request_id":"ed0d41cc-be83-4464-b2c2-17bbf9a19b72","route":"API-006","method":"POST","event":"request","role":"parent","status":200,"duration_ms":5}
+[WebServer] {"level":30,"time":1792352573796,"request_id":"e63ebb81-bf56-4b77-a023-78e787a16e06","route":"API-007","method":"POST","event":"request","role":"staff","status":201,"duration_ms":63}
+[WebServer] {"level":30,"time":1792352573806,"request_id":"3bc01872-3808-4135-955f-dffdc270d265","route":"API-008","method":"GET","event":"request","role":"officer","status":200,"duration_ms":4}
+[WebServer] {"level":40,"time":1792352573821,"request_id":"ac51ca19-4dd9-4b48-8a3c-7aca25036150","route":"API-009","method":"GET","event":"request","role":"parent","status":404,"duration_ms":4,"error_id":"E-004","reason":"role","stage":"resolver"}
+[WebServer] {"level":30,"time":1792352573842,"request_id":"1cfe4687-2e8a-474a-9c36-5b496ee78edf","route":"API-010","method":"POST","event":"request","role":"officer","status":200,"duration_ms":17}
+[WebServer] {"level":30,"time":1792352573854,"request_id":"123fdd52-96cd-467c-8bf3-2eb31bde9c38","route":"API-011","method":"POST","event":"request","role":"officer","status":200,"duration_ms":7}
+[WebServer] {"level":30,"time":1792352573863,"request_id":"60869331-55de-4f4f-8253-8b25f12f7622","route":"API-012","method":"GET","event":"request","role":"officer","status":200,"duration_ms":3}
+[WebServer] {"level":30,"time":1792352573888,"request_id":"f942bf9b-510d-4c4e-b911-b9af7d20c945","route":"API-002","method":"POST","event":"request","role":"parent","status":200,"duration_ms":12}
+[WebServer] {"level":40,"time":1792352573894,"request_id":"52b0d170-2cba-4cee-864c-48445442d3e0","route":"API-003","method":"POST","event":"request","role":"parent","status":400,"duration_ms":1,"error_id":"E-001","reason":"schema","stage":"input"}
+[WebServer] {"level":30,"time":1792352573934,"request_id":"e3c59432-b7c5-490a-8189-0de6db424248","route":"API-003","method":"POST","event":"request","role":"parent","status":201,"duration_ms":37}
+[WebServer] {"level":30,"time":1792352573943,"request_id":"d0ec91bb-97be-44d1-9813-ef9c8435191a","route":"API-006","method":"POST","event":"request","role":"parent","status":200,"duration_ms":5}
+[WebServer] {"level":30,"time":1792352574008,"request_id":"3db7d8a6-6ebd-4eca-bd37-70a76258cf6a","route":"API-007","method":"POST","event":"request","role":"staff","status":201,"duration_ms":61}
+[WebServer] {"level":30,"time":1792352574017,"request_id":"b35cc604-6a81-414b-ab67-58f3b1f97c01","route":"API-008","method":"GET","event":"request","role":"officer","status":200,"duration_ms":4}
+[WebServer] {"level":40,"time":1792352574024,"request_id":"e2d7ecce-4f92-4ae1-80c6-a69824b21fcb","route":"API-009","method":"GET","event":"request","role":"parent","status":404,"duration_ms":3,"error_id":"E-004","reason":"role","stage":"resolver"}
+[WebServer] {"level":30,"time":1792352574040,"request_id":"c2901a9d-5fa6-4706-a970-8110494a3a1f","route":"API-010","method":"POST","event":"request","role":"officer","status":200,"duration_ms":13}
+[WebServer] {"level":30,"time":1792352574051,"request_id":"cc3fc2e5-0e49-4bd4-a06c-d52b01571ade","route":"API-011","method":"POST","event":"request","role":"officer","status":200,"duration_ms":6}
+[WebServer] {"level":30,"time":1792352574062,"request_id":"da4d434f-bf06-4f25-b680-020bf50d496e","route":"API-012","method":"GET","event":"request","role":"officer","status":200,"duration_ms":3}
+[WebServer] {"level":30,"time":1792352574085,"request_id":"c40aed91-8df8-4690-ba16-875a62c977c8","route":"API-002","method":"POST","event":"request","role":"parent","status":200,"duration_ms":12}
+[WebServer] {"level":40,"time":1792352574092,"request_id":"19a3cc66-dc40-442f-a643-66a6bfe368d4","route":"API-003","method":"POST","event":"request","role":"parent","status":400,"duration_ms":2,"error_id":"E-001","reason":"schema","stage":"input"}
+[WebServer] {"level":30,"time":1792352574131,"request_id":"ac790af5-25d5-4874-9ac7-59b61d01af6a","route":"API-003","method":"POST","event":"request","role":"parent","status":201,"duration_ms":35}
+[WebServer] {"level":30,"time":1792352574141,"request_id":"924d413d-f0dd-47c9-97c5-26cef17a1adb","route":"API-006","method":"POST","event":"request","role":"parent","status":200,"duration_ms":5}
+[WebServer] {"level":30,"time":1792352574206,"request_id":"ed0f9bf5-66c7-444b-9df6-760e6260fbd7","route":"API-007","method":"POST","event":"request","role":"staff","status":201,"duration_ms":61}
+[WebServer] {"level":30,"time":1792352574219,"request_id":"8c473f97-eac3-4bbe-964e-9d1681c88964","route":"API-008","method":"GET","event":"request","role":"officer","status":200,"duration_ms":7}
+[WebServer] {"level":40,"time":1792352574227,"request_id":"fbe235c2-8da1-4e19-b000-4d4aa9179bc3","route":"API-009","method":"GET","event":"request","role":"parent","status":404,"duration_ms":4,"error_id":"E-004","reason":"role","stage":"resolver"}
+[WebServer] {"level":30,"time":1792352574245,"request_id":"4ed495bf-1ae3-4a55-84d5-006eb5cf3713","route":"API-010","method":"POST","event":"request","role":"officer","status":200,"duration_ms":12}
+[WebServer] {"level":30,"time":1792352574262,"request_id":"edc7ee53-634f-44ba-b247-488ec1cd293b","route":"API-011","method":"POST","event":"request","role":"officer","status":200,"duration_ms":11}
+[WebServer] {"level":30,"time":1792352574270,"request_id":"5b01d089-069d-48f0-9fdd-e142672dbde3","route":"API-012","method":"GET","event":"request","role":"officer","status":200,"duration_ms":2}
+  ✓  1 [desktop] › ../../../../../tmp/fera-system-extra-specs/fera-system-extra.spec.ts:9:5 › SYS-01 seam: five unbroken real API lifecycles, outputs, matching, confirm, close and dashboard (3.0s)
+[WebServer] {"level":30,"time":1792352574402,"request_id":"6d0eb667-886e-4571-aaf5-5f9719561315","route":"API-020","method":"POST","event":"request","role":"anonymous","status":200,"duration_ms":21}
+[WebServer] {"level":30,"time":1792352574893,"request_id":"4621f1b6-0b14-4f7c-b747-dbaebea49652","route":"API-007","method":"POST","event":"request","role":"staff","status":201,"duration_ms":104}
+  ✓  2 [desktop] › ../../../../../tmp/fera-system-extra-specs/fera-system-extra.spec.ts:35:5 › SYS-11: disaster page keeps planned-expansion label and saves a real found report (675ms)
+[WebServer] {"level":30,"time":1792352575044,"request_id":"4aae47ab-5908-4a71-8c4f-48ffafe5207c","route":"API-019","method":"GET","event":"request","role":"anonymous","status":200,"duration_ms":7}
+  ✓  3 [desktop] › ../../../../../tmp/fera-system-extra-specs/fera-system-extra.spec.ts:42:5 › security headers apply to JSON as well as HTML (27ms)
+  ✘  4 [desktop] › ../../../../../tmp/fera-system-extra-specs/fera-system-extra.spec.ts:45:5 › TC-036/060: notice gates dispatch, E-023 offers manual form and keeps typed text (10.7s)
+(node:2647613) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  5 [desktop] › ../../../../../tmp/fera-system-extra-specs/fera-system-extra.spec.ts:52:5 › TC-058 partial: intake/manual pages reflow at 200% text and 400% viewport zoom (817ms)
+  ✘  6 [desktop] › ../../../../../tmp/fera-system-extra-specs/fera-system-extra.spec.ts:55:5 › TC-017: opening manual form before any extraction gives editable fields (10.6s)
+
+
+  1) [desktop] › ../../../../../tmp/fera-system-extra-specs/fera-system-extra.spec.ts:45:5 › TC-036/060: notice gates dispatch, E-023 offers manual form and keeps typed text 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('body')
+    Expected substring: "[MOCK] synthetic text retained after spend cap"
+    Received string:    "মূল অংশে যানফেরাবাংলা | Englishসিনথেটিক তথ্য · কর্মকর্তা যাচাই সিমুলেশননিজে ফর্মে লিখুনসিনথেটিকএই ডিভাইসে যাচাই করার মতো খসড়া নেই।আপনার কথায় ফিরুনখসড়া মুছে ফেলবেন?খসড়া মুছে ফেলবেন?রাখুনমুছুনখসড়া মুছে ফেলবেন?খসড়া মুছে ফেলবেন?রাখুনমুছুননিজে ফর্মে লিখুন · ফেরা"
+    Timeout: 10000ms
+
+    Call log:
+      - Expect "toContainText" locator('body') with timeout 10000ms
+      - waiting for locator('body')
+        24 × locator resolved to <body>…</body>
+           - unexpected value "মূল অংশে যানফেরাবাংলা | Englishসিনথেটিক তথ্য · কর্মকর্তা যাচাই সিমুলেশননিজে ফর্মে লিখুনসিনথেটিকএই ডিভাইসে যাচাই করার মতো খসড়া নেই।আপনার কথায় ফিরুনখসড়া মুছে ফেলবেন?খসড়া মুছে ফেলবেন?রাখুনমুছুনখসড়া মুছে ফেলবেন?খসড়া মুছে ফেলবেন?রাখুনমুছুননিজে ফর্মে লিখুন · ফেরা"
+
+
+      48 |  await expect(page.locator('textarea[name="text"]')).toHaveCount(0);await page.getByRole("button",{name:/বুঝেছি, চালিয়ে যান|I understand, continue/}).click();
+      49 |  const text="[MOCK] synthetic text retained after spend cap";await page.locator('textarea[name="text"]').fill(text);await page.getByRole("button",{name:/^পাঠান$|^Send$/}).click();
+    > 50 |  await expect(page.getByRole("heading",{name:/বাকি তথ্য ফর্মে দিন|Add the rest in the form/})).toBeVisible();const form=page.getByRole("link",{name:/^ফর্ম খুলুন$|^Open the form$/}).first();await expect(form).toBeVisible();expect(calls).toBe(1);await form.click();await expect(page).toHaveURL(/intake\/form/);await expect(page.locator("body")).toContainText(text);
+         |                                                                                                                                                                                                                                                                                                                                                        ^
+      51 | });
+      52 | test("TC-058 partial: intake/manual pages reflow at 200% text and 400% viewport zoom",async({page})=>{
+      53 |  for(const path of ["/intake","/intake/form","/intake/review"]){for(const mode of ["text200","viewport400"]){await page.setViewportSize({width:mode==="text200"?1280:320,height:800});await page.goto(path);if(mode==="text200")await page.evaluate(()=>document.documentElement.style.fontSize="200%");const size=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth}));expect(size.scroll,`${path} ${mode}`).toBeLessThanOrEqual(size.client+1);}}
+        at /tmp/fera-system-extra-specs/fera-system-extra.spec.ts:50:344
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../tmp/fera-system-extra-results/fera-system-extra-TC-036-0-09c12-l-form-and-keeps-typed-text-desktop/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ../../../../../tmp/fera-system-extra-results/fera-system-extra-TC-036-0-09c12-l-form-and-keeps-typed-text-desktop/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../tmp/fera-system-extra-results/fera-system-extra-TC-036-0-09c12-l-form-and-keeps-typed-text-desktop/error-context.md
+
+    Error Context: ../../../../../tmp/fera-system-extra-results/fera-system-extra-TC-036-0-09c12-l-form-and-keeps-typed-text-desktop/error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../tmp/fera-system-extra-results/fera-system-extra-TC-036-0-09c12-l-form-and-keeps-typed-text-desktop/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../tmp/fera-system-extra-results/fera-system-extra-TC-036-0-09c12-l-form-and-keeps-typed-text-desktop/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [desktop] › ../../../../../tmp/fera-system-extra-specs/fera-system-extra.spec.ts:55:5 › TC-017: opening manual form before any extraction gives editable fields 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('[id="review-child.name"]')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" locator('[id="review-child.name"]') with timeout 10000ms
+      - waiting for locator('[id="review-child.name"]')
+
+
+      55 | test("TC-017: opening manual form before any extraction gives editable fields",async({page})=>{
+      56 |  await page.goto("/intake");await page.getByRole("button",{name:/বুঝেছি, চালিয়ে যান|I understand, continue/}).click();
+    > 57 |  await page.getByRole("link",{name:/^ফর্ম খুলুন$|^Open the form$/}).first().click();await expect(page).toHaveURL(/intake\/form/);await expect(page.locator('[id="review-child.name"]')).toBeVisible();
+         |                                                                                                                                                                                         ^
+      58 | });
+      59 |
+        at /tmp/fera-system-extra-specs/fera-system-extra.spec.ts:57:185
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../tmp/fera-system-extra-results/fera-system-extra-TC-017-o-0c653-ction-gives-editable-fields-desktop/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ../../../../../tmp/fera-system-extra-results/fera-system-extra-TC-017-o-0c653-ction-gives-editable-fields-desktop/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../tmp/fera-system-extra-results/fera-system-extra-TC-017-o-0c653-ction-gives-editable-fields-desktop/error-context.md
+
+    Error Context: ../../../../../tmp/fera-system-extra-results/fera-system-extra-TC-017-o-0c653-ction-gives-editable-fields-desktop/error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../tmp/fera-system-extra-results/fera-system-extra-TC-017-o-0c653-ction-gives-editable-fields-desktop/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../tmp/fera-system-extra-results/fera-system-extra-TC-017-o-0c653-ction-gives-editable-fields-desktop/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    [desktop] › ../../../../../tmp/fera-system-extra-specs/fera-system-extra.spec.ts:45:5 › TC-036/060: notice gates dispatch, E-023 offers manual form and keeps typed text 
+    [desktop] › ../../../../../tmp/fera-system-extra-specs/fera-system-extra.spec.ts:55:5 › TC-017: opening manual form before any extraction gives editable fields 
+  4 passed (30.5s)

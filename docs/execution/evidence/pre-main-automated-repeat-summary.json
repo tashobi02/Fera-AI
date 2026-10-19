@@ -2,48 +2,48 @@
   "automated": true,
   "humanRehearsal": false,
   "dirtyTree": true,
-  "gitStatusPorcelain": "?? docs/execution/evidence/pre-main-clean-checkout.json\n",
+  "gitStatusPorcelain": " M db/roles.sql\n M db/schema_v2.sql\n M docs/MANIFEST.json\n M docs/code/schema_v2.sql\n M docs/execution/evidence/pre-main-automated-repeat-summary.json\n M docs/execution/evidence/pre-main-phase4-readiness.md\n M docs/execution/evidence/pre-main-test-journeys.md\n M next.config.ts\n M package-lock.json\n M package.json\n M scripts/db/migrate.mjs\n M src/app/(parent)/intake/review/review-fields.tsx\n M src/server/case/list.ts\n M src/server/case/read.ts\n M src/server/matching/run.ts\n M tests/db/match-run.test.ts\n M tests/db/platform.test.ts\n?? playwright.pre-main.config.ts\n?? postcss.config.mjs\n?? scripts/db/migrations/007_metadata_sweep_database_clock.sql\n",
   "results": [
     {
       "run": 1,
       "code": 0,
-      "dbName": "fera_e2e_premainjourney_2571999_0_b13b5f",
+      "dbName": "fera_e2e_premainjourney_216986_0_163409",
       "networkRecords": 189,
       "externalAttempts": 0,
-      "sourceCommit": "2ce4cae037f94c6b1a1c3bdd49a9f7e9cfe8fcd9"
+      "sourceCommit": "7b13b5ffdc3e28b992d526d368b129c19b4ab8da"
     },
     {
       "run": 2,
       "code": 0,
-      "dbName": "fera_e2e_premainjourney_2571999_1_d8bed8",
+      "dbName": "fera_e2e_premainjourney_216986_1_4a05b7",
       "networkRecords": 189,
       "externalAttempts": 0,
-      "sourceCommit": "2ce4cae037f94c6b1a1c3bdd49a9f7e9cfe8fcd9"
+      "sourceCommit": "7b13b5ffdc3e28b992d526d368b129c19b4ab8da"
     },
     {
       "run": 3,
       "code": 0,
-      "dbName": "fera_e2e_premainjourney_2571999_2_00e6b4",
+      "dbName": "fera_e2e_premainjourney_216986_2_c5c478",
       "networkRecords": 189,
       "externalAttempts": 0,
-      "sourceCommit": "2ce4cae037f94c6b1a1c3bdd49a9f7e9cfe8fcd9"
+      "sourceCommit": "7b13b5ffdc3e28b992d526d368b129c19b4ab8da"
     },
     {
       "run": 4,
       "code": 0,
-      "dbName": "fera_e2e_premainjourney_2571999_3_010505",
+      "dbName": "fera_e2e_premainjourney_216986_3_c6d9df",
       "networkRecords": 189,
       "externalAttempts": 0,
-      "sourceCommit": "2ce4cae037f94c6b1a1c3bdd49a9f7e9cfe8fcd9"
+      "sourceCommit": "7b13b5ffdc3e28b992d526d368b129c19b4ab8da"
     },
     {
       "run": 5,
       "code": 0,
-      "dbName": "fera_e2e_premainjourney_2571999_4_b495cf",
+      "dbName": "fera_e2e_premainjourney_216986_4_0a949c",
       "networkRecords": 189,
       "externalAttempts": 0,
-      "sourceCommit": "2ce4cae037f94c6b1a1c3bdd49a9f7e9cfe8fcd9"
+      "sourceCommit": "7b13b5ffdc3e28b992d526d368b129c19b4ab8da"
     }
   ],
-  "recordedAt": "2026-10-18T19:09:59.997Z"
+  "recordedAt": "2026-10-19T08:04:50.693Z"
 }

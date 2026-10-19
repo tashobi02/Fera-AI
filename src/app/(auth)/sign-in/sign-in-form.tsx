@@ -26,6 +26,7 @@ import {
   LogInIcon,
 } from "@/app/components/icons";
 import type { DemoAccount, DemoAccountRole } from "@/lib/demo-accounts";
+import { setInputValueAndNotify } from "@/lib/sign-in-dom";
 import { signInFailureText } from "@/lib/sign-in-errors";
 import {
   clearsPassword,
@@ -128,7 +129,7 @@ export function SignInForm({
   }
 
   function fillUsername(value: string) {
-    if (usernameRef.current) usernameRef.current.value = value;
+    setInputValueAndNotify(usernameRef.current, value);
     dispatch({ type: "demo-fill", username: value });
     passwordRef.current?.focus();
   }

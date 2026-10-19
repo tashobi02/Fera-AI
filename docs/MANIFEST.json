@@ -18,13 +18,13 @@
     },
     {
       "path": "code/fera_types_v2.ts",
-      "bytes": 17350,
-      "sha256": "3d2f58591f773dfcf128a1b755938ed40c3ccdaf411bd44bd07862e48756733b"
+      "bytes": 17386,
+      "sha256": "3f626c2474d5582d8d20da79229a0e8ff372ecb3ea0d25d9744c09784cf94db4"
     },
     {
       "path": "code/schema_v2.sql",
-      "bytes": 36439,
-      "sha256": "08e7ad04ad093366787eeb9e8785e67c4558b1cf770f65806d1ad8df86042d87"
+      "bytes": 40968,
+      "sha256": "16a1d2d9815939566d5aa4689a9336182a4db36368c697ec438ec87e1d042630"
     },
     {
       "path": "code/tokens_v2.css",

@@ -286,7 +286,7 @@ export function ReviewFields({ record, locale, errors, onEdit, onApprox, onBatch
         lang={textLang(value)} value={NUMBER_FIELDS.has(path) || TIME_FIELDS.has(path) ? localizeDigits(value, locale) : value}
         aria-required={required || undefined} aria-invalid={invalid || undefined} aria-describedby={descriptions}
         onBlur={() => onBlur(path)} onChange={(e) => onEdit(path, e.target.value)} />}
-      {hint && <p id={`${id}-hint`} className="mt-2 break-words text-body-lg text-body">{hint} <a href="tel:13219" className="inline-flex min-h-11 max-w-full items-center underline underline-offset-2">{t.reviewDistrictHelpLink}</a></p>}
+      {hint && <p id={`${id}-hint`} className="mt-2 break-words text-body-lg text-body">{hint} <a href="tel:13219" className="inline-block min-h-11 max-w-full align-middle underline underline-offset-2">{t.reviewDistrictHelpLink}</a></p>}
       {invalid && <p id={`${id}-error`} className="mt-2 flex items-start gap-2 text-body-lg text-body"><CircleAlertIcon className="mt-1 size-5 text-info" />{fieldError(path, locale)}</p>}
       {edited ? <p className="mt-3 flex items-center gap-2 text-body-lg text-success-text"><CircleCheckIcon />{t.reviewEdited}</p> : value !== "" && <div data-field-source={path} className="mt-3 border-t border-hairline pt-3">
         <p className="mb-1 text-body-lg font-medium text-body">{t.reviewSource}</p>
