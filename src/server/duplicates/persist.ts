@@ -198,6 +198,12 @@ export async function persistDuplicateFlags(
       return { inserted: 0, detected: flags.length, skipped: true, auditIds: [] };
     }
     const sourceSnapshot = flags[0]?.source_snapshot;
+    // Every flag must carry a snapshot. The detector populates it for every flag
+    // (detect.ts:442), so a missing snapshot is a contract violation: bail out
+    // rather than silently skip the staleness check.
+    if (flags.some((flag) => !flag.source_snapshot)) {
+      return { inserted: 0, detected: flags.length, skipped: true, auditIds: [] };
+    }
     if (sourceSnapshot && flags.some((flag) =>
       flag.source_snapshot.version !== sourceSnapshot.version ||
       flag.source_snapshot.embedding_model !== sourceSnapshot.embedding_model ||
