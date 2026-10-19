@@ -17,7 +17,7 @@
 //   would re-render the case in its closed state and the close form unmounts).
 // - The closeCaseRequestSchema note is trimmed to 3..500 chars; the UI enforces the
 //   trimmed minimum before step 2 and submission, and caps input at 500 characters.
-import { useEffect, useId, useReducer, useRef, type FormEvent } from "react";
+import { useEffect, useId, useReducer, useRef, useState, type FormEvent } from "react";
 import { CircleAlertIcon, CircleCheckIcon, LoaderCircleIcon } from "@/app/components/icons";
 import {
   closeCaseRequestSchema,
@@ -198,6 +198,28 @@ export function CloseForm({
     }
   }, [caseId]);
 
+  // Elapsed-since-close timer: computed at effect time (not render) to avoid
+  // calling Date.now() during render and to keep the displayed "X seconds ago"
+  // value fresh without forcing a re-render every second (we only re-render
+  // when the user looks at the success panel — a refresh re-reads the value).
+  const [elapsedSeconds, setElapsedSeconds] = useState<number | null>(null);
+  useEffect(() => {
+    if (!state.success) {
+      // Defer the reset to avoid cascading-render lint warnings when the
+      // success state has just been cleared.
+      const handle = setTimeout(() => setElapsedSeconds(null), 0);
+      return () => clearTimeout(handle);
+    }
+    const closedAtMs = new Date(state.success.closed_at).getTime();
+    const tick = () => setElapsedSeconds(Math.max(0, Math.floor((Date.now() - closedAtMs) / 1000)));
+    const handle = setTimeout(tick, 0);
+    const id = setInterval(tick, 1000);
+    return () => {
+      clearTimeout(handle);
+      clearInterval(id);
+    };
+  }, [state.success]);
+
   const updateNote = (raw: string) => {
     const value = raw.slice(0, NOTE_MAX);
     dispatch({ type: "set-note", value });
@@ -272,13 +294,9 @@ export function CloseForm({
           <p className="text-body-sm text-ink">{t.closeSuccessBody}</p>
           <p className="text-caption-md text-mute">
             {locale === "bn"
-              ? `রেফারেন্স: ${state.success.ref_code} · ${localizeDigits(
-                  Math.max(
-                    0,
-                    Math.floor((Date.now() - new Date(state.success.closed_at).getTime()) / 1000),
-                  ),
-                  "bn",
-                )} সেকেন্ড আগে`
+              ? `রেফারেন্স: ${state.success.ref_code} · ${
+                  elapsedSeconds === null ? "—" : `${localizeDigits(elapsedSeconds, "bn")} সেকেন্ড আগে`
+                }`
               : `Reference: ${state.success.ref_code}`}
           </p>
         </div>
