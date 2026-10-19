@@ -3,7 +3,7 @@
 // parent-ownership parts of TC-022/044/052). The record-level E-004 views and the
 // access.denied audit row itself are TASK-015 (API-004); here the layer's denial hook
 // is checked to receive the server-derived principal. Synthetic accounts, fake store.
-import { randomUUID } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { ERROR_CATALOGUE, errorEnvelopeSchema, type ServerErrorId } from "@/contracts";
@@ -162,6 +162,31 @@ describe("credential principals are rebuilt from the user row (TC-023, BR-024)",
 });
 
 describe("parent sessions (D2A §9.1, BR-007 ownership)", () => {
+  it("preserves same-device report ownership across ordinary network and browser-header changes (FR-037)", async () => {
+    vi.stubEnv("TRUST_PROXY", "1");
+    try {
+      const t = setup();
+      const minted = await call(t.route("API-003"), undefined, { "x-forwarded-for": "192.0.2.1", "user-agent": "[MOCK] browser v1" });
+      const cookie = cookieHeaderFrom(minted);
+      const original = await minted.json();
+      const returned = await call(t.route("API-004"), cookie, { "x-forwarded-for": "198.51.100.2", "user-agent": "[MOCK] browser v2" });
+      expect(returned.status).toBe(200);
+      expect(await returned.json()).toEqual(original);
+      expect(returned.headers.getSetCookie()).toHaveLength(0);
+      expect(t.store.sessions.size).toBe(1);
+    } finally { vi.unstubAllEnvs(); }
+  });
+
+  it("continues to resolve a previously issued signed parent cookie while its DB session is live", async () => {
+    const t = setup();
+    const row = t.store.addSession();
+    const body = `p1.${row.id}`;
+    const sig = createHmac("sha256", KEYS.parent).update(body).digest("base64url");
+    const returned = await call(t.route("API-004"), `${t.names.parent}=${body}.${sig}`);
+    expect(returned.status).toBe(200);
+    expect(await returned.json()).toEqual({ role: "parent", id: row.id });
+  });
+
   it("reuses a minted browser-bound parent in route and read-only resolution and refuses changed User-Agent", async () => {
     const t = setup();
     const headers = { "user-agent": "[MOCK] synthetic browser" };
