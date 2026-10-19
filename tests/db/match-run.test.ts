@@ -92,7 +92,7 @@ describe.skipIf(!dbTestsEnabled)("P3-040 matcher run on PostgreSQL 16", () => {
     return { missing, found };
   };
 
-  it("skips one invalid candidate row and still completes the found-case duplicate hook", async () => {
+  it("marks a failed candidate write incomplete and withdraws its partial shortlist", async () => {
     const { missing, found } = await pair();
     const twin = await insertFound(appClient, actors.staff);
     const profile = await one<{
@@ -124,19 +124,14 @@ describe.skipIf(!dbTestsEnabled)("P3-040 matcher run on PostgreSQL 16", () => {
     const logger = createLogger((line) => logLines.push(line), () => 1_700_000_000_000);
     try {
       const direct = await runMatcherForCase(missing.id, { embedder: constantEmbedder(), api: "API-014", pool: app, logger });
-      expect(direct).toMatchObject({ state: "complete", considered: 2, skipped: ["E-021"] });
-      expect(direct.candidates).toHaveLength(1);
-      const persisted = await one<{ id: string; rank: number }>(appClient,
-        "SELECT id, rank FROM match_candidates WHERE missing_case_id = $1 AND found_case_id = $2",
+      expect(direct).toMatchObject({ state: "failed", considered: 2, skipped: ["E-021"], errorId: "E-021", candidates: [] });
+      const persisted = await one<{ status: string }>(appClient,
+        "SELECT status FROM match_candidates WHERE missing_case_id = $1 AND found_case_id = $2",
         [missing.id, twin.id]);
-      expect(direct.candidates[0]).toMatchObject({ id: persisted.id, rank: persisted.rank });
-
-      const fanout = await runMatcherForFoundCase(found.id, { embedder: constantEmbedder(), pool: app, logger });
-      expect(fanout).toMatchObject({ state: "complete", considered: 2 });
-      const duplicate = await one<{ status: string }>(appClient,
-        `SELECT status FROM duplicate_links WHERE case_a = least($1::uuid, $2::uuid)
-           AND case_b = greatest($1::uuid, $2::uuid)`, [found.id, twin.id]);
-      expect(duplicate.status).toBe("flagged");
+      expect(persisted.status).toBe("superseded");
+      const failedState = await one<{ status: string; matching_state: string; match_error_id: string | null }>(appClient,
+        "SELECT status, matching_state, match_error_id FROM cases WHERE id = $1", [missing.id]);
+      expect(failedState).toMatchObject({ status: "open", matching_state: "failed", match_error_id: "E-021" });
       expect(logLines.map((line) => JSON.parse(line))).toContainEqual(expect.objectContaining({
         event: "match.row_skipped", error_id: "E-021", err_code: "23514",
       }));
@@ -144,6 +139,13 @@ describe.skipIf(!dbTestsEnabled)("P3-040 matcher run on PostgreSQL 16", () => {
       await admin.query("DROP TRIGGER IF EXISTS test_reject_one_match_candidate ON public.match_candidates");
       await admin.query("DROP FUNCTION IF EXISTS public.test_reject_one_match_candidate()");
     }
+
+    const fanout = await runMatcherForFoundCase(found.id, { embedder: constantEmbedder(), pool: app, logger });
+    expect(fanout).toMatchObject({ state: "complete", considered: 2 });
+    const duplicate = await one<{ status: string }>(appClient,
+      `SELECT status FROM duplicate_links WHERE case_a = least($1::uuid, $2::uuid)
+         AND case_b = greatest($1::uuid, $2::uuid)`, [found.id, twin.id]);
+    expect(duplicate.status).toBe("flagged");
   });
 
   it("does not stamp closed or redacted reports during a matcher re-run", async () => {
