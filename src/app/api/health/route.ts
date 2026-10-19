@@ -13,7 +13,7 @@
 // a partial readiness is `"unavailable"`, not `"ready"`.
 import { healthResponseSchema, type HealthResponse } from "@/contracts";
 import pkg from "../../../../package.json";
-import { defineRoute } from "../_shared";
+import { RATE_LIMITS, defineRoute } from "../_shared";
 import { createHealthReadiness } from "@/server/health/readiness";
 
 export const runtime = "nodejs";
@@ -21,10 +21,16 @@ export const runtime = "nodejs";
 // Neither blocks on a real network call: the pool has a bounded query_timeout
 // (31 s) and the embedder loader is configured `allowRemote: false` so a
 // missing local cache cannot fall through to huggingface.co from this path.
+//
+// Network limit: preAuthNetwork (300/min). Health is a public probe and
+// load balancers can hit it often; the pre-auth floor already covers it
+// implicitly, but we declare the rate limit here so a config audit of this
+// file shows the bound without needing to read the compose layer.
 
 export const GET = defineRoute({
   api: "API-019",
   response: healthResponseSchema,
+  rateLimit: [RATE_LIMITS.preAuthNetwork],
   handler: async (): Promise<HealthResponse> => {
     const readiness = createHealthReadiness();
     const { db, embeddings } = await readiness();

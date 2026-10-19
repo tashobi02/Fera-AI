@@ -17,7 +17,7 @@
 import { caseListQuerySchema, caseListResponseSchema, createMissingRequestSchema, createMissingResponseSchema, outputTypeSchema, type CaseListResponse, type CreateMissingResponse } from "@/contracts";
 import { createMissingCase, listOfficerCases, openCase, readCase, fireMatcherPostcommit } from "@/server/case";
 import { getPool } from "@/server/db/pool";
-import { ApiError, RATE_LIMITS, Reply, defineRoute, type RateLimitRule } from "../_shared";
+import { ApiError, RATE_LIMITS, Reply, defineRoute, describeError, type RateLimitRule } from "../_shared";
 
 export const runtime = "nodejs"; // pg
 
@@ -39,7 +39,30 @@ export const POST = defineRoute({
     }
     const { case: created, replayed } = await createMissingCase(principal, body, { requestId });
     await openCase(principal, created.id, { requestId });
-    if (!replayed) await fireMatcherPostcommit(created.id, { requestId }, "API-003");
+    if (!replayed) {
+      // fireMatcherPostcommit's internal runDefault already catches and marks
+      // failures durably, but a test seam or an unhandled rejection (e.g. a
+      // matcher module that throws before the catch) could still escape. The
+      // case row is already committed at this point, so we must not bubble:
+      // log it, mark the row failed so it doesn't sit in queued/running, and
+      // let readCase below surface matching_state to the parent.
+      try {
+        await fireMatcherPostcommit(created.id, { requestId }, "API-003");
+      } catch (err) {
+        logger.error({ event: "matcher.postcommit_failed", request_id: requestId, route: "API-003", ...describeError(err) });
+        try {
+          await getPool().query(
+            `UPDATE cases SET matching_state = 'failed', matched_at = NULL, match_error_id = 'E-021'
+             WHERE id = $1 AND kind = 'missing' AND anonymised_at IS NULL
+               AND status IN ('open', 'matched_pending_review')
+               AND matching_state IN ('queued', 'running', 'failed')`,
+            [created.id],
+          );
+        } catch (markErr) {
+          logger.error({ event: "matcher.failure_state_unavailable", request_id: requestId, route: "API-003", ...describeError(markErr) });
+        }
+      }
+    }
     // Read the committed state after matching so a synchronous success/failure
     // is reflected in matching_state. readCase applies the owner DTO allowlist.
     const current = await readCase(principal, created.id, { requestId });

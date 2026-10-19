@@ -14,7 +14,7 @@ export const runtime = "nodejs"; // pg
 
 // Keep malformed record IDs on the authenticated E-004 path; decideDuplicate
 // performs the UUID check before opening a transaction, like API-011.
-const params = z.strictObject({ id: z.string() });
+const params = z.strictObject({ id: z.string().max(64) });
 
 // Not from the spec pack: a documented default (OD-028-3 pattern). A duplicate
 // review is rarer than a queue decision; the rate limit window is the same as

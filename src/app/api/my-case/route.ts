@@ -14,7 +14,7 @@
 import { myCaseResponseSchema, type MyCaseResponse } from "@/contracts";
 import { listMyCases } from "@/server/parent/my-reports";
 import { getPool } from "@/server/db/pool";
-import { ApiError, defineRoute, type RateLimitRule } from "../_shared";
+import { defineRoute, type RateLimitRule } from "../_shared";
 
 export const runtime = "nodejs"; // pg
 
@@ -27,11 +27,6 @@ export const GET = defineRoute({
   rateLimit: [MY_CASE],
   response: myCaseResponseSchema,
   handler: async ({ principal }): Promise<MyCaseResponse> => {
-    try {
-      return await listMyCases(principal, getPool());
-    } catch (err) {
-      if (err instanceof ApiError) throw err;
-      throw err;
-    }
+    return listMyCases(principal, getPool());
   },
 });

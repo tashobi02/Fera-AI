@@ -11,7 +11,7 @@ import { defineRoute, type RateLimitRule } from "../../../_shared";
 export const runtime = "nodejs"; // pg
 
 // Keep malformed path IDs inside the authenticated E-004 path (as API-004): the service guards isUuid.
-const params = z.strictObject({ id: z.string() });
+const params = z.strictObject({ id: z.string().max(64) });
 
 // Not from the spec pack: a documented default. Closing is rare, so the window is tighter than a read.
 const CASE_CLOSE: RateLimitRule = { id: "case.close.principal", limit: 60, windowMs: 60_000, scope: "principal", onStoreError: "allow" };
