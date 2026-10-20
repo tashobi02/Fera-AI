@@ -8,7 +8,8 @@
 // - Payload redaction (API-016) uses a separate pool from FERA_REDACTOR_DATABASE_URL as
 //   `fera_redactor` (src/server/admin/redact.ts takes its client); it is not wired here.
 // - Tests inject their own pool with setPoolForTests().
-import { Pool } from "pg";
+import { X509Certificate } from "node:crypto";
+import { Pool, type PoolConfig } from "pg";
 import { createLogger, describeError } from "@/app/api/_shared/log";
 
 const CONNECT_TIMEOUT_MS = 5_000;
@@ -31,12 +32,32 @@ export class DatabaseConfigError extends Error {
   }
 }
 
+function connectionOptions(connectionString: string, rawCa: string | undefined): PoolConfig {
+  if (!rawCa) return { connectionString };
+  const ca = rawCa.replace(/\\n/g, "\n");
+  try {
+    if (!new X509Certificate(ca).ca) throw new Error("not a CA");
+  } catch {
+    throw new Error("DATABASE_SSL_CA must contain a valid CA certificate");
+  }
+  const url = new URL(connectionString);
+  const mode = url.searchParams.get("sslmode");
+  const conflictingOption = [...url.searchParams.keys()].some(
+    (key) => (key.startsWith("ssl") && key !== "sslmode") || key === "uselibpqcompat",
+  );
+  if (conflictingOption || (mode !== null && !["require", "verify-ca", "verify-full"].includes(mode))) {
+    throw new Error("DATABASE_SSL_CA conflicts with DATABASE_URL SSL options");
+  }
+  url.searchParams.delete("sslmode");
+  return { connectionString: url.href, ssl: { ca, rejectUnauthorized: true } };
+}
+
 export function getPool(env: Record<string, string | undefined> = process.env): Pool {
   if (slot.pool) return slot.pool;
   const connectionString = env.DATABASE_URL;
   if (!connectionString) throw new DatabaseConfigError();
   const pool = new Pool({
-    connectionString,
+    ...connectionOptions(connectionString, env.DATABASE_SSL_CA),
     max: MAX_CLIENTS,
     connectionTimeoutMillis: CONNECT_TIMEOUT_MS,
     idleTimeoutMillis: IDLE_TIMEOUT_MS,
