@@ -1,5 +1,5 @@
-// TASK-031: ACT-029 sign-out control, markup only (server render in Node). It is not
-// mounted yet; the desk shells place it.
+// TASK-031: ACT-029 sign-out control, markup only (server render in Node). Now mounted
+// by src/app/(desk)/layout.tsx on signed-in staff/officer/admin pages.
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
